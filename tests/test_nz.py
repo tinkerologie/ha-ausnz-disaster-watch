@@ -348,7 +348,8 @@ async def test_geonet_quakes_and_volcanoes(hass: HomeAssistant) -> None:
     ("magnitude", "mmi", "depth", "expected"),
     [
         (6.5, 7, 10.0, WarningLevel.EMERGENCY_WARNING),
-        (5.8, 6, 20.0, WarningLevel.WATCH_AND_ACT),
+        (5.8, 6, 20.0, WarningLevel.EMERGENCY_WARNING),
+        (5.1, 5, 20.0, WarningLevel.WATCH_AND_ACT),
         (5.66, 4, 268.0, WarningLevel.ADVICE),
         (6.0, 3, 10.0, WarningLevel.INFORMATION),
         # MMI unknown (-1): magnitude counts only for shallow quakes

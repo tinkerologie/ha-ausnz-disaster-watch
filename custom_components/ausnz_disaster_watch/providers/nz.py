@@ -401,9 +401,9 @@ def _metservice_level(alert: CapAlert) -> WarningLevel:
 def _quake_level(magnitude: float, mmi: int, depth_km: float | None) -> WarningLevel:
     """Warning level from felt intensity (MMI); magnitude only when MMI is unknown and the quake is shallow."""
     if mmi >= 0:
-        if mmi >= 7:
-            return WarningLevel.EMERGENCY_WARNING
         if mmi >= 6:
+            return WarningLevel.EMERGENCY_WARNING
+        if mmi >= 5:
             return WarningLevel.WATCH_AND_ACT
         if mmi >= 4:
             return WarningLevel.ADVICE
