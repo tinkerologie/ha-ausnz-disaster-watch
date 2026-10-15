@@ -100,7 +100,9 @@ async def test_nsw_vic_skip_malformed_feature(
     good = MagicMock(spec=CanonicalHazard)
     parse_name = "_parse_nsw_feature" if provider_cls is NSWHazardProvider else "_parse_vic_feature"
     setattr(provider, parse_name, MagicMock(side_effect=[ValueError("bad"), good]))
-    provider.async_fetch_json = AsyncMock(return_value={"features": [{}, {}]})
+    if provider_cls is VictoriaHazardProvider:
+        # VIC fetches through the base fetcher; NSW through the library feed on the routed session
+        provider.async_fetch_json = AsyncMock(return_value={"features": [{}, {}]})
     assert await provider.async_fetch_hazards() == [good]
 
 
