@@ -38,6 +38,7 @@ from .models import (
 )
 from .providers import get_providers_for_config
 from .providers.base import BaseHazardProvider, ProviderUnavailableError
+from .providers.sources import DataSource, attribution_for, sources_for_provider
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
@@ -222,6 +223,11 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
             if self._feed_healthy.get(key) is False:
                 _LOGGER.info("Hazard feed %s is available again", key)
             self._feed_healthy[key] = True
+            # Hazards carry their own provider's attribution, e.g. for map pins (#34)
+            if attribution := attribution_for(sources_for_provider(key)):
+                for hazard in result:
+                    if hazard.attribution is None:
+                        hazard.attribution = attribution
             self._last_good_hazards[key] = (dt_util.utcnow(), result)
             all_hazards.extend(result)
 
@@ -519,6 +525,20 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
             feeds_ok=self._feeds_ok,
             feeds_failed=self._feeds_failed,
         )
+
+    @property
+    def data_sources(self) -> list[DataSource]:
+        """Return the register entries for every source this entry's providers read (#34)."""
+        return list(
+            dict.fromkeys(
+                source for provider in self.providers for source in sources_for_provider(type(provider).__name__)
+            )
+        )
+
+    @property
+    def attribution(self) -> str | None:
+        """Return the combined attribution text for this entry's sources."""
+        return attribution_for(self.data_sources)
 
     @property
     def active_hazards(self) -> list[CanonicalHazard]:

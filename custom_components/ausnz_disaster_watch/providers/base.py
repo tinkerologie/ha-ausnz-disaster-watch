@@ -30,6 +30,8 @@ from custom_components.ausnz_disaster_watch.models import (
 )
 from homeassistant.util import dt as dt_util
 
+from .sources import DataSource, attribution_for, sources_for_provider
+
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
@@ -116,6 +118,16 @@ class BaseHazardProvider(ABC):
     def set_location(self, latitude: float, longitude: float) -> None:
         """Use the coordinator's resolved monitoring point (it follows the home zone, #19)."""
         self.config = {**self.config, "latitude": latitude, "longitude": longitude}
+
+    @property
+    def data_sources(self) -> tuple[DataSource, ...]:
+        """Return the register entries for the upstream sources this provider reads (#34)."""
+        return sources_for_provider(type(self).__name__)
+
+    @property
+    def attribution(self) -> str | None:
+        """Return the attribution text for this provider's sources, or None if it has none."""
+        return attribution_for(self.data_sources)
 
     @property
     @abstractmethod

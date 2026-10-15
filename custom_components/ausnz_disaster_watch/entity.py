@@ -25,6 +25,9 @@ class AusNZDisasterWatchEntity(CoordinatorEntity[AustralianDisasterWatchCoordina
         state = coordinator.state_code
         loc_name = coordinator.combined_config.get(CONF_LOCATION_NAME, "Home")
 
+        # Credit the upstream publishers as their terms require (#34)
+        self._attr_attribution = coordinator.attribution
+
         # Unique ID for entity
         self._attr_unique_id = f"{coordinator.entry.entry_id}_{entity_key}"
 

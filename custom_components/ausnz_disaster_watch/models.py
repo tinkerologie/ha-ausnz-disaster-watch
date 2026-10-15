@@ -128,6 +128,9 @@ class CanonicalHazard(BaseModel):
     raw_properties: dict[str, Any] = Field(
         default_factory=dict, description="Raw upstream properties preserved for inspection"
     )
+    attribution: str | None = Field(
+        default=None, description="Data source attribution; the coordinator fills it from the provider (#34)"
+    )
 
     @field_validator("updated_at", mode="before")
     @classmethod

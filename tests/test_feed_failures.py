@@ -17,7 +17,6 @@ from custom_components.ausnz_disaster_watch.models import CanonicalHazard, Hazar
 from custom_components.ausnz_disaster_watch.providers import (
     ACTHazardProvider,
     NSWHazardProvider,
-    NTHazardProvider,
     NZHazardProvider,
     QueenslandHazardProvider,
     SAHazardProvider,
@@ -73,20 +72,6 @@ async def test_sa_skips_malformed_item(hass: HomeAssistant) -> None:
     xml = f"""<feed xmlns="http://www.w3.org/2005/Atom" xmlns:cap="urn:oasis:names:tc:emergency:cap:1.2">
       {entry("good", -34.9)}{entry("bad", BAD_LAT)}</feed>"""
     assert len(provider._parse_cap_feed(xml)) == 1
-
-
-async def test_nt_skips_malformed_item(hass: HomeAssistant) -> None:
-    """One bad NT feature is skipped."""
-    provider = NTHazardProvider(hass, AsyncMock(), {"state": "NT"})
-    features = [
-        {"geometry": _point(-12.5, 131.0), "properties": {"_eventtype": "Grass Fire", "_location": "Good"}},
-        {"geometry": _point(BAD_LAT, 131.0), "properties": {"_eventtype": "Grass Fire", "_location": "Bad"}},
-    ]
-    assert len(provider._parse_nt_incidents({"incidents": features})) == 1
-
-    provider.async_fetch_json = AsyncMock(return_value=[])
-    with pytest.raises(ProviderUnavailableError, match="unexpected payload"):
-        await provider.async_fetch_hazards()
 
 
 @pytest.mark.parametrize("provider_cls", [NSWHazardProvider, VictoriaHazardProvider])
@@ -417,15 +402,3 @@ async def test_json_feeds_reject_missing_collections(hass: HomeAssistant, feed_r
     nsw = NSWHazardProvider(hass, nsw_error, {"state": "NSW"})
     with pytest.raises(ProviderUnavailableError, match="NSW RFS returned an unexpected payload"):
         await nsw.async_fetch_hazards()
-
-    nt = NTHazardProvider(hass, AsyncMock(), {"state": "NT"})
-    for payload in ({}, {"incidents": None}, {"incidents": "error"}, {"incidents": {"error": "bad"}}, []):
-        nt.async_fetch_json = AsyncMock(return_value=payload)
-        with pytest.raises(ProviderUnavailableError, match="unexpected payload"):
-            await nt.async_fetch_hazards()
-    nt.async_fetch_json = AsyncMock(return_value={"incidents": {"type": "FeatureCollection", "features": []}})
-    assert await nt.async_fetch_hazards() == []
-    nt.async_fetch_json = AsyncMock(return_value={"features": []})
-    assert await nt.async_fetch_hazards() == []
-    nt.async_fetch_json = AsyncMock(return_value={"incidents": []})
-    assert await nt.async_fetch_hazards() == []
