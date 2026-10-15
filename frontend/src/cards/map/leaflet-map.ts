@@ -247,7 +247,8 @@ export class IncidentMap {
     if (!this.visible || this.destroyed) return;
     // Keep polling whatever happens below, so an outage or unchanged list retries later.
     this.pollTimer ??= setInterval(() => void this.loadRadar(), RADAR_POLL_MS);
-    this.onRadarStatus({ state: "loading" });
+    // A refresh keeps the current frames (and the radar bar) on screen until new ones arrive.
+    if (!this.radarLayers.length) this.onRadarStatus({ state: "loading" });
     let data: RadarFrames;
     try {
       data = await fetchRadarFrames();
@@ -257,6 +258,8 @@ export class IncidentMap {
     }
     if (this.destroyed || !this.options?.radar) return;
     if (this.radarData?.generated === data.generated && this.radarLayers.length) {
+      // Unchanged list: restore the current frame's status, playing or paused (reduced motion).
+      this.showFrame(this.frameIndex);
       this.schedule();
       return;
     }

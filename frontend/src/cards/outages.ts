@@ -3,6 +3,7 @@ import { KEY } from "../const";
 import { stateFor } from "../ha/entities";
 import { formatDateTime, formatNumber, isUnavailable, listAttr, numberAttr, stringAttr } from "../ha/format";
 import { t } from "../localize/localize";
+import { customersAffected } from "../model/outages";
 import { alert, empty, header, list, row, showAll } from "../components/render";
 import type { BaseCardConfig, HomeAssistant, LovelaceConfigForm } from "../types";
 import { assertPositiveInt, baseSchema, computeHelper, computeLabel, DisasterCard, stubConfig } from "./base";
@@ -68,7 +69,10 @@ export class OutagesCard extends DisasterCard<ListCardConfig> {
     }
     const outages = listAttr<OutageItem>(stateObj!.attributes.outages);
     const count = numberAttr(stateObj!.state) ?? outages.length;
-    const customers = numberAttr(stateObj!.attributes.customers_affected) ?? 0;
+    const customers = customersAffected(
+      stateFor(hass, this.deviceId, KEY.powerOutagesCustomersAffected),
+      stateObj!.attributes.customers_affected,
+    );
     const max = config.max_items ?? DEFAULT_MAX_ITEMS;
     const shown = this._expanded ? outages : outages.slice(0, max);
 
@@ -78,10 +82,14 @@ export class OutagesCard extends DisasterCard<ListCardConfig> {
           count === 0
             ? empty("mdi:transmission-tower", t(hass, "outages.empty"))
             : html`<span class="secondary"
-                  >${t(hass, "outages.summary", {
-                    count: formatNumber(hass, count),
-                    customers: formatNumber(hass, customers),
-                  })}</span
+                  >${
+                    customers === undefined
+                      ? t(hass, "outages.summary_count", { count: formatNumber(hass, count) })
+                      : t(hass, "outages.summary", {
+                          count: formatNumber(hass, count),
+                          customers: formatNumber(hass, customers),
+                        })
+                  }</span
                 >
                 ${list(
                   shown.map((o) => {

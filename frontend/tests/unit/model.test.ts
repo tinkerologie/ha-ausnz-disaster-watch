@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { awsPresentation, headlinePresentation, headlineStatus, parseAwsLevel } from "../../src/model/aws";
 import { hazardCategory, hazardIcon } from "../../src/model/hazards";
+import { customersAffected } from "../../src/model/outages";
 import {
   AFDRS_SCALE,
   afdrsTone,
@@ -10,6 +11,7 @@ import {
   roadStatusTone,
 } from "../../src/model/ratings";
 import { toneColor } from "../../src/model/tone";
+import type { HassEntity } from "../../src/types";
 
 describe("Australian Warning System", () => {
   it.each([
@@ -105,5 +107,35 @@ describe("ratings", () => {
 
   it("uses HA palette variables only", () => {
     expect(toneColor("red")).toBe("var(--red-color)");
+  });
+});
+
+describe("Power outages customers affected (#26)", () => {
+  const sensor = (state: string): HassEntity => ({
+    entity_id: "sensor.x_customers_affected",
+    state,
+    attributes: {},
+    last_changed: "",
+    last_updated: "",
+  });
+
+  it("reads the dedicated sensor first", () => {
+    expect(customersAffected(sensor("120"), 7)).toBe(120);
+    expect(customersAffected(sensor("0"), 7)).toBe(0);
+  });
+
+  it.each([
+    ["missing", undefined],
+    ["unavailable", sensor("unavailable")],
+    ["unknown", sensor("unknown")],
+    ["non-numeric", sensor("n/a")],
+  ])("falls back to the count attribute when the sensor is %s", (_label, state) => {
+    expect(customersAffected(state, 7)).toBe(7);
+    expect(customersAffected(state, "42")).toBe(42);
+  });
+
+  it("returns undefined, never 0, when both are missing", () => {
+    expect(customersAffected(undefined, undefined)).toBeUndefined();
+    expect(customersAffected(sensor("unavailable"), null)).toBeUndefined();
   });
 });

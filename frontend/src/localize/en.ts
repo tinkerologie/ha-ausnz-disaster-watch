@@ -92,6 +92,7 @@ export const en = {
   // Outages
   "outages.title": "Power outages",
   "outages.summary": "{count} outages · {customers} customers affected",
+  "outages.summary_count": "{count} outages",
   "outages.empty": "No power outages reported.",
   "outages.customers": "{count} customers",
   "outages.restore": "Restore {time}",

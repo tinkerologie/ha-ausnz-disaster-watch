@@ -288,3 +288,39 @@ test("radar animates without reduced motion and hides when RainViewer is down", 
   await expect(map.getByText("Rain radar is unavailable right now.")).toBeVisible();
   await expect(map.locator(".leaflet-container")).toBeVisible();
 });
+
+test("outage customers come from their own sensor and are never shown as 0 when missing (#26)", async ({ page }) => {
+  await setup(page);
+  const count = Object.keys(fixture.states).find((id) => id.includes("qld_dev_power_outages_count"))!;
+  const customers = Object.keys(fixture.states).find((id) => id.includes("qld_dev_power_outages_customers_affected"))!;
+  const c = fixture.states[count];
+  const noAttr = { ...c, attributes: { ...c.attributes, customers_affected: undefined } };
+
+  const fromSensor = await mount(page, "ausnz-disaster-outages-card", { device: QLD }, { states: { [count]: noAttr } });
+  await expect(fromSensor.getByText("1 outages · 124 customers affected")).toBeVisible();
+
+  const missing = await mount(
+    page,
+    "ausnz-disaster-outages-card",
+    { device: QLD },
+    { states: { [count]: noAttr, [customers]: { ...fixture.states[customers], state: "unavailable" } } },
+  );
+  await expect(missing.getByText("1 outages", { exact: true })).toBeVisible();
+  await expect(missing.getByText(/0 customers affected/)).toHaveCount(0);
+});
+
+test("radar bar stays when the frame list is unchanged while paused (#41)", async ({ page }) => {
+  await setup(page, { reducedMotion: true });
+  const el = await mount(page, "ausnz-disaster-map-card", { device: QLD });
+  const play = el.locator(".radar-bar ha-icon-button");
+  await expect(play).toHaveAttribute("aria-pressed", "false");
+  // Off screen and back: loadRadar() sees the same cached frame list.
+  await el.evaluate(async (card) => {
+    const map = (card as unknown as { _map: { setVisible: (v: boolean) => void } })._map;
+    map.setVisible(false);
+    map.setVisible(true);
+    await new Promise((r) => setTimeout(r, 200));
+  });
+  await expect(play).toBeVisible();
+  await expect(play).toHaveAttribute("aria-pressed", "false");
+});
