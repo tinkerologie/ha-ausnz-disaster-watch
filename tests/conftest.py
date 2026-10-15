@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import UTC, datetime
+import re
+from typing import Any
 
+import aiohttp
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClientMocker
 
 from custom_components.ausnz_disaster_watch.const import (
     CONF_COUNCIL_DASHBOARD_URL,
@@ -22,6 +27,8 @@ from custom_components.ausnz_disaster_watch.const import (
     STATE_QLD,
 )
 from custom_components.ausnz_disaster_watch.models import CanonicalHazard, HazardType, WarningLevel
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 
 @pytest.fixture(autouse=True)
@@ -147,3 +154,64 @@ def mock_config_entry() -> MockConfigEntry:
         },
         unique_id="ausnz_disaster_watch_qld_city_of_moreton_bay",
     )
+
+
+class FeedRoutes:
+    """Routes for feeds fetched through Home Assistant's shared session (the aio_geojson libraries, #35).
+
+    Call it with ``{url: body}`` to add routes and get the session. A dict/list body is served as
+    JSON, a str as-is, an int as that HTTP status, an exception is raised. Assigning to ``routes``
+    changes a route. Unrouted URLs fail with a connection error.
+    """
+
+    def __init__(self, hass: HomeAssistant, mocker: AiohttpClientMocker) -> None:
+        """Bind the routes to the test's aiohttp mocker."""
+        self._hass = hass
+        self._mocker = mocker
+        self.routes = _Routes(self._register)
+
+    def __call__(self, routes: dict[str, Any] | None = None) -> aiohttp.ClientSession:
+        """Add routes and return the shared session."""
+        self.routes.update(routes or {})
+        return async_get_clientsession(self._hass)
+
+    @property
+    def requested(self) -> list[str]:
+        """Return the requested URLs."""
+        return [str(call[1]) for call in self._mocker.mock_calls]
+
+    def _register(self) -> None:
+        self._mocker.clear_requests()
+        for url, body in self.routes.items():
+            if isinstance(body, Exception):
+                self._mocker.get(url, exc=body)
+            elif isinstance(body, int):
+                self._mocker.get(url, status=body)
+            elif isinstance(body, str):
+                self._mocker.get(url, text=body)
+            else:
+                self._mocker.get(url, json=body)
+        self._mocker.get(re.compile(".*"), exc=aiohttp.ClientConnectionError("no route"))
+
+
+class _Routes(dict[str, Any]):
+    """Route table that re-registers the mocks on every change."""
+
+    def __init__(self, on_change: Callable[[], None]) -> None:
+        super().__init__()
+        self._on_change = on_change
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        super().__setitem__(key, value)
+        self._on_change()
+
+    def update(self, *args: Any, **kwargs: Any) -> None:  # type: ignore[override]
+        """Add routes."""
+        super().update(*args, **kwargs)
+        self._on_change()
+
+
+@pytest.fixture
+def feed_routes(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) -> FeedRoutes:
+    """Route requests made through the shared aiohttp session."""
+    return FeedRoutes(hass, aioclient_mock)

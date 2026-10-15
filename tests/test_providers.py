@@ -1,7 +1,9 @@
 from datetime import UTC, datetime
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import aiohttp
+import geojson
 import pytest
 
 from custom_components.ausnz_disaster_watch.const import (
@@ -30,7 +32,18 @@ from custom_components.ausnz_disaster_watch.providers import (
     get_providers_for_config,
 )
 from custom_components.ausnz_disaster_watch.providers.base import ProviderUnavailableError, stable_id
+from custom_components.ausnz_disaster_watch.providers.nsw import NSW_RFS_MAJOR_INCIDENTS_URL, NSWRFSIncidentEntry
 from homeassistant.core import HomeAssistant
+
+
+def feature_collection(*features: dict[str, Any]) -> dict[str, Any]:
+    """Return a GeoJSON FeatureCollection."""
+    return {"type": "FeatureCollection", "features": list(features)}
+
+
+def nsw_entry(feature: dict[str, Any]) -> NSWRFSIncidentEntry:
+    """Return an NSW RFS library entry for a GeoJSON feature."""
+    return NSWRFSIncidentEntry((0.0, 0.0), geojson.loads(json.dumps(feature)))
 
 
 def test_base_provider_centroid_calculation() -> None:
@@ -59,31 +72,28 @@ def test_base_provider_centroid_calculation() -> None:
     assert abs(lon - 153.0) < 0.01
 
 
-async def test_nsw_provider_parsing(hass: HomeAssistant) -> None:
+async def test_nsw_provider_parsing(hass: HomeAssistant, feed_routes: Any) -> None:
     """Test NSW RFS provider parsing with HTML description."""
-    session = AsyncMock()
     config = {"state": STATE_NSW, "latitude": -33.8688, "longitude": 151.2093}
+
+    mock_nsw_feed = feature_collection(
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "GeometryCollection",
+                "geometries": [{"type": "Point", "coordinates": [152.5598, -29.6950]}],
+            },
+            "properties": {
+                "title": "Baffle Road",
+                "category": "Advice",
+                "guid": "https://incidents.rfs.nsw.gov.au/api/v1/incidents/681307",
+                "description": "ALERT LEVEL: Advice <br />LOCATION: BAFFLE RD, DALMORTON <br />COUNCIL AREA: Clarence Valley <br />STATUS: Under control <br />TYPE: Bush Fire <br />FIRE: Yes <br />RESPONSIBLE AGENCY: Rural Fire Service",
+            },
+        }
+    )
+
+    session = feed_routes({NSW_RFS_MAJOR_INCIDENTS_URL: mock_nsw_feed})
     provider = NSWHazardProvider(hass, session, config)
-
-    mock_nsw_feed = {
-        "features": [
-            {
-                "type": "Feature",
-                "geometry": {
-                    "type": "GeometryCollection",
-                    "geometries": [{"type": "Point", "coordinates": [152.5598, -29.6950]}],
-                },
-                "properties": {
-                    "title": "Baffle Road",
-                    "category": "Advice",
-                    "guid": "https://incidents.rfs.nsw.gov.au/api/v1/incidents/681307",
-                    "description": "ALERT LEVEL: Advice <br />LOCATION: BAFFLE RD, DALMORTON <br />COUNCIL AREA: Clarence Valley <br />STATUS: Under control <br />TYPE: Bush Fire <br />FIRE: Yes <br />RESPONSIBLE AGENCY: Rural Fire Service",
-                },
-            }
-        ]
-    }
-
-    provider.async_fetch_json = AsyncMock(return_value=mock_nsw_feed)
     hazards = await provider.async_fetch_hazards()
 
     assert len(hazards) == 1
@@ -94,6 +104,11 @@ async def test_nsw_provider_parsing(hass: HomeAssistant) -> None:
     assert h.hazard_type == HazardType.BUSHFIRE
     assert h.status == "Under control"
     assert h.location_name == "BAFFLE RD, DALMORTON"
+    # The last field has no trailing <br />: still read (the library's own pattern misses it)
+    assert h.responsible_agency == "Rural Fire Service"
+    assert (h.latitude, h.longitude) == (-29.6950, 152.5598)
+    assert h.raw_properties["guid"] == "https://incidents.rfs.nsw.gov.au/api/v1/incidents/681307"
+    assert feed_routes.requested == [NSW_RFS_MAJOR_INCIDENTS_URL]
 
 
 async def test_vic_provider_parsing(hass: HomeAssistant) -> None:
@@ -345,21 +360,20 @@ def test_stable_id_is_deterministic() -> None:
     assert stable_id("x", None, "a") == stable_id("x", "", "a")
 
 
-async def test_nsw_provider_edge_cases(hass: HomeAssistant) -> None:
+async def test_nsw_provider_edge_cases(hass: HomeAssistant, feed_routes: Any) -> None:
     """Test NSW provider state code, error branches, and description parsing."""
-    session = AsyncMock()
-    provider = NSWHazardProvider(hass, session, {"state": STATE_NSW})
+    provider = NSWHazardProvider(hass, feed_routes(), {"state": STATE_NSW})
     assert provider.state_code == STATE_NSW
 
-    provider.async_fetch_json = AsyncMock(side_effect=aiohttp.ClientError("NSW feed failed"))
-    with pytest.raises(ProviderUnavailableError):
+    with pytest.raises(ProviderUnavailableError, match="NSW RFS unavailable"):
         await provider.async_fetch_hazards()
 
     # Feature without centroid
-    assert provider._parse_nsw_feature({"geometry": {}, "properties": {}}) is None
+    assert provider._parse_nsw_feature(nsw_entry({"type": "Feature", "geometry": None, "properties": {}})) is None
 
     # Feature without guid (fallback ID generation)
     feat_no_guid = {
+        "type": "Feature",
         "geometry": {"type": "Point", "coordinates": [151.0, -33.0]},
         "properties": {
             "title": "Grass Fire Hunter",
@@ -367,7 +381,7 @@ async def test_nsw_provider_edge_cases(hass: HomeAssistant) -> None:
             "description": "",
         },
     }
-    h = provider._parse_nsw_feature(feat_no_guid)
+    h = provider._parse_nsw_feature(nsw_entry(feat_no_guid))
     assert h is not None
     assert "Hunter" in h.id
 
@@ -468,17 +482,19 @@ async def test_base_provider_headers_and_status(hass: HomeAssistant) -> None:
     assert centroid is not None
 
 
-async def test_nsw_and_vic_empty_and_cap_none(hass: HomeAssistant) -> None:
+async def test_nsw_and_vic_empty_and_cap_none(hass: HomeAssistant, feed_routes: Any) -> None:
     """Test NSW and VIC when feeds return empty or non-dict, and VIC cap is None."""
     session = AsyncMock()
 
     # NSW: a non-object payload is a broken feed, not an all-clear (#16)
-    nsw_prov = NSWHazardProvider(hass, session, {"state": STATE_NSW})
-    nsw_prov.async_fetch_json = AsyncMock(return_value=None)
-    with pytest.raises(ProviderUnavailableError):
-        await nsw_prov.async_fetch_hazards()
+    nsw_session = feed_routes()
+    nsw_prov = NSWHazardProvider(hass, nsw_session, {"state": STATE_NSW})
+    for body in ("null", "[]", "not json", 503):
+        feed_routes.routes[NSW_RFS_MAJOR_INCIDENTS_URL] = body
+        with pytest.raises(ProviderUnavailableError):
+            await nsw_prov.async_fetch_hazards()
     # ...while a valid feed with no features is a genuine all-clear
-    nsw_prov.async_fetch_json = AsyncMock(return_value={"type": "FeatureCollection", "features": []})
+    feed_routes.routes[NSW_RFS_MAJOR_INCIDENTS_URL] = {"type": "FeatureCollection", "features": []}
     assert await nsw_prov.async_fetch_hazards() == []
 
     # VIC: same contract

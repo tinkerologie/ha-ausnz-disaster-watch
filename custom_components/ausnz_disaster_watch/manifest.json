@@ -14,7 +14,16 @@
   "integration_type": "service",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/tinkerologie/ha-ausnz-disaster-watch/issues",
+  "loggers": [
+    "aio_geojson_client",
+    "aio_geojson_geonetnz_quakes",
+    "aio_geojson_geonetnz_volcano",
+    "aio_geojson_nsw_rfs_incidents"
+  ],
   "requirements": [
+    "aio-geojson-geonetnz-quakes>=0.16",
+    "aio-geojson-geonetnz-volcano>=0.9",
+    "aio-geojson-nsw-rfs-incidents>=0.7",
     "defusedxml>=0.7.1",
     "pydantic>=2.10"
   ],

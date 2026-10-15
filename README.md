@@ -16,6 +16,7 @@ Directly integrates official emergency feeds—including the **Queensland Fire D
   - **Queensland**: Real-time QFD vegetation fire & emergency warnings feed + direct integration with Local Council Disaster Dashboards (**City of Moreton Bay**, Sunshine Coast, Gold Coast, Cairns, Townsville, Fraser Coast, etc.) covering fire incidents, road closures/hazards, power outages, and bulletins.
   - **New South Wales**: NSW RFS Major Incidents & SES data feeds.
   - **Victoria**: Emergency Management Victoria (EMV OSOM) feed covering fires, floods, storms, and health hazards.
+  - **New Zealand**: GeoNet earthquakes (with GeoNet's CAP quake alerts) and volcanic alert levels, NEMA Civil Defence alerts, MetService warnings, and NZTA state highway closures and hazards.
   - **National / Federal**: Bureau of Meteorology (BoM) weather warnings (severe thunderstorms, tropical cyclones, flood warnings).
 - **Australian Warning System (AWS) Normalization**:
   - 🚨 **Emergency Warning** (Level 3 - Red)
@@ -199,6 +200,20 @@ actions:
 ```
 
 ---
+
+## Data Sources & Attribution
+
+Hazard data comes from the official agencies below. Each item carries its agency in the `source` or `responsible_agency` attribute.
+
+| Region | Source | Terms |
+| ------ | ------ | ----- |
+| New Zealand | [GeoNet](https://www.geonet.org.nz) quakes, volcanic alert levels and quake CAP alerts, Earth Sciences New Zealand | [CC BY 3.0 NZ](https://www.geonet.org.nz/disclaimer) |
+| New Zealand | [NEMA](https://www.civildefence.govt.nz) Civil Defence Emergency Mobile Alerts (AlertHub CAP feed) | Public alerting feed |
+| New Zealand | [MetService](https://www.metservice.com/warnings/home) severe weather warnings (CAP) | MetService public CAP alerts |
+| New Zealand | [NZ Transport Agency Waka Kotahi](https://www.journeys.nzta.govt.nz) road events (Traffic Application Server, `trafficnz.info`) | NZTA open data, no key required |
+| New South Wales | [NSW Rural Fire Service](https://www.rfs.nsw.gov.au) major incidents | State of New South Wales (NSW RFS) |
+
+GeoNet and NSW RFS feeds are read with the maintained `aio_geojson_geonetnz_quakes`, `aio_geojson_geonetnz_volcano` and `aio_geojson_nsw_rfs_incidents` libraries (Apache-2.0), the same ones Home Assistant core uses.
 
 ## Quality Scale & Standards
 

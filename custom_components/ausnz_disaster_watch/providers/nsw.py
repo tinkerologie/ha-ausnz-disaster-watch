@@ -1,10 +1,19 @@
-"""New South Wales emergency hazards provider (NSW RFS & SES)."""
+"""New South Wales emergency hazards provider (NSW RFS & SES).
+
+The RFS major incidents feed is fetched and decoded by ``aio_geojson_nsw_rfs_incidents``
+(#35). The description is still split here: the library's field patterns need a trailing
+``<br`` (so the last field is missed) and it has no ALERT LEVEL or UPDATED field.
+"""
 
 from __future__ import annotations
 
 import logging
 import re
-from typing import Any
+from typing import Any, cast
+
+from aio_geojson_nsw_rfs_incidents.consts import URL as RFS_URL
+from aio_geojson_nsw_rfs_incidents.feed import NswRuralFireServiceIncidentsFeed
+from aio_geojson_nsw_rfs_incidents.feed_entry import NswRuralFireServiceIncidentsFeedEntry
 
 from custom_components.ausnz_disaster_watch.const import CONF_COUNCIL_DASHBOARD_URL, STATE_NSW
 from custom_components.ausnz_disaster_watch.models import (
@@ -22,12 +31,13 @@ from custom_components.ausnz_disaster_watch.models import (
     WeatherWarningItem,
 )
 
-from .base import MALFORMED_ITEM_ERRORS, BaseHazardProvider, ProviderUnavailableError
+from .base import MALFORMED_ITEM_ERRORS, BaseHazardProvider
+from .geojson_feed import CheckedEntryMixin, CheckedFeedMixin, async_feed_entries
 from .guardian_ims import GuardianDashboard, normalise_dashboard_url
 
 _LOGGER = logging.getLogger(__name__)
 
-NSW_RFS_MAJOR_INCIDENTS_URL = "https://www.rfs.nsw.gov.au/feeds/majorIncidents.json"
+NSW_RFS_MAJOR_INCIDENTS_URL = RFS_URL
 
 # Links to NSW council dashboards (shown on the card; never polled)
 NSW_COUNCIL_LINKS: list[dict[str, str]] = [
@@ -37,6 +47,20 @@ NSW_COUNCIL_LINKS: list[dict[str, str]] = [
     {"name": "Byron Shire Council", "url": "https://emergency.byron.nsw.gov.au"},
     {"name": "Northern Beaches Council", "url": "https://emergency.northernbeaches.nsw.gov.au"},
 ]
+
+
+class NSWRFSIncidentEntry(CheckedEntryMixin, NswRuralFireServiceIncidentsFeedEntry):
+    """NSW RFS incident entry with the feature's original properties."""
+
+
+class NSWRFSIncidentsFeed(CheckedFeedMixin, NswRuralFireServiceIncidentsFeed):
+    """NSW RFS major incidents feed without library-side filters."""
+
+    feed_label = "NSW RFS"
+
+    def _new_entry(self, home_coordinates: tuple[float, float], feature: Any, global_data: Any) -> NSWRFSIncidentEntry:
+        """Wrap a feature in an NSW RFS incident entry."""
+        return NSWRFSIncidentEntry(home_coordinates, feature)
 
 
 class NSWHazardProvider(BaseHazardProvider):
@@ -49,18 +73,24 @@ class NSWHazardProvider(BaseHazardProvider):
         """Return state code."""
         return STATE_NSW
 
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """Initialise the provider, its library feed (on the shared session) and council dashboard."""
+        super().__init__(*args, **kwargs)
+        # The library only uses home for distance filtering, which the coordinator does instead
+        self._rfs_feed = NSWRFSIncidentsFeed(self.session, (0.0, 0.0))
+        base_url = normalise_dashboard_url(self.config.get(CONF_COUNCIL_DASHBOARD_URL))
+        self.dashboard: GuardianDashboard | None = GuardianDashboard(self, base_url) if base_url else None
+
     async def async_fetch_hazards(self) -> list[CanonicalHazard]:
         """Fetch hazards from NSW RFS major incidents feed."""
         if self.dashboard is not None:
             self.dashboard.start_poll()
-        data = await self.async_fetch_feed_json(NSW_RFS_MAJOR_INCIDENTS_URL, "NSW RFS")
-        if not isinstance(data, dict):
-            raise ProviderUnavailableError("NSW RFS returned an unexpected payload")
-
         hazards: list[CanonicalHazard] = []
-        for feature in self.require_list(data, "features", "NSW RFS"):
+        # The feed creates NSWRFSIncidentEntry objects (_new_entry); the library's generic says its base class
+        entries = cast(list[NSWRFSIncidentEntry], await async_feed_entries(self._rfs_feed, "NSW RFS"))
+        for entry in entries:
             try:
-                hazard = self._parse_nsw_feature(feature)
+                hazard = self._parse_nsw_feature(entry)
             except MALFORMED_ITEM_ERRORS as err:
                 _LOGGER.debug("Skipping malformed NSW RFS item: %s", err)
                 continue
@@ -68,12 +98,11 @@ class NSWHazardProvider(BaseHazardProvider):
                 hazards.append(hazard)
         return hazards
 
-    def _parse_nsw_feature(self, feature: dict[str, Any]) -> CanonicalHazard | None:
-        """Parse GeoJSON feature from NSW RFS feed."""
-        props = feature.get("properties", {})
-        geometry = feature.get("geometry", {})
-        centroid = self.calculate_centroid(geometry)
-        if not centroid:
+    def _parse_nsw_feature(self, entry: NSWRFSIncidentEntry) -> CanonicalHazard | None:
+        """Map an NSW RFS incident entry to a hazard."""
+        props = entry.properties
+        centroid = entry.coordinates
+        if not centroid or centroid[0] is None or centroid[1] is None:
             return None
 
         lat, lon = centroid
@@ -143,12 +172,6 @@ class NSWHazardProvider(BaseHazardProvider):
                 k, _, v = line.partition(":")
                 fields[k.strip().upper()] = v.strip()
         return fields
-
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Initialise the provider and its council dashboard client, if one is configured."""
-        super().__init__(*args, **kwargs)
-        base_url = normalise_dashboard_url(self.config.get(CONF_COUNCIL_DASHBOARD_URL))
-        self.dashboard: GuardianDashboard | None = GuardianDashboard(self, base_url) if base_url else None
 
     async def async_fetch_power_outages(self) -> list[PowerOutageItem]:
         """Fetch power outages published on the council dashboard."""
