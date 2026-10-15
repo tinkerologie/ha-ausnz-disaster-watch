@@ -341,6 +341,7 @@ async def test_base_provider_async_fetch_json(hass: HomeAssistant) -> None:
     # Success 200
     mock_resp = AsyncMock()
     mock_resp.status = 200
+    mock_resp.raise_for_status = MagicMock()
     mock_resp.json = AsyncMock(return_value={"status": "ok"})
 
     class MockCM:
@@ -360,9 +361,12 @@ async def test_base_provider_async_fetch_json(hass: HomeAssistant) -> None:
     # Retry on 500 then succeed 200
     mock_resp_500 = AsyncMock()
     mock_resp_500.status = 500
+    mock_resp_500.raise_for_status = MagicMock()
     mock_resp_200 = AsyncMock()
     mock_resp_200.status = 200
+    mock_resp_200.raise_for_status = MagicMock()
     mock_resp_200.json = AsyncMock(return_value={"retry": "ok"})
+
     session.get.side_effect = [MockCM(mock_resp_500), MockCM(mock_resp_200)]
 
     with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
@@ -370,7 +374,22 @@ async def test_base_provider_async_fetch_json(hass: HomeAssistant) -> None:
         assert data2 == {"retry": "ok"}
         mock_sleep.assert_called_once()
 
+    # Transient ClientResponseError (e.g. 503) retry then succeed 200
+    req_info = MagicMock()
+    err_503 = aiohttp.ClientResponseError(request_info=req_info, history=(), status=503)
+    session.get.side_effect = [err_503, MockCM(mock_resp_200)]
+    with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+        data3 = await provider.async_fetch_json("https://example.com/api3")
+        assert data3 == {"retry": "ok"}
+        mock_sleep.assert_called_once()
+
+    # Transient ClientResponseError exhausting MAX_RETRIES
+    session.get.side_effect = err_503
+    with patch("asyncio.sleep", new_callable=AsyncMock), pytest.raises(aiohttp.ClientResponseError):
+        await provider.async_fetch_json("https://example.com/api_err_exhaust")
+
     # Network error retry and final raise
+
     session.get.side_effect = aiohttp.ClientError("Network down")
     with patch("asyncio.sleep", new_callable=AsyncMock), pytest.raises(aiohttp.ClientError):
         await provider.async_fetch_json("https://example.com/fail")
@@ -623,6 +642,7 @@ async def test_base_provider_headers_and_status(hass: HomeAssistant) -> None:
     # Headers passed
     mock_resp = AsyncMock()
     mock_resp.status = 200
+    mock_resp.raise_for_status = MagicMock()
     mock_resp.json = AsyncMock(return_value={"ok": True})
 
     class MockCM:
@@ -637,7 +657,7 @@ async def test_base_provider_headers_and_status(hass: HomeAssistant) -> None:
     assert res == {"ok": True}
 
     # 404 calls raise_for_status
-    mock_resp_404 = AsyncMock()
+    mock_resp_404 = MagicMock()
     mock_resp_404.status = 404
     mock_resp_404.raise_for_status = MagicMock(
         side_effect=aiohttp.ClientResponseError(None, (), status=404)  # type: ignore[arg-type]
@@ -833,7 +853,11 @@ async def test_nsw_provider_composite_methods(hass: HomeAssistant) -> None:
     """Test NSW provider composite feeds: fire danger, warnings, news, and councils."""
     session = AsyncMock()
     prov_default = NSWHazardProvider(hass, session, {"state": STATE_NSW})
-    assert prov_default._get_council_base_url() == "https://disaster.hawkesbury.nsw.gov.au"
+    assert prov_default._get_council_base_url() is None
+
+    assert await prov_default.async_fetch_fire_danger() is None
+    assert await prov_default.async_fetch_weather_warnings() == []
+    assert await prov_default.async_fetch_emergency_news() == []
 
     prov_custom = NSWHazardProvider(
         hass,
@@ -931,7 +955,17 @@ async def test_qld_provider_composite_methods(hass: HomeAssistant) -> None:
 
     # Default URL
     prov_default = QueenslandHazardProvider(hass, session, {"state": STATE_QLD})
-    assert prov_default._get_council_base_url() == "https://disaster.moretonbay.qld.gov.au"
+    assert prov_default._get_council_base_url() is None
+    assert await prov_default.async_fetch_power_outages() == []
+    assert await prov_default.async_fetch_road_closures() == []
+    assert await prov_default.async_fetch_weather_warnings() == []
+    assert await prov_default.async_fetch_emergency_news() == []
+    assert await prov_default.async_fetch_fire_danger() is None
+    assert await prov_default.async_fetch_weather_telemetry() == []
+    assert await prov_default.async_fetch_air_quality() == []
+    assert await prov_default.async_fetch_relief_facilities() == []
+    assert await prov_default.async_fetch_cameras() == []
+    assert await prov_default.async_fetch_nearby_councils() == []
 
     # 1. Power Outages: nested Outage, flat dict, invalid item, exception
     prov.async_fetch_json = AsyncMock(
@@ -1310,6 +1344,7 @@ async def test_base_provider_additional_geometries_and_fetch_text(hass: HomeAssi
 
     mock_resp_200 = AsyncMock()
     mock_resp_200.status = 200
+    mock_resp_200.raise_for_status = MagicMock()
     mock_resp_200.text = AsyncMock(return_value="<xml>ok</xml>")
 
     class MockCM:
@@ -1332,7 +1367,9 @@ async def test_base_provider_additional_geometries_and_fetch_text(hass: HomeAssi
     # 500 retry then 200
     mock_resp_500 = AsyncMock()
     mock_resp_500.status = 500
+    mock_resp_500.raise_for_status = MagicMock()
     session.get.side_effect = [MockCM(mock_resp_500), MockCM(mock_resp_200)]
+
     with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
         text_retry = await dummy.async_fetch_text("https://example.com/retry.xml")
         assert text_retry == "<xml>ok</xml>"
@@ -1449,6 +1486,23 @@ async def test_nz_hazard_provider(hass: HomeAssistant) -> None:
                 },
             },
             {
+                "geometry": {"type": "Point", "coordinates": [174.0, -41.0]},
+                "properties": {
+                    "publicID": "q_deleted",
+                    "quality": "deleted",
+                    "magnitude": 6.0,
+                    "time": "2026-10-15T01:00:00Z",
+                },
+            },
+            {
+                "geometry": {"type": "Point", "coordinates": [174.0, -41.0]},
+                "properties": {
+                    "publicID": "q_old",
+                    "time": "2020-01-01T00:00:00Z",
+                    "magnitude": 7.0,
+                },
+            },
+            {
                 "geometry": {},
                 "properties": {"publicID": "q5"},
             },
@@ -1512,8 +1566,54 @@ async def test_nz_hazard_provider(hass: HomeAssistant) -> None:
         <id>nema_alert_1</id>
         <title>Tsunami Threat - East Coast</title>
         <updated>2026-10-15T05:00:00Z</updated>
+        <cap:severity>Extreme</cap:severity>
         <cap:circle>-38.5,178.0 50.0</cap:circle>
       </entry>
+      <entry>
+        <id>nema_alert_polygon</id>
+        <title>Severe Weather Warning - Bay of Plenty</title>
+        <updated>2026-10-15T05:10:00Z</updated>
+        <cap:severity>Severe</cap:severity>
+        <cap:polygon>-37.0,176.0 -38.0,176.0 -38.0,177.0 -37.0,176.0</cap:polygon>
+      </entry>
+      <entry>
+        <id>nema_alert_cancel</id>
+        <title>Cancelled Warning</title>
+        <cap:msgType>Cancel</cap:msgType>
+        <cap:circle>-38.5,178.0 50.0</cap:circle>
+      </entry>
+      <entry>
+        <id>nema_alert_draft</id>
+        <title>Draft Warning</title>
+        <cap:status>Draft</cap:status>
+        <cap:circle>-38.5,178.0 50.0</cap:circle>
+      </entry>
+      <entry>
+        <id>nema_alert_moderate</id>
+        <title>Moderate Warning - Advice</title>
+        <updated>2026-10-15T05:20:00Z</updated>
+        <cap:severity>Moderate</cap:severity>
+        <cap:circle>-39.0,175.0 10.0</cap:circle>
+      </entry>
+      <entry>
+        <id>nema_alert_info</id>
+        <title>Minor Information</title>
+        <updated>2026-10-15T05:25:00Z</updated>
+        <cap:severity>Minor</cap:severity>
+        <cap:circle>-40.0,175.0 10.0</cap:circle>
+      </entry>
+      <entry>
+        <id>nema_alert_bad_poly</id>
+        <title>Bad Polygon Coordinates</title>
+        <updated>2026-10-15T05:35:00Z</updated>
+        <cap:polygon>invalid,coordinates,not_two_items</cap:polygon>
+      </entry>
+      <entry>
+        <id>nema_alert_bad_polygon</id>
+        <title>Bad Polygon Format</title>
+        <cap:polygon>invalid_polygon_points</cap:polygon>
+      </entry>
+
       <entry>
         <id>nema_alert_2</id>
         <title>Severe Flood Warning - West Coast</title>
@@ -1532,7 +1632,13 @@ async def test_nz_hazard_provider(hass: HomeAssistant) -> None:
     prov.async_fetch_text = AsyncMock(return_value=nema_atom_xml)
 
     hazards = await prov.async_fetch_hazards()
-    assert len(hazards) == 11  # 4 quakes + 4 volcanoes + 3 nema alerts
+    assert len(hazards) == 12  # 4 quakes + 4 volcanoes + 4 nema alerts
+
+    # Confirm filtered items were skipped
+    assert not any(h.id == "nz_quake_q_deleted" for h in hazards)
+    assert not any(h.id == "nz_quake_q_old" for h in hazards)
+    assert not any("nema_alert_cancel" in h.id for h in hazards)
+    assert not any("nema_alert_draft" in h.id for h in hazards)
 
     quake_1 = next(h for h in hazards if h.id == "nz_quake_q1")
     assert quake_1.warning_level == WarningLevel.EMERGENCY_WARNING
@@ -1549,20 +1655,40 @@ async def test_nz_hazard_provider(hass: HomeAssistant) -> None:
 
     volc_1 = next(h for h in hazards if h.id == "nz_volcano_whiteisland")
     assert volc_1.warning_level == WarningLevel.EMERGENCY_WARNING
+    assert volc_1.hazard_type == HazardType.VOLCANO
 
     volc_2 = next(h for h in hazards if h.id == "nz_volcano_ruapehu")
     assert volc_2.warning_level == WarningLevel.WATCH_AND_ACT
+    assert volc_2.hazard_type == HazardType.VOLCANO
 
     volc_3 = next(h for h in hazards if h.id == "nz_volcano_taupo")
     assert volc_3.warning_level == WarningLevel.ADVICE
+    assert volc_3.hazard_type == HazardType.VOLCANO
 
     volc_4 = next(h for h in hazards if h.id == "nz_volcano_auckland")
     assert volc_4.warning_level == WarningLevel.INFORMATION
+    assert volc_4.hazard_type == HazardType.VOLCANO
 
     nema_1 = next(h for h in hazards if h.id == "nz_nema_nema_alert_1")
     assert nema_1.warning_level == WarningLevel.EMERGENCY_WARNING
     assert nema_1.latitude == -38.5
     assert nema_1.longitude == 178.0
+
+    nema_poly = next(h for h in hazards if h.id == "nz_nema_nema_alert_polygon")
+    assert nema_poly.warning_level == WarningLevel.WATCH_AND_ACT
+    assert nema_poly.latitude is not None and nema_poly.longitude is not None
+
+    nema_mod = next(h for h in hazards if h.id == "nz_nema_nema_alert_moderate")
+    assert nema_mod.warning_level == WarningLevel.ADVICE
+
+    nema_info = next(h for h in hazards if h.id == "nz_nema_nema_alert_info")
+    assert nema_info.warning_level == WarningLevel.INFORMATION
+
+    nema_mod = next(h for h in hazards if h.id == "nz_nema_nema_alert_moderate")
+    assert nema_mod.warning_level == WarningLevel.ADVICE
+
+    nema_info = next(h for h in hazards if h.id == "nz_nema_nema_alert_info")
+    assert nema_info.warning_level == WarningLevel.INFORMATION
 
     # Test error handling and empty parsing in NZ
     prov.async_fetch_json = AsyncMock(side_effect=RuntimeError("GeoNet API down"))
@@ -2081,3 +2207,38 @@ async def test_act_hazard_provider(hass: HomeAssistant) -> None:
     assert await prov.async_fetch_hazards() == []
     assert prov._parse_act_feed("") == []
     assert prov._parse_act_feed("<bad") == []
+
+
+async def test_qld_provider_no_council_url(hass: HomeAssistant) -> None:
+    """Test QLD provider when no council URL is configured."""
+    session = AsyncMock()
+    provider = QueenslandHazardProvider(hass, session, {"state": STATE_QLD})
+    assert provider._get_council_base_url() is None
+    assert await provider.async_fetch_power_outages() == []
+    assert await provider.async_fetch_road_closures() == []
+    assert await provider.async_fetch_weather_warnings() == []
+    assert await provider.async_fetch_emergency_news() == []
+    assert await provider.async_fetch_fire_danger() is None
+    assert await provider.async_fetch_weather_telemetry() == []
+    assert await provider.async_fetch_air_quality() == []
+    assert await provider.async_fetch_relief_facilities() == []
+    assert await provider.async_fetch_cameras() == []
+    assert await provider.async_fetch_nearby_councils() == []
+
+
+async def test_qld_provider_payload_cache(hass: HomeAssistant) -> None:
+    """Test QLD provider payload caching for composite feeds."""
+    session = AsyncMock()
+    base = "https://disaster.moretonbay.qld.gov.au"
+    provider = QueenslandHazardProvider(hass, session, {"state": STATE_QLD, CONF_COUNCIL_DASHBOARD_URL: base})
+    provider._payload_cache[f"{base}/dashboard/tmrRoadData"] = []
+    provider._payload_cache[f"{base}/dashboard/bom"] = {"item": []}
+    provider._payload_cache[f"{base}/dashboard/imsBulletin"] = {"features": []}
+    provider.async_fetch_json = AsyncMock(return_value={})
+
+    closures = await provider.async_fetch_road_closures()
+    warnings = await provider.async_fetch_weather_warnings()
+    news = await provider.async_fetch_emergency_news()
+    assert closures == []
+    assert warnings == []
+    assert news == []

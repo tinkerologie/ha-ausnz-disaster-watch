@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import timedelta
 import logging
 import math
@@ -101,18 +102,23 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         self.providers = get_providers_for_config(self.hass, session, self.combined_config)
 
     async def _async_fetch_all_hazards(self) -> list[CanonicalHazard]:
-        """Fetch all hazards from active providers."""
-        all_hazards: list[CanonicalHazard] = []
-        for provider in self.providers:
+        """Fetch all hazards from active providers concurrently."""
+
+        async def _fetch(provider: Any) -> list[CanonicalHazard]:
             try:
-                hazards = await provider.async_fetch_hazards()
-                all_hazards.extend(hazards)
+                return await provider.async_fetch_hazards()
             except Exception as err:  # noqa: BLE001
                 _LOGGER.warning(
                     "Error fetching data from provider %s: %s",
                     provider.__class__.__name__,
                     err,
                 )
+                return []
+
+        results = await asyncio.gather(*[_fetch(p) for p in self.providers])
+        all_hazards: list[CanonicalHazard] = []
+        for batch in results:
+            all_hazards.extend(batch)
         return all_hazards
 
     def _filter_and_process_hazards(
@@ -151,47 +157,77 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         road_closures: list[RoadClosureItem],
         relief_facilities: list[ReliefFacilityItem],
     ) -> None:
-        """Collect power outages, road closures, and relief facilities from a provider."""
-        try:
-            po = await provider.async_fetch_power_outages()
-            if isinstance(po, list):
-                power_outages.extend([item for item in po if isinstance(item, PowerOutageItem)])
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Error updating power outages from %s: %s", provider.__class__.__name__, err)
+        """Collect power outages, road closures, and relief facilities from a provider concurrently."""
 
-        try:
-            rc = await provider.async_fetch_road_closures()
-            if isinstance(rc, list):
-                for item in rc:
-                    if isinstance(item, RoadClosureItem) and item.latitude is not None and item.longitude is not None:
-                        item.distance_km = round(
-                            calculate_haversine_distance(self.latitude, self.longitude, item.latitude, item.longitude),
-                            2,
-                        )
-                        road_closures.append(item)
-                    elif isinstance(item, RoadClosureItem):
-                        road_closures.append(item)
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Error updating road closures from %s: %s", provider.__class__.__name__, err)
+        async def _fetch_power() -> None:
+            try:
+                po = await provider.async_fetch_power_outages()
+                if isinstance(po, list):
+                    for item in po:
+                        if isinstance(item, PowerOutageItem):
+                            if item.latitude is not None and item.longitude is not None:
+                                dist = round(
+                                    calculate_haversine_distance(
+                                        self.latitude, self.longitude, item.latitude, item.longitude
+                                    ),
+                                    2,
+                                )
+                                if dist <= self.radius_km:
+                                    power_outages.append(item)
+                            else:
+                                power_outages.append(item)
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.debug("Error updating power outages from %s: %s", provider.__class__.__name__, err)
 
-        try:
-            rf = await provider.async_fetch_relief_facilities()
-            if isinstance(rf, list):
-                for item in rf:
-                    if (
-                        isinstance(item, ReliefFacilityItem)
-                        and item.latitude is not None
-                        and item.longitude is not None
-                    ):
-                        item.distance_km = round(
-                            calculate_haversine_distance(self.latitude, self.longitude, item.latitude, item.longitude),
-                            2,
-                        )
-                        relief_facilities.append(item)
-                    elif isinstance(item, ReliefFacilityItem):
-                        relief_facilities.append(item)
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Error updating relief facilities from %s: %s", provider.__class__.__name__, err)
+        async def _fetch_roads() -> None:
+            try:
+                rc = await provider.async_fetch_road_closures()
+                if isinstance(rc, list):
+                    for item in rc:
+                        if (
+                            isinstance(item, RoadClosureItem)
+                            and item.latitude is not None
+                            and item.longitude is not None
+                        ):
+                            dist = round(
+                                calculate_haversine_distance(
+                                    self.latitude, self.longitude, item.latitude, item.longitude
+                                ),
+                                2,
+                            )
+                            item.distance_km = dist
+                            if dist <= self.radius_km:
+                                road_closures.append(item)
+                        elif isinstance(item, RoadClosureItem):
+                            road_closures.append(item)
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.debug("Error updating road closures from %s: %s", provider.__class__.__name__, err)
+
+        async def _fetch_relief() -> None:
+            try:
+                rf = await provider.async_fetch_relief_facilities()
+                if isinstance(rf, list):
+                    for item in rf:
+                        if (
+                            isinstance(item, ReliefFacilityItem)
+                            and item.latitude is not None
+                            and item.longitude is not None
+                        ):
+                            dist = round(
+                                calculate_haversine_distance(
+                                    self.latitude, self.longitude, item.latitude, item.longitude
+                                ),
+                                2,
+                            )
+                            item.distance_km = dist
+                            if dist <= self.radius_km:
+                                relief_facilities.append(item)
+                        elif isinstance(item, ReliefFacilityItem):
+                            relief_facilities.append(item)
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.debug("Error updating relief facilities from %s: %s", provider.__class__.__name__, err)
+
+        await asyncio.gather(_fetch_power(), _fetch_roads(), _fetch_relief())
 
     async def _collect_environmental(
         self,
@@ -201,34 +237,41 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         weather_stations: list[WeatherStationObservation],
         air_quality_stations: list[AirQualityStationData],
     ) -> None:
-        """Collect weather warnings, news, weather stations, and air quality from a provider."""
-        try:
-            ww = await provider.async_fetch_weather_warnings()
-            if isinstance(ww, list):
-                weather_warnings.extend([item for item in ww if isinstance(item, WeatherWarningItem)])
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Error updating weather warnings from %s: %s", provider.__class__.__name__, err)
+        """Collect weather warnings, news, weather stations, and air quality from a provider concurrently."""
 
-        try:
-            en = await provider.async_fetch_emergency_news()
-            if isinstance(en, list):
-                emergency_news.extend([item for item in en if isinstance(item, EmergencyNewsItem)])
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Error updating emergency news from %s: %s", provider.__class__.__name__, err)
+        async def _fetch_warnings() -> None:
+            try:
+                ww = await provider.async_fetch_weather_warnings()
+                if isinstance(ww, list):
+                    weather_warnings.extend([item for item in ww if isinstance(item, WeatherWarningItem)])
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.debug("Error updating weather warnings from %s: %s", provider.__class__.__name__, err)
 
-        try:
-            ws = await provider.async_fetch_weather_telemetry()
-            if isinstance(ws, list):
-                weather_stations.extend([item for item in ws if isinstance(item, WeatherStationObservation)])
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Error updating weather telemetry from %s: %s", provider.__class__.__name__, err)
+        async def _fetch_news() -> None:
+            try:
+                en = await provider.async_fetch_emergency_news()
+                if isinstance(en, list):
+                    emergency_news.extend([item for item in en if isinstance(item, EmergencyNewsItem)])
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.debug("Error updating emergency news from %s: %s", provider.__class__.__name__, err)
 
-        try:
-            aq = await provider.async_fetch_air_quality()
-            if isinstance(aq, list):
-                air_quality_stations.extend([item for item in aq if isinstance(item, AirQualityStationData)])
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Error updating air quality from %s: %s", provider.__class__.__name__, err)
+        async def _fetch_stations() -> None:
+            try:
+                ws = await provider.async_fetch_weather_telemetry()
+                if isinstance(ws, list):
+                    weather_stations.extend([item for item in ws if isinstance(item, WeatherStationObservation)])
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.debug("Error updating weather telemetry from %s: %s", provider.__class__.__name__, err)
+
+        async def _fetch_aq() -> None:
+            try:
+                aq = await provider.async_fetch_air_quality()
+                if isinstance(aq, list):
+                    air_quality_stations.extend([item for item in aq if isinstance(item, AirQualityStationData)])
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.debug("Error updating air quality from %s: %s", provider.__class__.__name__, err)
+
+        await asyncio.gather(_fetch_warnings(), _fetch_news(), _fetch_stations(), _fetch_aq())
 
     async def _collect_cameras_and_councils(
         self,
@@ -236,20 +279,25 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         cameras: list[DisasterCameraItem],
         nearby_councils: list[dict[str, str]],
     ) -> None:
-        """Collect cameras and nearby council links from a provider."""
-        try:
-            cam = await provider.async_fetch_cameras()
-            if isinstance(cam, list):
-                cameras.extend([item for item in cam if isinstance(item, DisasterCameraItem)])
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Error updating cameras from %s: %s", provider.__class__.__name__, err)
+        """Collect cameras and nearby council links from a provider concurrently."""
 
-        try:
-            nc = await provider.async_fetch_nearby_councils()
-            if isinstance(nc, list):
-                nearby_councils.extend([item for item in nc if isinstance(item, dict)])
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Error updating nearby councils from %s: %s", provider.__class__.__name__, err)
+        async def _fetch_cam() -> None:
+            try:
+                cam = await provider.async_fetch_cameras()
+                if isinstance(cam, list):
+                    cameras.extend([item for item in cam if isinstance(item, DisasterCameraItem)])
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.debug("Error updating cameras from %s: %s", provider.__class__.__name__, err)
+
+        async def _fetch_councils() -> None:
+            try:
+                nc = await provider.async_fetch_nearby_councils()
+                if isinstance(nc, list):
+                    nearby_councils.extend([item for item in nc if isinstance(item, dict)])
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.debug("Error updating nearby councils from %s: %s", provider.__class__.__name__, err)
+
+        await asyncio.gather(_fetch_cam(), _fetch_councils())
 
     async def _async_fetch_composite_feeds(self) -> dict[str, Any]:
         """Collect auxiliary telemetry and relief information from providers."""
@@ -264,11 +312,20 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         cameras: list[DisasterCameraItem] = []
         nearby_councils: list[dict[str, str]] = []
 
+        coros = []
         for provider in self.providers:
-            await self._collect_infrastructure(provider, power_outages, road_closures, relief_facilities)
-            await self._collect_environmental(
-                provider, weather_warnings, emergency_news, weather_stations, air_quality_stations
+            coros.append(self._collect_infrastructure(provider, power_outages, road_closures, relief_facilities))
+            coros.append(
+                self._collect_environmental(
+                    provider, weather_warnings, emergency_news, weather_stations, air_quality_stations
+                )
             )
+            coros.append(self._collect_cameras_and_councils(provider, cameras, nearby_councils))
+
+        if coros:
+            await asyncio.gather(*coros)
+
+        for provider in self.providers:
             if fire_danger is None:
                 try:
                     fd = await provider.async_fetch_fire_danger()
@@ -276,7 +333,6 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
                         fire_danger = fd
                 except Exception as err:  # noqa: BLE001
                     _LOGGER.debug("Error updating fire danger from %s: %s", provider.__class__.__name__, err)
-            await self._collect_cameras_and_councils(provider, cameras, nearby_councils)
 
         return {
             "power_outages": power_outages,

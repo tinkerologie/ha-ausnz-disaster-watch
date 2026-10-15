@@ -228,8 +228,11 @@ async def test_coordinator_composite_data_collection(
     mock_provider = AsyncMock()
     mock_provider.async_fetch_hazards.return_value = []
     mock_provider.async_fetch_power_outages.return_value = [
-        PowerOutageItem(suburb="Caboolture", cause="Storm", customers_affected=10)
+        PowerOutageItem(suburb="Caboolture", cause="Storm", customers_affected=10),
+        PowerOutageItem(suburb="Nearby", cause="Tree", customers_affected=5, latitude=-27.1, longitude=152.9),
+        PowerOutageItem(suburb="Far Away", cause="Lines", customers_affected=50, latitude=-10.0, longitude=120.0),
     ]
+
     mock_provider.async_fetch_road_closures.return_value = [
         RoadClosureItem(id="r1", road="Main St", suburb="Morayfield", status="Closed", latitude=-27.1, longitude=152.9),
         RoadClosureItem(id="r2", road="Local St", suburb="Morayfield", status="Closed", latitude=None, longitude=None),
@@ -271,7 +274,7 @@ async def test_coordinator_composite_data_collection(
     coordinator.providers = [mock_provider]
     await coordinator.async_refresh()
 
-    assert len(coordinator.power_outages) == 1
+    assert len(coordinator.power_outages) == 2
     assert len(coordinator.road_closures) == 2
     assert coordinator.road_closures[0].distance_km is not None
     assert coordinator.road_closures[1].distance_km is None

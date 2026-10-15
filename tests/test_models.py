@@ -46,6 +46,10 @@ def test_hazard_type_parsing() -> None:
     assert HazardType.from_str("Tropical Cyclone Jasper") == HazardType.CYCLONE
     assert HazardType.from_str("Tsunami Warning") == HazardType.TSUNAMI
     assert HazardType.from_str("Volcano Activity") == HazardType.VOLCANO
+    assert HazardType.from_str("Volcanic ash cloud") == HazardType.VOLCANO
+    assert HazardType.from_str("Ash plume") == HazardType.VOLCANO
+    assert HazardType.from_str("Car crash") == HazardType.ROAD_INCIDENT
+    assert HazardType.from_str("Trash fire") == HazardType.BUSHFIRE
     assert HazardType.from_str("Earthquake tremor") == HazardType.EARTHQUAKE
     assert HazardType.from_str("Chemical Hazmat spill") == HazardType.HAZMAT
     assert HazardType.from_str("Road closed hazard") == HazardType.ROAD_INCIDENT
@@ -87,6 +91,7 @@ def test_canonical_hazard_safe_attributes() -> None:
     assert "prop_huge_geometry_polygon" not in attrs
 
     # Verify safe fields are preserved
+    assert attrs["integration"] == "ausnz_disaster_watch"
     assert attrs["source"] == "QFD"
     assert attrs["title"] == "Test Incident"
     assert attrs["hazard_type"] == "Bushfire"

@@ -25,7 +25,7 @@ _LOGGER = logging.getLogger(__name__)
 
 FRONTEND_URL_BASE: Final = f"/{DOMAIN}"
 FRONTEND_PATH: Final = Path(__file__).parent / "frontend"
-CARD_FILES: Final = ("ausnz-disaster-card.js", "aus-disaster-card.js")
+CARD_FILES: Final = ("ausnz-disaster-card.js",)
 _REGISTERED: HassKey[bool] = HassKey(f"{DOMAIN}_frontend_registered")
 _STATIC_REGISTERED: HassKey[bool] = HassKey(f"{DOMAIN}_frontend_static_registered")
 

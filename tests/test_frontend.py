@@ -25,7 +25,7 @@ def test_frontend_digest_and_assets() -> None:
 
     digest2, files = _frontend_assets_info(FRONTEND_PATH, CARD_FILES)
     assert digest2 == digest
-    assert "aus-disaster-card.js" in files
+    assert "ausnz-disaster-card.js" in files
 
 
 def test_frontend_digest_edge_cases(tmp_path: Path) -> None:

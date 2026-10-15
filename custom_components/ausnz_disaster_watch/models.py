@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from enum import StrEnum
+import re
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -81,7 +82,7 @@ class HazardType(StrEnum):
             return cls.CYCLONE
         if "storm" in val or "thunder" in val or "rain" in val or "hail" in val or "wind" in val:
             return cls.SEVERE_STORM
-        if "volcan" in val or "ash" in val:
+        if "volcan" in val or re.search(r"\bash(fall| fall| cloud| plume)?\b", val):
             return cls.VOLCANO
         if "tsunami" in val:
             return cls.TSUNAMI
@@ -159,6 +160,7 @@ class CanonicalHazard(BaseModel):
             "location_name": self.location_name,
             "updated_at": self.updated_at.isoformat(),
             "is_hazard_reduction": self.is_hazard_reduction,
+            "integration": "ausnz_disaster_watch",
         }
         if self.distance_km is not None:
             attrs["distance_km"] = round(self.distance_km, 2)

@@ -523,12 +523,37 @@ export class AusDisasterCard extends LitElement {
 
   private _findEntity(suffix: string): any {
     if (!this._hass) return null;
-    if (this._config?.entity && this._hass.states[this._config.entity]) {
-      return this._hass.states[this._config.entity];
-    }
-    const matchingKey = Object.keys(this._hass.states).find((key) =>
-      key.endsWith(suffix) || key.includes(suffix)
+    const entities = (this._hass as any).entities ?? {};
+
+    // 1. Strict match with entity registry platform
+    let matchingKey = Object.keys(this._hass.states).find(
+      (key) =>
+        key.startsWith("sensor.") &&
+        key.endsWith(`_${suffix}`) &&
+        entities[key]?.platform === "ausnz_disaster_watch"
     );
+
+    // 2. Integration / attribution attribute match
+    if (!matchingKey) {
+      matchingKey = Object.keys(this._hass.states).find((key) => {
+        if (!key.startsWith("sensor.") || !key.endsWith(`_${suffix}`)) return false;
+        const stateObj = this._hass!.states[key];
+        const attr = stateObj?.attributes?.attribution || "";
+        return (
+          attr.includes("Disaster Watch") ||
+          attr.includes("Emergency Services") ||
+          stateObj?.attributes?.integration === "ausnz_disaster_watch"
+        );
+      });
+    }
+
+    // 3. Sensor prefix fallback
+    if (!matchingKey) {
+      matchingKey = Object.keys(this._hass.states).find(
+        (key) => key.startsWith("sensor.") && key.endsWith(`_${suffix}`)
+      );
+    }
+
     return matchingKey ? this._hass.states[matchingKey] : null;
   }
 
@@ -542,15 +567,8 @@ export class AusDisasterCard extends LitElement {
       if (
         entityId.startsWith(geoPrefix) &&
         stateObj.attributes &&
-        (stateObj.attributes.source?.includes("Queensland") ||
-          stateObj.attributes.source?.includes("Disaster") ||
-          stateObj.attributes.source?.includes("NSW") ||
-          stateObj.attributes.source?.includes("Vic") ||
-          stateObj.attributes.source?.includes("Bureau") ||
-          stateObj.attributes.source?.includes("New Zealand") ||
-          stateObj.attributes.source?.includes("GeoNet") ||
-          stateObj.attributes.source?.includes("NEMA") ||
-          stateObj.attributes.source?.includes("MetService") ||
+        (stateObj.attributes.integration === "ausnz_disaster_watch" ||
+          stateObj.attributes.integration === "australian_disaster_watch" ||
           stateObj.attributes.source?.includes("ausnz_disaster_watch") ||
           stateObj.attributes.source?.includes("australian_disaster_watch"))
       ) {
@@ -652,8 +670,36 @@ export class AusDisasterCard extends LitElement {
     const humidityVal = weatherObsSensor?.attributes?.relative_humidity ? `${weatherObsSensor.attributes.relative_humidity}%` : "--";
     const pressureVal = weatherObsSensor?.attributes?.pressure_hpa ? `${weatherObsSensor.attributes.pressure_hpa} hPa` : "--";
     const windVal = weatherObsSensor?.attributes?.wind_speed_avg_kph ? `${weatherObsSensor.attributes.wind_speed_avg_kph} km/h` : "--";
-    const fdrVal = fireDangerSensor?.state || "Moderate";
-    const aqVal = airQualitySensor?.state || "Good";
+    const fdrVal = fireDangerSensor?.state && fireDangerSensor.state !== "unknown" && fireDangerSensor.state !== "unavailable" ? fireDangerSensor.state : "--";
+    const aqVal = airQualitySensor?.state && airQualitySensor.state !== "unknown" && airQualitySensor.state !== "unavailable" ? airQualitySensor.state : "--";
+
+    const newsList =
+      weatherWarningsSensor?.attributes?.emergency_news ||
+      highestLevelSensor?.attributes?.emergency_news ||
+      [];
+    const newsCount = newsList.length;
+
+    const councilsList =
+      weatherWarningsSensor?.attributes?.nearby_councils ||
+      highestLevelSensor?.attributes?.nearby_councils ||
+      [];
+
+    const cameraEntities = Object.entries(this._hass.states)
+      .filter(([entityId, stateObj]) => {
+        if (!entityId.startsWith("camera.")) return false;
+        const entities = (this._hass as any).entities ?? {};
+        return (
+          entities[entityId]?.platform === "ausnz_disaster_watch" ||
+          entities[entityId]?.platform === "australian_disaster_watch" ||
+          stateObj.attributes?.integration === "ausnz_disaster_watch" ||
+          stateObj.attributes?.integration === "australian_disaster_watch" ||
+          entityId.includes("disaster_watch")
+        );
+      })
+      .map(([entityId, stateObj]) => ({
+        entityId,
+        name: stateObj.attributes.friendly_name || stateObj.attributes.name || entityId.replace("camera.", ""),
+      }));
 
     return html`
       <ha-card>
@@ -680,7 +726,7 @@ export class AusDisasterCard extends LitElement {
               <span>Emergency News</span>
             </div>
             <div class="dash-tile-value">
-              <span>Active</span>
+              <span>${newsCount}</span>
               <span class="dash-tile-sub">Bulletins</span>
             </div>
           </div>
@@ -743,7 +789,7 @@ export class AusDisasterCard extends LitElement {
             @click=${() => this._toggleTab("cameras")}
           >
             <span>📹</span>
-            <span>Flood Cameras</span>
+            <span>Flood Cameras (${cameraEntities.length})</span>
           </button>
 
           <button
@@ -759,7 +805,7 @@ export class AusDisasterCard extends LitElement {
             @click=${() => this._toggleTab("councils")}
           >
             <span>🏛️</span>
-            <span>Nearby Councils</span>
+            <span>Nearby Councils (${councilsList.length})</span>
           </button>
         </div>
 
@@ -770,22 +816,21 @@ export class AusDisasterCard extends LitElement {
                 ${this._activeTab === "news"
                   ? html`
                       <div class="drawer-header">
-                        <span>📰 Emergency Bulletins & News</span>
+                        <span>📰 Emergency Bulletins & News (${newsCount})</span>
                         <span class="drawer-close" @click=${() => (this._activeTab = "none")}>✕</span>
                       </div>
                       <div class="detail-list">
-                        <div class="detail-card">
-                          <div class="detail-card-title">H5 Bird Flu Surveillance</div>
-                          <div class="detail-card-meta">
-                            Avoid, Record, Report sick or dead birds to the 24hr Emergency Animal Disease Hotline on 1800 675 888.
-                          </div>
-                        </div>
-                        <div class="detail-card">
-                          <div class="detail-card-title">Local Disaster Management Group Operational Update</div>
-                          <div class="detail-card-meta">
-                            All agencies on alert. Regular scheduled monitoring active across river catchments and road corridors.
-                          </div>
-                        </div>
+                        ${newsList.length === 0
+                          ? html`<div class="empty-state">No active emergency news or bulletins published.</div>`
+                          : newsList.map(
+                              (n: any) => html`
+                                <div class="detail-card">
+                                  <div class="detail-card-title">${n.title || "Disaster News"}</div>
+                                  ${n.description ? html`<div class="detail-card-meta">${n.description}</div>` : ""}
+                                  ${n.link ? html`<div class="detail-card-meta"><a href="${n.link}" target="_blank" rel="noreferrer" style="color:var(--primary-color);">Read official release →</a></div>` : ""}
+                                </div>
+                              `
+                            )}
                       </div>
                     `
                   : ""}
@@ -907,27 +952,28 @@ export class AusDisasterCard extends LitElement {
                 ${this._activeTab === "cameras"
                   ? html`
                       <div class="drawer-header">
-                        <span>📹 Live Flood & Traffic Webcams</span>
+                        <span>📹 Live Flood & Traffic Webcams (${cameraEntities.length})</span>
                         <span class="drawer-close" @click=${() => (this._activeTab = "none")}>✕</span>
                       </div>
-                      <div class="camera-grid">
-                        <div class="camera-card">
-                          <img class="camera-img" src="http://131940.qld.gov.au/img/WebCamImages/Metropolitan/Goodna_Ipswich_Mwy_East.jpg" alt="Goodna" />
-                          <div class="camera-label">Goodna - Ipswich Mwy East</div>
-                        </div>
-                        <div class="camera-card">
-                          <img class="camera-img" src="http://131940.qld.gov.au/img/WebCamImages/Metropolitan/Dinmore_Ipswich_Mwy_east.jpg" alt="Dinmore" />
-                          <div class="camera-label">Dinmore - Ipswich Mwy East</div>
-                        </div>
-                        <div class="camera-card">
-                          <img class="camera-img" src="http://131940.qld.gov.au/img/WebCamImages/NorthCoast/MRNC-0131.jpg" alt="Bruce Hwy" />
-                          <div class="camera-label">Bruce Hwy - Caboolture</div>
-                        </div>
-                        <div class="camera-card">
-                          <img class="camera-img" src="http://131940.qld.gov.au/img/WebCamImages/Metropolitan/MRMETRO-1218.jpg" alt="Metro" />
-                          <div class="camera-label">Metropolitan Camera 1218</div>
-                        </div>
-                      </div>
+                      ${cameraEntities.length === 0
+                        ? html`<div class="detail-list"><div class="empty-state">No live flood or traffic cameras available for this jurisdiction.</div></div>`
+                        : html`
+                            <div class="camera-grid">
+                              ${cameraEntities.map(
+                                (cam: any) => html`
+                                  <div class="camera-card">
+                                    <img
+                                      class="camera-img"
+                                      src="/api/camera_proxy/${cam.entityId}"
+                                      alt="${cam.name}"
+                                      loading="lazy"
+                                    />
+                                    <div class="camera-label">${cam.name}</div>
+                                  </div>
+                                `
+                              )}
+                            </div>
+                          `}
                     `
                   : ""}
 
@@ -955,32 +1001,22 @@ export class AusDisasterCard extends LitElement {
                 ${this._activeTab === "councils"
                   ? html`
                       <div class="drawer-header">
-                        <span>🏛️ Connected Australian Disaster Dashboards</span>
+                        <span>🏛️ Connected Australian Disaster Dashboards (${councilsList.length})</span>
                         <span class="drawer-close" @click=${() => (this._activeTab = "none")}>✕</span>
                       </div>
-                      <div class="council-links">
-                        <a class="council-chip" href="https://disaster.moretonbay.qld.gov.au" target="_blank" rel="noreferrer">
-                          <span>📍</span> City of Moreton Bay
-                        </a>
-                        <a class="council-chip" href="https://disasterhub.sunshinecoast.qld.gov.au" target="_blank" rel="noreferrer">
-                          <span>📍</span> Sunshine Coast Regional Council
-                        </a>
-                        <a class="council-chip" href="https://disaster.brisbane.qld.gov.au" target="_blank" rel="noreferrer">
-                          <span>📍</span> Brisbane City Council
-                        </a>
-                        <a class="council-chip" href="https://dashboard.cityofgoldcoast.com.au" target="_blank" rel="noreferrer">
-                          <span>📍</span> City of Gold Coast
-                        </a>
-                        <a class="council-chip" href="https://disaster.noosa.qld.gov.au" target="_blank" rel="noreferrer">
-                          <span>📍</span> Noosa Shire Council
-                        </a>
-                        <a class="council-chip" href="https://disaster.hawkesbury.nsw.gov.au" target="_blank" rel="noreferrer">
-                          <span>📍</span> Hawkesbury City Council (NSW)
-                        </a>
-                        <a class="council-chip" href="https://emergency.bmcc.nsw.gov.au" target="_blank" rel="noreferrer">
-                          <span>📍</span> Blue Mountains City Council (NSW)
-                        </a>
-                      </div>
+                      ${councilsList.length === 0
+                        ? html`<div class="detail-list"><div class="empty-state">No neighboring council disaster dashboards configured for this jurisdiction.</div></div>`
+                        : html`
+                            <div class="council-links">
+                              ${councilsList.map(
+                                (c: any) => html`
+                                  <a class="council-chip" href="${c.url}" target="_blank" rel="noreferrer">
+                                    <span>📍</span> ${c.name}
+                                  </a>
+                                `
+                              )}
+                            </div>
+                          `}
                     `
                   : ""}
               </div>
@@ -1084,21 +1120,31 @@ if (!customElements.get("aus-disaster-card")) {
 
 // Register with Lovelace Card Picker window
 (window as any).customCards = (window as any).customCards || [];
-(window as any).customCards.push({
-  type: "ausnz-disaster-card",
-  name: "Australia and New Zealand Disaster Watch Card",
-  description:
-    "Real-time Australia and New Zealand Warning System disaster monitor and proximity hazard tracker.",
-  preview: true,
-  documentationURL:
-    "https://github.com/ruaandeysel/ha-australian-disaster-watch",
-});
-(window as any).customCards.push({
-  type: "aus-disaster-card",
-  name: "Australia and New Zealand Disaster Watch Card (Legacy Alias)",
-  description:
-    "Real-time Australia and New Zealand Warning System disaster monitor and proximity hazard tracker.",
-  preview: false,
-  documentationURL:
-    "https://github.com/ruaandeysel/ha-australian-disaster-watch",
-});
+if (
+  !(window as any).customCards.some(
+    (card: any) => card.type === "ausnz-disaster-card"
+  )
+) {
+  (window as any).customCards.push({
+    type: "ausnz-disaster-card",
+    name: "Australia and New Zealand Disaster Watch Card",
+    description:
+      "Real-time Australia and New Zealand Warning System disaster monitor and proximity hazard tracker.",
+    preview: true,
+    documentationURL: "https://github.com/tinkerologie/ha-ausnz-disaster-watch",
+  });
+}
+if (
+  !(window as any).customCards.some(
+    (card: any) => card.type === "aus-disaster-card"
+  )
+) {
+  (window as any).customCards.push({
+    type: "aus-disaster-card",
+    name: "Australia and New Zealand Disaster Watch Card (Legacy Alias)",
+    description:
+      "Real-time Australia and New Zealand Warning System disaster monitor and proximity hazard tracker.",
+    preview: false,
+    documentationURL: "https://github.com/tinkerologie/ha-ausnz-disaster-watch",
+  });
+}

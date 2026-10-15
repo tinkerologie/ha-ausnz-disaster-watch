@@ -6,10 +6,10 @@
 
 ## Project Identity
 
-- **Domain:** `australian_disaster_watch`
-- **Title:** Australian Disaster Watch
-- **Class prefix:** `AustralianDisasterWatch`
-- **Main code:** `custom_components/australian_disaster_watch/`
+- **Domain:** `ausnz_disaster_watch`
+- **Title:** Australia and New Zealand Disaster Watch
+- **Class prefix:** `AustralianDisasterWatch` / `AusNZDisasterWatch`
+- **Main code:** `custom_components/ausnz_disaster_watch/`
 - **Validate:** `script/check` (type-check + lint-check + spell-check)
 - **Start HA:** `./script/develop` (kills existing, starts on port 8123)
 - **Force restart:** `pkill -f "hass --config" || true && pkill -f "debugpy.*5678" || true && ./script/develop`
@@ -32,27 +32,25 @@ Generate code that passes these checks on first run. As an AI agent, you should 
 
 ## Architecture (Quick Reference)
 
-**Data Flow:** Entities → Coordinator → API Client (never skip layers)
+**Data Flow:** Entities → Coordinator → Hazard Providers (QFD, NSW RFS, VicEmergency, BoM, GeoNet, NEMA, WA DFES, SA CFS, TAS TasALERT, NT PFES, ACT ESA)
 
-**Package Structure (DO NOT create other packages):**
+**Component Structure:**
 
-- `coordinator/` — DataUpdateCoordinator (base + data_processing + error_handling + listeners)
-- `api/` — External API client (async aiohttp)
-- `entity/` — Base entity class (`AusNZDisasterWatchEntity`)
-- `entity_utils/` — Entity-specific helpers (device_info, state formatting)
-- `config_flow_handler/` — Config flow with `schemas/` and `validators/` subdirs
-- `[platform]/` — One directory per platform (sensor, switch, etc.), one class per file
-- `service_actions/` — Service action implementations
-- `utils/` — Integration-wide utilities
+- `coordinator.py` — AustralianDisasterWatchCoordinator (DataUpdateCoordinator)
+- `models.py` — CanonicalHazard, HazardType, WarningLevel, telemetry models (Pydantic v2)
+- `entity.py` — AusNZDisasterWatchEntity (base coordinator entity)
+- `providers/` — Jurisdiction hazard adapters (base, qld, nsw, vic, bom, nz, wa, sa, tas, nt, act)
+- `sensor.py`, `binary_sensor.py`, `geo_location.py`, `camera.py` — Entity platforms
+- `config_flow.py` — Multi-step flow with preset council and custom URL selection
+- `frontend.py` — Lovelace card registration and static asset serving
+- `diagnostics.py` — Redacted configuration diagnostics
 
-**Forbidden packages:** `helpers/`, `ha_helpers/`, `common/`, `shared/`, `lib/` — use `utils/` or `entity_utils/` instead. Do NOT create new top-level packages without explicit approval.
+**Key patterns:**
 
-**Key patterns** (details in path-specific `*.instructions.md`):
-
-- Entity MRO: `(PlatformEntity, AusNZDisasterWatchEntity)` — order matters
-- Unique ID: `{entry_id}_{description.key}` (set in base entity)
-- Services: register in `async_setup()`, NOT `async_setup_entry()` (Quality Scale requirement)
-- Config entry data: `entry.runtime_data.client` / `entry.runtime_data.coordinator`
+- Entity inheritance: `(AusNZDisasterWatchEntity, PlatformEntity)` / `(PlatformEntity, AusNZDisasterWatchEntity)`
+- Unique ID: `{entry_id}_{entity_key}`
+- Safe attributes: Keep SQLite state attributes < 16 KB by stripping massive geometry coordinates
+- Canonical Hazard: Standardized Australian Warning System (AWS) levels and ISO/UTC timestamps
 
 ## Workflow Rules
 

@@ -55,14 +55,29 @@ class AustralianDisasterWatchCamera(Camera, AustralianDisasterWatchEntity):
         self._latitude = camera_item.latitude
         self._longitude = camera_item.longitude
         self._attr_icon = "mdi:cctv"
+        self._last_image: bytes | None = None
+
+    @property
+    def icon(self) -> str:
+        """Return the camera icon."""
+        return "mdi:cctv"
+
+    @property
+    def entity_picture(self) -> str | None:
+        """Return entity picture only when a valid image has been captured."""
+        if self._last_image:
+            return super().entity_picture
+        return None
 
     async def async_camera_image(self, width: int | None = None, height: int | None = None) -> bytes | None:
         """Fetch latest snapshot image from upstream webcam URL."""
         session = async_get_clientsession(self.hass)
         try:
-            async with session.get(self._image_url, timeout=ClientTimeout(total=10)) as resp:
+            async with session.get(self._image_url, timeout=ClientTimeout(total=10), allow_redirects=True) as resp:
                 if resp.status == 200:
-                    return await resp.read()
+                    data = await resp.read()
+                    self._last_image = data
+                    return data
                 _LOGGER.debug(
                     "Error fetching camera image %s from %s: HTTP %s",
                     self.name,
@@ -78,6 +93,7 @@ class AustralianDisasterWatchCamera(Camera, AustralianDisasterWatchEntity):
         """Return camera location attributes."""
         attrs: dict[str, Any] = {
             "image_url": self._image_url,
+            "integration": DOMAIN,
         }
         if self._suburb:
             attrs["suburb"] = self._suburb

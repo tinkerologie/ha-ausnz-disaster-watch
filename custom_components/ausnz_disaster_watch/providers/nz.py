@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 import logging
 from typing import Any
 
@@ -14,6 +15,7 @@ from .base import BaseHazardProvider
 
 _LOGGER = logging.getLogger(__name__)
 
+QUAKE_MAX_AGE = timedelta(hours=48)
 GEONET_QUAKE_URL = "https://api.geonet.org.nz/quake?MMI=3"
 GEONET_VOLCANO_URL = "https://api.geonet.org.nz/volcano/val"
 NEMA_ALERTHUB_URL = "https://alerthub.civildefence.govt.nz/atom/pwp"
@@ -86,9 +88,18 @@ class NZHazardProvider(BaseHazardProvider):
         """Parse GeoNet earthquake GeoJSON FeatureCollection."""
         hazards: list[CanonicalHazard] = []
         features = data.get("features", [])
+        now = datetime.now(UTC)
 
         for feat in features:
             props = feat.get("properties", {})
+            if props.get("quality") == "deleted":
+                continue
+
+            time_str = props.get("time")
+            updated_at = self.parse_datetime(time_str)
+            if updated_at and (now - updated_at > QUAKE_MAX_AGE):
+                continue
+
             geom = feat.get("geometry", {})
             centroid = self.calculate_centroid(geom)
             if not centroid:
@@ -99,7 +110,6 @@ class NZHazardProvider(BaseHazardProvider):
             mag = float(props.get("magnitude", 0.0))
             mmi = int(props.get("mmi", 0))
             locality = props.get("locality", "New Zealand")
-            time_str = props.get("time")
 
             # AWS Warning Level normalization for seismic events
             if mag >= 6.0 or mmi >= 6:
@@ -123,7 +133,7 @@ class NZHazardProvider(BaseHazardProvider):
                     warning_level=level,
                     latitude=lat,
                     longitude=lon,
-                    updated_at=self.parse_datetime(time_str),
+                    updated_at=updated_at,
                     location_name=locality,
                     status="Active",
                     responsible_agency="GeoNet (GNS Science)",
@@ -177,7 +187,7 @@ class NZHazardProvider(BaseHazardProvider):
                     id=hazard_id,
                     source="GeoNet New Zealand",
                     title=title,
-                    hazard_type=HazardType.OTHER,
+                    hazard_type=HazardType.VOLCANO,
                     warning_level=level,
                     latitude=lat,
                     longitude=lon,
@@ -209,14 +219,24 @@ class NZHazardProvider(BaseHazardProvider):
             ns = {"atom": "http://www.w3.org/2005/Atom", "cap": "urn:oasis:names:tc:emergency:cap:1.2"}
 
             for entry in root.findall("atom:entry", ns):
+                msg_type = entry.findtext(".//cap:msgType", "", ns).lower()
+                if msg_type == "cancel":
+                    continue
+
+                status_val = entry.findtext(".//cap:status", "", ns).lower()
+                if status_val and status_val != "actual":
+                    continue
+
                 entry_id = entry.findtext("atom:id", "", ns).strip()
                 title = entry.findtext("atom:title", "", ns).strip()
                 updated_str = entry.findtext("atom:updated", "", ns)
                 updated_at = self.parse_datetime(updated_str)
+                severity = entry.findtext(".//cap:severity", "", ns).lower()
+                area_desc = entry.findtext(".//cap:areaDesc", "", ns)
 
-                # Check for embedded CAP alert coordinates or circle
-                lat = -41.2865  # Default Wellington centroid if coordinates not specified
-                lon = 174.7762
+                # Extract coordinates from circle or polygon
+                lat: float | None = None
+                lon: float | None = None
                 circle = entry.findtext(".//cap:circle", "", ns)
                 if circle and "," in circle:
                     try:
@@ -226,20 +246,50 @@ class NZHazardProvider(BaseHazardProvider):
                     except (ValueError, IndexError):
                         pass
 
+                if lat is None or lon is None:
+                    polygon = entry.findtext(".//cap:polygon", "", ns)
+                    if polygon:
+                        try:
+                            points = polygon.strip().split()
+                            poly_lat_lon = [p.split(",") for p in points if "," in p]
+                            lat = sum(float(p[0]) for p in poly_lat_lon) / len(poly_lat_lon)
+                            lon = sum(float(p[1]) for p in poly_lat_lon) / len(poly_lat_lon)
+                        except (ValueError, IndexError, ZeroDivisionError):
+                            pass
+
+                if lat is None or lon is None:
+                    continue
+
+                # Warning Level mapping
+                if "extreme" in severity or "catastrophic" in severity or "emergency" in title.lower():
+                    level = WarningLevel.EMERGENCY_WARNING
+                elif "severe" in severity or "watch and act" in title.lower():
+                    level = WarningLevel.WATCH_AND_ACT
+                elif "moderate" in severity or "advice" in title.lower():
+                    level = WarningLevel.ADVICE
+                else:
+                    level = WarningLevel.INFORMATION
+
                 hazards.append(
                     CanonicalHazard(
                         id=f"nz_nema_{entry_id or title}",
                         source="NEMA New Zealand Civil Defence",
                         title=title or "Civil Defence Emergency Mobile Alert",
                         hazard_type=HazardType.from_str(title),
-                        warning_level=WarningLevel.EMERGENCY_WARNING,
+                        warning_level=level,
                         latitude=lat,
                         longitude=lon,
                         updated_at=updated_at,
-                        location_name="New Zealand",
+                        location_name=area_desc or "New Zealand",
                         status="Active Alert",
                         responsible_agency="NEMA",
                         web_url="https://www.civildefence.govt.nz",
+                        raw_properties={
+                            "severity": severity,
+                            "status": status_val,
+                            "msgType": msg_type,
+                            "areaDesc": area_desc,
+                        },
                     )
                 )
         except Exception:

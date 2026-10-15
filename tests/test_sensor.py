@@ -248,7 +248,7 @@ async def test_expanded_disaster_sensors(
     assert fd_sensor.icon == "mdi:shield-check"
 
     coordinator.data.fire_danger = None
-    assert fd_sensor.native_value == "Moderate"
+    assert fd_sensor.native_value is None
     assert fd_sensor.extra_state_attributes == {}
 
     aq_sensor = AirQualityIndexSensor(coordinator)
@@ -258,7 +258,7 @@ async def test_expanded_disaster_sensors(
     assert aq_attrs["pm2_5"] == "12.5"
 
     coordinator.data.air_quality_stations = []
-    assert aq_sensor.native_value == "Good"
+    assert aq_sensor.native_value is None
     assert aq_sensor.extra_state_attributes == {}
 
     ws_sensor = PrimaryWeatherObservationSensor(coordinator)

@@ -45,6 +45,7 @@ class QueenslandHazardProvider(BaseHazardProvider):
 
     async def async_fetch_hazards(self) -> list[CanonicalHazard]:
         """Fetch hazards from QFD and optional Council Disaster Dashboard."""
+        self._payload_cache.clear()
         hazards: list[CanonicalHazard] = []
         seen_ids: set[str] = set()
 
@@ -62,59 +63,75 @@ class QueenslandHazardProvider(BaseHazardProvider):
             _LOGGER.warning("Error fetching Queensland Fire Department warnings feed: %s", err)
 
         # 2. Fetch Council Disaster Dashboard feeds if URL configured
-        council_url = self.config.get(CONF_COUNCIL_DASHBOARD_URL)
-        if council_url and council_url.strip():
-            base_url = council_url.strip().rstrip("/")
-            # 2a. Detailed Fire Incidents
-            try:
-                fire_data = await self.async_fetch_json(f"{base_url}/dashboard/fireDetailed")
-                if isinstance(fire_data, list):
-                    for item in fire_data:
-                        hazard = self._parse_council_fire_item(item)
+        base_url = self._get_council_base_url()
+        if base_url:
+            hazards.extend(await self._fetch_council_hazards(base_url, seen_ids))
+
+        return hazards
+
+    async def _fetch_council_hazards(self, base_url: str, seen_ids: set[str]) -> list[CanonicalHazard]:
+        """Fetch auxiliary hazards from council disaster dashboard feeds."""
+        hazards: list[CanonicalHazard] = []
+
+        # 2a. Detailed Fire Incidents
+        try:
+            fire_data = await self.async_fetch_json(f"{base_url}/dashboard/fireDetailed")
+            if isinstance(fire_data, list):
+                for item in fire_data:
+                    hazard = self._parse_council_fire_item(item)
+                    if hazard and hazard.id not in seen_ids:
+                        seen_ids.add(hazard.id)
+                        hazards.append(hazard)
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Error fetching council fire incidents from %s: %s", base_url, err)
+
+        # 2b. Road Hazards and Closures
+        try:
+            tmr_url = f"{base_url}/dashboard/tmrRoadData"
+            road_data = await self.async_fetch_json(tmr_url)
+            if road_data:
+                self._payload_cache[tmr_url] = road_data
+            if isinstance(road_data, list):
+                for item in road_data:
+                    hazard = self._parse_council_road_item(item)
+                    if hazard and hazard.id not in seen_ids:
+                        seen_ids.add(hazard.id)
+                        hazards.append(hazard)
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Error fetching council road conditions from %s: %s", base_url, err)
+
+        # 2c. Weather Warnings (BoM)
+        try:
+            bom_url = f"{base_url}/dashboard/bom"
+            bom_data = await self.async_fetch_json(bom_url)
+            if bom_data:
+                self._payload_cache[bom_url] = bom_data
+            if isinstance(bom_data, dict):
+                items = bom_data.get("item", [])
+                if isinstance(items, list):
+                    for item in items:
+                        hazard = self._parse_council_bom_item(item)
                         if hazard and hazard.id not in seen_ids:
                             seen_ids.add(hazard.id)
                             hazards.append(hazard)
-            except Exception as err:  # noqa: BLE001
-                _LOGGER.debug("Error fetching council fire incidents from %s: %s", base_url, err)
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Error fetching council weather warnings from %s: %s", base_url, err)
 
-            # 2b. Road Hazards and Closures
-            try:
-                road_data = await self.async_fetch_json(f"{base_url}/dashboard/tmrRoadData")
-                if isinstance(road_data, list):
-                    for item in road_data:
-                        hazard = self._parse_council_road_item(item)
-                        if hazard and hazard.id not in seen_ids:
-                            seen_ids.add(hazard.id)
-                            hazards.append(hazard)
-            except Exception as err:  # noqa: BLE001
-                _LOGGER.debug("Error fetching council road conditions from %s: %s", base_url, err)
-
-            # 2c. Weather Warnings (BoM)
-            try:
-                bom_data = await self.async_fetch_json(f"{base_url}/dashboard/bom")
-                if isinstance(bom_data, dict):
-                    items = bom_data.get("item", [])
-                    if isinstance(items, list):
-                        for item in items:
-                            hazard = self._parse_council_bom_item(item)
-                            if hazard and hazard.id not in seen_ids:
-                                seen_ids.add(hazard.id)
-                                hazards.append(hazard)
-            except Exception as err:  # noqa: BLE001
-                _LOGGER.debug("Error fetching council weather warnings from %s: %s", base_url, err)
-
-            # 2d. Council Bulletins
-            try:
-                bulletin_data = await self.async_fetch_json(f"{base_url}/dashboard/imsBulletin")
-                if isinstance(bulletin_data, dict):
-                    features = bulletin_data.get("features", [])
-                    for feat in features:
-                        hazard = self._parse_council_bulletin_feature(feat)
-                        if hazard and hazard.id not in seen_ids:
-                            seen_ids.add(hazard.id)
-                            hazards.append(hazard)
-            except Exception as err:  # noqa: BLE001
-                _LOGGER.debug("Error fetching council bulletins from %s: %s", base_url, err)
+        # 2d. Council Bulletins
+        try:
+            bulletin_url = f"{base_url}/dashboard/imsBulletin"
+            bulletin_data = await self.async_fetch_json(bulletin_url)
+            if bulletin_data:
+                self._payload_cache[bulletin_url] = bulletin_data
+            if isinstance(bulletin_data, dict):
+                features = bulletin_data.get("features", [])
+                for feat in features:
+                    hazard = self._parse_council_bulletin_feature(feat)
+                    if hazard and hazard.id not in seen_ids:
+                        seen_ids.add(hazard.id)
+                        hazards.append(hazard)
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Error fetching council bulletins from %s: %s", base_url, err)
 
         return hazards
 
@@ -368,14 +385,18 @@ class QueenslandHazardProvider(BaseHazardProvider):
             raw_properties=props,
         )
 
-    def _get_council_base_url(self) -> str:
-        """Return configured or default Queensland Council Disaster Dashboard base URL."""
-        url = self.config.get(CONF_COUNCIL_DASHBOARD_URL) or DEFAULT_QLD_COUNCIL_URL
+    def _get_council_base_url(self) -> str | None:
+        """Return configured Queensland Council Disaster Dashboard base URL or None."""
+        url = self.config.get(CONF_COUNCIL_DASHBOARD_URL)
+        if not url:
+            return None
         return str(url).strip().rstrip("/")
 
     async def async_fetch_power_outages(self) -> list[PowerOutageItem]:
         """Fetch real-time power outages from Energex / Ergon network feed."""
         base_url = self._get_council_base_url()
+        if not base_url:
+            return []
         outages: list[PowerOutageItem] = []
         try:
             data = await self.async_fetch_json(f"{base_url}/dashboard/energexOutages")
@@ -403,6 +424,8 @@ class QueenslandHazardProvider(BaseHazardProvider):
     async def async_fetch_road_closures(self) -> list[RoadClosureItem]:
         """Fetch road closures from Local Council and TMR/QLDTraffic feeds."""
         base_url = self._get_council_base_url()
+        if not base_url:
+            return []
         closures: list[RoadClosureItem] = []
         seen_ids: set[str] = set()
 
@@ -440,7 +463,11 @@ class QueenslandHazardProvider(BaseHazardProvider):
 
         # 2. TMR Road Data (Department of Transport and Main Roads)
         try:
-            tmr_data = await self.async_fetch_json(f"{base_url}/dashboard/tmrRoadData")
+            tmr_url = f"{base_url}/dashboard/tmrRoadData"
+            if tmr_url in self._payload_cache:
+                tmr_data = self._payload_cache[tmr_url]
+            else:
+                tmr_data = await self.async_fetch_json(tmr_url)
             if isinstance(tmr_data, str):
                 try:
                     tmr_data = json.loads(tmr_data)
@@ -487,9 +514,15 @@ class QueenslandHazardProvider(BaseHazardProvider):
     async def async_fetch_weather_warnings(self) -> list[WeatherWarningItem]:
         """Fetch weather warnings summary from council BoM feed."""
         base_url = self._get_council_base_url()
+        if not base_url:
+            return []
         warnings: list[WeatherWarningItem] = []
         try:
-            bom_data = await self.async_fetch_json(f"{base_url}/dashboard/bom")
+            bom_url = f"{base_url}/dashboard/bom"
+            if bom_url in self._payload_cache:
+                bom_data = self._payload_cache[bom_url]
+            else:
+                bom_data = await self.async_fetch_json(bom_url)
             if isinstance(bom_data, dict):
                 items = bom_data.get("item", [])
                 if isinstance(items, list):
@@ -512,9 +545,15 @@ class QueenslandHazardProvider(BaseHazardProvider):
     async def async_fetch_emergency_news(self) -> list[EmergencyNewsItem]:
         """Fetch emergency bulletins and media releases."""
         base_url = self._get_council_base_url()
+        if not base_url:
+            return []
         news_list: list[EmergencyNewsItem] = []
         try:
-            bulletin_data = await self.async_fetch_json(f"{base_url}/dashboard/imsBulletin")
+            bulletin_url = f"{base_url}/dashboard/imsBulletin"
+            if bulletin_url in self._payload_cache:
+                bulletin_data = self._payload_cache[bulletin_url]
+            else:
+                bulletin_data = await self.async_fetch_json(bulletin_url)
             if isinstance(bulletin_data, dict):
                 features = bulletin_data.get("features", [])
                 for feat in features:
@@ -537,6 +576,8 @@ class QueenslandHazardProvider(BaseHazardProvider):
     async def async_fetch_fire_danger(self) -> FireDangerRating | None:
         """Fetch AFDRS fire danger rating from council dashboard."""
         base_url = self._get_council_base_url()
+        if not base_url:
+            return None
         try:
             fdr_data = await self.async_fetch_json(f"{base_url}/dashboard/fireDangerRating")
             if isinstance(fdr_data, dict):
@@ -558,6 +599,8 @@ class QueenslandHazardProvider(BaseHazardProvider):
     async def async_fetch_weather_telemetry(self) -> list[WeatherStationObservation]:
         """Fetch weather observations from local weather stations and Currtemp."""
         base_url = self._get_council_base_url()
+        if not base_url:
+            return []
         stations: list[WeatherStationObservation] = []
         try:
             data = await self.async_fetch_json(f"{base_url}/dashboard/getWeatherStationsData")
@@ -608,6 +651,8 @@ class QueenslandHazardProvider(BaseHazardProvider):
     async def async_fetch_air_quality(self) -> list[AirQualityStationData]:
         """Fetch air quality observations from monitoring stations."""
         base_url = self._get_council_base_url()
+        if not base_url:
+            return []
         stations: list[AirQualityStationData] = []
         try:
             aq_data = await self.async_fetch_json(f"{base_url}/dashboard/airQuality?stationIds=burp,pcer,dcb,kipp,petr")
@@ -639,6 +684,8 @@ class QueenslandHazardProvider(BaseHazardProvider):
     async def async_fetch_relief_facilities(self) -> list[ReliefFacilityItem]:
         """Fetch sandbag stations, evacuation centres, and places of refuge."""
         base_url = self._get_council_base_url()
+        if not base_url:
+            return []
         facilities: list[ReliefFacilityItem] = []
 
         # Sandbags
@@ -689,6 +736,9 @@ class QueenslandHazardProvider(BaseHazardProvider):
 
     async def async_fetch_cameras(self) -> list[DisasterCameraItem]:
         """Fetch flood and traffic webcams."""
+        base_url = self._get_council_base_url()
+        if not base_url:
+            return []
         return [
             DisasterCameraItem(
                 id="qld_goodna_ipswich_mwy",
@@ -726,6 +776,9 @@ class QueenslandHazardProvider(BaseHazardProvider):
 
     async def async_fetch_nearby_councils(self) -> list[dict[str, str]]:
         """Fetch nearby council disaster dashboard links."""
+        base_url = self._get_council_base_url()
+        if not base_url:
+            return []
         return [
             {"name": "Sunshine Coast Regional Council", "url": "https://disasterhub.sunshinecoast.qld.gov.au"},
             {"name": "City of Gold Coast", "url": "https://dashboard.cityofgoldcoast.com.au"},

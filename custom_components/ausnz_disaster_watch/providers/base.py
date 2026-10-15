@@ -47,6 +47,7 @@ class BaseHazardProvider(ABC):
         self.hass = hass
         self.session = session
         self.config = config
+        self._payload_cache: dict[str, Any] = {}
 
     @property
     @abstractmethod
@@ -97,15 +98,17 @@ class BaseHazardProvider(ABC):
         """Fetch nearby council disaster dashboard links."""
         return []
 
-    async def async_fetch_json(
+    async def _async_request(
         self,
         url: str,
+        accept: str,
+        is_json: bool,
         headers: dict[str, str] | None = None,
     ) -> Any:
-        """Fetch JSON data from URL with exponential retry for 429/5xx errors."""
+        """Fetch URL with exponential retry for transient HTTP (429, 5xx) and network errors."""
         req_headers = {
             "User-Agent": "HomeAssistant-AusNZDisasterWatch/1.0",
-            "Accept": "application/json, text/plain, */*",
+            "Accept": accept,
         }
         if headers:
             req_headers.update(headers)
@@ -120,8 +123,9 @@ class BaseHazardProvider(ABC):
                     timeout=DEFAULT_TIMEOUT,
                 ) as resp:
                     if resp.status == 200:
-                        # Some APIs return text/html or application/octet-stream with JSON content
-                        return await resp.json(content_type=None)
+                        if is_json:
+                            return await resp.json(content_type=None)
+                        return await resp.text()
                     if resp.status in (429, 500, 502, 503, 504):
                         _LOGGER.debug(
                             "Transient HTTP %s from %s (attempt %s/%s). Retrying in %ss...",
@@ -136,6 +140,20 @@ class BaseHazardProvider(ABC):
                             backoff *= 2
                             continue
                     resp.raise_for_status()
+            except aiohttp.ClientResponseError as err:
+                if err.status not in (429, 500, 502, 503, 504) or attempt >= MAX_RETRIES:
+                    raise
+                _LOGGER.debug(
+                    "Transient HTTP response error %s from %s (attempt %s/%s): %s",
+                    err.status,
+                    url,
+                    attempt,
+                    MAX_RETRIES,
+                    err,
+                )
+                await asyncio.sleep(backoff)
+                backoff *= 2
+
             except (TimeoutError, aiohttp.ClientError) as err:
                 _LOGGER.debug(
                     "Network error fetching %s (attempt %s/%s): %s",
@@ -153,60 +171,31 @@ class BaseHazardProvider(ABC):
         msg = f"Failed to fetch {url} after {MAX_RETRIES} attempts"  # pragma: no cover
         raise aiohttp.ClientError(msg)  # pragma: no cover
 
+    async def async_fetch_json(
+        self,
+        url: str,
+        headers: dict[str, str] | None = None,
+    ) -> Any:
+        """Fetch JSON data from URL with exponential retry for 429/5xx errors."""
+        return await self._async_request(
+            url,
+            accept="application/json, text/plain, */*",
+            is_json=True,
+            headers=headers,
+        )
+
     async def async_fetch_text(
         self,
         url: str,
         headers: dict[str, str] | None = None,
     ) -> str:
         """Fetch text/XML data from URL with exponential retry for 429/5xx errors."""
-        req_headers = {
-            "User-Agent": "HomeAssistant-AusNZDisasterWatch/1.0",
-            "Accept": "application/xml, text/xml, application/rss+xml, application/atom+xml, text/plain, */*",
-        }
-        if headers:
-            req_headers.update(headers)
-
-        backoff = INITIAL_BACKOFF
-
-        for attempt in range(1, MAX_RETRIES + 1):
-            try:
-                async with self.session.get(
-                    url,
-                    headers=req_headers,
-                    timeout=DEFAULT_TIMEOUT,
-                ) as resp:
-                    if resp.status == 200:
-                        return await resp.text()
-                    if resp.status in (429, 500, 502, 503, 504):
-                        _LOGGER.debug(
-                            "Transient HTTP %s from %s (attempt %s/%s). Retrying in %ss...",
-                            resp.status,
-                            url,
-                            attempt,
-                            MAX_RETRIES,
-                            backoff,
-                        )
-                        if attempt < MAX_RETRIES:
-                            await asyncio.sleep(backoff)
-                            backoff *= 2
-                            continue
-                    resp.raise_for_status()
-            except (TimeoutError, aiohttp.ClientError) as err:
-                _LOGGER.debug(
-                    "Network error fetching text from %s (attempt %s/%s): %s",
-                    url,
-                    attempt,
-                    MAX_RETRIES,
-                    err,
-                )
-                if attempt < MAX_RETRIES:
-                    await asyncio.sleep(backoff)
-                    backoff *= 2
-                else:
-                    raise
-
-        msg = f"Failed to fetch {url} after {MAX_RETRIES} attempts"  # pragma: no cover
-        raise aiohttp.ClientError(msg)  # pragma: no cover
+        return await self._async_request(
+            url,
+            accept="application/xml, text/xml, application/rss+xml, application/atom+xml, text/plain, */*",
+            is_json=False,
+            headers=headers,
+        )
 
     @staticmethod
     def calculate_centroid(geometry: dict[str, Any]) -> tuple[float, float] | None:

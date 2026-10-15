@@ -1,18 +1,18 @@
 {
-  "name": "aus-disaster-card",
+  "name": "ausnz-disaster-card",
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Lovelace card for Australian Emergency Hazards integration",
+  "description": "Lovelace card for Australia and New Zealand Disaster Watch",
   "scripts": {
     "build": "vite build",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "lit": "^3.2.1"
+    "lit": "^3.3.3"
   },
   "devDependencies": {
     "typescript": "^7.0.2",
-    "vite": "^6.0.0"
+    "vite": "^8.3.4"
   }
 }

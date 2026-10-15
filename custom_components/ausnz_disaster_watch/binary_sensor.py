@@ -154,7 +154,7 @@ class RoadClosureNearbyBinarySensor(AustralianDisasterWatchEntity, BinarySensorE
     @property
     def icon(self) -> str:
         """Return icon depending on state."""
-        return "mdi:road-variant-alert" if self.is_on else "mdi:road-variant"
+        return "mdi:traffic-cone" if self.is_on else "mdi:road-variant"
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

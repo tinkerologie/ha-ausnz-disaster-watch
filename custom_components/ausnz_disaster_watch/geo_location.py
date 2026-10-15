@@ -25,11 +25,11 @@ _LOGGER = logging.getLogger(__name__)
 HAZARD_ICONS = {
     HazardType.BUSHFIRE: "mdi:fire",
     HazardType.GRASS_FIRE: "mdi:grass",
-    HazardType.METROPOLITAN_FIRE: "mdi:home-fire",
+    HazardType.METROPOLITAN_FIRE: "mdi:fire-alert",
     HazardType.FLOOD: "mdi:water-alert",
     HazardType.SEVERE_STORM: "mdi:weather-lightning",
     HazardType.CYCLONE: "mdi:weather-hurricane",
-    HazardType.EARTHQUAKE: "mdi:image-filter-hdr",
+    HazardType.EARTHQUAKE: "mdi:pulse",
     HazardType.VOLCANO: "mdi:volcano",
     HazardType.TSUNAMI: "mdi:tsunami",
     HazardType.HAZMAT: "mdi:biohazard",
@@ -154,8 +154,10 @@ class AustralianDisasterWatchGeolocationEvent(CoordinatorEntity[AustralianDisast
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return safe scalar state attributes (guaranteed < 16 KB SQLite limit)."""
         if not self.hazard:
-            return {}
-        return self.hazard.to_safe_attributes()
+            return {"integration": DOMAIN}
+        attrs = self.hazard.to_safe_attributes()
+        attrs["integration"] = DOMAIN
+        return attrs
 
 
 AusNZDisasterWatchGeolocationEvent = AustralianDisasterWatchGeolocationEvent

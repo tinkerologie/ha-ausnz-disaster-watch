@@ -96,7 +96,7 @@ async def test_camera_attributes_and_snapshots(
     )
     cam_min_entity = AustralianDisasterWatchCamera(coordinator, cam_minimal)
     min_attrs = cam_min_entity.extra_state_attributes
-    assert min_attrs == {"image_url": "https://example.com/min.jpg"}
+    assert min_attrs == {"image_url": "https://example.com/min.jpg", "integration": DOMAIN}
 
     # Test snapshot fetch: HTTP 200
     mock_resp_200 = AsyncMock()
@@ -106,11 +106,15 @@ async def test_camera_attributes_and_snapshots(
     mock_session = MagicMock()
     mock_session.get.return_value.__aenter__.return_value = mock_resp_200
 
+    assert camera.entity_picture is None
+
     with patch("custom_components.ausnz_disaster_watch.camera.async_get_clientsession", return_value=mock_session):
         image_bytes = await camera.async_camera_image()
         assert image_bytes == b"\xff\xd8\xff\xe0mock_image_bytes"
+        assert camera.entity_picture is not None
 
     # Test snapshot fetch: HTTP 404
+
     mock_resp_404 = AsyncMock()
     mock_resp_404.status = 404
     mock_session.get.return_value.__aenter__.return_value = mock_resp_404

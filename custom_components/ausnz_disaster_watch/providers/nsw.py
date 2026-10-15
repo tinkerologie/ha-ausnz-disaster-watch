@@ -126,14 +126,18 @@ class NSWHazardProvider(BaseHazardProvider):
                 fields[k.strip().upper()] = v.strip()
         return fields
 
-    def _get_council_base_url(self) -> str:
-        """Return configured or default NSW Council Disaster Dashboard base URL."""
-        url = self.config.get(CONF_COUNCIL_DASHBOARD_URL) or DEFAULT_NSW_COUNCIL_URL
+    def _get_council_base_url(self) -> str | None:
+        """Return configured NSW Council Disaster Dashboard base URL or None."""
+        url = self.config.get(CONF_COUNCIL_DASHBOARD_URL)
+        if not url:
+            return None
         return str(url).strip().rstrip("/")
 
     async def async_fetch_fire_danger(self) -> FireDangerRating | None:
         """Fetch AFDRS fire danger rating from NSW Council dashboard."""
         base_url = self._get_council_base_url()
+        if not base_url:
+            return None
         try:
             fdr_data = await self.async_fetch_json(f"{base_url}/dashboard/fireDangerRating")
             if isinstance(fdr_data, dict):
@@ -155,6 +159,8 @@ class NSWHazardProvider(BaseHazardProvider):
     async def async_fetch_weather_warnings(self) -> list[WeatherWarningItem]:
         """Fetch weather warnings summary from NSW council BoM feed."""
         base_url = self._get_council_base_url()
+        if not base_url:
+            return []
         warnings: list[WeatherWarningItem] = []
         try:
             bom_data = await self.async_fetch_json(f"{base_url}/dashboard/bom")
@@ -180,6 +186,8 @@ class NSWHazardProvider(BaseHazardProvider):
     async def async_fetch_emergency_news(self) -> list[EmergencyNewsItem]:
         """Fetch emergency bulletins from NSW Council dashboard."""
         base_url = self._get_council_base_url()
+        if not base_url:
+            return []
         news_list: list[EmergencyNewsItem] = []
         try:
             bulletin_data = await self.async_fetch_json(f"{base_url}/dashboard/imsBulletin")

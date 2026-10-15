@@ -1,8 +1,8 @@
-# Contributing to Home Assistant AusNZDisasterWatch Integration
+# Contributing to Australia and New Zealand Disaster Watch for Home Assistant
 
-Thank you for your interest in contributing to Home Assistant AusNZDisasterWatch Integration. This project welcomes contributions from human developers and autonomous AI coding agents alike.
+Thank you for your interest in contributing to Australia and New Zealand Disaster Watch. This project welcomes contributions from human developers and autonomous AI coding agents alike.
 
-Home Assistant integration for AusNZDisasterWatch backup management, job monitoring, and snapshots.
+Home Assistant integration for real-time disaster, hazard, and emergency incident monitoring across Australia and New Zealand.
 
 To maintain code quality, protect maintainer capacity, and prevent maintainer burnout, all contributors must follow the standardized development and governance workflow outlined below.
 

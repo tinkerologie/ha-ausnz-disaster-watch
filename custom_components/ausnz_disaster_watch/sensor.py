@@ -85,7 +85,7 @@ class ActiveHazardsCountSensor(AustralianDisasterWatchEntity, SensorEntity):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = "hazards"
     _attr_translation_key = "active_hazards_count"
-    _attr_icon = "mdi:counter"
+    _attr_icon = "mdi:shield-alert"
 
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize count sensor."""
@@ -127,6 +127,16 @@ class HighestWarningLevelSensor(AustralianDisasterWatchEntity, SensorEntity):
         if lvl.value == "Advice":
             return "mdi:information"
         return "mdi:shield-check"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return attributes including active emergency news and nearby councils."""
+        news = self.coordinator.emergency_news
+        councils = self.coordinator.nearby_councils
+        return {
+            "emergency_news": [n.model_dump(mode="json") for n in news[:20]],
+            "nearby_councils": councils[:10],
+        }
 
 
 class NearestHazardTitleSensor(AustralianDisasterWatchEntity, SensorEntity):
@@ -202,7 +212,7 @@ class RoadClosuresCountSensor(AustralianDisasterWatchEntity, SensorEntity):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = "closures"
     _attr_translation_key = "road_closures_count"
-    _attr_icon = "mdi:road-variant-alert"
+    _attr_icon = "mdi:traffic-cone"
 
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize road closures count sensor."""
@@ -243,10 +253,14 @@ class WeatherWarningsCountSensor(AustralianDisasterWatchEntity, SensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        """Return list of weather warnings."""
+        """Return list of weather warnings, emergency news, and nearby councils."""
         warnings = self.coordinator.weather_warnings
+        news = self.coordinator.emergency_news
+        councils = self.coordinator.nearby_councils
         return {
             "warnings": [w.model_dump(mode="json") for w in warnings[:20]],
+            "emergency_news": [n.model_dump(mode="json") for n in news[:20]],
+            "nearby_councils": councils[:10],
         }
 
 
@@ -261,15 +275,15 @@ class FireDangerRatingSensor(AustralianDisasterWatchEntity, SensorEntity):
         self._attr_name = "Fire Danger Rating"
 
     @property
-    def native_value(self) -> str:
+    def native_value(self) -> str | None:
         """Return current AFDRS rating string."""
         fd = self.coordinator.fire_danger
-        return fd.rating if fd else "Moderate"
+        return fd.rating if fd else None
 
     @property
     def icon(self) -> str:
         """Return dynamic icon based on fire danger level."""
-        val = str(self.native_value).lower()
+        val = str(self.native_value or "").lower()
         if "catastrophic" in val or "extreme" in val:
             return "mdi:fire-alert"
         if "high" in val or "moderate" in val:
@@ -302,12 +316,12 @@ class AirQualityIndexSensor(AustralianDisasterWatchEntity, SensorEntity):
         self._attr_name = "Air Quality"
 
     @property
-    def native_value(self) -> str:
+    def native_value(self) -> str | None:
         """Return overall rating of closest air quality station."""
         stations = self.coordinator.air_quality_stations
         if stations:
             return stations[0].overall_rating
-        return "Good"
+        return None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
