@@ -216,6 +216,25 @@ async def test_geolocation_long_hazard_ids_get_distinct_entity_ids(
     assert all(len(eid) <= len("geo_location.ausnz_disaster_watch_") + MAX_HAZARD_SLUG_LENGTH for eid in entity_ids)
 
 
+async def test_geolocation_slug_collisions_get_distinct_entity_ids(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    mock_hazard_emergency_warning: CanonicalHazard,
+) -> None:
+    """Test hazard IDs that slugify alike still get distinct entity IDs (the registry suffixes the second)."""
+    hazards = [
+        mock_hazard_emergency_warning.model_copy(update={"id": "QLD-1"}),
+        mock_hazard_emergency_warning.model_copy(update={"id": "QLD_1"}),
+    ]
+    await _setup_with_hazards(hass, mock_config_entry, hazards)
+
+    entity_ids = sorted(s.entity_id for s in _geo_states(hass))
+    assert entity_ids == [
+        "geo_location.ausnz_disaster_watch_qld_1",
+        "geo_location.ausnz_disaster_watch_qld_1_2",
+    ]
+
+
 async def test_geolocation_event_keeps_last_known_hazard(
     hass: HomeAssistant,
     mock_config_entry: MockConfigEntry,
