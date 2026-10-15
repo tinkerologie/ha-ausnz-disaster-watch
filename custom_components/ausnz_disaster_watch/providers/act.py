@@ -18,6 +18,18 @@ _LOGGER = logging.getLogger(__name__)
 ACT_ESA_FEED_URL = "https://www.esa.act.gov.au/feeds/currentincidents.xml"
 
 
+# CAD types and agencies that are not emergency hazards. The feed carries every ACT ESA
+# dispatch, and ambulance responses are most of it on a typical day (#14).
+_NON_HAZARD_TYPES = ("AMBULANCE",)
+_NON_HAZARD_AGENCIES = frozenset({"ambulance"})
+
+
+def _is_non_hazard(incident_type: str, agency: str) -> bool:
+    """Return True for medical dispatches, which are not fire, rescue or emergency hazards."""
+    upper_type = incident_type.upper()
+    return any(word in upper_type for word in _NON_HAZARD_TYPES) or agency.lower() in _NON_HAZARD_AGENCIES
+
+
 _UPDATED_RE = re.compile(r"updated:\s*(.+?)(?:<br\s*/?>|<|\n|$)", re.IGNORECASE)
 
 
@@ -58,10 +70,15 @@ class ACTHazardProvider(BaseHazardProvider):
 
         for item in root.findall(".//item"):
             try:
-                title = item.findtext("title", "").strip()
+                title = (item.findtext("title") or "").strip()
+                incident_type = (item.findtext("type") or "").strip()
+                agency = (item.findtext("agency") or "").strip()
+                if _is_non_hazard(incident_type, agency):
+                    continue
+
                 guid = item.findtext("guid", "").strip() or title
                 desc = item.findtext("description", "").strip()
-                agency = item.findtext("agency", "").strip() or "ACT ESA"
+                agency = agency or "ACT ESA"
                 # pubDate is the feed build time; the incident time is the "Updated:" line in
                 # the description (e.g. "Updated: 2026-10-15 20:46 AEDT") (#13)
                 updated_at = self.parse_datetime(_extract_updated(desc)) or self.parse_datetime(
@@ -86,7 +103,7 @@ class ACTHazardProvider(BaseHazardProvider):
                     lat, lon = -35.2809, 149.1300
 
                 # Check if hazard reduction
-                is_hr = "hazard reduction" in title.lower() or "hazard reduction" in desc.lower()
+                is_hr = any("hazard reduction" in text.lower() for text in (incident_type, title, desc))
 
                 # Warning level
                 combined = f"{title.lower()} {desc.lower()}"
@@ -104,7 +121,7 @@ class ACTHazardProvider(BaseHazardProvider):
                         id=f"act_esa_{guid}",
                         source="ACT Emergency Services Agency",
                         title=title,
-                        hazard_type=HazardType.from_str(title),
+                        hazard_type=HazardType.from_str(incident_type or title),
                         warning_level=level,
                         latitude=lat,
                         longitude=lon,
@@ -114,7 +131,7 @@ class ACTHazardProvider(BaseHazardProvider):
                         status="Active",
                         responsible_agency=agency,
                         web_url="https://esa.act.gov.au",
-                        raw_properties={"description": desc},
+                        raw_properties={"description": desc, "type": incident_type or None},
                     )
                 )
             except MALFORMED_ITEM_ERRORS as err:

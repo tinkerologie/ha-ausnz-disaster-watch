@@ -13,6 +13,29 @@ from .base import MALFORMED_ITEM_ERRORS, BaseHazardProvider, ProviderUnavailable
 _LOGGER = logging.getLogger(__name__)
 
 VIC_OSOM_URL = "https://emergency.vic.gov.au/public/osom-geojson.json"
+VIC_DEEP_LINK = "https://emergency.vic.gov.au/respond/#!/{path}/moreinfo"
+
+# Burn-area features are burn-scar polygons of past fires and planned burns, not active
+# events (#27)
+_SKIPPED_FEED_TYPES = frozenset({"burn-area"})
+# Bureau of Meteorology warnings that VicEmergency re-publishes; the BoM provider already
+# reports them (#27)
+_SKIPPED_SOURCE_ORG_PREFIX = "AU/BOM"
+_SKIPPED_SOURCE_FEED_PREFIX = "bom-"
+
+
+def _deep_link(props: dict[str, Any], feed_type: str, inc_id: str) -> str:
+    """Build the VicEmergency link the way its map does: ``#!/{feedType}/{id}/moreinfo``.
+
+    A warning attached to an incident nests under it (``incident/{id}/warning/{id}``).
+    """
+    path = f"{feed_type}/{inc_id}"
+    incident_list = props.get("incidentList")
+    if feed_type == "warning" and isinstance(incident_list, list) and incident_list:
+        first = incident_list[0]
+        if isinstance(first, dict) and first.get("id"):
+            path = f"incident/{first['id']}/{path}"
+    return VIC_DEEP_LINK.format(path=path)
 
 
 class VictoriaHazardProvider(BaseHazardProvider):
@@ -46,6 +69,16 @@ class VictoriaHazardProvider(BaseHazardProvider):
     def _parse_vic_feature(self, feature: dict[str, Any]) -> CanonicalHazard | None:
         """Parse GeoJSON feature from Vic OSOM feed."""
         props = feature.get("properties", {})
+        raw_feed_type = str(props.get("feedType") or "")
+        source_org = str(props.get("sourceOrg") or "").upper()
+        source_feed = str(props.get("sourceFeed") or "").lower()
+        if (
+            raw_feed_type.lower() in _SKIPPED_FEED_TYPES
+            or source_org.startswith(_SKIPPED_SOURCE_ORG_PREFIX)
+            or source_feed.startswith(_SKIPPED_SOURCE_FEED_PREFIX)
+        ):
+            return None
+
         geometry = feature.get("geometry", {})
         centroid = self.calculate_centroid(geometry)
         if not centroid:
@@ -95,11 +128,8 @@ class VictoriaHazardProvider(BaseHazardProvider):
         hazard_type = HazardType.from_str(type_str)
 
         updated_at = self.parse_datetime(props.get("updated") or props.get("created"))
-        feed_type = str(props.get("feedType", "")).lower()
 
-        is_hazard_reduction = bool(
-            feed_type == "burn-area" or "planned burn" in type_str.lower() or "hazard reduction" in type_str.lower()
-        )
+        is_hazard_reduction = "planned burn" in type_str.lower() or "hazard reduction" in type_str.lower()
 
         responsible_agency = props.get("sourceOrg") or "Emergency Management Victoria"
 
@@ -116,6 +146,6 @@ class VictoriaHazardProvider(BaseHazardProvider):
             is_hazard_reduction=is_hazard_reduction,
             status=props.get("status"),
             responsible_agency=responsible_agency,
-            web_url=f"http://emergency.vic.gov.au/respond/#!/warning/{inc_id}/moreinfo",
+            web_url=_deep_link(props, raw_feed_type or "incident", inc_id),
             raw_properties=props,
         )

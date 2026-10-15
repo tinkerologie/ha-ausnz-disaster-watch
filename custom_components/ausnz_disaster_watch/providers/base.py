@@ -60,6 +60,9 @@ _LOCAL_FORMATS = (
     "%d/%m/%Y %I:%M %p",
     "%d/%m/%Y %H:%M",
     "%d %b %Y %H:%M",
+    # ACT ESA publishes timestamps such as "15 Oct 2026 15:14:49.77".
+    "%d %b %Y %H:%M:%S.%f",
+    "%d %b %Y %H:%M:%S",
     "%Y-%m-%d %H:%M:%S",
 )
 
