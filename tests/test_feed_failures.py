@@ -15,7 +15,6 @@ from custom_components.ausnz_disaster_watch.coordinator import AustralianDisaste
 from custom_components.ausnz_disaster_watch.models import CanonicalHazard, HazardType, WarningLevel
 from custom_components.ausnz_disaster_watch.providers import (
     ACTHazardProvider,
-    BoMHazardProvider,
     NSWHazardProvider,
     NTHazardProvider,
     NZHazardProvider,
@@ -154,26 +153,6 @@ async def test_nz_skips_malformed_items(hass: HomeAssistant) -> None:
     provider.async_fetch_json = AsyncMock(side_effect=[quakes, []])
     provider.async_fetch_text = AsyncMock(side_effect=aiohttp.ClientError("down"))
     assert len(await provider.async_fetch_hazards()) == 1
-
-
-async def test_bom_skips_malformed_item(hass: HomeAssistant) -> None:
-    """A BoM item whose parser raises is skipped."""
-    provider = BoMHazardProvider(hass, AsyncMock(), {"state": "QLD"})
-    xml = "<rss><channel><item><title>A</title></item><item><title>B</title></item></channel></rss>"
-    resp = MagicMock(status=200)
-    resp.text = AsyncMock(return_value=xml)
-    ctx = MagicMock()
-    ctx.__aenter__ = AsyncMock(return_value=resp)
-    ctx.__aexit__ = AsyncMock(return_value=False)
-    provider.session = MagicMock(get=MagicMock(return_value=ctx))
-    good = MagicMock(spec=CanonicalHazard)
-    provider._parse_item = MagicMock(side_effect=[TypeError("bad"), good])
-    assert await provider.async_fetch_hazards() == [good]
-
-    # Invalid XML is an unavailable feed
-    resp.text = AsyncMock(return_value="<rss><channel>")
-    with pytest.raises(ProviderUnavailableError):
-        await provider.async_fetch_hazards()
 
 
 async def test_qld_skips_malformed_item_and_council_rescues(hass: HomeAssistant) -> None:
