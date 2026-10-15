@@ -280,7 +280,9 @@ class ForecastOptionsFlow(OptionsFlowWithReload):
 
     async def async_step_edit_river_point_details(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Change a river point's threshold and horizon; to move it, remove it and add a new one."""
-        point = next(p for p in river_points(self._points) if p.point_id == self._edit_id)
+        point = next((p for p in river_points(self._points) if p.point_id == self._edit_id), None)
+        if point is None:  # removed by another options flow meanwhile
+            return self.async_abort(reason="river_point_not_found")
         errors: dict[str, str] = {}
         if user_input is not None:
             threshold = float(user_input[RIVER_POINT_THRESHOLD])

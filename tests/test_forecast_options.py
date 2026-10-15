@@ -235,3 +235,13 @@ async def test_edit_and_remove_river_points(hass: HomeAssistant, mock_config_ent
     assert result["type"] is data_entry_flow.FlowResultType.CREATE_ENTRY
     assert [p["id"] for p in entry.options[CONF_RIVER_POINTS]] == ["p2"]
     assert entry.options[CONF_RADIUS] == 80
+
+
+async def test_edit_point_removed_meanwhile(hass: HomeAssistant, mock_config_entry: MockConfigEntry) -> None:
+    """Editing a point that another flow removed aborts instead of failing."""
+    entry = _entry(hass, mock_config_entry, {CONF_RIVER_POINTS: [POINT]})
+    result = await _open(hass, entry, "edit_river_point")
+    hass.config_entries.async_update_entry(entry, options={CONF_RIVER_POINTS: []})
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {"point": "p1"})
+    assert result["type"] is data_entry_flow.FlowResultType.ABORT
+    assert result["reason"] == "river_point_not_found"
