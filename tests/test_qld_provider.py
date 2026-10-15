@@ -13,6 +13,7 @@ from custom_components.ausnz_disaster_watch.models import HazardType, WarningLev
 from custom_components.ausnz_disaster_watch.providers import NSWHazardProvider, QueenslandHazardProvider
 from custom_components.ausnz_disaster_watch.providers.base import ProviderUnavailableError
 from custom_components.ausnz_disaster_watch.providers.guardian_ims import GuardianDashboard
+from custom_components.ausnz_disaster_watch.providers.nsw import NSW_RFS_MAJOR_INCIDENTS_URL
 from custom_components.ausnz_disaster_watch.providers.qld import QFD_WARNINGS_URL, QFD_WEB_URL, _valid_point
 from homeassistant.core import HomeAssistant
 
@@ -310,11 +311,11 @@ async def test_council_links(hass: HomeAssistant) -> None:
     assert not any("tweed" in url or "begavalley" in url for url in nsw_urls)
 
 
-async def test_nsw_hazard_poll_starts_dashboard_poll(hass: HomeAssistant) -> None:
+async def test_nsw_hazard_poll_starts_dashboard_poll(hass: HomeAssistant, feed_routes: Any) -> None:
     """The NSW hazard poll resets the dashboard's per-poll cache."""
-    provider = NSWHazardProvider(hass, AsyncMock(), {"state": "NSW", CONF_COUNCIL_DASHBOARD_URL: BASE})
+    session = feed_routes({NSW_RFS_MAJOR_INCIDENTS_URL: {"type": "FeatureCollection", "features": []}})
+    provider = NSWHazardProvider(hass, session, {"state": "NSW", CONF_COUNCIL_DASHBOARD_URL: BASE})
     assert provider.dashboard is not None
     provider.dashboard._poll_cache["bom"] = {"item": []}
-    provider.async_fetch_json = AsyncMock(return_value={"features": []})  # type: ignore[method-assign]
     assert await provider.async_fetch_hazards() == []
     assert provider.dashboard._poll_cache == {}
