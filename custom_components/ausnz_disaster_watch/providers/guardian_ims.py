@@ -6,7 +6,7 @@ dashboard has every endpoint: a missing endpoint answers 404 (an HTML page). Sev
 endpoints return a JSON-encoded string that holds the real JSON document.
 
 ``GuardianDashboard`` hides those differences. It decodes double-encoded bodies, remembers
-endpoints a dashboard does not have (so each costs one request per session), reuses
+endpoints a dashboard does not have (each is asked again only after six hours), reuses
 payloads within one poll, and maps the generic endpoints to the integration's models:
 
 - power outages: ``ergonOutages`` (Ergon, regional QLD; ``Lat``/``Long`` are swapped) and
