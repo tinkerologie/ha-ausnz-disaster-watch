@@ -86,6 +86,11 @@ def stable_id(prefix: str, *parts: object) -> str:
     return f"{prefix}_{hashlib.sha256(raw.encode()).hexdigest()[:16]}"
 
 
+def as_dict(value: Any) -> dict[str, Any]:
+    """Return value if it is a JSON object, else an empty dict (for optional nested objects)."""
+    return value if isinstance(value, dict) else {}
+
+
 DEFAULT_TIMEOUT = aiohttp.ClientTimeout(total=30)
 MAX_RETRIES = 3
 INITIAL_BACKOFF = 1.0
@@ -107,7 +112,6 @@ class BaseHazardProvider(ABC):
         self.hass = hass
         self.session = session
         self.config = config
-        self._payload_cache: dict[str, Any] = {}
 
     @property
     @abstractmethod

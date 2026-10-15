@@ -70,8 +70,9 @@ SUPPORTED_STATES: Final = [
     STATE_NZ,
 ]
 
-# Preset Council Disaster Dashboards (Guardian IMS & Council APIs)
-PRESET_COUNCIL_DASHBOARDS: Final[dict[str, dict[str, str | float]]] = {
+# Preset Council Disaster Dashboards (Guardian IMS). A preset without a URL has no JSON
+# dashboard the integration can read.
+PRESET_COUNCIL_DASHBOARDS: Final[dict[str, dict[str, str | float | None]]] = {
     "moreton_bay": {
         "name": "City of Moreton Bay",
         "state": STATE_QLD,
@@ -82,7 +83,8 @@ PRESET_COUNCIL_DASHBOARDS: Final[dict[str, dict[str, str | float]]] = {
     "sunshine_coast": {
         "name": "Sunshine Coast",
         "state": STATE_QLD,
-        "url": "https://disaster.sunshinecoast.qld.gov.au",
+        # Disaster Hub (disasterhub.sunshinecoast.qld.gov.au) is not a Guardian IMS dashboard
+        "url": None,
         "latitude": -26.6500,
         "longitude": 153.0667,
     },
@@ -96,7 +98,7 @@ PRESET_COUNCIL_DASHBOARDS: Final[dict[str, dict[str, str | float]]] = {
     "gold_coast": {
         "name": "City of Gold Coast",
         "state": STATE_QLD,
-        "url": "https://disaster.goldcoast.qld.gov.au",
+        "url": "https://dashboard.goldcoast.qld.gov.au",
         "latitude": -28.0167,
         "longitude": 153.4000,
     },
@@ -131,7 +133,7 @@ PRESET_COUNCIL_DASHBOARDS: Final[dict[str, dict[str, str | float]]] = {
     "redland": {
         "name": "Redland City",
         "state": STATE_QLD,
-        "url": "https://disaster.redland.qld.gov.au",
+        "url": "https://dashboard.redland.qld.gov.au",
         "latitude": -27.5306,
         "longitude": 153.2500,
     },
