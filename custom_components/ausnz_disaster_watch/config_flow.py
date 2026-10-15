@@ -54,6 +54,7 @@ from .const import (
     STATE_WA,
     SUPPORTED_STATES,
 )
+from .coordinator import nearest_council_dashboard
 from .models import DisasterWatchConfigModel
 
 _LOGGER = logging.getLogger(__name__)
@@ -202,6 +203,7 @@ class AustralianDisasterWatchConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Australian Disaster Watch."""
 
     VERSION = 1
+    MINOR_VERSION = 2
 
     def __init__(self) -> None:
         """Initialize config flow."""
@@ -229,20 +231,15 @@ class AustralianDisasterWatchConfigFlow(ConfigFlow, domain=DOMAIN):
             if user_input.get(CONF_LOCATION_MODE) == LOCATION_MODE_CUSTOM:
                 return await self.async_step_location()
 
-            # Otherwise, use Home Zone location
-            lat = self.hass.config.latitude or -27.2657
-            lon = self.hass.config.longitude or 152.9818
+            # Otherwise follow the Home Assistant home location. Coordinates are not stored:
+            # the coordinator reads the home location at every refresh (#19).
             state = user_input.get(CONF_STATE, default_state)
 
-            council_url: str | None = None
-            if state == STATE_QLD:
-                # Check if home coordinates are close to Moreton Bay or preset
-                council_url = str(PRESET_COUNCIL_DASHBOARDS["moreton_bay"]["url"])
+            # Nearest preset council dashboard near home, if any (changeable in the options)
+            council_url = nearest_council_dashboard(state, self.hass.config.latitude, self.hass.config.longitude)
 
             entry_data = {
                 **user_input,
-                CONF_LATITUDE: lat,
-                CONF_LONGITUDE: lon,
                 CONF_LOCATION_NAME: self.hass.config.location_name or "Home",
                 CONF_COUNCIL_DASHBOARD_URL: council_url,
             }
@@ -435,8 +432,14 @@ class AustralianDisasterWatchConfigFlow(ConfigFlow, domain=DOMAIN):
                     **user_input,
                     CONF_LATITUDE: parsed_lat,
                     CONF_LONGITUDE: parsed_lon,
-                    CONF_LOCATION_MODE: self._reconfigured_location_mode(entry, parsed_lat, parsed_lon),
+                    CONF_LOCATION_MODE: self._chosen_location_mode(
+                        entry, user_input.get(CONF_LOCATION_MODE), parsed_lat, parsed_lon
+                    ),
                 }
+                if updates[CONF_LOCATION_MODE] == LOCATION_MODE_HOME:
+                    # Home-zone entries follow the Home Assistant home location; no stored point (#19)
+                    updates.pop(CONF_LATITUDE)
+                    updates.pop(CONF_LONGITUDE)
                 new_data = {**entry.data, **updates}
                 if not is_valid_config(new_data):
                     errors["base"] = "invalid_config"
@@ -452,22 +455,40 @@ class AustralianDisasterWatchConfigFlow(ConfigFlow, domain=DOMAIN):
                         **entry.options,
                         **{key: updates[key] for key in RECONFIGURE_OPTION_KEYS if key in updates},
                     }
+                    if new_data[CONF_LOCATION_MODE] == LOCATION_MODE_HOME:
+                        # data_updates would merge into the stored data and keep an old fixed point
+                        new_data.pop(CONF_LATITUDE, None)
+                        new_data.pop(CONF_LONGITUDE, None)
                     return self.async_update_reload_and_abort(
                         entry,
                         unique_id=unique_id,
                         title=build_title(state, location_name),
-                        data_updates=updates,
+                        data=new_data,
                         options=options,
                     )
 
         current = {**entry.data, **entry.options}
+        if current.get(CONF_LOCATION_MODE, LOCATION_MODE_HOME) == LOCATION_MODE_HOME:
+            # Home-zone entries monitor the current home location, not stored coordinates
+            current[CONF_LATITUDE] = self.hass.config.latitude
+            current[CONF_LONGITUDE] = self.hass.config.longitude
         state_options = [SelectOptionDict(value=s, label=s) for s in SUPPORTED_STATES]
+        location_mode_options = [
+            SelectOptionDict(
+                value=LOCATION_MODE_HOME,
+                label=f"Follow Home Zone ({self.hass.config.location_name or 'Home'})",
+            ),
+            SelectOptionDict(value=LOCATION_MODE_CUSTOM, label="Fixed location (the coordinates below)"),
+        ]
 
         schema = vol.Schema(
             {
                 vol.Required(CONF_STATE, default=current.get(CONF_STATE, STATE_QLD)): SelectSelector(
                     SelectSelectorConfig(options=state_options, mode=SelectSelectorMode.DROPDOWN)
                 ),
+                vol.Required(
+                    CONF_LOCATION_MODE, default=current.get(CONF_LOCATION_MODE, LOCATION_MODE_HOME)
+                ): SelectSelector(SelectSelectorConfig(options=location_mode_options, mode=SelectSelectorMode.LIST)),
                 vol.Required(CONF_LOCATION_NAME, default=current.get(CONF_LOCATION_NAME, "Home")): TextSelector(
                     TextSelectorConfig(type=TextSelectorType.TEXT)
                 ),
@@ -507,18 +528,33 @@ class AustralianDisasterWatchConfigFlow(ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-    @staticmethod
-    def _reconfigured_location_mode(entry: ConfigEntry, lat: float, lon: float) -> str:
+    def _chosen_location_mode(self, entry: ConfigEntry, chosen: str | None, lat: float, lon: float) -> str:
         """Return the location mode after reconfigure.
 
-        A home-zone entry stays in home mode only while its coordinates are unchanged;
-        moving the location makes it a custom location with its own unique ID.
+        Choosing "fixed location" always fixes the submitted point, and choosing the home
+        zone switches a fixed entry back to following home. A home-zone entry left on the
+        home zone becomes a fixed location if its coordinates were changed, so edited
+        coordinates are never silently ignored.
+        """
+        current = entry.data.get(CONF_LOCATION_MODE, LOCATION_MODE_HOME)
+        if chosen == LOCATION_MODE_CUSTOM:
+            return LOCATION_MODE_CUSTOM
+        if chosen == LOCATION_MODE_HOME and current != LOCATION_MODE_HOME:
+            return LOCATION_MODE_HOME
+        return self._reconfigured_location_mode(entry, lat, lon)
+
+    def _reconfigured_location_mode(self, entry: ConfigEntry, lat: float, lon: float) -> str:
+        """Return the location mode after reconfigure.
+
+        A home-zone entry stays in home mode only while the submitted coordinates are the
+        Home Assistant home location the form showed (coordinates stored by older versions
+        are ignored); moving the location makes it a custom location with its own unique ID.
         """
         mode = entry.data.get(CONF_LOCATION_MODE, LOCATION_MODE_HOME)
         if mode != LOCATION_MODE_HOME:
             return str(mode)
-        old_lat = entry.data.get(CONF_LATITUDE)
-        old_lon = entry.data.get(CONF_LONGITUDE)
+        old_lat = self.hass.config.latitude
+        old_lon = self.hass.config.longitude
         if (
             old_lat is not None
             and old_lon is not None

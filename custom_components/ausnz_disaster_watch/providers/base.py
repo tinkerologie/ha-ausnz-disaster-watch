@@ -113,6 +113,10 @@ class BaseHazardProvider(ABC):
         self.session = session
         self.config = config
 
+    def set_location(self, latitude: float, longitude: float) -> None:
+        """Use the coordinator's resolved monitoring point (it follows the home zone, #19)."""
+        self.config = {**self.config, "latitude": latitude, "longitude": longitude}
+
     @property
     @abstractmethod
     def state_code(self) -> str:

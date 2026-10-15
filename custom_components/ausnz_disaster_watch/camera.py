@@ -1,6 +1,9 @@
 """Camera platform for Australian Disaster Watch.
 
 Provides live snapshots of flood cameras and traffic webcams from council and road networks.
+Camera entities follow the coordinator data: cameras that appear are added and cameras that
+disappear are removed (their registry entries are kept, so a camera that comes back keeps
+its entity ID and customisations) (#19).
 """
 
 from __future__ import annotations
@@ -11,7 +14,7 @@ from typing import Any
 from aiohttp import ClientTimeout
 
 from homeassistant.components.camera import Camera
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -29,38 +32,66 @@ async def async_setup_entry(
     entry: AusNZDisasterWatchConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up Australian Disaster Watch camera entities."""
+    """Set up camera entities and keep them in step with the coordinator's cameras."""
     coordinator = entry.runtime_data
+    tracked: dict[str, AustralianDisasterWatchCamera] = {}
+    removing: set[str] = set()
 
-    cameras = coordinator.cameras
-    if cameras:
-        async_add_entities([AustralianDisasterWatchCamera(coordinator, cam) for cam in cameras])
+    async def _async_remove(camera_id: str, entity: AustralianDisasterWatchCamera) -> None:
+        # Keep the ID tracked until the old entity is gone: re-adding a camera whose old
+        # entity still exists would be rejected as a unique-ID collision.
+        try:
+            await entity.async_remove()
+        finally:
+            tracked.pop(camera_id, None)
+            removing.discard(camera_id)
+            _sync_entities()
+
+    @callback
+    def _sync_entities() -> None:
+        current = {camera.id for camera in coordinator.cameras}
+        for camera_id in set(tracked) - current - removing:
+            entity = tracked[camera_id]
+            if entity.hass is None:
+                tracked.pop(camera_id)
+                continue
+            removing.add(camera_id)
+            hass.async_create_task(_async_remove(camera_id, entity))
+        new_entities = [
+            AustralianDisasterWatchCamera(coordinator, camera_id) for camera_id in current if camera_id not in tracked
+        ]
+        for entity in new_entities:
+            tracked[entity.camera_id] = entity
+        if new_entities:
+            async_add_entities(new_entities)
+
+    _sync_entities()
+    entry.async_on_unload(coordinator.async_add_listener(_sync_entities))
 
 
 class AustralianDisasterWatchCamera(Camera, AustralianDisasterWatchEntity):
     """Camera entity rendering live disaster and flood webcam snapshots."""
 
-    def __init__(
-        self,
-        coordinator: AustralianDisasterWatchCoordinator,
-        camera_item: DisasterCameraItem,
-    ) -> None:
-        """Initialize camera entity."""
+    _attr_icon = "mdi:cctv"
+
+    def __init__(self, coordinator: AustralianDisasterWatchCoordinator, camera_id: str) -> None:
+        """Initialize camera entity for the camera with ``camera_id``."""
         Camera.__init__(self)
-        AustralianDisasterWatchEntity.__init__(self, coordinator, f"camera_{camera_item.id}")
-        self._camera_id = camera_item.id
-        self._image_url = camera_item.image_url
-        self._attr_name = camera_item.name
-        self._suburb = camera_item.suburb
-        self._latitude = camera_item.latitude
-        self._longitude = camera_item.longitude
-        self._attr_icon = "mdi:cctv"
+        AustralianDisasterWatchEntity.__init__(self, coordinator, f"camera_{camera_id}")
+        self.camera_id = camera_id
+        item = self.camera_item
+        self._attr_name = item.name if item else camera_id
         self._last_image: bytes | None = None
 
     @property
-    def icon(self) -> str:
-        """Return the camera icon."""
-        return "mdi:cctv"
+    def camera_item(self) -> DisasterCameraItem | None:
+        """Return this camera's current data, or None if the feed no longer lists it."""
+        return next((camera for camera in self.coordinator.cameras if camera.id == self.camera_id), None)
+
+    @property
+    def available(self) -> bool:
+        """Return True while the coordinator is healthy and the camera is still listed."""
+        return super().available and self.camera_item is not None
 
     @property
     def entity_picture(self) -> str | None:
@@ -70,20 +101,18 @@ class AustralianDisasterWatchCamera(Camera, AustralianDisasterWatchEntity):
         return None
 
     async def async_camera_image(self, width: int | None = None, height: int | None = None) -> bytes | None:
-        """Fetch latest snapshot image from upstream webcam URL."""
+        """Fetch the latest snapshot from the camera's current image URL."""
+        item = self.camera_item
+        if item is None:
+            return None
         session = async_get_clientsession(self.hass)
         try:
-            async with session.get(self._image_url, timeout=ClientTimeout(total=10), allow_redirects=True) as resp:
+            async with session.get(item.image_url, timeout=ClientTimeout(total=10), allow_redirects=True) as resp:
                 if resp.status == 200:
                     data = await resp.read()
                     self._last_image = data
                     return data
-                _LOGGER.debug(
-                    "Error fetching camera image %s from %s: HTTP %s",
-                    self.name,
-                    self._image_url,
-                    resp.status,
-                )
+                _LOGGER.debug("Error fetching camera image %s from %s: HTTP %s", self.name, item.image_url, resp.status)
         except Exception as err:  # noqa: BLE001
             _LOGGER.debug("Network error fetching camera image %s: %s", self.name, err)
         return None
@@ -91,15 +120,15 @@ class AustralianDisasterWatchCamera(Camera, AustralianDisasterWatchEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return camera location attributes."""
-        attrs: dict[str, Any] = {
-            "image_url": self._image_url,
-            "integration": DOMAIN,
-        }
-        if self._suburb:
-            attrs["suburb"] = self._suburb
-        if self._latitude is not None and self._longitude is not None:
-            attrs["latitude"] = self._latitude
-            attrs["longitude"] = self._longitude
+        attrs: dict[str, Any] = {"integration": DOMAIN}
+        if (item := self.camera_item) is None:
+            return attrs
+        attrs["image_url"] = item.image_url
+        if item.suburb:
+            attrs["suburb"] = item.suburb
+        if item.latitude is not None and item.longitude is not None:
+            attrs["latitude"] = item.latitude
+            attrs["longitude"] = item.longitude
         return attrs
 
 

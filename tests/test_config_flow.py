@@ -151,9 +151,94 @@ async def test_flow_user_step_home_mode(hass: HomeAssistant) -> None:
         assert result2["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
         assert result2["data"][CONF_STATE] == STATE_QLD
         assert result2["data"][CONF_RADIUS] == 45
-        assert result2["data"][CONF_LATITUDE] == -27.4698
-        assert result2["data"][CONF_LONGITUDE] == 153.0251
+        # Home-zone entries follow the home location, so no coordinates are stored (#19)
+        assert CONF_LATITUDE not in result2["data"]
+        assert CONF_LONGITUDE not in result2["data"]
         assert result2["data"][CONF_LOCATION_NAME] == "My Home"
+
+
+@pytest.mark.parametrize(
+    ("home", "expected_url"),
+    [
+        ((-16.92, 145.77), "https://disaster.cairns.qld.gov.au"),  # Cairns
+        ((-27.10, 152.95), "https://disaster.moretonbay.qld.gov.au"),  # Caboolture
+        ((-23.44, 144.25), None),  # Longreach: no preset within 40 km
+    ],
+)
+async def test_flow_home_mode_picks_nearest_council(
+    hass: HomeAssistant, home: tuple[float, float], expected_url: str | None
+) -> None:
+    """A QLD home-zone entry gets the nearest preset dashboard, not always Moreton Bay (#19)."""
+    hass.config.latitude, hass.config.longitude = home
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    with patch("custom_components.ausnz_disaster_watch.async_setup_entry", return_value=True):
+        result2 = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={
+                CONF_STATE: STATE_QLD,
+                CONF_LOCATION_MODE: LOCATION_MODE_HOME,
+                CONF_RADIUS: 50,
+                CONF_OVERRIDE_EMERGENCY: True,
+                CONF_EXCLUDE_HAZARD_REDUCTION: True,
+            },
+        )
+    assert result2["data"][CONF_COUNCIL_DASHBOARD_URL] == expected_url
+
+
+async def test_reconfigure_home_entry_prefills_home_and_switches_to_custom(hass: HomeAssistant) -> None:
+    """Reconfigure shows the current home location; choosing a fixed location stores it (#19)."""
+    hass.config.latitude, hass.config.longitude = -19.26, 146.82
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_STATE: STATE_QLD,
+            CONF_LOCATION_MODE: LOCATION_MODE_HOME,
+            CONF_LATITUDE: -27.2,
+            CONF_LONGITUDE: 153.0,
+        },
+    )
+    entry.add_to_hass(hass)
+    result = await entry.start_reconfigure_flow(hass)
+    defaults = {str(key): key.default() for key in result["data_schema"].schema}
+    assert defaults[CONF_LATITUDE] == -19.26
+    assert defaults[CONF_LONGITUDE] == 146.82
+
+    with patch("custom_components.ausnz_disaster_watch.async_setup_entry", return_value=True):
+        await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={
+                CONF_STATE: STATE_QLD,
+                CONF_LOCATION_NAME: "Townsville",
+                CONF_LATITUDE: -19.26,
+                CONF_LONGITUDE: 146.82,
+                CONF_RADIUS: 50,
+                CONF_OVERRIDE_EMERGENCY: True,
+                CONF_EXCLUDE_HAZARD_REDUCTION: True,
+            },
+        )
+    # Submitting the displayed home location unchanged keeps following home and drops the
+    # coordinates an older version stored
+    assert entry.data[CONF_LOCATION_MODE] == LOCATION_MODE_HOME
+    assert CONF_LATITUDE not in entry.data
+    assert CONF_LONGITUDE not in entry.data
+
+    with patch("custom_components.ausnz_disaster_watch.async_setup_entry", return_value=True):
+        result = await entry.start_reconfigure_flow(hass)
+        await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={
+                CONF_STATE: STATE_QLD,
+                CONF_LOCATION_MODE: LOCATION_MODE_CUSTOM,
+                CONF_LOCATION_NAME: "Townsville",
+                CONF_LATITUDE: -19.26,
+                CONF_LONGITUDE: 146.82,
+                CONF_RADIUS: 50,
+                CONF_OVERRIDE_EMERGENCY: True,
+                CONF_EXCLUDE_HAZARD_REDUCTION: True,
+            },
+        )
+    assert entry.data[CONF_LOCATION_MODE] == LOCATION_MODE_CUSTOM
+    assert entry.data[CONF_LATITUDE] == -19.26
 
 
 async def test_flow_custom_location_moreton_bay(hass: HomeAssistant) -> None:
@@ -414,6 +499,8 @@ async def test_reconfigure_home_entry_moving_becomes_custom(
     hass: HomeAssistant,
 ) -> None:
     """Test a home-zone entry keeps its home ID until its coordinates change."""
+    hass.config.latitude = RECONFIGURE_INPUT[CONF_LATITUDE]
+    hass.config.longitude = RECONFIGURE_INPUT[CONF_LONGITUDE]
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="Australia and New Zealand Disaster Watch (QLD - Home)",
@@ -547,3 +634,37 @@ async def test_custom_location_with_blank_name_uses_stored_name_for_identity(has
     assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
     assert result["data"][CONF_LOCATION_NAME] == "Custom Location"
     assert result["result"].unique_id.endswith("_custom_location")
+
+
+async def test_reconfigure_explicit_location_source(hass: HomeAssistant) -> None:
+    """The reconfigure form asks whether to follow the home zone or keep a fixed point (#19)."""
+    hass.config.latitude, hass.config.longitude = -27.2657, 152.9818
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={CONF_STATE: STATE_QLD, CONF_LOCATION_MODE: LOCATION_MODE_HOME, CONF_LOCATION_NAME: "Home"},
+        unique_id="ausnz_disaster_watch_qld_home",
+    )
+    entry.add_to_hass(hass)
+
+    # Saving the prefilled home coordinates as a fixed location makes the entry custom
+    with patch("custom_components.ausnz_disaster_watch.async_setup_entry", return_value=True):
+        result = await entry.start_reconfigure_flow(hass)
+        defaults = {str(key): key.default() for key in result["data_schema"].schema}
+        assert defaults[CONF_LOCATION_MODE] == LOCATION_MODE_HOME
+        await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={**RECONFIGURE_INPUT, CONF_LOCATION_MODE: LOCATION_MODE_CUSTOM}
+        )
+    assert entry.data[CONF_LOCATION_MODE] == LOCATION_MODE_CUSTOM
+    assert entry.data[CONF_LATITUDE] == -27.2657
+
+    # Switching back to the home zone drops the stored point
+    with patch("custom_components.ausnz_disaster_watch.async_setup_entry", return_value=True):
+        result = await entry.start_reconfigure_flow(hass)
+        await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={**RECONFIGURE_INPUT, CONF_LOCATION_NAME: "Home", CONF_LOCATION_MODE: LOCATION_MODE_HOME},
+        )
+    assert entry.data[CONF_LOCATION_MODE] == LOCATION_MODE_HOME
+    assert CONF_LATITUDE not in entry.data
+    assert CONF_LONGITUDE not in entry.data
+    assert entry.unique_id == "ausnz_disaster_watch_qld_home"
