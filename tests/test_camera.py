@@ -30,7 +30,7 @@ async def test_camera_setup_entry_with_cameras(
         longitude=152.95,
     )
     coordinator.data = DisasterCoordinatorData(cameras=[cam1])
-    hass.data.setdefault(DOMAIN, {})[mock_config_entry.entry_id] = coordinator
+    mock_config_entry.runtime_data = coordinator
 
     async_add_entities = MagicMock()
     await async_setup_entry(hass, mock_config_entry, async_add_entities)
@@ -50,7 +50,7 @@ async def test_camera_setup_entry_without_cameras(
     mock_config_entry.add_to_hass(hass)
     coordinator = AustralianDisasterWatchCoordinator(hass, mock_config_entry)
     coordinator.data = DisasterCoordinatorData(cameras=[])
-    hass.data.setdefault(DOMAIN, {})[mock_config_entry.entry_id] = coordinator
+    mock_config_entry.runtime_data = coordinator
 
     async_add_entities = MagicMock()
     await async_setup_entry(hass, mock_config_entry, async_add_entities)

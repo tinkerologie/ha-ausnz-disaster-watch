@@ -4,7 +4,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.ausnz_disaster_watch.const import DOMAIN
 from custom_components.ausnz_disaster_watch.coordinator import AustralianDisasterWatchCoordinator
 from custom_components.ausnz_disaster_watch.geo_location import (
     AustralianDisasterWatchGeolocationEvent,
@@ -35,7 +34,7 @@ async def test_geolocation_dynamic_lifecycle(
         await hass.config_entries.async_setup(mock_config_entry.entry_id)
         await hass.async_block_till_done()
 
-    coordinator: AustralianDisasterWatchCoordinator = hass.data[DOMAIN][mock_config_entry.entry_id]
+    coordinator: AustralianDisasterWatchCoordinator = mock_config_entry.runtime_data
 
     # Verify initial geolocation entity is present
     geo_states = [s for s in hass.states.async_all() if s.entity_id.startswith("geo_location.")]
@@ -120,7 +119,7 @@ async def test_geolocation_sync_with_dict_and_fallback(
     mock_config_entry.add_to_hass(hass)
     coordinator = AustralianDisasterWatchCoordinator(hass, mock_config_entry)
     coordinator.data = {"adv_1": mock_hazard_advice}
-    hass.data.setdefault(DOMAIN, {})[mock_config_entry.entry_id] = coordinator
+    mock_config_entry.runtime_data = coordinator
 
     async_add_entities = MagicMock()
     await async_setup_entry(hass, mock_config_entry, async_add_entities)

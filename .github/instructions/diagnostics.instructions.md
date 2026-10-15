@@ -26,10 +26,10 @@ TO_REDACT = {
 
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: AusNZDisasterWatchConfigEntry,
 ) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
-    coordinator: AusNZDisasterWatchCoordinator = hass.data[DOMAIN][entry.entry_id].coordinator
+    coordinator = entry.runtime_data
 
     return {
         "entry_data": async_redact_data(entry.data, TO_REDACT),

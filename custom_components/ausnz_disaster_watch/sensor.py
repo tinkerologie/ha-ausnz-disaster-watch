@@ -5,23 +5,22 @@ from __future__ import annotations
 from typing import Any
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfLength, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN
+from . import AusNZDisasterWatchConfigEntry
 from .coordinator import AustralianDisasterWatchCoordinator
 from .entity import AustralianDisasterWatchEntity
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: AusNZDisasterWatchConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Australian Disaster Watch sensors."""
-    coordinator: AustralianDisasterWatchCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = entry.runtime_data
 
     async_add_entities(
         [
@@ -53,7 +52,6 @@ class NearestHazardDistanceSensor(AustralianDisasterWatchEntity, SensorEntity):
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize distance sensor."""
         super().__init__(coordinator, "nearest_hazard_distance")
-        self._attr_name = "Nearest Hazard Distance"
 
     @property
     def native_value(self) -> float | None:
@@ -90,7 +88,6 @@ class ActiveHazardsCountSensor(AustralianDisasterWatchEntity, SensorEntity):
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize count sensor."""
         super().__init__(coordinator, "active_hazards_count")
-        self._attr_name = "Active Hazards Count"
 
     @property
     def native_value(self) -> int:
@@ -107,7 +104,6 @@ class HighestWarningLevelSensor(AustralianDisasterWatchEntity, SensorEntity):
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize highest warning level sensor."""
         super().__init__(coordinator, "highest_warning_level")
-        self._attr_name = "Highest Warning Level"
 
     @property
     def native_value(self) -> str:
@@ -148,7 +144,6 @@ class NearestHazardTitleSensor(AustralianDisasterWatchEntity, SensorEntity):
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize nearest hazard title sensor."""
         super().__init__(coordinator, "nearest_hazard_title")
-        self._attr_name = "Nearest Hazard Title"
 
     @property
     def native_value(self) -> str:
@@ -170,7 +165,6 @@ class PowerOutagesCountSensor(AustralianDisasterWatchEntity, SensorEntity):
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize power outages count sensor."""
         super().__init__(coordinator, "power_outages_count")
-        self._attr_name = "Power Outages Count"
 
     @property
     def native_value(self) -> int:
@@ -198,7 +192,6 @@ class PowerOutagesCustomersAffectedSensor(AustralianDisasterWatchEntity, SensorE
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize customers affected sensor."""
         super().__init__(coordinator, "power_outages_customers_affected")
-        self._attr_name = "Power Outages Customers Affected"
 
     @property
     def native_value(self) -> int:
@@ -217,7 +210,6 @@ class RoadClosuresCountSensor(AustralianDisasterWatchEntity, SensorEntity):
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize road closures count sensor."""
         super().__init__(coordinator, "road_closures_count")
-        self._attr_name = "Road Closures Count"
 
     @property
     def native_value(self) -> int:
@@ -244,7 +236,6 @@ class WeatherWarningsCountSensor(AustralianDisasterWatchEntity, SensorEntity):
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize weather warnings count sensor."""
         super().__init__(coordinator, "weather_warnings_count")
-        self._attr_name = "Weather Warnings Count"
 
     @property
     def native_value(self) -> int:
@@ -272,7 +263,6 @@ class FireDangerRatingSensor(AustralianDisasterWatchEntity, SensorEntity):
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize fire danger rating sensor."""
         super().__init__(coordinator, "fire_danger_rating")
-        self._attr_name = "Fire Danger Rating"
 
     @property
     def native_value(self) -> str | None:
@@ -313,7 +303,6 @@ class AirQualityIndexSensor(AustralianDisasterWatchEntity, SensorEntity):
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize air quality sensor."""
         super().__init__(coordinator, "air_quality_rating")
-        self._attr_name = "Air Quality"
 
     @property
     def native_value(self) -> str | None:
@@ -352,7 +341,6 @@ class PrimaryWeatherObservationSensor(AustralianDisasterWatchEntity, SensorEntit
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize weather observation sensor."""
         super().__init__(coordinator, "primary_weather_observation")
-        self._attr_name = "Local Weather Observation"
 
     @property
     def native_value(self) -> float | None:
@@ -393,7 +381,6 @@ class ReliefFacilitiesCountSensor(AustralianDisasterWatchEntity, SensorEntity):
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize relief facilities count sensor."""
         super().__init__(coordinator, "relief_facilities_count")
-        self._attr_name = "Relief Facilities Count"
 
     @property
     def native_value(self) -> int:

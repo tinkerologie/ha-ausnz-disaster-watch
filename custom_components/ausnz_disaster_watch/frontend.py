@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
 from homeassistant.components.frontend import add_extra_js_url
-from homeassistant.components.http.server import StaticPathConfig
+from homeassistant.components.http import StaticPathConfig  # pyright: ignore[reportPrivateImportUsage]
 from homeassistant.components.lovelace.const import LOVELACE_DATA
 from homeassistant.components.lovelace.resources import ResourceStorageCollection
 from homeassistant.exceptions import HomeAssistantError

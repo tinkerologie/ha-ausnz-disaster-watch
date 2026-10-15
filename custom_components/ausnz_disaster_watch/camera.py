@@ -11,11 +11,11 @@ from typing import Any
 from aiohttp import ClientTimeout
 
 from homeassistant.components.camera import Camera
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from . import AusNZDisasterWatchConfigEntry
 from .const import DOMAIN
 from .coordinator import AustralianDisasterWatchCoordinator
 from .entity import AustralianDisasterWatchEntity
@@ -26,11 +26,11 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: AusNZDisasterWatchConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Australian Disaster Watch camera entities."""
-    coordinator: AustralianDisasterWatchCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = entry.runtime_data
 
     cameras = coordinator.cameras
     if cameras:
