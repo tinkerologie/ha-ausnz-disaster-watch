@@ -579,7 +579,8 @@ export class AusDisasterCard extends LitElement {
           warning_level: stateObj.attributes.warning_level || "Information",
           distance_km: stateObj.attributes.distance_km || stateObj.attributes.distance,
           location_name: stateObj.attributes.location_name,
-          responsible_agency: stateObj.attributes.responsible_agency || stateObj.attributes.source,
+          responsible_agency:
+            stateObj.attributes.responsible_agency || stateObj.attributes.agency || stateObj.attributes.source,
           web_url: stateObj.attributes.web_url,
           status: stateObj.attributes.status,
           updated_at: stateObj.attributes.updated_at,

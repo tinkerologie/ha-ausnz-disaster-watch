@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, Final
 
+from pydantic import ValidationError
 import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult, OptionsFlow, OptionsFlowWithReload
@@ -58,6 +59,93 @@ from .models import DisasterWatchConfigModel
 _LOGGER = logging.getLogger(__name__)
 
 
+# Simplified Victorian mainland boundary as (latitude, longitude) vertices.
+# Derived from the ABS ASGS 2021 state boundary (STE code 2): the NSW border (Murray River
+# south bank and the straight line from the Murray's source to Cape Howe) is simplified with
+# Douglas-Peucker (about 5 km tolerance) plus extra vertices that keep border towns on the
+# correct side (Mildura/Buronga, Echuca/Moama, Wodonga/Albury, Cobram/Barooga). The coast is
+# replaced by offshore points and the SA border is the straight line along longitude 140.96.
+# It only picks the default state in the setup form, so it does not need survey precision.
+VIC_BOUNDARY: Final[tuple[tuple[float, float], ...]] = (
+    (-33.9806, 140.9637),
+    (-34.0597, 141.0233),
+    (-34.1546, 141.4950),
+    (-34.2165, 141.5101),
+    (-34.0909, 141.7297),
+    (-34.1523, 142.1659),
+    (-34.3070, 142.2359),
+    (-34.3381, 142.3968),
+    (-34.5304, 142.3677),
+    (-34.5643, 142.4680),
+    (-34.7754, 142.5567),
+    (-34.7251, 142.6990),
+    (-34.6166, 142.6894),
+    (-34.5464, 142.7914),
+    (-34.6798, 142.8868),
+    (-34.6809, 143.1123),
+    (-34.7916, 143.3479),
+    (-35.0367, 143.3221),
+    (-35.1924, 143.3947),
+    (-35.2069, 143.5708),
+    (-35.3877, 143.6204),
+    (-35.5001, 143.9701),
+    (-36.1179, 144.7271),
+    (-36.0723, 144.9819),
+    (-35.9888, 144.9236),
+    (-35.8523, 144.9923),
+    (-35.8020, 145.5354),
+    (-35.9168, 145.6791),
+    (-35.9917, 145.8114),
+    (-36.0509, 146.3687),
+    (-35.9582, 146.5026),
+    (-36.1160, 146.9437),
+    (-36.1079, 147.0530),
+    (-35.9945, 147.1234),
+    (-36.0610, 147.3199),
+    (-35.9435, 147.4046),
+    (-35.9565, 147.7413),
+    (-35.9952, 147.9123),
+    (-36.1408, 148.0377),
+    (-36.3902, 148.0376),
+    (-36.5982, 148.2176),
+    (-36.8009, 148.1089),
+    (-37.5052, 149.9762),
+    (-37.6000, 150.3000),
+    (-38.2000, 148.5000),
+    (-39.0000, 147.0000),
+    (-39.3000, 146.3000),
+    (-38.8000, 145.0000),
+    (-39.0000, 143.5000),
+    (-38.6000, 142.0000),
+    (-38.3000, 140.9650),
+)
+
+# Options that the reconfigure step also edits. Options win over data at runtime, so
+# reconfigure has to write them to entry.options too.
+RECONFIGURE_OPTION_KEYS: Final = (
+    CONF_RADIUS,
+    CONF_OVERRIDE_EMERGENCY,
+    CONF_EXCLUDE_HAZARD_REDUCTION,
+    CONF_COUNCIL_DASHBOARD_URL,
+)
+
+# Coordinates closer than this (degrees, about 10 m) count as the same location.
+_SAME_LOCATION_TOLERANCE: Final = 0.0001
+
+
+def point_in_polygon(lat: float, lon: float, polygon: tuple[tuple[float, float], ...]) -> bool:
+    """Return True if the point lies inside the polygon (even-odd ray casting)."""
+    inside = False
+    prev_lat, prev_lon = polygon[-1]
+    for vert_lat, vert_lon in polygon:
+        if (vert_lat > lat) != (prev_lat > lat):
+            crossing_lon = vert_lon + (lat - vert_lat) * (prev_lon - vert_lon) / (prev_lat - vert_lat)
+            if lon < crossing_lon:
+                inside = not inside
+        prev_lat, prev_lon = vert_lat, vert_lon
+    return inside
+
+
 def infer_state_from_coordinates(lat: float, lon: float) -> str:
     """Infer likely Australian or New Zealand state/jurisdiction code from latitude and longitude."""
     # New Zealand
@@ -69,23 +157,45 @@ def infer_state_from_coordinates(lat: float, lon: float) -> str:
     # Western Australia
     if lon < 129.0:
         return STATE_WA
+    # Victoria (south of the Murray River, east of the SA border)
+    if point_in_polygon(lat, lon, VIC_BOUNDARY):
+        return STATE_VIC
     # Northern Territory
     if -26.0 <= lat < -11.0 and 129.0 <= lon < 138.0:
         return STATE_NT
-    # South Australia
-    if lat >= -38.5 and 129.0 <= lon < 141.0:
+    # South Australia (south of the NT/QLD border at 26 degrees south)
+    if -38.5 <= lat <= -26.0 and 129.0 <= lon < 141.0:
         return STATE_SA
     # ACT check (approximate box around Canberra)
     if -36.0 <= lat <= -35.1 and 148.7 <= lon <= 149.4:
         return STATE_ACT
-    # Victoria
-    if lat < -34.0 and lon >= 141.0:
-        return STATE_VIC
     # Queensland
     if lat >= -29.0:
         return STATE_QLD
     # Default to NSW
     return STATE_NSW
+
+
+def build_unique_id(state: str, location_mode: str, location_name: str | None) -> str:
+    """Return the config entry unique ID for a state and location."""
+    if location_mode == LOCATION_MODE_HOME:
+        return f"{DOMAIN}_{state.lower()}_home"
+    clean_loc = str(location_name).lower().replace(" ", "_").replace("/", "_")
+    return f"{DOMAIN}_{state.lower()}_{clean_loc}"
+
+
+def build_title(state: str, location_name: str) -> str:
+    """Return the config entry title for a state and location."""
+    return f"Australia and New Zealand Disaster Watch ({state} - {location_name})"
+
+
+def is_valid_config(data: dict[str, Any]) -> bool:
+    """Return True if the entry data passes the config model validation."""
+    try:
+        DisasterWatchConfigModel.model_validate(data)
+    except ValidationError:
+        return False
+    return True
 
 
 class AustralianDisasterWatchConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -137,15 +247,13 @@ class AustralianDisasterWatchConfigFlow(ConfigFlow, domain=DOMAIN):
                 CONF_COUNCIL_DASHBOARD_URL: council_url,
             }
 
-            # Validate entry data with Pydantic model
-            DisasterWatchConfigModel.model_validate(entry_data)
+            if is_valid_config(entry_data):
+                await self.async_set_unique_id(build_unique_id(state, LOCATION_MODE_HOME, None))
+                self._abort_if_unique_id_configured()
 
-            unique_id = f"{DOMAIN}_{state.lower()}_home"
-            await self.async_set_unique_id(unique_id)
-            self._abort_if_unique_id_configured()
-
-            title = f"Australia and New Zealand Disaster Watch ({state} - {entry_data[CONF_LOCATION_NAME]})"
-            return self.async_create_entry(title=title, data=entry_data)
+                title = build_title(state, entry_data[CONF_LOCATION_NAME])
+                return self.async_create_entry(title=title, data=entry_data)
+            errors["base"] = "invalid_config"
 
         state_options = [SelectOptionDict(value=s, label=s) for s in SUPPORTED_STATES]
 
@@ -231,16 +339,15 @@ class AustralianDisasterWatchConfigFlow(ConfigFlow, domain=DOMAIN):
                     CONF_COUNCIL_DASHBOARD_URL: council_url,
                 }
 
-                # Validate entry data with Pydantic model
-                DisasterWatchConfigModel.model_validate(entry_data)
+                if is_valid_config(entry_data):
+                    await self.async_set_unique_id(
+                        build_unique_id(state, LOCATION_MODE_CUSTOM, entry_data[CONF_LOCATION_NAME])
+                    )
+                    self._abort_if_unique_id_configured()
 
-                clean_loc = str(location_name).lower().replace(" ", "_").replace("/", "_")
-                unique_id = f"{DOMAIN}_{state.lower()}_{clean_loc}"
-                await self.async_set_unique_id(unique_id)
-                self._abort_if_unique_id_configured()
-
-                title = f"Australia and New Zealand Disaster Watch ({state} - {entry_data[CONF_LOCATION_NAME]})"
-                return self.async_create_entry(title=title, data=entry_data)
+                    title = build_title(state, entry_data[CONF_LOCATION_NAME])
+                    return self.async_create_entry(title=title, data=entry_data)
+                errors["base"] = "invalid_config"
 
         # Build preset options filtered by selected state
         preset_options = [SelectOptionDict(value="custom", label="Manual Coordinates / Custom URL")]
@@ -328,12 +435,30 @@ class AustralianDisasterWatchConfigFlow(ConfigFlow, domain=DOMAIN):
                     **user_input,
                     CONF_LATITUDE: parsed_lat,
                     CONF_LONGITUDE: parsed_lon,
+                    CONF_LOCATION_MODE: self._reconfigured_location_mode(entry, parsed_lat, parsed_lon),
                 }
-                DisasterWatchConfigModel.model_validate({**entry.data, **updates})
-                return self.async_update_reload_and_abort(
-                    entry,
-                    data_updates=updates,
-                )
+                new_data = {**entry.data, **updates}
+                if not is_valid_config(new_data):
+                    errors["base"] = "invalid_config"
+                else:
+                    state = str(new_data.get(CONF_STATE, STATE_QLD))
+                    location_name = str(new_data.get(CONF_LOCATION_NAME) or "Home")
+                    unique_id = build_unique_id(state, new_data[CONF_LOCATION_MODE], location_name)
+                    if unique_id != entry.unique_id:
+                        await self.async_set_unique_id(unique_id, raise_on_progress=False)
+                        self._abort_if_unique_id_configured()
+                    # Options override data at runtime, so keep reconfigured options in sync.
+                    options = {
+                        **entry.options,
+                        **{key: updates[key] for key in RECONFIGURE_OPTION_KEYS if key in updates},
+                    }
+                    return self.async_update_reload_and_abort(
+                        entry,
+                        unique_id=unique_id,
+                        title=build_title(state, location_name),
+                        data_updates=updates,
+                        options=options,
+                    )
 
         current = {**entry.data, **entry.options}
         state_options = [SelectOptionDict(value=s, label=s) for s in SUPPORTED_STATES]
@@ -381,6 +506,27 @@ class AustralianDisasterWatchConfigFlow(ConfigFlow, domain=DOMAIN):
             data_schema=schema,  # type: ignore[arg-type]
             errors=errors,
         )
+
+    @staticmethod
+    def _reconfigured_location_mode(entry: ConfigEntry, lat: float, lon: float) -> str:
+        """Return the location mode after reconfigure.
+
+        A home-zone entry stays in home mode only while its coordinates are unchanged;
+        moving the location makes it a custom location with its own unique ID.
+        """
+        mode = entry.data.get(CONF_LOCATION_MODE, LOCATION_MODE_HOME)
+        if mode != LOCATION_MODE_HOME:
+            return str(mode)
+        old_lat = entry.data.get(CONF_LATITUDE)
+        old_lon = entry.data.get(CONF_LONGITUDE)
+        if (
+            old_lat is not None
+            and old_lon is not None
+            and abs(float(old_lat) - lat) < _SAME_LOCATION_TOLERANCE
+            and abs(float(old_lon) - lon) < _SAME_LOCATION_TOLERANCE
+        ):
+            return LOCATION_MODE_HOME
+        return LOCATION_MODE_CUSTOM
 
     @staticmethod
     @callback

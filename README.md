@@ -45,7 +45,9 @@ Directly integrates official emergency feeds—including the **Queensland Fire D
 ### Geolocation Platform (`geo_location`)
 Renders interactive pins on the native Home Assistant Map for every active hazard in your perimeter.
 - **Centroid Coordinates**: Precise latitude and longitude.
-- **Attributes**: Warning level, hazard type, distance in km, responsible agency, status, and direct link to official incident documentation.
+- **Attributes**: Warning level, hazard type, distance in km, issuing agency (`agency`), responsible agency, status, and direct link to official incident documentation.
+- **Source**: Every event has `source: ausnz_disaster_watch`, whichever agency issued it, so one `geo_location` trigger or map card covers the whole integration. Filter on the `agency` attribute to pick out one agency.
+- **Entity IDs**: `geo_location.ausnz_disaster_watch_<hazard_id>`, built from the agency's incident ID (not the headline), so the ID stays short and stable while the event lasts. The headline is the entity name. Each event is removed, including its entity registry entry, when the incident ends.
 - **Dynamic Icons**: `mdi:fire` (Bushfire), `mdi:water-alert` (Flood), `mdi:weather-lightning` (Storm), `mdi:weather-hurricane` (Cyclone), `mdi:car-emergency` (Road Hazard), etc.
 
 ### Binary Sensors (`binary_sensor`)
@@ -108,6 +110,8 @@ Flood and traffic camera snapshots near the monitored location, where the jurisd
 ### Reconfiguration via Options Flow
 You can adjust the radius, toggle overrides, or change council dashboard URLs anytime by clicking **Configure** on the integration card without needing to restart Home Assistant.
 
+To change the state or location, use **Reconfigure** on the integration entry. Reconfigure also updates the options above, and renames the entry when the state or location changes.
+
 ---
 
 ## Lovelace Dashboard Card
@@ -119,6 +123,14 @@ type: custom:ausnz-disaster-card
 title: Moreton Bay Disaster Watch
 max_incidents: 10
 show_map_button: true
+```
+
+To show only this integration's events on the native map card:
+
+```yaml
+type: map
+geo_location_sources:
+  - ausnz_disaster_watch
 ```
 
 ### Card Features:
@@ -166,6 +178,24 @@ actions:
     data:
       color_name: red
       flash: short
+```
+
+### 3. Any Incident Entering a Zone
+
+```yaml
+alias: "Disaster Watch: Incident Near Home"
+triggers:
+  - trigger: geo_location
+    source: ausnz_disaster_watch
+    zone: zone.home
+    event: enter
+actions:
+  - action: notify.notify
+    data:
+      title: "Incident near home"
+      message: >-
+        {{ trigger.to_state.name }}
+        ({{ trigger.to_state.attributes.agency }})
 ```
 
 ---
