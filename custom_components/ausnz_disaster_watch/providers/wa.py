@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, ClassVar
+
+import aiohttp
 
 from custom_components.ausnz_disaster_watch.const import STATE_WA
+from custom_components.ausnz_disaster_watch.fire_districts import find_district, load_fire_districts
 from custom_components.ausnz_disaster_watch.models import CanonicalHazard, FireDangerRating, HazardType, WarningLevel
 
 from .base import MALFORMED_ITEM_ERRORS, BaseHazardProvider, stable_id
@@ -15,12 +18,16 @@ _LOGGER = logging.getLogger(__name__)
 WA_INCIDENTS_URL = "https://api.emergency.wa.gov.au/v1/incidents"
 WA_WARNINGS_URL = "https://api.emergency.wa.gov.au/v1/warnings"
 WA_FDR_URL = "https://api.emergency.wa.gov.au/v1/fire-danger-ratings"
+WA_FIRE_DISTRICTS = "wa_fire_districts"
 
 
 class WAHazardProvider(BaseHazardProvider):
     """Provider for Western Australia DFES / Emergency WA incident and warning feeds."""
 
     local_tz = "Australia/Perth"
+
+    # BoM fire weather district polygons, loaded once off the event loop
+    _districts: ClassVar[dict[str, dict[str, Any]] | None] = None
 
     @property
     def state_code(self) -> str:
@@ -45,20 +52,48 @@ class WAHazardProvider(BaseHazardProvider):
         )
 
     async def async_fetch_fire_danger(self) -> FireDangerRating | None:
-        """Fetch current Fire Danger Rating for Western Australia."""
+        """Fetch today's Fire Danger Rating for the configured location's fire weather district.
+
+        The feed lists every WA district (``area`` is the BoM AAC, ``description`` the name)
+        with forecasts keyed by day offset. It has no total fire ban field (#14).
+        """
+        try:
+            lat = float(self.config["latitude"])
+            lon = float(self.config["longitude"])
+        except (KeyError, TypeError, ValueError):
+            return None
+
+        districts = WAHazardProvider._districts
+        if districts is None:
+            districts = await self.hass.async_add_executor_job(load_fire_districts, WA_FIRE_DISTRICTS)
+            WAHazardProvider._districts = districts
+        area = find_district(districts, lat, lon)
+        if area is None:
+            # Outside every WA district: report unknown rather than another district's rating
+            return None
+
         try:
             data = await self.async_fetch_json(WA_FDR_URL)
-            ratings = data.get("fireDangerRatings", [])
-            if ratings:
-                first = ratings[0]
-                return FireDangerRating(
-                    district_number=str(first.get("districtCode", "")),
-                    district_name=str(first.get("districtName", "Western Australia")),
-                    rating=str(first.get("rating", "Moderate")),
-                    total_fire_ban=bool(first.get("totalFireBan", False)),
-                )
-        except Exception:  # noqa: BLE001
-            _LOGGER.debug("Failed to fetch WA fire danger rating")
+        except (aiohttp.ClientError, TimeoutError, ValueError) as err:
+            _LOGGER.debug("Failed to fetch WA fire danger rating: %s", err)
+            return None
+
+        ratings = data.get("fireDangerRatings") if isinstance(data, dict) else None
+        for item in ratings if isinstance(ratings, list) else []:
+            if not isinstance(item, dict) or item.get("area") != area:
+                continue
+            forecasts = item.get("forecasts")
+            today = forecasts.get("0") if isinstance(forecasts, dict) else None
+            rating = today.get("fireDanger") if isinstance(today, dict) else None
+            if not rating:
+                return None
+            return FireDangerRating(
+                district_number=area,
+                district_name=str(item.get("description") or area),
+                rating=str(rating),
+                total_fire_ban=None,
+                day="Today",
+            )
         return None
 
     def _parse_warnings(self, payload: dict[str, Any]) -> list[CanonicalHazard]:

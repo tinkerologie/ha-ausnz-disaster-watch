@@ -16,6 +16,21 @@ _LOGGER = logging.getLogger(__name__)
 SA_CAP_AU_URL = "https://data.eso.sa.gov.au/feeds/prod/cap-au.xml"
 
 
+def _warning_level(param_level: str, *texts: str) -> WarningLevel:
+    """Map an SA CFS/MFS entry to an Australian Warning System level (#27).
+
+    The feed always sends ``cap:severity`` "Unknown". The agency's level is the CAP
+    ``WarningLevel`` parameter ("Emergency Warning", "Watch and Act", "Advice", or
+    "Incident" for an incident with no warning). Only when it is missing, use the
+    headline, event and title text. Plain incidents are Information.
+    """
+    for text in (param_level,) if param_level else texts:
+        level = WarningLevel.from_str(text)
+        if level not in (WarningLevel.UNKNOWN, WarningLevel.INFORMATION):
+            return level
+    return WarningLevel.INFORMATION
+
+
 class SAHazardProvider(BaseHazardProvider):
     """Provider for South Australian emergency services (CFS / MFS / SES via SAFECOM CAP-AU)."""
 
@@ -57,12 +72,19 @@ class SAHazardProvider(BaseHazardProvider):
 
                 # Locate CAP fields
                 event = entry.findtext(".//cap:event", "", ns) or title
+                headline = entry.findtext(".//cap:headline", "", ns)
                 severity = entry.findtext(".//cap:severity", "", ns).lower()
                 urgency = entry.findtext(".//cap:urgency", "", ns).lower()
                 area_desc = entry.findtext(".//cap:areaDesc", "", ns)
                 circle = entry.findtext(".//cap:circle", "", ns)
                 polygon = entry.findtext(".//cap:polygon", "", ns)
-                agency = entry.findtext(".//cap:sender", "", ns)
+                # cap:sender is an email address; the agency name is cap:senderName (#27)
+                agency = entry.findtext(".//cap:senderName", "", ns).strip()
+                web = entry.findtext(".//cap:web", "", ns).strip()
+                params = {
+                    param.findtext("cap:valueName", "", ns).strip(): param.findtext("cap:value", "", ns).strip()
+                    for param in entry.findall(".//cap:parameter", ns)
+                }
 
                 # Extract coordinates
                 lat: float | None = None
@@ -88,15 +110,7 @@ class SAHazardProvider(BaseHazardProvider):
                 if lat is None or lon is None:
                     continue
 
-                # Warning Level mapping
-                if "extreme" in severity or "catastrophic" in severity or "emergency" in title.lower():
-                    level = WarningLevel.EMERGENCY_WARNING
-                elif "severe" in severity or "watch and act" in title.lower():
-                    level = WarningLevel.WATCH_AND_ACT
-                elif "moderate" in severity or "advice" in title.lower():
-                    level = WarningLevel.ADVICE
-                else:
-                    level = WarningLevel.INFORMATION
+                level = _warning_level(params.get("WarningLevel", ""), headline, event, title)
 
                 hazards.append(
                     CanonicalHazard(
@@ -109,13 +123,15 @@ class SAHazardProvider(BaseHazardProvider):
                         longitude=lon,
                         updated_at=updated_at,
                         location_name=area_desc or "South Australia",
-                        status="Active",
+                        status=params.get("Status") or "Active",
                         responsible_agency=agency or "CFS / SAFECOM",
-                        web_url="https://www.cfs.sa.gov.au",
+                        web_url=web or "https://www.cfs.sa.gov.au",
                         raw_properties={
                             "severity": severity,
                             "urgency": urgency,
                             "event": event,
+                            "headline": headline or None,
+                            "warning_level": params.get("WarningLevel"),
                         },
                     )
                 )

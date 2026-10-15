@@ -1485,31 +1485,65 @@ async def test_wa_hazard_provider(hass: HomeAssistant) -> None:
     with pytest.raises(ProviderUnavailableError):
         await prov.async_fetch_hazards()
 
-    # Test Fire Danger Rating
-    prov.async_fetch_json = AsyncMock(
-        return_value={
-            "fireDangerRatings": [
-                {
-                    "districtCode": "MID",
-                    "districtName": "Midwest Inland",
-                    "rating": "Extreme",
-                    "totalFireBan": True,
-                }
-            ]
-        }
-    )
-    fdr = await prov.async_fetch_fire_danger()
+
+def _wa_fdr_item(area: str, name: str, rating: str | None) -> dict:
+    """Return one district in the live Emergency WA fire-danger-ratings shape."""
+    forecasts = {"0": {"behaviourIndex": "21", "fireDanger": rating}} if rating else {}
+    return {"description": name, "area": area, "issueDateTime": "2026-10-15T20:35:00Z", "forecasts": forecasts}
+
+
+async def test_wa_fire_danger_uses_configured_district(hass: HomeAssistant) -> None:
+    """WA fire danger reads description/area/forecasts and picks the user's district (#14)."""
+    payload = {
+        "fireDangerRatings": [
+            "not a dict",
+            _wa_fdr_item("WA_FW041", "North Kimberley", "Moderate"),
+            _wa_fdr_item("WA_FW091", "Perth Inner", "Extreme"),
+            {**_wa_fdr_item("WA_FW092", "Rottnest", None), "forecasts": {"1": {"fireDanger": "High"}}},
+        ],
+        "web-message-fdr-today": "",
+    }
+    perth = WAHazardProvider(hass, AsyncMock(), {"state": STATE_WA, "latitude": -31.95, "longitude": 115.86})
+    perth.async_fetch_json = AsyncMock(return_value=payload)
+    fdr = await perth.async_fetch_fire_danger()
     assert fdr is not None
+    assert fdr.district_number == "WA_FW091"
+    assert fdr.district_name == "Perth Inner"
     assert fdr.rating == "Extreme"
-    assert fdr.total_fire_ban is True
+    assert fdr.total_fire_ban is None  # the feed has no total fire ban field
+    assert fdr.day == "Today"
 
-    # Empty FDR
-    prov.async_fetch_json = AsyncMock(return_value={"fireDangerRatings": []})
-    assert await prov.async_fetch_fire_danger() is None
+    # The district has no forecast for today: unknown, not another district's rating
+    rottnest = WAHazardProvider(hass, AsyncMock(), {"state": STATE_WA, "latitude": -32.0, "longitude": 115.52})
+    rottnest.async_fetch_json = AsyncMock(return_value=payload)
+    assert await rottnest.async_fetch_fire_danger() is None
 
-    # Error FDR
-    prov.async_fetch_json = AsyncMock(side_effect=RuntimeError("FDR error"))
-    assert await prov.async_fetch_fire_danger() is None
+    # The district is missing from the feed
+    kalgoorlie = WAHazardProvider(hass, AsyncMock(), {"state": STATE_WA, "latitude": -30.75, "longitude": 121.47})
+    kalgoorlie.async_fetch_json = AsyncMock(return_value=payload)
+    assert await kalgoorlie.async_fetch_fire_danger() is None
+
+    # Empty, malformed and failing feeds
+    perth.async_fetch_json = AsyncMock(return_value={"fireDangerRatings": []})
+    assert await perth.async_fetch_fire_danger() is None
+    perth.async_fetch_json = AsyncMock(return_value=["not", "a", "dict"])
+    assert await perth.async_fetch_fire_danger() is None
+    perth.async_fetch_json = AsyncMock(side_effect=aiohttp.ClientError("FDR error"))
+    assert await perth.async_fetch_fire_danger() is None
+
+
+async def test_wa_fire_danger_without_a_wa_location(hass: HomeAssistant) -> None:
+    """No configured location, or one outside every WA district, reports no rating (#14)."""
+    fetch = AsyncMock(return_value={"fireDangerRatings": [_wa_fdr_item("WA_FW041", "North Kimberley", "High")]})
+
+    no_location = WAHazardProvider(hass, AsyncMock(), {"state": STATE_WA})
+    no_location.async_fetch_json = fetch
+    assert await no_location.async_fetch_fire_danger() is None
+
+    sydney = WAHazardProvider(hass, AsyncMock(), {"state": STATE_WA, "latitude": -33.87, "longitude": 151.2})
+    sydney.async_fetch_json = fetch
+    assert await sydney.async_fetch_fire_danger() is None
+    fetch.assert_not_awaited()
 
 
 async def test_sa_hazard_provider(hass: HomeAssistant) -> None:
@@ -1826,9 +1860,9 @@ async def test_act_hazard_provider(hass: HomeAssistant) -> None:
           <pubDate>2026-10-15 14:45 AEDT</pubDate>
         </item>
         <item>
-          <title>AMBULANCE RESPONSE - BELCONNEN</title>
+          <title>GRASS FIRE - BELCONNEN</title>
           <guid>act_5</guid>
-          <description>Routine dispatch.</description>
+          <description>Crews on scene.</description>
           <georss:point>-35.24 149.06</georss:point>
           <pubDate>2026-10-15 15:00 AEDT</pubDate>
         </item>
@@ -1864,6 +1898,7 @@ async def test_act_hazard_provider(hass: HomeAssistant) -> None:
 
     h5 = next(h for h in hazards if h.id == "act_esa_act_5")
     assert h5.warning_level == WarningLevel.INFORMATION
+    assert h5.hazard_type == HazardType.GRASS_FIRE
 
     # Test error handling & empty XML
     prov.async_fetch_text = AsyncMock(side_effect=aiohttp.ClientError("ACT ESA down"))
