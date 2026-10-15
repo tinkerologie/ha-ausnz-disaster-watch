@@ -4,11 +4,19 @@ The integration owns exactly one Lovelace resource, the card suite bundle
 ``/ausnz_disaster_watch/ausnz-disaster-card.js``. Resources left behind by older
 versions (the ``aus-disaster-card.js`` stub) and duplicates of the bundle are removed,
 and the resource is removed again when the last config entry is deleted (#22).
+
+Home Assistant has already deleted the last entry when that cleanup runs, so nothing
+would trigger it again if the storage collection refused the deletion. A failed cleanup
+therefore raises a persistent repair issue and is retried a few times in the running
+session; registering the card again (a new entry) reconciles the leftover resource and
+clears the issue.
 """
 
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
+from datetime import timedelta
 import hashlib
 import logging
 from pathlib import Path
@@ -18,7 +26,10 @@ from homeassistant.components.frontend import add_extra_js_url, remove_extra_js_
 from homeassistant.components.http import StaticPathConfig  # pyright: ignore[reportPrivateImportUsage]
 from homeassistant.components.lovelace.const import LOVELACE_DATA
 from homeassistant.components.lovelace.resources import ResourceStorageCollection
+from homeassistant.core import HassJob, callback
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import issue_registry as ir
+from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.start import async_at_started
 from homeassistant.loader import async_get_integration
 from homeassistant.util.hass_dict import HassKey
@@ -26,6 +37,8 @@ from homeassistant.util.hass_dict import HassKey
 from .const import DOMAIN
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from homeassistant.core import HomeAssistant
 
 _LOGGER = logging.getLogger(__name__)
@@ -42,6 +55,11 @@ _REGISTERED: HassKey[bool] = HassKey(f"{DOMAIN}_frontend_registered")
 _STATIC_REGISTERED: HassKey[bool] = HassKey(f"{DOMAIN}_frontend_static_registered")
 _LOCK: HassKey[asyncio.Lock] = HassKey(f"{DOMAIN}_frontend_lock")
 _EXTRA_JS_URLS: HassKey[list[str]] = HassKey(f"{DOMAIN}_frontend_extra_js_urls")
+_CLEANUP_RETRY: HassKey[Callable[[], None]] = HassKey(f"{DOMAIN}_frontend_cleanup_retry")
+
+CLEANUP_ISSUE_ID: Final = "card_resource_cleanup_failed"
+CLEANUP_RETRY_DELAY: Final = timedelta(minutes=5)
+CLEANUP_MAX_RETRIES: Final = 3
 
 
 def _base_url(url: str) -> str:
@@ -116,6 +134,9 @@ async def async_register_frontend(hass: HomeAssistant) -> None:
             _LOGGER.exception("Unable to register disaster dashboard card frontend")
         else:
             hass.data[_REGISTERED] = True
+            # Reconciling the resources also fixes a resource an earlier cleanup left behind.
+            _cancel_cleanup_retry(hass)
+            ir.async_delete_issue(hass, DOMAIN, CLEANUP_ISSUE_ID)
 
 
 async def _async_register_resources(hass: HomeAssistant, urls: dict[str, str]) -> None:
@@ -153,22 +174,67 @@ async def _async_register_resources(hass: HomeAssistant, urls: dict[str, str]) -
             _LOGGER.info("Removed duplicate dashboard resource %s", item["url"])
 
 
-async def async_unregister_frontend(hass: HomeAssistant) -> None:
+async def _async_delete_owned_resources(hass: HomeAssistant) -> None:
+    """Delete the integration's resources from the Lovelace storage collection."""
+    lovelace = hass.data.get(LOVELACE_DATA)
+    resources = lovelace.resources if lovelace is not None else None
+    if not isinstance(resources, ResourceStorageCollection):
+        return
+    owned = {*CARD_URLS, *LEGACY_CARD_URLS}
+    await resources.async_get_info()
+    for item in list(resources.async_items()):
+        if _base_url(item["url"]) in owned:
+            await resources.async_delete_item(item["id"])
+            _LOGGER.info("Removed dashboard resource %s", item["url"])
+
+
+def _cancel_cleanup_retry(hass: HomeAssistant) -> None:
+    """Cancel a scheduled cleanup retry, if any."""
+    if (cancel := hass.data.pop(_CLEANUP_RETRY, None)) is not None:
+        cancel()
+
+
+@callback
+def _async_cleanup_failed(hass: HomeAssistant, attempt: int) -> None:
+    """Surface a failed cleanup as a repair issue and schedule a bounded retry."""
+    ir.async_create_issue(
+        hass,
+        DOMAIN,
+        CLEANUP_ISSUE_ID,
+        is_fixable=False,
+        # Persistent: the integration is not loaded again after a restart without entries.
+        is_persistent=True,
+        severity=ir.IssueSeverity.WARNING,
+        translation_key=CLEANUP_ISSUE_ID,
+        translation_placeholders={"url": CARD_URLS[0]},
+    )
+    if attempt >= CLEANUP_MAX_RETRIES:
+        return
+
+    async def _async_retry(_now: datetime) -> None:
+        hass.data.pop(_CLEANUP_RETRY, None)
+        # A new entry registers (and so reconciles) the resource itself.
+        if not hass.config_entries.async_entries(DOMAIN):
+            await async_unregister_frontend(hass, attempt=attempt + 1)
+
+    hass.data[_CLEANUP_RETRY] = async_call_later(
+        hass, CLEANUP_RETRY_DELAY, HassJob(_async_retry, cancel_on_shutdown=True)
+    )
+
+
+async def async_unregister_frontend(hass: HomeAssistant, *, attempt: int = 0) -> None:
     """Remove the integration's Lovelace resources (called when the last entry is removed)."""
     async with _lock(hass):
-        lovelace = hass.data.get(LOVELACE_DATA)
-        resources = lovelace.resources if lovelace is not None else None
-        owned = {*CARD_URLS, *LEGACY_CARD_URLS}
-        try:
-            if isinstance(resources, ResourceStorageCollection):
-                await resources.async_get_info()
-                for item in list(resources.async_items()):
-                    if _base_url(item["url"]) in owned:
-                        await resources.async_delete_item(item["id"])
-                        _LOGGER.info("Removed dashboard resource %s", item["url"])
-            for url in hass.data.pop(_EXTRA_JS_URLS, []):
-                remove_extra_js_url(hass, url)
-        except HomeAssistantError:
-            _LOGGER.exception("Unable to remove disaster dashboard card resources")
+        _cancel_cleanup_retry(hass)
+        # YAML-mode URLs live in memory only, so their removal cannot fail with the storage.
+        for url in hass.data.pop(_EXTRA_JS_URLS, []):
+            remove_extra_js_url(hass, url)
         # The static path cannot be unregistered, so _STATIC_REGISTERED stays set.
         hass.data.pop(_REGISTERED, None)
+        try:
+            await _async_delete_owned_resources(hass)
+        except HomeAssistantError:
+            _LOGGER.exception("Unable to remove disaster dashboard card resources")
+            _async_cleanup_failed(hass, attempt)
+        else:
+            ir.async_delete_issue(hass, DOMAIN, CLEANUP_ISSUE_ID)

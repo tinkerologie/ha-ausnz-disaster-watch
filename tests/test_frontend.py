@@ -5,14 +5,18 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.common import MockConfigEntry, async_fire_time_changed
 
 from custom_components.ausnz_disaster_watch.const import DOMAIN
 from custom_components.ausnz_disaster_watch.frontend import (
+    _CLEANUP_RETRY,
     _EXTRA_JS_URLS,
     _REGISTERED,
     _STATIC_REGISTERED,
     CARD_FILES,
+    CLEANUP_ISSUE_ID,
+    CLEANUP_MAX_RETRIES,
+    CLEANUP_RETRY_DELAY,
     FRONTEND_PATH,
     _async_register_resources,
     _frontend_assets_info,
@@ -24,6 +28,8 @@ from homeassistant.components.lovelace.const import LOVELACE_DATA
 from homeassistant.components.lovelace.resources import ResourceStorageCollection
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import issue_registry as ir
+from homeassistant.util import dt as dt_util
 
 CARD = "/ausnz_disaster_watch/ausnz-disaster-card.js"
 LEGACY = "/ausnz_disaster_watch/aus-disaster-card.js"
@@ -211,11 +217,80 @@ async def test_unregister_yaml_mode(hass: HomeAssistant) -> None:
     assert _EXTRA_JS_URLS not in hass.data
 
 
-async def test_unregister_error_logged(hass: HomeAssistant, caplog: pytest.LogCaptureFixture) -> None:
-    """A storage failure during cleanup is logged and does not raise."""
+async def test_unregister_error_raises_issue_and_retries(hass: HomeAssistant, caplog: pytest.LogCaptureFixture) -> None:
+    """A failed storage deletion raises a repair issue, keeps YAML cleanup, and is retried until it succeeds."""
     resources = _storage(hass, [{"id": "card", "url": CARD, "res_type": "module"}])
     resources.async_delete_item.side_effect = HomeAssistantError("boom")
     hass.data[_REGISTERED] = True
-    await async_unregister_frontend(hass)
+    hass.data[_EXTRA_JS_URLS] = [f"{CARD}?v=1"]
+    issues = ir.async_get(hass)
+
+    with patch("custom_components.ausnz_disaster_watch.frontend.remove_extra_js_url") as mock_remove:
+        await async_unregister_frontend(hass)
+        # YAML URL removal does not depend on the storage collection.
+        mock_remove.assert_called_once_with(hass, f"{CARD}?v=1")
     assert "Unable to remove disaster dashboard card resources" in caplog.text
     assert _REGISTERED not in hass.data
+    assert _EXTRA_JS_URLS not in hass.data
+    issue = issues.async_get_issue(DOMAIN, CLEANUP_ISSUE_ID)
+    assert issue is not None
+    assert issue.is_persistent is True
+    assert issue.translation_placeholders == {"url": CARD}
+    assert _CLEANUP_RETRY in hass.data
+
+    # The retry deletes the resource once storage works again and clears the issue.
+    resources.async_delete_item.side_effect = None
+    resources.async_delete_item.reset_mock()
+    async_fire_time_changed(hass, dt_util.utcnow() + CLEANUP_RETRY_DELAY)
+    await hass.async_block_till_done()
+    resources.async_delete_item.assert_awaited_once_with("card")
+    assert issues.async_get_issue(DOMAIN, CLEANUP_ISSUE_ID) is None
+    assert _CLEANUP_RETRY not in hass.data
+
+
+async def test_unregister_retries_are_bounded(hass: HomeAssistant) -> None:
+    """Retries stop after CLEANUP_MAX_RETRIES; the repair issue stays for the user."""
+    resources = _storage(hass, [{"id": "card", "url": CARD, "res_type": "module"}])
+    resources.async_delete_item.side_effect = HomeAssistantError("boom")
+    await async_unregister_frontend(hass)
+    now = dt_util.utcnow()
+    for attempt in range(1, CLEANUP_MAX_RETRIES + 1):
+        now += CLEANUP_RETRY_DELAY
+        async_fire_time_changed(hass, now)
+        await hass.async_block_till_done()
+        assert resources.async_delete_item.await_count == attempt + 1
+    assert _CLEANUP_RETRY not in hass.data
+    assert ir.async_get(hass).async_get_issue(DOMAIN, CLEANUP_ISSUE_ID) is not None
+
+
+async def test_unregister_retry_skipped_when_entry_added(hass: HomeAssistant) -> None:
+    """A retry does nothing once an entry exists again; registration clears the issue instead."""
+    resources = _storage(hass, [{"id": "card", "url": CARD, "res_type": "module"}])
+    resources.async_delete_item.side_effect = HomeAssistantError("boom")
+    await async_unregister_frontend(hass)
+    MockConfigEntry(domain=DOMAIN, data={}).add_to_hass(hass)
+    async_fire_time_changed(hass, dt_util.utcnow() + CLEANUP_RETRY_DELAY)
+    await hass.async_block_till_done()
+    resources.async_delete_item.assert_awaited_once()
+    assert _CLEANUP_RETRY not in hass.data
+
+
+async def test_registration_clears_pending_cleanup(hass: HomeAssistant) -> None:
+    """Registering the card again cancels a pending retry and removes the repair issue."""
+    resources = _storage(hass, [{"id": "card", "url": CARD, "res_type": "module"}])
+    resources.async_delete_item.side_effect = HomeAssistantError("boom")
+    await async_unregister_frontend(hass)
+    assert _CLEANUP_RETRY in hass.data
+
+    hass.config.components.add("http")
+    hass.config.components.add("frontend")
+    mock_http = MagicMock()
+    mock_http.async_register_static_paths = AsyncMock()
+    hass.http = mock_http
+    with patch(
+        "custom_components.ausnz_disaster_watch.frontend._async_register_resources",
+        new_callable=AsyncMock,
+    ):
+        await async_register_frontend(hass)
+    assert _CLEANUP_RETRY not in hass.data
+    assert ir.async_get(hass).async_get_issue(DOMAIN, CLEANUP_ISSUE_ID) is None
