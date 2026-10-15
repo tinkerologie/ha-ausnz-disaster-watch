@@ -215,6 +215,7 @@ This integration uses the following identifiers consistently:
 - `__init__.py` - Config entry setup/unload, platform forwarding, frontend registration in `async_setup`
 - `coordinator.py` - `AustralianDisasterWatchCoordinator` (DataUpdateCoordinator): fetches all providers concurrently, radius filtering, dynamic poll interval
 - `providers/` - One `BaseHazardProvider` subclass per jurisdiction (`qld`, `nsw`, `vic`, `wa`, `sa`, `tas`, `act`, `nt`, `nz`) plus `bom`; `providers/__init__.py:get_providers_for_config` selects them
+- `forecast_coordinator.py`, `forecast_entity.py`, `forecast_options.py` - Opt-in Open-Meteo forecast features (weather signals, river flood forecast, AI ensemble outlook): own coordinators, entities and options steps; client and pure calculations in `providers/open_meteo.py` and `providers/forecast_signals.py` (not hazard providers)
 - `models.py` - Canonical data models (`CanonicalHazard`, `WarningLevel`, `HazardType`, infrastructure/telemetry items)
 - `entity.py` - Base entity (`AusNZDisasterWatchEntity`) with shared device info and unique ID
 - `sensor.py`, `binary_sensor.py`, `geo_location.py`, `camera.py` - Entity platforms

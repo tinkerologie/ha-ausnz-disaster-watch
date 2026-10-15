@@ -12,6 +12,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from . import AusNZDisasterWatchConfigEntry
 from .coordinator import AustralianDisasterWatchCoordinator
 from .entity import AustralianDisasterWatchEntity
+from .forecast_entity import forecast_sensors
 
 
 async def async_setup_entry(
@@ -36,6 +37,7 @@ async def async_setup_entry(
             AirQualityIndexSensor(coordinator),
             PrimaryWeatherObservationSensor(coordinator),
             ReliefFacilitiesCountSensor(coordinator),
+            *forecast_sensors(coordinator),
         ]
     )
 

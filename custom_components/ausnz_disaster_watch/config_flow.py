@@ -8,7 +8,7 @@ from typing import Any, Final
 from pydantic import ValidationError
 import voluptuous as vol
 
-from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult, OptionsFlow, OptionsFlowWithReload
+from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult, OptionsFlow
 from homeassistant.core import callback
 from homeassistant.helpers.selector import (
     BooleanSelector,
@@ -55,6 +55,7 @@ from .const import (
     SUPPORTED_STATES,
 )
 from .coordinator import nearest_council_dashboard
+from .forecast_options import ForecastOptionsFlow
 from .models import DisasterWatchConfigModel
 
 _LOGGER = logging.getLogger(__name__)
@@ -573,16 +574,26 @@ class AustralianDisasterWatchConfigFlow(ConfigFlow, domain=DOMAIN):
         return AustralianDisasterWatchOptionsFlowHandler()
 
 
-class AustralianDisasterWatchOptionsFlowHandler(OptionsFlowWithReload):
+class AustralianDisasterWatchOptionsFlowHandler(ForecastOptionsFlow):
     """Handle options flow for Australia and New Zealand Disaster Watch."""
 
     async def async_step_init(
         self,
         user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
-        """Manage the options."""
+        """Show the options menu; river point edit/remove only appear once a point exists."""
+        menu = ["settings", "forecasts", "add_river_point"]
+        if self._points:
+            menu += ["edit_river_point", "remove_river_point"]
+        return self.async_show_menu(step_id="init", menu_options=menu)
+
+    async def async_step_settings(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> ConfigFlowResult:
+        """Manage the monitoring options."""
         if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
+            return self._save(user_input)
 
         current_config = {
             **self.config_entry.data,
@@ -619,7 +630,7 @@ class AustralianDisasterWatchOptionsFlowHandler(OptionsFlowWithReload):
         )
 
         return self.async_show_form(
-            step_id="init",
+            step_id="settings",
             data_schema=schema,  # type: ignore[arg-type]
         )
 

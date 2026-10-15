@@ -21,6 +21,7 @@ from .const import (
     PRESET_COUNCIL_DASHBOARDS,
     THREAT_SCAN_INTERVAL,
 )
+from .forecast_coordinator import ForecastCoordinators
 from .models import (
     AirQualityStationData,
     CanonicalHazard,
@@ -128,6 +129,8 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         self._last_good_hazards: dict[str, tuple[datetime, list[CanonicalHazard]]] = {}
         self._feeds_ok: list[str] = []
         self._feeds_failed: list[str] = []
+        # Opt-in Open-Meteo forecast coordinators, set up by async_setup_entry (#38, #39, #40)
+        self.forecasts = ForecastCoordinators()
         self._update_config_values()
 
         session = async_get_clientsession(hass)

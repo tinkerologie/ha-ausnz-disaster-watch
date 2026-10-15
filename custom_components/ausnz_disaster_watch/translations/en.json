@@ -52,7 +52,17 @@
   "options": {
     "step": {
       "init": {
-        "title": "Configure Australia and New Zealand Disaster Watch Options",
+        "title": "Australia and New Zealand Disaster Watch options",
+        "menu_options": {
+          "settings": "Monitoring settings",
+          "forecasts": "Forecast signals and AI rain outlook",
+          "add_river_point": "Add a river flood forecast point",
+          "edit_river_point": "Edit a river point",
+          "remove_river_point": "Remove river points"
+        }
+      },
+      "settings": {
+        "title": "Monitoring settings",
         "description": "Adjust spatial perimeter radius, emergency warning overrides, and council dashboard endpoints.",
         "data": {
           "radius": "Monitoring Radius (km)",
@@ -60,7 +70,79 @@
           "exclude_hazard_reduction": "Exclude Hazard Reduction / Planned Burns",
           "council_dashboard_url": "Council Disaster Dashboard URL"
         }
+      },
+      "forecasts": {
+        "title": "Forecast signals (model-derived, not official)",
+        "description": "Optional signals calculated from Open-Meteo model forecasts for your location. They are not official warnings and do not replace BoM, MetService or emergency service warnings or the official fire danger rating. Open-Meteo's free API is for non-commercial use only (CC BY 4.0).",
+        "data": {
+          "weather_signals": "Weather hazard signals",
+          "gust_threshold": "Damaging gust threshold",
+          "heat_threshold": "Extreme heat threshold (apparent temperature)",
+          "ai_ensemble": "Experimental AI ensemble rain outlook (ECMWF AIFS)",
+          "ai_weathernext": "Also use Google WeatherNext 2",
+          "heavy_rain_threshold": "Heavy rain threshold (24 h total)"
+        },
+        "data_description": {
+          "weather_signals": "Hourly forecast of maximum wind gust, maximum apparent temperature, thunderstorm potential and a calculated (not official) fire danger index for the next 24 hours.",
+          "gust_threshold": "The damaging gusts forecast turns on when the forecast gust reaches this speed. BoM's damaging wind criterion is 90 km/h.",
+          "heat_threshold": "The extreme heat forecast turns on when the forecast apparent temperature reaches this value.",
+          "ai_ensemble": "Experimental AI model output, fetched every 6 hours. Shows the share of ensemble members forecasting heavy rain.",
+          "ai_weathernext": "Experimental. Adds Google WeatherNext 2 (every 12 hours). Whether Google's experimental data terms apply to data served by Open-Meteo is unverified. Ignored unless the AI rain outlook is on.",
+          "heavy_rain_threshold": "A member counts as heavy rain when its 24-hour total reaches this amount."
+        }
+      },
+      "add_river_point": {
+        "title": "Add a river flood forecast point",
+        "description": "Pick a point on a river. GloFAS models rivers on a 5 km grid, so a point next to a small creek or in a city centre may have no data; a nearby river cell is then suggested. Flood data by Open-Meteo.com (GloFAS), non-commercial use only.",
+        "data": {
+          "name": "Name",
+          "location": "Location"
+        }
+      },
+      "river_suggestion": {
+        "title": "Use a nearby river cell?",
+        "description": "The selected point is not on the GloFAS river grid. The nearest cell with the largest discharge is {distance} km away at {latitude}, {longitude} (mean forecast discharge {discharge} m³/s).",
+        "data": {
+          "use_suggestion": "Use this cell"
+        }
+      },
+      "river_threshold": {
+        "title": "Flood risk threshold for {name}",
+        "description": "The flood risk sensor turns on when any ensemble member forecasts discharge above this threshold within the horizon. The default is this cell's median annual peak discharge over the last 20 years of the GloFAS reanalysis (about a 2-year flood): {baseline}.",
+        "data": {
+          "threshold": "Threshold",
+          "horizon_days": "Forecast horizon"
+        }
+      },
+      "edit_river_point": {
+        "title": "Edit a river point",
+        "data": {
+          "point": "River point"
+        }
+      },
+      "edit_river_point_details": {
+        "title": "Edit {name}",
+        "description": "Median annual peak discharge (about a 2-year flood): {baseline}. To move a point, remove it and add a new one.",
+        "data": {
+          "threshold": "Threshold",
+          "horizon_days": "Forecast horizon"
+        }
+      },
+      "remove_river_point": {
+        "title": "Remove river points",
+        "data": {
+          "point": "River points to remove"
+        }
       }
+    },
+    "error": {
+      "cannot_connect": "Could not reach Open-Meteo. Try again later.",
+      "duplicate_river_point": "Enter a name that no other river point uses.",
+      "no_river_cell": "No river cell with data was found near this point. Pick a point on or next to a larger river.",
+      "invalid_threshold": "The threshold must be greater than 0."
+    },
+    "abort": {
+      "too_many_river_points": "You can add up to 10 river points. Remove one first."
     }
   },
   "entity": {
@@ -76,6 +158,15 @@
       },
       "road_closure_nearby": {
         "name": "Road Closure Nearby"
+      },
+      "damaging_gusts_forecast": {
+        "name": "Damaging gusts forecast"
+      },
+      "extreme_heat_forecast": {
+        "name": "Extreme heat forecast"
+      },
+      "river_flood_risk": {
+        "name": "River flood risk {name}"
       }
     },
     "sensor": {
@@ -114,12 +205,45 @@
       },
       "relief_facilities_count": {
         "name": "Relief Facilities Count"
+      },
+      "max_wind_gust_24h": {
+        "name": "Max wind gust forecast 24h"
+      },
+      "max_apparent_temperature_24h": {
+        "name": "Max apparent temperature forecast 24h"
+      },
+      "thunderstorm_potential": {
+        "name": "Thunderstorm potential forecast",
+        "state": {
+          "low": "Low",
+          "moderate": "Moderate",
+          "high": "High",
+          "very_high": "Very high"
+        }
+      },
+      "calculated_fire_danger_index": {
+        "name": "Calculated fire danger index (not official)"
+      },
+      "river_discharge": {
+        "name": "River discharge {name}"
+      },
+      "heavy_rain_probability_24h": {
+        "name": "Experimental AI heavy rain probability 24h"
+      },
+      "heavy_rain_probability_72h": {
+        "name": "Experimental AI heavy rain probability 72h"
+      },
+      "ai_rain_outlook": {
+        "name": "Experimental AI rain outlook"
       }
     }
   },
   "exceptions": {
     "feeds_unavailable": {
       "message": "All emergency hazard feeds are unavailable: {feeds}"
+    },
+    "forecast_unavailable": {
+      "message": "Open-Meteo {feature} data is unavailable: {error}"
     }
   }
 }
