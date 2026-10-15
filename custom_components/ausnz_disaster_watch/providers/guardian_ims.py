@@ -32,6 +32,7 @@ import html
 import json
 import logging
 import re
+import time
 from typing import TYPE_CHECKING, Any
 from urllib.parse import quote, urlsplit
 
@@ -69,8 +70,10 @@ GUARDIAN_HOST_ALIASES: dict[str, str | None] = {
     "disaster.begavalley.nsw.gov.au": None,  # does not resolve
 }
 
-# Statuses meaning "this dashboard does not have the endpoint"; remembered for the session
+# Statuses meaning "this dashboard does not have the endpoint"; such an endpoint is not
+# requested again for a while (a 403/404 can also be a temporary WAF block or deployment)
 _UNAVAILABLE_STATUSES = frozenset({403, 404})
+_UNAVAILABLE_TTL = 6 * 3600  # seconds
 
 # getTemplateWidgets: a type 6 widget's "values" selects what it shows
 _WIDGET_OBSERVATIONS = "4"
@@ -169,7 +172,7 @@ class GuardianDashboard:
         """Initialise the client for ``base_url`` (already normalised)."""
         self._provider = provider
         self.base_url = base_url
-        self._unavailable: set[str] = set()
+        self._unavailable: dict[str, float] = {}  # endpoint -> monotonic time it went missing
         self._poll_cache: dict[str, Any] = {}
         self._widget_details: list[dict[str, Any]] | None = None
 
@@ -180,21 +183,23 @@ class GuardianDashboard:
     async def fetch(self, endpoint: str) -> Any | None:
         """Return the decoded payload of ``/dashboard/<endpoint>``, or None if there is none.
 
-        None means the dashboard does not have the endpoint (remembered for the session) or
+        None means the dashboard does not have the endpoint (not asked again for six hours) or
         the request failed this time (retried next poll). Successful payloads, empty ones
         included, are reused until the next poll.
         """
         if endpoint in self._poll_cache:
             return self._poll_cache[endpoint]
-        if endpoint in self._unavailable:
-            return None
+        if (since := self._unavailable.get(endpoint)) is not None:
+            if time.monotonic() - since < _UNAVAILABLE_TTL:
+                return None
+            del self._unavailable[endpoint]
         url = f"{self.base_url}/dashboard/{endpoint}"
         try:
             payload = _decode(await self._provider.async_fetch_json(url))
         except aiohttp.ClientResponseError as err:
             if err.status in _UNAVAILABLE_STATUSES:
                 _LOGGER.debug("Dashboard %s has no %s endpoint (HTTP %s)", self.base_url, endpoint, err.status)
-                self._unavailable.add(endpoint)
+                self._unavailable[endpoint] = time.monotonic()
             else:
                 _LOGGER.debug("Error fetching %s: %s", url, err)
             return None
@@ -290,6 +295,8 @@ class GuardianDashboard:
     def _parse_event(self, feat: dict[str, Any], prefix: str, default_source: str) -> RoadClosureItem:
         """Map a QLDTraffic-style road event (imsRoad, tmrRoadData) to a RoadClosureItem."""
         props = feat["properties"]
+        if props.get("status") == "Reopened":
+            raise ValueError("reopened road event")  # skipped like a malformed item
         raw_id = props.get("id") or feat.get("id")
         if not raw_id:
             raise ValueError("road event without id")

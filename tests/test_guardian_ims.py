@@ -7,7 +7,7 @@ Payloads are trimmed copies of the shapes the live dashboards returned on 2026-1
 from datetime import UTC, datetime
 import json
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import aiohttp
 import pytest
@@ -131,6 +131,13 @@ async def test_fetch_decodes_caches_and_remembers_missing_endpoints(hass: HomeAs
     # Missing endpoints are not asked again; everything else is retried in the next poll
     assert fetched == {"imsRoad", "dashOutages", "bom", "fireDangerRating"}
 
+    # Six hours later a missing endpoint is tried again (a 404/403 can be temporary)
+    dashboard.start_poll()
+    mock.reset_mock()
+    with patch("custom_components.ausnz_disaster_watch.providers.guardian_ims.time.monotonic", return_value=1e12):
+        assert await dashboard.fetch("energexOutages") is None
+    assert mock.await_count == 1
+
 
 async def test_power_outages_ergon_and_energex(hass: HomeAssistant) -> None:
     """Ergon coordinates are un-swapped; Energex restore times are decoded."""
@@ -251,7 +258,13 @@ async def test_road_closures(hass: HomeAssistant) -> None:
                     {"type": "Feature", "geometry": None, "properties": {"STATUS": None}},
                 ],
             },
-            "tmrRoadData": json.dumps([TMR_EVENT, {**TMR_EVENT, "geometry": None}]),
+            "tmrRoadData": json.dumps(
+                [
+                    TMR_EVENT,
+                    {**TMR_EVENT, "geometry": None},
+                    {**TMR_EVENT, "properties": {**TMR_EVENT["properties"], "id": 9, "status": "Reopened"}},
+                ]
+            ),
         },
     )
     closures = await dashboard.road_closures()
