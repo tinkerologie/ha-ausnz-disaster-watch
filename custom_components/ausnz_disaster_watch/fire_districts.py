@@ -29,6 +29,7 @@ def load_fire_districts(name: str) -> dict[str, dict[str, Any]]:
     """Load bundled district polygons as ``{aac: {"name": str, "rings": [[[lon, lat], ...]]}}``.
 
     This reads a file (once per name), so call it from an executor job, not the event loop.
+    The returned mapping is cached and shared by every caller: treat it as read-only.
     """
     with (_DATA_DIR / f"{name}.json").open(encoding="utf-8") as file:
         return json.load(file)["districts"]

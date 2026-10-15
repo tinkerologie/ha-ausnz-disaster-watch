@@ -70,9 +70,9 @@ class ACTHazardProvider(BaseHazardProvider):
 
         for item in root.findall(".//item"):
             try:
-                title = item.findtext("title", "").strip()
-                incident_type = item.findtext("type", "").strip()
-                agency = item.findtext("agency", "").strip()
+                title = (item.findtext("title") or "").strip()
+                incident_type = (item.findtext("type") or "").strip()
+                agency = (item.findtext("agency") or "").strip()
                 if _is_non_hazard(incident_type, agency):
                     continue
 

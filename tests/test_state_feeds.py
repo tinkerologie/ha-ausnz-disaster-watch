@@ -5,6 +5,7 @@ Fixtures follow the live payload shapes captured on 2026-10-16.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock
 
@@ -19,6 +20,7 @@ from custom_components.ausnz_disaster_watch.providers import (
     SAHazardProvider,
     VictoriaHazardProvider,
 )
+from custom_components.ausnz_disaster_watch.providers.base import BaseHazardProvider
 from homeassistant.core import HomeAssistant
 
 # --- Fire weather districts (#14) ---------------------------------------------------------
@@ -88,6 +90,17 @@ async def test_act_excludes_ambulance_responses(hass: HomeAssistant) -> None:
     assert burn.raw_properties["type"] == "HAZARD REDUCTION BURN"
     assert fire.is_hazard_reduction is False
     assert fire.hazard_type == HazardType.METROPOLITAN_FIRE  # from <type>, the title has no hint
+
+
+async def test_act_tolerates_empty_type_and_agency(hass: HomeAssistant) -> None:
+    """Present but empty <type>/<agency> elements do not drop the item."""
+    prov = ACTHazardProvider(hass, AsyncMock(), {"state": STATE_ACT})
+    xml_text = (
+        '<?xml version="1.0"?><rss version="2.0"><channel><item><title>GRASS FIRE - KAMBAH</title>'
+        "<guid>E1</guid><type/><agency/><georss:point xmlns:georss='http://www.georss.org/georss'>"
+        "-35.38 149.06</georss:point></item></channel></rss>"
+    )
+    assert [h.id for h in prov._parse_act_feed(xml_text)] == ["act_esa_E1"]
 
 
 # --- NT (#14) -----------------------------------------------------------------------------
@@ -293,3 +306,13 @@ async def test_vic_skips_burn_areas_and_bom_and_links_by_feed_type(hass: HomeAss
     }
     assert hazards["VIC_EMV_3015924"].is_hazard_reduction is True
     assert hazards["VIC_EMV_ESTA:261016005"].is_hazard_reduction is False
+
+
+def test_act_esa_timestamp_format() -> None:
+    """ACT ESA writes "15 Oct 2026 15:14:49.77" (Canberra time)."""
+    assert BaseHazardProvider.parse_datetime("15 Oct 2026 15:14:49.77", "Australia/Sydney") == datetime(
+        2026, 10, 15, 4, 14, 49, 770000, tzinfo=UTC
+    )
+    assert BaseHazardProvider.parse_datetime("15 Oct 2026 15:14:49", "Australia/Sydney") == datetime(
+        2026, 10, 15, 4, 14, 49, tzinfo=UTC
+    )

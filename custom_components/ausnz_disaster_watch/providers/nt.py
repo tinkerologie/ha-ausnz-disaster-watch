@@ -62,7 +62,7 @@ class NTHazardProvider(BaseHazardProvider):
 
                 props = feat.get("properties", {})
                 # The feed keeps closed incidents (most of them on a typical day); they are
-                # not active hazards (#14)
+                # not active hazards (#14).
                 if any(str(props.get(key) or "").strip().lower() == "closed" for key in ("_status", "Status")):
                     continue
 

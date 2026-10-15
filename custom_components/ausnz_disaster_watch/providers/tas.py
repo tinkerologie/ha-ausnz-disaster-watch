@@ -59,9 +59,9 @@ class TasmaniaHazardProvider(BaseHazardProvider):
         if status.lower() in _CLOSED_STATUSES:
             return None
 
-        location = props.get("location") or {}
-        if isinstance(location, dict) and location.get("lat") is not None and location.get("lng") is not None:
-            lat, lon = float(location["lat"]), float(location["lng"])
+        point = _location_point(props.get("location"))
+        if point is not None:
+            lat, lon = point
         elif centroid := self.calculate_centroid(feature.get("geometry") or {}):
             lat, lon = centroid
         else:
@@ -75,13 +75,9 @@ class TasmaniaHazardProvider(BaseHazardProvider):
         address = str(props.get("address") or "").strip()
         text = f"{title} {type_name}".lower()
 
-        if "emergency warning" in text:
-            level = WarningLevel.EMERGENCY_WARNING
-        elif "watch and act" in text:
-            level = WarningLevel.WATCH_AND_ACT
-        elif "advice" in text:
-            level = WarningLevel.ADVICE
-        else:
+        # Warnings name their Australian Warning System level; plain incidents are information
+        level = WarningLevel.from_str(text)
+        if level is WarningLevel.UNKNOWN:
             level = WarningLevel.INFORMATION
 
         upstream_id = props.get("id")
@@ -107,6 +103,19 @@ class TasmaniaHazardProvider(BaseHazardProvider):
                 "call_time": props.get("callTime"),
             },
         )
+
+
+def _location_point(location: Any) -> tuple[float, float] | None:
+    """Return (lat, lon) from a TasALERT ``location`` object, or None if absent or invalid."""
+    if not isinstance(location, dict):
+        return None
+    try:
+        lat, lon = float(location["lat"]), float(location["lng"])
+    except (KeyError, TypeError, ValueError):
+        return None
+    if -90.0 <= lat <= 90.0 and -180.0 <= lon <= 180.0:
+        return lat, lon
+    return None
 
 
 def _short_address(address: str) -> str:

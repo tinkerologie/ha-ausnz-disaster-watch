@@ -26,8 +26,11 @@ class WAHazardProvider(BaseHazardProvider):
 
     local_tz = "Australia/Perth"
 
-    # ((lat, lon), district AAC) for the last resolved fire danger location
-    _fdr_area: tuple[tuple[float, float], str | None] | None = None
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """Initialise the provider with a per-instance fire danger district cache."""
+        super().__init__(*args, **kwargs)
+        # ((lat, lon), district AAC) for the last resolved fire danger location
+        self._fdr_area: tuple[tuple[float, float], str | None] | None = None
 
     @property
     def state_code(self) -> str:

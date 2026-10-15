@@ -1,5 +1,7 @@
 """TasALERT GeoJSON provider (#14): every alert is located; nothing is placed at Hobart."""
 
+from __future__ import annotations
+
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
@@ -8,7 +10,7 @@ import pytest
 
 from custom_components.ausnz_disaster_watch.const import STATE_TAS
 from custom_components.ausnz_disaster_watch.models import HazardType, WarningLevel
-from custom_components.ausnz_disaster_watch.providers.base import BaseHazardProvider, ProviderUnavailableError
+from custom_components.ausnz_disaster_watch.providers.base import ProviderUnavailableError
 from custom_components.ausnz_disaster_watch.providers.tas import (
     TAS_ALERT_GEOJSON_URL,
     TAS_ALERT_WEB_URL,
@@ -73,6 +75,19 @@ async def test_tas_geojson_incidents(hass: HomeAssistant) -> None:
                 address="",
             ),
             feature(None, "Flood", "Flood", address="MAIN ROAD,HUONVILLE,7109"),
+            feature("ampersand", "Bushfire - Watch & Act", "Bushfire"),
+            feature(
+                "badloc",
+                "Bushfire",
+                "Bushfire",
+                location={"lat": "unknown", "lng": 147.0},
+                geometry={
+                    "type": "GeometryCollection",
+                    "geometries": [{"type": "Point", "coordinates": [146.9, -41.7]}],
+                },
+            ),
+            feature("outside", "Bushfire", "Bushfire", location={"lat": 200.0, "lng": 147.0}),
+            feature("text", "Bushfire", "Bushfire", location="-41.5, 147.0"),  # type: ignore[arg-type]
         ],
     }
     provider = TasmaniaHazardProvider(hass, AsyncMock(), {"state": STATE_TAS})
@@ -103,6 +118,11 @@ async def test_tas_geojson_incidents(hass: HomeAssistant) -> None:
     assert not fire.is_hazard_reduction
     assert hazards["tas_alert_ew"].warning_level is WarningLevel.EMERGENCY_WARNING
     assert hazards["tas_alert_adv"].warning_level is WarningLevel.ADVICE
+    assert hazards["tas_alert_ampersand"].warning_level is WarningLevel.WATCH_AND_ACT
+    # Invalid location coordinates fall back to the feature geometry
+    assert (hazards["tas_alert_badloc"].latitude, hazards["tas_alert_badloc"].longitude) == (-41.7, 146.9)
+    assert "tas_alert_outside" not in hazards
+    assert "tas_alert_text" not in hazards
 
     geom = hazards["tas_alert_geom"]
     assert (geom.latitude, geom.longitude) == (-41.38, 147.14)
@@ -127,13 +147,3 @@ async def test_tas_feed_failures(hass: HomeAssistant) -> None:
             await provider.async_fetch_hazards()
     provider.async_fetch_json = AsyncMock(return_value={"type": "FeatureCollection", "features": []})
     assert await provider.async_fetch_hazards() == []
-
-
-def test_act_esa_timestamp_format() -> None:
-    """ACT ESA writes "15 Oct 2026 15:14:49.77" (Canberra time)."""
-    assert BaseHazardProvider.parse_datetime("15 Oct 2026 15:14:49.77", "Australia/Sydney") == datetime(
-        2026, 10, 15, 4, 14, 49, 770000, tzinfo=UTC
-    )
-    assert BaseHazardProvider.parse_datetime("15 Oct 2026 15:14:49", "Australia/Sydney") == datetime(
-        2026, 10, 15, 4, 14, 49, tzinfo=UTC
-    )
