@@ -238,6 +238,8 @@ export class IncidentMap {
 
   private async loadRadar(): Promise<void> {
     if (!this.visible || this.destroyed) return;
+    // Keep polling whatever happens below, so an outage or unchanged list retries later.
+    this.pollTimer ??= setInterval(() => void this.loadRadar(), RADAR_POLL_MS);
     this.onRadarStatus({ state: "loading" });
     let data: RadarFrames;
     try {
@@ -279,7 +281,6 @@ export class IncidentMap {
     });
     this.frameIndex = this.radarLayers.length - 1;
     this.showFrame(this.frameIndex);
-    this.pollTimer ??= setInterval(() => void this.loadRadar(), RADAR_POLL_MS);
     this.schedule();
   }
 

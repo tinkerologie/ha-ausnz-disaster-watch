@@ -1,1498 +1,1498 @@
 {
- "entities": {
-  "binary_sensor.australia_and_new_zealand_disaster_watch_qld_dev_emergency_warning_nearby": {
-   "entity_id": "binary_sensor.australia_and_new_zealand_disaster_watch_qld_dev_emergency_warning_nearby",
-   "device_id": "device-qld",
-   "platform": "ausnz_disaster_watch",
-   "translation_key": "emergency_warning_nearby",
-   "name": "Emergency Warning Nearby"
+  "entities": {
+    "binary_sensor.australia_and_new_zealand_disaster_watch_qld_dev_emergency_warning_nearby": {
+      "entity_id": "binary_sensor.australia_and_new_zealand_disaster_watch_qld_dev_emergency_warning_nearby",
+      "device_id": "device-qld",
+      "platform": "ausnz_disaster_watch",
+      "translation_key": "emergency_warning_nearby",
+      "name": "Emergency Warning Nearby"
+    },
+    "binary_sensor.australia_and_new_zealand_disaster_watch_qld_dev_active_hazards_nearby": {
+      "entity_id": "binary_sensor.australia_and_new_zealand_disaster_watch_qld_dev_active_hazards_nearby",
+      "device_id": "device-qld",
+      "platform": "ausnz_disaster_watch",
+      "translation_key": "active_hazards_nearby",
+      "name": "Active Hazards Nearby"
+    },
+    "binary_sensor.australia_and_new_zealand_disaster_watch_qld_dev_power_outage_active": {
+      "entity_id": "binary_sensor.australia_and_new_zealand_disaster_watch_qld_dev_power_outage_active",
+      "device_id": "device-qld",
+      "platform": "ausnz_disaster_watch",
+      "translation_key": "power_outage_active",
+      "name": "Power Outage Active"
+    },
+    "binary_sensor.australia_and_new_zealand_disaster_watch_qld_dev_road_closure_nearby": {
+      "entity_id": "binary_sensor.australia_and_new_zealand_disaster_watch_qld_dev_road_closure_nearby",
+      "device_id": "device-qld",
+      "platform": "ausnz_disaster_watch",
+      "translation_key": "road_closure_nearby",
+      "name": "Road Closure Nearby"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_qld_dev_nearest_hazard_distance": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_nearest_hazard_distance",
+      "device_id": "device-qld",
+      "platform": "ausnz_disaster_watch",
+      "translation_key": "nearest_hazard_distance",
+      "name": "Nearest Hazard Distance"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_qld_dev_active_hazards_count": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_active_hazards_count",
+      "device_id": "device-qld",
+      "platform": "ausnz_disaster_watch",
+      "translation_key": "active_hazards_count",
+      "name": "Active Hazards Count"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_qld_dev_highest_warning_level": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_highest_warning_level",
+      "device_id": "device-qld",
+      "platform": "ausnz_disaster_watch",
+      "translation_key": "highest_warning_level",
+      "name": "Highest Warning Level"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_qld_dev_nearest_hazard_title": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_nearest_hazard_title",
+      "device_id": "device-qld",
+      "platform": "ausnz_disaster_watch",
+      "translation_key": "nearest_hazard_title",
+      "name": "Nearest Hazard Title"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_qld_dev_power_outages_count": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_power_outages_count",
+      "device_id": "device-qld",
+      "platform": "ausnz_disaster_watch",
+      "translation_key": "power_outages_count",
+      "name": "Power Outages Count"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_qld_dev_power_outages_customers_affected": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_power_outages_customers_affected",
+      "device_id": "device-qld",
+      "platform": "ausnz_disaster_watch",
+      "translation_key": "power_outages_customers_affected",
+      "name": "Power Outages Customers Affected"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_qld_dev_road_closures_count": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_road_closures_count",
+      "device_id": "device-qld",
+      "platform": "ausnz_disaster_watch",
+      "translation_key": "road_closures_count",
+      "name": "Road Closures Count"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_qld_dev_weather_warnings_count": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_weather_warnings_count",
+      "device_id": "device-qld",
+      "platform": "ausnz_disaster_watch",
+      "translation_key": "weather_warnings_count",
+      "name": "Weather Warnings Count"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_qld_dev_fire_danger_rating": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_fire_danger_rating",
+      "device_id": "device-qld",
+      "platform": "ausnz_disaster_watch",
+      "translation_key": "fire_danger_rating",
+      "name": "Fire Danger Rating"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_qld_dev_air_quality": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_air_quality",
+      "device_id": "device-qld",
+      "platform": "ausnz_disaster_watch",
+      "translation_key": "air_quality_rating",
+      "name": "Air Quality"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_qld_dev_local_weather_observation": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_local_weather_observation",
+      "device_id": "device-qld",
+      "platform": "ausnz_disaster_watch",
+      "translation_key": "primary_weather_observation",
+      "name": "Local Weather Observation"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_qld_dev_relief_facilities_count": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_relief_facilities_count",
+      "device_id": "device-qld",
+      "platform": "ausnz_disaster_watch",
+      "translation_key": "relief_facilities_count",
+      "name": "Relief Facilities Count"
+    },
+    "camera.australia_and_new_zealand_disaster_watch_qld_dev_goodna_ipswich_mwy_east": {
+      "entity_id": "camera.australia_and_new_zealand_disaster_watch_qld_dev_goodna_ipswich_mwy_east",
+      "device_id": "device-qld",
+      "platform": "ausnz_disaster_watch",
+      "translation_key": null,
+      "name": "Goodna - Ipswich Mwy East"
+    },
+    "camera.australia_and_new_zealand_disaster_watch_qld_dev_dinmore_ipswich_mwy_east": {
+      "entity_id": "camera.australia_and_new_zealand_disaster_watch_qld_dev_dinmore_ipswich_mwy_east",
+      "device_id": "device-qld",
+      "platform": "ausnz_disaster_watch",
+      "translation_key": null,
+      "name": "Dinmore - Ipswich Mwy East"
+    },
+    "camera.australia_and_new_zealand_disaster_watch_qld_dev_metropolitan_camera_1218": {
+      "entity_id": "camera.australia_and_new_zealand_disaster_watch_qld_dev_metropolitan_camera_1218",
+      "device_id": "device-qld",
+      "platform": "ausnz_disaster_watch",
+      "translation_key": null,
+      "name": "Metropolitan Camera 1218"
+    },
+    "camera.australia_and_new_zealand_disaster_watch_qld_dev_bruce_highway_caboolture": {
+      "entity_id": "camera.australia_and_new_zealand_disaster_watch_qld_dev_bruce_highway_caboolture",
+      "device_id": "device-qld",
+      "platform": "ausnz_disaster_watch",
+      "translation_key": null,
+      "name": "Bruce Highway - Caboolture"
+    },
+    "binary_sensor.australia_and_new_zealand_disaster_watch_nz_wellington_emergency_warning_nearby": {
+      "entity_id": "binary_sensor.australia_and_new_zealand_disaster_watch_nz_wellington_emergency_warning_nearby",
+      "device_id": "device-nz",
+      "platform": "ausnz_disaster_watch",
+      "translation_key": "emergency_warning_nearby",
+      "name": "Emergency Warning Nearby"
+    },
+    "binary_sensor.australia_and_new_zealand_disaster_watch_nz_wellington_active_hazards_nearby": {
+      "entity_id": "binary_sensor.australia_and_new_zealand_disaster_watch_nz_wellington_active_hazards_nearby",
+      "device_id": "device-nz",
+      "platform": "ausnz_disaster_watch",
+      "translation_key": "active_hazards_nearby",
+      "name": "Active Hazards Nearby"
+    },
+    "binary_sensor.australia_and_new_zealand_disaster_watch_nz_wellington_power_outage_active": {
+      "entity_id": "binary_sensor.australia_and_new_zealand_disaster_watch_nz_wellington_power_outage_active",
+      "device_id": "device-nz",
+      "platform": "ausnz_disaster_watch",
+      "translation_key": "power_outage_active",
+      "name": "Power Outage Active"
+    },
+    "binary_sensor.australia_and_new_zealand_disaster_watch_nz_wellington_road_closure_nearby": {
+      "entity_id": "binary_sensor.australia_and_new_zealand_disaster_watch_nz_wellington_road_closure_nearby",
+      "device_id": "device-nz",
+      "platform": "ausnz_disaster_watch",
+      "translation_key": "road_closure_nearby",
+      "name": "Road Closure Nearby"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_nearest_hazard_distance": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_nearest_hazard_distance",
+      "device_id": "device-nz",
+      "platform": "ausnz_disaster_watch",
+      "translation_key": "nearest_hazard_distance",
+      "name": "Nearest Hazard Distance"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_active_hazards_count": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_active_hazards_count",
+      "device_id": "device-nz",
+      "platform": "ausnz_disaster_watch",
+      "translation_key": "active_hazards_count",
+      "name": "Active Hazards Count"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_highest_warning_level": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_highest_warning_level",
+      "device_id": "device-nz",
+      "platform": "ausnz_disaster_watch",
+      "translation_key": "highest_warning_level",
+      "name": "Highest Warning Level"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_nearest_hazard_title": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_nearest_hazard_title",
+      "device_id": "device-nz",
+      "platform": "ausnz_disaster_watch",
+      "translation_key": "nearest_hazard_title",
+      "name": "Nearest Hazard Title"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_power_outages_count": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_power_outages_count",
+      "device_id": "device-nz",
+      "platform": "ausnz_disaster_watch",
+      "translation_key": "power_outages_count",
+      "name": "Power Outages Count"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_power_outages_customers_affected": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_power_outages_customers_affected",
+      "device_id": "device-nz",
+      "platform": "ausnz_disaster_watch",
+      "translation_key": "power_outages_customers_affected",
+      "name": "Power Outages Customers Affected"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_road_closures_count": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_road_closures_count",
+      "device_id": "device-nz",
+      "platform": "ausnz_disaster_watch",
+      "translation_key": "road_closures_count",
+      "name": "Road Closures Count"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_weather_warnings_count": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_weather_warnings_count",
+      "device_id": "device-nz",
+      "platform": "ausnz_disaster_watch",
+      "translation_key": "weather_warnings_count",
+      "name": "Weather Warnings Count"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_fire_danger_rating": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_fire_danger_rating",
+      "device_id": "device-nz",
+      "platform": "ausnz_disaster_watch",
+      "translation_key": "fire_danger_rating",
+      "name": "Fire Danger Rating"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_air_quality": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_air_quality",
+      "device_id": "device-nz",
+      "platform": "ausnz_disaster_watch",
+      "translation_key": "air_quality_rating",
+      "name": "Air Quality"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_local_weather_observation": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_local_weather_observation",
+      "device_id": "device-nz",
+      "platform": "ausnz_disaster_watch",
+      "translation_key": "primary_weather_observation",
+      "name": "Local Weather Observation"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_relief_facilities_count": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_relief_facilities_count",
+      "device_id": "device-nz",
+      "platform": "ausnz_disaster_watch",
+      "translation_key": "relief_facilities_count",
+      "name": "Relief Facilities Count"
+    }
   },
-  "binary_sensor.australia_and_new_zealand_disaster_watch_qld_dev_active_hazards_nearby": {
-   "entity_id": "binary_sensor.australia_and_new_zealand_disaster_watch_qld_dev_active_hazards_nearby",
-   "device_id": "device-qld",
-   "platform": "ausnz_disaster_watch",
-   "translation_key": "active_hazards_nearby",
-   "name": "Active Hazards Nearby"
+  "devices": {
+    "device-qld": {
+      "id": "device-qld",
+      "name": "Australia and New Zealand Disaster Watch (QLD - Dev)",
+      "name_by_user": null,
+      "config_entries": [
+        "entry-qld"
+      ],
+      "identifiers": [
+        [
+          "ausnz_disaster_watch",
+          "entry-qld"
+        ]
+      ]
+    },
+    "device-nz": {
+      "id": "device-nz",
+      "name": "Australia and New Zealand Disaster Watch (NZ - Wellington)",
+      "name_by_user": null,
+      "config_entries": [
+        "entry-nz"
+      ],
+      "identifiers": [
+        [
+          "ausnz_disaster_watch",
+          "entry-nz"
+        ]
+      ]
+    }
   },
-  "binary_sensor.australia_and_new_zealand_disaster_watch_qld_dev_power_outage_active": {
-   "entity_id": "binary_sensor.australia_and_new_zealand_disaster_watch_qld_dev_power_outage_active",
-   "device_id": "device-qld",
-   "platform": "ausnz_disaster_watch",
-   "translation_key": "power_outage_active",
-   "name": "Power Outage Active"
+  "states": {
+    "zone.home": {
+      "entity_id": "zone.home",
+      "state": "0",
+      "attributes": {
+        "latitude": -27.47,
+        "longitude": 153.02,
+        "radius": 100,
+        "passive": false,
+        "persons": [],
+        "device_trackers": [],
+        "editable": true,
+        "icon": "mdi:home",
+        "friendly_name": "Dev"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "geo_location.m2_6_earthquake_10_km_north_east_of_kaikoura": {
+      "entity_id": "geo_location.m2_6_earthquake_10_km_north_east_of_kaikoura",
+      "state": "140.6",
+      "attributes": {
+        "source": "GeoNet New Zealand",
+        "latitude": -42.31778,
+        "longitude": 173.79233,
+        "title": "M2.6 Earthquake - 10 km north-east of Kaikoura",
+        "hazard_type": "Earthquake",
+        "warning_level": "Information",
+        "location_name": "10 km north-east of Kaikoura",
+        "is_hazard_reduction": false,
+        "integration": "ausnz_disaster_watch",
+        "updated_at": "2026-10-14T17:56:54.899000+00:00",
+        "distance_km": 140.58,
+        "status": "Active",
+        "responsible_agency": "GeoNet (GNS Science)",
+        "web_url": "https://www.geonet.org.nz/earthquake/2026p774994",
+        "entry_id": "entry-nz",
+        "unit_of_measurement": "km",
+        "icon": "mdi:pulse",
+        "friendly_name": "M2.6 Earthquake - 10 km north-east of Kaikoura"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "geo_location.volcano_level_0_green_taupo": {
+      "entity_id": "geo_location.volcano_level_0_green_taupo",
+      "state": "294.4",
+      "attributes": {
+        "source": "GeoNet New Zealand",
+        "latitude": -38.784,
+        "longitude": 175.896,
+        "title": "Volcano Level 0 (Green) - Taupo",
+        "hazard_type": "Volcano",
+        "warning_level": "Information",
+        "location_name": "Taupo",
+        "is_hazard_reduction": false,
+        "integration": "ausnz_disaster_watch",
+        "distance_km": 294.4,
+        "status": "No volcanic unrest.",
+        "responsible_agency": "GeoNet (GNS Science)",
+        "web_url": "https://www.geonet.org.nz/volcano/taupo",
+        "entry_id": "entry-nz",
+        "unit_of_measurement": "km",
+        "icon": "mdi:volcano",
+        "friendly_name": "Volcano Level 0 (Green) - Taupo"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "geo_location.volcano_level_0_green_tongariro": {
+      "entity_id": "geo_location.volcano_level_0_green_tongariro",
+      "state": "250.7",
+      "attributes": {
+        "source": "GeoNet New Zealand",
+        "latitude": -39.13332,
+        "longitude": 175.64173,
+        "title": "Volcano Level 0 (Green) - Tongariro",
+        "hazard_type": "Volcano",
+        "warning_level": "Information",
+        "location_name": "Tongariro",
+        "is_hazard_reduction": false,
+        "integration": "ausnz_disaster_watch",
+        "distance_km": 250.72,
+        "status": "No volcanic unrest.",
+        "responsible_agency": "GeoNet (GNS Science)",
+        "web_url": "https://www.geonet.org.nz/volcano/tongariro",
+        "entry_id": "entry-nz",
+        "unit_of_measurement": "km",
+        "icon": "mdi:volcano",
+        "friendly_name": "Volcano Level 0 (Green) - Tongariro"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "geo_location.volcano_level_0_green_ngauruhoe": {
+      "entity_id": "geo_location.volcano_level_0_green_ngauruhoe",
+      "state": "248.1",
+      "attributes": {
+        "source": "GeoNet New Zealand",
+        "latitude": -39.156,
+        "longitude": 175.632,
+        "title": "Volcano Level 0 (Green) - Ngauruhoe",
+        "hazard_type": "Volcano",
+        "warning_level": "Information",
+        "location_name": "Ngauruhoe",
+        "is_hazard_reduction": false,
+        "integration": "ausnz_disaster_watch",
+        "distance_km": 248.07,
+        "status": "No volcanic unrest.",
+        "responsible_agency": "GeoNet (GNS Science)",
+        "web_url": "https://www.geonet.org.nz/volcano/ngauruhoe",
+        "entry_id": "entry-nz",
+        "unit_of_measurement": "km",
+        "icon": "mdi:volcano",
+        "friendly_name": "Volcano Level 0 (Green) - Ngauruhoe"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "geo_location.volcano_level_1_green_ruapehu": {
+      "entity_id": "geo_location.volcano_level_1_green_ruapehu",
+      "state": "233.1",
+      "attributes": {
+        "source": "GeoNet New Zealand",
+        "latitude": -39.281,
+        "longitude": 175.563,
+        "title": "Volcano Level 1 (Green) - Ruapehu",
+        "hazard_type": "Volcano",
+        "warning_level": "Advice",
+        "location_name": "Ruapehu",
+        "is_hazard_reduction": false,
+        "integration": "ausnz_disaster_watch",
+        "distance_km": 233.05,
+        "status": "Minor volcanic unrest.",
+        "responsible_agency": "GeoNet (GNS Science)",
+        "web_url": "https://www.geonet.org.nz/volcano/ruapehu",
+        "entry_id": "entry-nz",
+        "unit_of_measurement": "km",
+        "icon": "mdi:volcano",
+        "friendly_name": "Volcano Level 1 (Green) - Ruapehu"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "geo_location.volcano_level_0_green_taranaki_maunga": {
+      "entity_id": "geo_location.volcano_level_0_green_taranaki_maunga",
+      "state": "229.7",
+      "attributes": {
+        "source": "GeoNet New Zealand",
+        "latitude": -39.298,
+        "longitude": 174.061,
+        "title": "Volcano Level 0 (Green) - Taranaki Maunga",
+        "hazard_type": "Volcano",
+        "warning_level": "Information",
+        "location_name": "Taranaki Maunga",
+        "is_hazard_reduction": false,
+        "integration": "ausnz_disaster_watch",
+        "distance_km": 229.74,
+        "status": "No volcanic unrest.",
+        "responsible_agency": "GeoNet (GNS Science)",
+        "web_url": "https://www.geonet.org.nz/volcano/taranakiegmont",
+        "entry_id": "entry-nz",
+        "unit_of_measurement": "km",
+        "icon": "mdi:volcano",
+        "friendly_name": "Volcano Level 0 (Green) - Taranaki Maunga"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "binary_sensor.australia_and_new_zealand_disaster_watch_nz_wellington_emergency_warning_nearby": {
+      "entity_id": "binary_sensor.australia_and_new_zealand_disaster_watch_nz_wellington_emergency_warning_nearby",
+      "state": "off",
+      "attributes": {
+        "highest_warning_level": "Advice",
+        "incident_count": 6,
+        "nearest_incident_title": "M2.6 Earthquake - 10 km north-east of Kaikoura",
+        "nearest_incident_distance": 140.58,
+        "device_class": "safety",
+        "icon": "mdi:shield-check",
+        "friendly_name": "Australia and New Zealand Disaster Watch (NZ - Wellington) Emergency Warning Nearby"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "binary_sensor.australia_and_new_zealand_disaster_watch_nz_wellington_active_hazards_nearby": {
+      "entity_id": "binary_sensor.australia_and_new_zealand_disaster_watch_nz_wellington_active_hazards_nearby",
+      "state": "on",
+      "attributes": {
+        "incident_count": 6,
+        "highest_warning_level": "Advice",
+        "device_class": "problem",
+        "icon": "mdi:alert",
+        "friendly_name": "Australia and New Zealand Disaster Watch (NZ - Wellington) Active Hazards Nearby"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "binary_sensor.australia_and_new_zealand_disaster_watch_nz_wellington_power_outage_active": {
+      "entity_id": "binary_sensor.australia_and_new_zealand_disaster_watch_nz_wellington_power_outage_active",
+      "state": "off",
+      "attributes": {
+        "outages_count": 0,
+        "customers_affected": 0,
+        "device_class": "problem",
+        "icon": "mdi:transmission-tower",
+        "friendly_name": "Australia and New Zealand Disaster Watch (NZ - Wellington) Power Outage Active"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "binary_sensor.australia_and_new_zealand_disaster_watch_nz_wellington_road_closure_nearby": {
+      "entity_id": "binary_sensor.australia_and_new_zealand_disaster_watch_nz_wellington_road_closure_nearby",
+      "state": "off",
+      "attributes": {
+        "closures_count": 0,
+        "device_class": "problem",
+        "icon": "mdi:road-variant",
+        "friendly_name": "Australia and New Zealand Disaster Watch (NZ - Wellington) Road Closure Nearby"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_nearest_hazard_distance": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_nearest_hazard_distance",
+      "state": "140.58",
+      "attributes": {
+        "state_class": "measurement",
+        "title": "M2.6 Earthquake - 10 km north-east of Kaikoura",
+        "hazard_type": "Earthquake",
+        "warning_level": "Information",
+        "location_name": "10 km north-east of Kaikoura",
+        "responsible_agency": "GeoNet (GNS Science)",
+        "web_url": "https://www.geonet.org.nz/earthquake/2026p774994",
+        "unit_of_measurement": "km",
+        "device_class": "distance",
+        "icon": "mdi:map-marker-distance",
+        "friendly_name": "Australia and New Zealand Disaster Watch (NZ - Wellington) Nearest Hazard Distance"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_active_hazards_count": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_active_hazards_count",
+      "state": "6",
+      "attributes": {
+        "state_class": "measurement",
+        "unit_of_measurement": "hazards",
+        "icon": "mdi:shield-alert",
+        "friendly_name": "Australia and New Zealand Disaster Watch (NZ - Wellington) Active Hazards Count"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_highest_warning_level": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_highest_warning_level",
+      "state": "Advice",
+      "attributes": {
+        "emergency_news": [],
+        "nearby_councils": [],
+        "icon": "mdi:information",
+        "friendly_name": "Australia and New Zealand Disaster Watch (NZ - Wellington) Highest Warning Level"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_nearest_hazard_title": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_nearest_hazard_title",
+      "state": "M2.6 Earthquake - 10 km north-east of Kaikoura",
+      "attributes": {
+        "icon": "mdi:text-box-search",
+        "friendly_name": "Australia and New Zealand Disaster Watch (NZ - Wellington) Nearest Hazard Title"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_power_outages_count": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_power_outages_count",
+      "state": "0",
+      "attributes": {
+        "state_class": "measurement",
+        "customers_affected": 0,
+        "outages": [],
+        "unit_of_measurement": "outages",
+        "icon": "mdi:transmission-tower-off",
+        "friendly_name": "Australia and New Zealand Disaster Watch (NZ - Wellington) Power Outages Count"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_power_outages_customers_affected": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_power_outages_customers_affected",
+      "state": "0",
+      "attributes": {
+        "state_class": "measurement",
+        "unit_of_measurement": "customers",
+        "icon": "mdi:account-alert",
+        "friendly_name": "Australia and New Zealand Disaster Watch (NZ - Wellington) Power Outages Customers Affected"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_road_closures_count": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_road_closures_count",
+      "state": "0",
+      "attributes": {
+        "state_class": "measurement",
+        "closures": [],
+        "unit_of_measurement": "closures",
+        "icon": "mdi:traffic-cone",
+        "friendly_name": "Australia and New Zealand Disaster Watch (NZ - Wellington) Road Closures Count"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_weather_warnings_count": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_weather_warnings_count",
+      "state": "0",
+      "attributes": {
+        "state_class": "measurement",
+        "warnings": [],
+        "emergency_news": [],
+        "nearby_councils": [],
+        "unit_of_measurement": "warnings",
+        "icon": "mdi:weather-lightning-rainy",
+        "friendly_name": "Australia and New Zealand Disaster Watch (NZ - Wellington) Weather Warnings Count"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_fire_danger_rating": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_fire_danger_rating",
+      "state": "unknown",
+      "attributes": {
+        "icon": "mdi:shield-check",
+        "friendly_name": "Australia and New Zealand Disaster Watch (NZ - Wellington) Fire Danger Rating"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_air_quality": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_air_quality",
+      "state": "unknown",
+      "attributes": {
+        "icon": "mdi:air-filter",
+        "friendly_name": "Australia and New Zealand Disaster Watch (NZ - Wellington) Air Quality"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_local_weather_observation": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_local_weather_observation",
+      "state": "unknown",
+      "attributes": {
+        "state_class": "measurement",
+        "unit_of_measurement": "°C",
+        "device_class": "temperature",
+        "icon": "mdi:thermometer",
+        "friendly_name": "Australia and New Zealand Disaster Watch (NZ - Wellington) Local Weather Observation"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_relief_facilities_count": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_relief_facilities_count",
+      "state": "0",
+      "attributes": {
+        "state_class": "measurement",
+        "facilities": [],
+        "unit_of_measurement": "facilities",
+        "icon": "mdi:home-heart",
+        "friendly_name": "Australia and New Zealand Disaster Watch (NZ - Wellington) Relief Facilities Count"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "geo_location.16_05_24_est_road_weather_alert_for_brisbane": {
+      "entity_id": "geo_location.16_05_24_est_road_weather_alert_for_brisbane",
+      "state": "0.0",
+      "attributes": {
+        "source": "Bureau of Meteorology",
+        "latitude": -27.47,
+        "longitude": 153.02,
+        "title": "16/05:24 EST Road Weather Alert for Brisbane",
+        "hazard_type": "Road Hazard / Crash",
+        "warning_level": "Advice",
+        "location_name": "16/05:24 EST Road Weather Alert for Brisbane - ",
+        "is_hazard_reduction": false,
+        "integration": "ausnz_disaster_watch",
+        "updated_at": "2026-10-15T19:24:14+00:00",
+        "distance_km": 0,
+        "responsible_agency": "Bureau of Meteorology",
+        "web_url": "http://www.bom.gov.au/qld/warnings/road.shtml",
+        "entry_id": "entry-qld",
+        "unit_of_measurement": "km",
+        "icon": "mdi:car-emergency",
+        "friendly_name": "16/05:24 EST Road Weather Alert for Brisbane"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "geo_location.road_weather_alert_for_brisbane": {
+      "entity_id": "geo_location.road_weather_alert_for_brisbane",
+      "state": "0.0",
+      "attributes": {
+        "source": "Bureau of Meteorology",
+        "latitude": -27.47,
+        "longitude": 153.02,
+        "title": "Road Weather Alert for Brisbane",
+        "hazard_type": "Road Hazard / Crash",
+        "warning_level": "Advice",
+        "location_name": "Slippery roads will make driving conditions dangerous during Friday in the Brisbane Area.",
+        "is_hazard_reduction": false,
+        "integration": "ausnz_disaster_watch",
+        "updated_at": "2026-10-15T19:28:19+00:00",
+        "distance_km": 0,
+        "responsible_agency": "Bureau of Meteorology",
+        "web_url": "https://severeweather.wmo.int/v2/cap-alerts/au-bom-en/2026/10/15/19/24/14-f8595c97c07e1110c1d3bf680b20878e.xml",
+        "entry_id": "entry-qld",
+        "unit_of_measurement": "km",
+        "icon": "mdi:car-emergency",
+        "friendly_name": "Road Weather Alert for Brisbane"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "geo_location.severe_thunderstorm_warning_for_central_highlands_and_coalfields_and_central_west_forecast_districts": {
+      "entity_id": "geo_location.severe_thunderstorm_warning_for_central_highlands_and_coalfields_and_central_west_forecast_districts",
+      "state": "0.0",
+      "attributes": {
+        "source": "Bureau of Meteorology",
+        "latitude": -27.47,
+        "longitude": 153.02,
+        "title": "Severe Thunderstorm Warning for Central Highlands and Coalfields and Central West forecast districts",
+        "hazard_type": "Severe Storm",
+        "warning_level": "Watch and Act",
+        "location_name": "Severe thunderstorms are likely to produce damaging winds, large hailstones and heavy rainfall that may lead to flash fl",
+        "is_hazard_reduction": false,
+        "integration": "ausnz_disaster_watch",
+        "updated_at": "2026-10-15T10:07:22+00:00",
+        "distance_km": 0,
+        "responsible_agency": "Bureau of Meteorology",
+        "web_url": "https://severeweather.wmo.int/v2/cap-alerts/au-bom-en/2026/10/15/10/02/25-401c47aba125d32da865249984a6a8f9.xml",
+        "entry_id": "entry-qld",
+        "unit_of_measurement": "km",
+        "icon": "mdi:weather-lightning",
+        "friendly_name": "Severe Thunderstorm Warning for Central Highlands and Coalfields and Central West forecast districts"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "geo_location.severe_thunderstorm_warning_for_central_highlands_and_coalfields_central_west_and_maranoa_and_warrego_forecast_districts": {
+      "entity_id": "geo_location.severe_thunderstorm_warning_for_central_highlands_and_coalfields_central_west_and_maranoa_and_warrego_forecast_districts",
+      "state": "0.0",
+      "attributes": {
+        "source": "Bureau of Meteorology",
+        "latitude": -27.47,
+        "longitude": 153.02,
+        "title": "Severe Thunderstorm Warning for Central Highlands and Coalfields, Central West and Maranoa and Warrego forecast districts",
+        "hazard_type": "Severe Storm",
+        "warning_level": "Watch and Act",
+        "location_name": "Severe thunderstorms are likely to produce damaging winds, large hailstones and heavy rainfall that may lead to flash fl",
+        "is_hazard_reduction": false,
+        "integration": "ausnz_disaster_watch",
+        "updated_at": "2026-10-15T08:50:24+00:00",
+        "distance_km": 0,
+        "responsible_agency": "Bureau of Meteorology",
+        "web_url": "https://severeweather.wmo.int/v2/cap-alerts/au-bom-en/2026/10/15/08/43/19-7403c22897c3e6416f2a411169fa3b75.xml",
+        "entry_id": "entry-qld",
+        "unit_of_measurement": "km",
+        "icon": "mdi:weather-lightning",
+        "friendly_name": "Severe Thunderstorm Warning for Central Highlands and Coalfields, Central West and Maranoa and Warrego forecast districts"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_central_highlands_and_coalfields_central_west_north_west_and_maranoa_and_warrego_forecast_districts": {
+      "entity_id": "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_central_highlands_and_coalfields_central_west_north_west_and_maranoa_and_warrego_forecast_districts",
+      "state": "0.0",
+      "attributes": {
+        "source": "Bureau of Meteorology",
+        "latitude": -27.47,
+        "longitude": 153.02,
+        "title": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Central Highlands and Coalfields, Central West, North West and Maranoa and Warrego forecast districts",
+        "hazard_type": "Severe Storm",
+        "warning_level": "Watch and Act",
+        "location_name": "Severe thunderstorms are likely to produce heavy rainfall that may lead to flash flooding over the next several hours in",
+        "is_hazard_reduction": false,
+        "integration": "ausnz_disaster_watch",
+        "updated_at": "2026-10-15T07:56:26+00:00",
+        "distance_km": 0,
+        "responsible_agency": "Bureau of Meteorology",
+        "web_url": "https://severeweather.wmo.int/v2/cap-alerts/au-bom-en/2026/10/15/07/46/32-b09a8b6bb2a45b4188bb00279f31afd.xml",
+        "entry_id": "entry-qld",
+        "unit_of_measurement": "km",
+        "icon": "mdi:weather-lightning",
+        "friendly_name": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Central Highlands and Coalfields, Central West, North West and Maranoa and Warrego forecast districts"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_central_highlands_and_coalfields_central_west_north_west_and_maranoa_and_warrego_forecast_districts_2": {
+      "entity_id": "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_central_highlands_and_coalfields_central_west_north_west_and_maranoa_and_warrego_forecast_districts_2",
+      "state": "0.0",
+      "attributes": {
+        "source": "Bureau of Meteorology",
+        "latitude": -27.47,
+        "longitude": 153.02,
+        "title": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Central Highlands and Coalfields, Central West, North West and Maranoa and Warrego forecast districts",
+        "hazard_type": "Severe Storm",
+        "warning_level": "Watch and Act",
+        "location_name": "Severe thunderstorms are likely to produce heavy rainfall that may lead to flash flooding over the next several hours in",
+        "is_hazard_reduction": false,
+        "integration": "ausnz_disaster_watch",
+        "updated_at": "2026-10-15T07:50:31+00:00",
+        "distance_km": 0,
+        "responsible_agency": "Bureau of Meteorology",
+        "web_url": "https://severeweather.wmo.int/v2/cap-alerts/au-bom-en/2026/10/15/07/44/38-5b447f2101e90b73dfd8b76f017c66af.xml",
+        "entry_id": "entry-qld",
+        "unit_of_measurement": "km",
+        "icon": "mdi:weather-lightning",
+        "friendly_name": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Central Highlands and Coalfields, Central West, North West and Maranoa and Warrego forecast districts"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_central_highlands_and_coalfields_central_west_north_west_and_maranoa_and_warrego_forecast_districts_3": {
+      "entity_id": "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_central_highlands_and_coalfields_central_west_north_west_and_maranoa_and_warrego_forecast_districts_3",
+      "state": "0.0",
+      "attributes": {
+        "source": "Bureau of Meteorology",
+        "latitude": -27.47,
+        "longitude": 153.02,
+        "title": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Central Highlands and Coalfields, Central West, North West and Maranoa and Warrego forecast districts",
+        "hazard_type": "Severe Storm",
+        "warning_level": "Watch and Act",
+        "location_name": "Severe thunderstorms are likely to produce heavy rainfall that may lead to flash flooding over the next several hours in",
+        "is_hazard_reduction": false,
+        "integration": "ausnz_disaster_watch",
+        "updated_at": "2026-10-15T07:30:35+00:00",
+        "distance_km": 0,
+        "responsible_agency": "Bureau of Meteorology",
+        "web_url": "https://severeweather.wmo.int/v2/cap-alerts/au-bom-en/2026/10/15/07/20/25-44a8f43a4d52f7ce60d532975694da73.xml",
+        "entry_id": "entry-qld",
+        "unit_of_measurement": "km",
+        "icon": "mdi:weather-lightning",
+        "friendly_name": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Central Highlands and Coalfields, Central West, North West and Maranoa and Warrego forecast districts"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_central_highlands_and_coalfields_central_west_and_maranoa_and_warrego_forecast_districts": {
+      "entity_id": "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_central_highlands_and_coalfields_central_west_and_maranoa_and_warrego_forecast_districts",
+      "state": "0.0",
+      "attributes": {
+        "source": "Bureau of Meteorology",
+        "latitude": -27.47,
+        "longitude": 153.02,
+        "title": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Central Highlands and Coalfields, Central West and Maranoa and Warrego forecast districts",
+        "hazard_type": "Severe Storm",
+        "warning_level": "Watch and Act",
+        "location_name": "Severe thunderstorms are likely to produce heavy rainfall that may lead to flash flooding over the next several hours in",
+        "is_hazard_reduction": false,
+        "integration": "ausnz_disaster_watch",
+        "updated_at": "2026-10-15T06:26:24+00:00",
+        "distance_km": 0,
+        "responsible_agency": "Bureau of Meteorology",
+        "web_url": "https://severeweather.wmo.int/v2/cap-alerts/au-bom-en/2026/10/15/06/17/40-29ed747077a6239174c687d081165710.xml",
+        "entry_id": "entry-qld",
+        "unit_of_measurement": "km",
+        "icon": "mdi:weather-lightning",
+        "friendly_name": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Central Highlands and Coalfields, Central West and Maranoa and Warrego forecast districts"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "geo_location.strong_wind_warning_for_coastal_waters_between_st_lawrence_and_burnett_heads_for_15_october": {
+      "entity_id": "geo_location.strong_wind_warning_for_coastal_waters_between_st_lawrence_and_burnett_heads_for_15_october",
+      "state": "0.0",
+      "attributes": {
+        "source": "Bureau of Meteorology",
+        "latitude": -27.47,
+        "longitude": 153.02,
+        "title": "Strong Wind Warning for coastal waters between St Lawrence and Burnett Heads for 15 October",
+        "hazard_type": "Severe Storm",
+        "warning_level": "Advice",
+        "location_name": "QLD",
+        "is_hazard_reduction": false,
+        "integration": "ausnz_disaster_watch",
+        "updated_at": "2026-10-15T05:50:45+00:00",
+        "distance_km": 0,
+        "responsible_agency": "Bureau of Meteorology",
+        "web_url": "https://severeweather.wmo.int/v2/cap-alerts/au-bom-en/2026/10/15/05/41/50-1143fcadb8313b2f866e59f71ab5fd1b.xml",
+        "entry_id": "entry-qld",
+        "unit_of_measurement": "km",
+        "icon": "mdi:weather-lightning",
+        "friendly_name": "Strong Wind Warning for coastal waters between St Lawrence and Burnett Heads for 15 October"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "geo_location.strong_wind_warning_for_coastal_waters_between_st_lawrence_and_burnett_heads_for_15_october_2": {
+      "entity_id": "geo_location.strong_wind_warning_for_coastal_waters_between_st_lawrence_and_burnett_heads_for_15_october_2",
+      "state": "0.0",
+      "attributes": {
+        "source": "Bureau of Meteorology",
+        "latitude": -27.47,
+        "longitude": 153.02,
+        "title": "Strong Wind Warning for coastal waters between St Lawrence and Burnett Heads for 15 October",
+        "hazard_type": "Severe Storm",
+        "warning_level": "Advice",
+        "location_name": "QLD",
+        "is_hazard_reduction": false,
+        "integration": "ausnz_disaster_watch",
+        "updated_at": "2026-10-15T05:08:23+00:00",
+        "distance_km": 0,
+        "responsible_agency": "Bureau of Meteorology",
+        "web_url": "https://severeweather.wmo.int/v2/cap-alerts/au-bom-en/2026/10/15/05/04/35-45c867769a70f49e32a0c0159d098663.xml",
+        "entry_id": "entry-qld",
+        "unit_of_measurement": "km",
+        "icon": "mdi:weather-lightning",
+        "friendly_name": "Strong Wind Warning for coastal waters between St Lawrence and Burnett Heads for 15 October"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_forecast_district": {
+      "entity_id": "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_forecast_district",
+      "state": "0.0",
+      "attributes": {
+        "source": "Bureau of Meteorology",
+        "latitude": -27.47,
+        "longitude": 153.02,
+        "title": "Severe Thunderstorm Warning for Central Coast and Whitsundays forecast district",
+        "hazard_type": "Severe Storm",
+        "warning_level": "Watch and Act",
+        "location_name": "Severe thunderstorms are likely to produce heavy rainfall that may lead to flash flooding in the warning area over the n",
+        "is_hazard_reduction": false,
+        "integration": "ausnz_disaster_watch",
+        "updated_at": "2026-10-15T04:56:22+00:00",
+        "distance_km": 0,
+        "responsible_agency": "Bureau of Meteorology",
+        "web_url": "https://severeweather.wmo.int/v2/cap-alerts/au-bom-en/2026/10/15/04/47/08-4b013dd407a02ce195a0fca9e5867689.xml",
+        "entry_id": "entry-qld",
+        "unit_of_measurement": "km",
+        "icon": "mdi:weather-lightning",
+        "friendly_name": "Severe Thunderstorm Warning for Central Coast and Whitsundays forecast district"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_capricornia_and_central_highlands_and_coalfields_forecast_districts": {
+      "entity_id": "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_capricornia_and_central_highlands_and_coalfields_forecast_districts",
+      "state": "0.0",
+      "attributes": {
+        "source": "Bureau of Meteorology",
+        "latitude": -27.47,
+        "longitude": 153.02,
+        "title": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Capricornia and Central Highlands and Coalfields forecast districts",
+        "hazard_type": "Severe Storm",
+        "warning_level": "Watch and Act",
+        "location_name": "Severe thunderstorms are likely to produce heavy rainfall that may lead to flash flooding in the warning area over the n",
+        "is_hazard_reduction": false,
+        "integration": "ausnz_disaster_watch",
+        "updated_at": "2026-10-15T03:04:26+00:00",
+        "distance_km": 0,
+        "responsible_agency": "Bureau of Meteorology",
+        "web_url": "https://severeweather.wmo.int/v2/cap-alerts/au-bom-en/2026/10/15/02/59/50-120fa31e9ac2729bcef2daf16a3cb539.xml",
+        "entry_id": "entry-qld",
+        "unit_of_measurement": "km",
+        "icon": "mdi:weather-lightning",
+        "friendly_name": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Capricornia and Central Highlands and Coalfields forecast districts"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_capricornia_and_central_highlands_and_coalfields_forecast_districts_2": {
+      "entity_id": "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_capricornia_and_central_highlands_and_coalfields_forecast_districts_2",
+      "state": "0.0",
+      "attributes": {
+        "source": "Bureau of Meteorology",
+        "latitude": -27.47,
+        "longitude": 153.02,
+        "title": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Capricornia and Central Highlands and Coalfields forecast districts",
+        "hazard_type": "Severe Storm",
+        "warning_level": "Watch and Act",
+        "location_name": "VERY DANGEROUS THUNDERSTORMS are likely to produce heavy, locally intense rainfall that may lead to dangerous and life-t",
+        "is_hazard_reduction": false,
+        "integration": "ausnz_disaster_watch",
+        "updated_at": "2026-10-15T01:44:27+00:00",
+        "distance_km": 0,
+        "responsible_agency": "Bureau of Meteorology",
+        "web_url": "https://severeweather.wmo.int/v2/cap-alerts/au-bom-en/2026/10/15/01/37/46-1563852c6cb90e4bf6958d3fb9d26790.xml",
+        "entry_id": "entry-qld",
+        "unit_of_measurement": "km",
+        "icon": "mdi:weather-lightning",
+        "friendly_name": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Capricornia and Central Highlands and Coalfields forecast districts"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_capricornia_and_central_highlands_and_coalfields_forecast_districts_3": {
+      "entity_id": "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_capricornia_and_central_highlands_and_coalfields_forecast_districts_3",
+      "state": "0.0",
+      "attributes": {
+        "source": "Bureau of Meteorology",
+        "latitude": -27.47,
+        "longitude": 153.02,
+        "title": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Capricornia and Central Highlands and Coalfields forecast districts",
+        "hazard_type": "Severe Storm",
+        "warning_level": "Watch and Act",
+        "location_name": "Severe thunderstorms are likely to produce heavy rainfall that may lead to flash flooding in the warning area over the n",
+        "is_hazard_reduction": false,
+        "integration": "ausnz_disaster_watch",
+        "updated_at": "2026-10-15T00:50:24+00:00",
+        "distance_km": 0,
+        "responsible_agency": "Bureau of Meteorology",
+        "web_url": "https://severeweather.wmo.int/v2/cap-alerts/au-bom-en/2026/10/15/00/43/07-68c357fbb75c16a6a14e32ee03511c40.xml",
+        "entry_id": "entry-qld",
+        "unit_of_measurement": "km",
+        "icon": "mdi:weather-lightning",
+        "friendly_name": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Capricornia and Central Highlands and Coalfields forecast districts"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "binary_sensor.australia_and_new_zealand_disaster_watch_qld_dev_emergency_warning_nearby": {
+      "entity_id": "binary_sensor.australia_and_new_zealand_disaster_watch_qld_dev_emergency_warning_nearby",
+      "state": "on",
+      "attributes": {
+        "highest_warning_level": "Watch and Act",
+        "incident_count": 60,
+        "nearest_incident_title": "16/05:24 EST Road Weather Alert for Brisbane",
+        "nearest_incident_distance": 0,
+        "device_class": "safety",
+        "icon": "mdi:alert-octagon",
+        "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Emergency Warning Nearby"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "binary_sensor.australia_and_new_zealand_disaster_watch_qld_dev_active_hazards_nearby": {
+      "entity_id": "binary_sensor.australia_and_new_zealand_disaster_watch_qld_dev_active_hazards_nearby",
+      "state": "on",
+      "attributes": {
+        "incident_count": 60,
+        "highest_warning_level": "Watch and Act",
+        "device_class": "problem",
+        "icon": "mdi:alert",
+        "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Active Hazards Nearby"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "binary_sensor.australia_and_new_zealand_disaster_watch_qld_dev_power_outage_active": {
+      "entity_id": "binary_sensor.australia_and_new_zealand_disaster_watch_qld_dev_power_outage_active",
+      "state": "on",
+      "attributes": {
+        "outages_count": 1,
+        "customers_affected": 124,
+        "device_class": "problem",
+        "icon": "mdi:transmission-tower-off",
+        "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Power Outage Active"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "binary_sensor.australia_and_new_zealand_disaster_watch_qld_dev_road_closure_nearby": {
+      "entity_id": "binary_sensor.australia_and_new_zealand_disaster_watch_qld_dev_road_closure_nearby",
+      "state": "on",
+      "attributes": {
+        "closures_count": 5,
+        "device_class": "problem",
+        "icon": "mdi:traffic-cone",
+        "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Road Closure Nearby"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_qld_dev_nearest_hazard_distance": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_nearest_hazard_distance",
+      "state": "0.0",
+      "attributes": {
+        "state_class": "measurement",
+        "title": "16/05:24 EST Road Weather Alert for Brisbane",
+        "hazard_type": "Road Hazard / Crash",
+        "warning_level": "Advice",
+        "location_name": "16/05:24 EST Road Weather Alert for Brisbane - ",
+        "responsible_agency": "Bureau of Meteorology",
+        "web_url": "http://www.bom.gov.au/qld/warnings/road.shtml",
+        "unit_of_measurement": "km",
+        "device_class": "distance",
+        "icon": "mdi:map-marker-distance",
+        "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Nearest Hazard Distance"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_qld_dev_active_hazards_count": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_active_hazards_count",
+      "state": "60",
+      "attributes": {
+        "state_class": "measurement",
+        "unit_of_measurement": "hazards",
+        "icon": "mdi:shield-alert",
+        "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Active Hazards Count"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_qld_dev_highest_warning_level": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_highest_warning_level",
+      "state": "Watch and Act",
+      "attributes": {
+        "emergency_news": [],
+        "nearby_councils": [
+          {
+            "name": "Sunshine Coast Regional Council",
+            "url": "https://disasterhub.sunshinecoast.qld.gov.au"
+          },
+          {
+            "name": "City of Gold Coast",
+            "url": "https://dashboard.cityofgoldcoast.com.au"
+          },
+          {
+            "name": "Brisbane City Council",
+            "url": "https://disaster.brisbane.qld.gov.au"
+          },
+          {
+            "name": "Somerset Regional Council",
+            "url": "http://disaster.somerset.qld.gov.au"
+          },
+          {
+            "name": "Noosa Shire Council",
+            "url": "https://disaster.noosa.qld.gov.au"
+          }
+        ],
+        "icon": "mdi:alert",
+        "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Highest Warning Level"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_qld_dev_nearest_hazard_title": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_nearest_hazard_title",
+      "state": "16/05:24 EST Road Weather Alert for Brisbane",
+      "attributes": {
+        "icon": "mdi:text-box-search",
+        "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Nearest Hazard Title"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_qld_dev_power_outages_count": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_power_outages_count",
+      "state": "1",
+      "attributes": {
+        "state_class": "measurement",
+        "customers_affected": 124,
+        "outages": [
+          {
+            "suburb": "KURWONGBAH",
+            "cause": "Under Investigation",
+            "restore_time": "/Date(1792116000000)/",
+            "customers_affected": 124,
+            "latitude": null,
+            "longitude": null
+          }
+        ],
+        "unit_of_measurement": "outages",
+        "icon": "mdi:transmission-tower-off",
+        "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Power Outages Count"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_qld_dev_power_outages_customers_affected": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_power_outages_customers_affected",
+      "state": "124",
+      "attributes": {
+        "state_class": "measurement",
+        "unit_of_measurement": "customers",
+        "icon": "mdi:account-alert",
+        "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Power Outages Customers Affected"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_qld_dev_road_closures_count": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_road_closures_count",
+      "state": "5",
+      "attributes": {
+        "state_class": "measurement",
+        "closures": [
+          {
+            "id": "COUNCIL_LPR_001",
+            "road": "Dugandan Road",
+            "suburb": "BUNYA",
+            "status": "Closed",
+            "reason": "Flooded",
+            "description": "Flood Damage at Bunya Crossing Reserve car park",
+            "advice": null,
+            "source": "Local Council",
+            "updated_at": "2026-05-29T01:27:00Z",
+            "latitude": -27.3549270927878,
+            "longitude": 152.948095718641,
+            "distance_km": 14.63
+          },
+          {
+            "id": "TMR_834569",
+            "road": "Bribie Island Road",
+            "suburb": "Sandstone Point",
+            "status": "Published",
+            "reason": "Lights flashing yellow",
+            "description": "Intersection with Spinnaker Drive",
+            "advice": "Proceed with caution",
+            "source": "Department of Transport and Main Roads",
+            "updated_at": "2026-10-15T19:48:20.541062Z",
+            "latitude": -27.0721673,
+            "longitude": 153.1348889,
+            "distance_km": 45.67
+          },
+          {
+            "id": "TMR_725992",
+            "road": "Goodrich Road East",
+            "suburb": "Griffin",
+            "status": "Published",
+            "reason": "Road closed to all traffic",
+            "description": "Goodrich Road East, access from Dohles Rocks Road",
+            "advice": "Use alternative route",
+            "source": "Department of Transport and Main Roads",
+            "updated_at": "2026-10-15T01:55:01.051760Z",
+            "latitude": -27.2739148,
+            "longitude": 153.0183826,
+            "distance_km": 21.8
+          },
+          {
+            "id": "TMR_727382",
+            "road": "Bruce Highway",
+            "suburb": "Murrumba Downs",
+            "status": "Published",
+            "reason": "Lane or lanes blocked",
+            "description": "Between Dohles Rocks Road and Anzac Avenue",
+            "advice": "Reduced speed limit (80km/h)",
+            "source": "Department of Transport and Main Roads",
+            "updated_at": "2026-10-15T01:54:51.817009Z",
+            "latitude": -27.26583,
+            "longitude": 153.01808,
+            "distance_km": 22.7
+          },
+          {
+            "id": "TMR_803504",
+            "road": "Morayfield Road",
+            "suburb": "Morayfield",
+            "status": "Published",
+            "reason": "All lanes affected",
+            "description": "Between Lindsay Road and Parkland Crescent.",
+            "advice": "Traffic control on scene",
+            "source": "Department of Transport and Main Roads",
+            "updated_at": "2026-10-13T05:42:15.810453Z",
+            "latitude": -27.121415,
+            "longitude": 152.9561091,
+            "distance_km": 39.27
+          }
+        ],
+        "unit_of_measurement": "closures",
+        "icon": "mdi:traffic-cone",
+        "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Road Closures Count"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_qld_dev_weather_warnings_count": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_weather_warnings_count",
+      "state": "1",
+      "attributes": {
+        "state_class": "measurement",
+        "warnings": [
+          {
+            "title": "16/05:24 EST Road Weather Alert for Brisbane",
+            "link": "http://www.bom.gov.au/qld/warnings/road.shtml",
+            "locations": "16/05:24 EST Road Weather Alert for Brisbane - ",
+            "pub_date": "2026-10-15T19:24:14Z"
+          }
+        ],
+        "emergency_news": [],
+        "nearby_councils": [
+          {
+            "name": "Sunshine Coast Regional Council",
+            "url": "https://disasterhub.sunshinecoast.qld.gov.au"
+          },
+          {
+            "name": "City of Gold Coast",
+            "url": "https://dashboard.cityofgoldcoast.com.au"
+          },
+          {
+            "name": "Brisbane City Council",
+            "url": "https://disaster.brisbane.qld.gov.au"
+          },
+          {
+            "name": "Somerset Regional Council",
+            "url": "http://disaster.somerset.qld.gov.au"
+          },
+          {
+            "name": "Noosa Shire Council",
+            "url": "https://disaster.noosa.qld.gov.au"
+          }
+        ],
+        "unit_of_measurement": "warnings",
+        "icon": "mdi:weather-lightning-rainy",
+        "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Weather Warnings Count"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_qld_dev_fire_danger_rating": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_fire_danger_rating",
+      "state": "Moderate",
+      "attributes": {
+        "district_name": "Southeast Coast",
+        "district_number": "QLD_15",
+        "total_fire_ban": false,
+        "day": "Friday",
+        "icon": "mdi:fire",
+        "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Fire Danger Rating"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_qld_dev_air_quality": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_air_quality",
+      "state": "Good",
+      "attributes": {
+        "station_name": "Deception Bay",
+        "pm2_5": "2.8 µg/m³",
+        "pm10": "6.8 µg/m³",
+        "no2": "0.005 ppm",
+        "o3": "0.02 ppm",
+        "stations": [
+          {
+            "station_id": "dcb",
+            "station_name": "Deception Bay",
+            "pm2_5_measurement": "2.8 µg/m³",
+            "pm2_5_rating": "Good",
+            "pm2_5_running_average": "3.7 µg/m³ (24hr avg)",
+            "pm10_measurement": "6.8 µg/m³",
+            "pm10_rating": "Good",
+            "pm10_running_average": "10.9 µg/m³ (24hr avg)",
+            "no2_measurement": "0.005 ppm",
+            "no2_rating": "Good",
+            "o3_measurement": "0.02 ppm",
+            "o3_rating": "Good",
+            "overall_rating": "Good"
+          },
+          {
+            "station_id": "petr",
+            "station_name": "Petrie",
+            "pm2_5_measurement": "0.1 µg/m³",
+            "pm2_5_rating": "Good",
+            "pm2_5_running_average": "0.1 µg/m³ (24hr avg)",
+            "pm10_measurement": "",
+            "pm10_rating": "",
+            "pm10_running_average": "",
+            "no2_measurement": "",
+            "no2_rating": "",
+            "o3_measurement": "",
+            "o3_rating": "",
+            "overall_rating": "Good"
+          }
+        ],
+        "icon": "mdi:air-filter",
+        "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Air Quality"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_qld_dev_local_weather_observation": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_local_weather_observation",
+      "state": "15.5",
+      "attributes": {
+        "state_class": "measurement",
+        "station_name": "Burpengary",
+        "apparent_temperature": null,
+        "relative_humidity": 95,
+        "pressure_hpa": 1024.9,
+        "wind_speed_avg_kph": 5.1,
+        "wind_speed_max_kph": 16.1,
+        "wind_direction_deg": 160.8,
+        "solar_radiation_wm2": 145.4,
+        "stations": [
+          {
+            "station_id": "62e1d51780a94fcaa972255d",
+            "station_name": "Burpengary",
+            "temperature": 15.5,
+            "apparent_temperature": null,
+            "relative_humidity": 95,
+            "pressure_hpa": 1024.9,
+            "wind_direction": 160.8,
+            "wind_speed_avg": 5.1,
+            "wind_speed_max": 16.1,
+            "rain_since_9am": null,
+            "solar_radiation": 145.4
+          },
+          {
+            "station_id": "62f1b2d7c6f869e48bedb3ed",
+            "station_name": "Woodford",
+            "temperature": 14.7,
+            "apparent_temperature": null,
+            "relative_humidity": 96.6,
+            "pressure_hpa": 1011.3,
+            "wind_direction": 79,
+            "wind_speed_avg": 4.5,
+            "wind_speed_max": 10.6,
+            "rain_since_9am": null,
+            "solar_radiation": 98.9
+          }
+        ],
+        "unit_of_measurement": "°C",
+        "device_class": "temperature",
+        "icon": "mdi:thermometer",
+        "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Local Weather Observation"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_qld_dev_relief_facilities_count": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_relief_facilities_count",
+      "state": "0",
+      "attributes": {
+        "state_class": "measurement",
+        "facilities": [],
+        "unit_of_measurement": "facilities",
+        "icon": "mdi:home-heart",
+        "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Relief Facilities Count"
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "camera.australia_and_new_zealand_disaster_watch_qld_dev_goodna_ipswich_mwy_east": {
+      "entity_id": "camera.australia_and_new_zealand_disaster_watch_qld_dev_goodna_ipswich_mwy_east",
+      "state": "idle",
+      "attributes": {
+        "access_token": "fixture-token",
+        "image_url": "http://131940.qld.gov.au/img/WebCamImages/Metropolitan/Goodna_Ipswich_Mwy_East.jpg",
+        "integration": "ausnz_disaster_watch",
+        "suburb": "Goodna",
+        "latitude": -27.6083,
+        "longitude": 152.8942,
+        "icon": "mdi:cctv",
+        "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Goodna - Ipswich Mwy East",
+        "supported_features": 0
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "camera.australia_and_new_zealand_disaster_watch_qld_dev_dinmore_ipswich_mwy_east": {
+      "entity_id": "camera.australia_and_new_zealand_disaster_watch_qld_dev_dinmore_ipswich_mwy_east",
+      "state": "idle",
+      "attributes": {
+        "access_token": "fixture-token",
+        "image_url": "http://131940.qld.gov.au/img/WebCamImages/Metropolitan/Dinmore_Ipswich_Mwy_east.jpg",
+        "integration": "ausnz_disaster_watch",
+        "suburb": "Dinmore",
+        "latitude": -27.5956,
+        "longitude": 152.8365,
+        "icon": "mdi:cctv",
+        "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Dinmore - Ipswich Mwy East",
+        "supported_features": 0
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "camera.australia_and_new_zealand_disaster_watch_qld_dev_metropolitan_camera_1218": {
+      "entity_id": "camera.australia_and_new_zealand_disaster_watch_qld_dev_metropolitan_camera_1218",
+      "state": "idle",
+      "attributes": {
+        "access_token": "fixture-token",
+        "image_url": "http://131940.qld.gov.au/img/WebCamImages/Metropolitan/MRMETRO-1218.jpg",
+        "integration": "ausnz_disaster_watch",
+        "suburb": "Brisbane / Moreton",
+        "latitude": -27.35,
+        "longitude": 153,
+        "icon": "mdi:cctv",
+        "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Metropolitan Camera 1218",
+        "supported_features": 0
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "camera.australia_and_new_zealand_disaster_watch_qld_dev_bruce_highway_caboolture": {
+      "entity_id": "camera.australia_and_new_zealand_disaster_watch_qld_dev_bruce_highway_caboolture",
+      "state": "idle",
+      "attributes": {
+        "access_token": "fixture-token",
+        "image_url": "http://131940.qld.gov.au/img/WebCamImages/NorthCoast/MRNC-0131.jpg",
+        "integration": "ausnz_disaster_watch",
+        "suburb": "Caboolture",
+        "latitude": -27.085,
+        "longitude": 152.955,
+        "icon": "mdi:cctv",
+        "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Bruce Highway - Caboolture",
+        "supported_features": 0
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    }
   },
-  "binary_sensor.australia_and_new_zealand_disaster_watch_qld_dev_road_closure_nearby": {
-   "entity_id": "binary_sensor.australia_and_new_zealand_disaster_watch_qld_dev_road_closure_nearby",
-   "device_id": "device-qld",
-   "platform": "ausnz_disaster_watch",
-   "translation_key": "road_closure_nearby",
-   "name": "Road Closure Nearby"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_qld_dev_nearest_hazard_distance": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_nearest_hazard_distance",
-   "device_id": "device-qld",
-   "platform": "ausnz_disaster_watch",
-   "translation_key": "nearest_hazard_distance",
-   "name": "Nearest Hazard Distance"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_qld_dev_active_hazards_count": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_active_hazards_count",
-   "device_id": "device-qld",
-   "platform": "ausnz_disaster_watch",
-   "translation_key": "active_hazards_count",
-   "name": "Active Hazards Count"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_qld_dev_highest_warning_level": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_highest_warning_level",
-   "device_id": "device-qld",
-   "platform": "ausnz_disaster_watch",
-   "translation_key": "highest_warning_level",
-   "name": "Highest Warning Level"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_qld_dev_nearest_hazard_title": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_nearest_hazard_title",
-   "device_id": "device-qld",
-   "platform": "ausnz_disaster_watch",
-   "translation_key": "nearest_hazard_title",
-   "name": "Nearest Hazard Title"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_qld_dev_power_outages_count": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_power_outages_count",
-   "device_id": "device-qld",
-   "platform": "ausnz_disaster_watch",
-   "translation_key": "power_outages_count",
-   "name": "Power Outages Count"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_qld_dev_power_outages_customers_affected": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_power_outages_customers_affected",
-   "device_id": "device-qld",
-   "platform": "ausnz_disaster_watch",
-   "translation_key": "power_outages_customers_affected",
-   "name": "Power Outages Customers Affected"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_qld_dev_road_closures_count": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_road_closures_count",
-   "device_id": "device-qld",
-   "platform": "ausnz_disaster_watch",
-   "translation_key": "road_closures_count",
-   "name": "Road Closures Count"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_qld_dev_weather_warnings_count": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_weather_warnings_count",
-   "device_id": "device-qld",
-   "platform": "ausnz_disaster_watch",
-   "translation_key": "weather_warnings_count",
-   "name": "Weather Warnings Count"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_qld_dev_fire_danger_rating": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_fire_danger_rating",
-   "device_id": "device-qld",
-   "platform": "ausnz_disaster_watch",
-   "translation_key": "fire_danger_rating",
-   "name": "Fire Danger Rating"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_qld_dev_air_quality": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_air_quality",
-   "device_id": "device-qld",
-   "platform": "ausnz_disaster_watch",
-   "translation_key": "air_quality_rating",
-   "name": "Air Quality"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_qld_dev_local_weather_observation": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_local_weather_observation",
-   "device_id": "device-qld",
-   "platform": "ausnz_disaster_watch",
-   "translation_key": "primary_weather_observation",
-   "name": "Local Weather Observation"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_qld_dev_relief_facilities_count": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_relief_facilities_count",
-   "device_id": "device-qld",
-   "platform": "ausnz_disaster_watch",
-   "translation_key": "relief_facilities_count",
-   "name": "Relief Facilities Count"
-  },
-  "camera.australia_and_new_zealand_disaster_watch_qld_dev_goodna_ipswich_mwy_east": {
-   "entity_id": "camera.australia_and_new_zealand_disaster_watch_qld_dev_goodna_ipswich_mwy_east",
-   "device_id": "device-qld",
-   "platform": "ausnz_disaster_watch",
-   "translation_key": null,
-   "name": "Goodna - Ipswich Mwy East"
-  },
-  "camera.australia_and_new_zealand_disaster_watch_qld_dev_dinmore_ipswich_mwy_east": {
-   "entity_id": "camera.australia_and_new_zealand_disaster_watch_qld_dev_dinmore_ipswich_mwy_east",
-   "device_id": "device-qld",
-   "platform": "ausnz_disaster_watch",
-   "translation_key": null,
-   "name": "Dinmore - Ipswich Mwy East"
-  },
-  "camera.australia_and_new_zealand_disaster_watch_qld_dev_metropolitan_camera_1218": {
-   "entity_id": "camera.australia_and_new_zealand_disaster_watch_qld_dev_metropolitan_camera_1218",
-   "device_id": "device-qld",
-   "platform": "ausnz_disaster_watch",
-   "translation_key": null,
-   "name": "Metropolitan Camera 1218"
-  },
-  "camera.australia_and_new_zealand_disaster_watch_qld_dev_bruce_highway_caboolture": {
-   "entity_id": "camera.australia_and_new_zealand_disaster_watch_qld_dev_bruce_highway_caboolture",
-   "device_id": "device-qld",
-   "platform": "ausnz_disaster_watch",
-   "translation_key": null,
-   "name": "Bruce Highway - Caboolture"
-  },
-  "binary_sensor.australia_and_new_zealand_disaster_watch_nz_wellington_emergency_warning_nearby": {
-   "entity_id": "binary_sensor.australia_and_new_zealand_disaster_watch_nz_wellington_emergency_warning_nearby",
-   "device_id": "device-nz",
-   "platform": "ausnz_disaster_watch",
-   "translation_key": "emergency_warning_nearby",
-   "name": "Emergency Warning Nearby"
-  },
-  "binary_sensor.australia_and_new_zealand_disaster_watch_nz_wellington_active_hazards_nearby": {
-   "entity_id": "binary_sensor.australia_and_new_zealand_disaster_watch_nz_wellington_active_hazards_nearby",
-   "device_id": "device-nz",
-   "platform": "ausnz_disaster_watch",
-   "translation_key": "active_hazards_nearby",
-   "name": "Active Hazards Nearby"
-  },
-  "binary_sensor.australia_and_new_zealand_disaster_watch_nz_wellington_power_outage_active": {
-   "entity_id": "binary_sensor.australia_and_new_zealand_disaster_watch_nz_wellington_power_outage_active",
-   "device_id": "device-nz",
-   "platform": "ausnz_disaster_watch",
-   "translation_key": "power_outage_active",
-   "name": "Power Outage Active"
-  },
-  "binary_sensor.australia_and_new_zealand_disaster_watch_nz_wellington_road_closure_nearby": {
-   "entity_id": "binary_sensor.australia_and_new_zealand_disaster_watch_nz_wellington_road_closure_nearby",
-   "device_id": "device-nz",
-   "platform": "ausnz_disaster_watch",
-   "translation_key": "road_closure_nearby",
-   "name": "Road Closure Nearby"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_nearest_hazard_distance": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_nearest_hazard_distance",
-   "device_id": "device-nz",
-   "platform": "ausnz_disaster_watch",
-   "translation_key": "nearest_hazard_distance",
-   "name": "Nearest Hazard Distance"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_active_hazards_count": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_active_hazards_count",
-   "device_id": "device-nz",
-   "platform": "ausnz_disaster_watch",
-   "translation_key": "active_hazards_count",
-   "name": "Active Hazards Count"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_highest_warning_level": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_highest_warning_level",
-   "device_id": "device-nz",
-   "platform": "ausnz_disaster_watch",
-   "translation_key": "highest_warning_level",
-   "name": "Highest Warning Level"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_nearest_hazard_title": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_nearest_hazard_title",
-   "device_id": "device-nz",
-   "platform": "ausnz_disaster_watch",
-   "translation_key": "nearest_hazard_title",
-   "name": "Nearest Hazard Title"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_power_outages_count": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_power_outages_count",
-   "device_id": "device-nz",
-   "platform": "ausnz_disaster_watch",
-   "translation_key": "power_outages_count",
-   "name": "Power Outages Count"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_power_outages_customers_affected": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_power_outages_customers_affected",
-   "device_id": "device-nz",
-   "platform": "ausnz_disaster_watch",
-   "translation_key": "power_outages_customers_affected",
-   "name": "Power Outages Customers Affected"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_road_closures_count": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_road_closures_count",
-   "device_id": "device-nz",
-   "platform": "ausnz_disaster_watch",
-   "translation_key": "road_closures_count",
-   "name": "Road Closures Count"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_weather_warnings_count": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_weather_warnings_count",
-   "device_id": "device-nz",
-   "platform": "ausnz_disaster_watch",
-   "translation_key": "weather_warnings_count",
-   "name": "Weather Warnings Count"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_fire_danger_rating": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_fire_danger_rating",
-   "device_id": "device-nz",
-   "platform": "ausnz_disaster_watch",
-   "translation_key": "fire_danger_rating",
-   "name": "Fire Danger Rating"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_air_quality": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_air_quality",
-   "device_id": "device-nz",
-   "platform": "ausnz_disaster_watch",
-   "translation_key": "air_quality_rating",
-   "name": "Air Quality"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_local_weather_observation": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_local_weather_observation",
-   "device_id": "device-nz",
-   "platform": "ausnz_disaster_watch",
-   "translation_key": "primary_weather_observation",
-   "name": "Local Weather Observation"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_relief_facilities_count": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_relief_facilities_count",
-   "device_id": "device-nz",
-   "platform": "ausnz_disaster_watch",
-   "translation_key": "relief_facilities_count",
-   "name": "Relief Facilities Count"
+  "config": {
+    "latitude": -27.47,
+    "longitude": 153.02,
+    "time_zone": "Australia/Brisbane",
+    "location_name": "Dev"
   }
- },
- "devices": {
-  "device-qld": {
-   "id": "device-qld",
-   "name": "Australia and New Zealand Disaster Watch (QLD - Dev)",
-   "name_by_user": null,
-   "config_entries": [
-    "entry-qld"
-   ],
-   "identifiers": [
-    [
-     "ausnz_disaster_watch",
-     "entry-qld"
-    ]
-   ]
-  },
-  "device-nz": {
-   "id": "device-nz",
-   "name": "Australia and New Zealand Disaster Watch (NZ - Wellington)",
-   "name_by_user": null,
-   "config_entries": [
-    "entry-nz"
-   ],
-   "identifiers": [
-    [
-     "ausnz_disaster_watch",
-     "entry-nz"
-    ]
-   ]
-  }
- },
- "states": {
-  "zone.home": {
-   "entity_id": "zone.home",
-   "state": "0",
-   "attributes": {
-    "latitude": -27.47,
-    "longitude": 153.02,
-    "radius": 100,
-    "passive": false,
-    "persons": [],
-    "device_trackers": [],
-    "editable": true,
-    "icon": "mdi:home",
-    "friendly_name": "Dev"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "geo_location.m2_6_earthquake_10_km_north_east_of_kaikoura": {
-   "entity_id": "geo_location.m2_6_earthquake_10_km_north_east_of_kaikoura",
-   "state": "140.6",
-   "attributes": {
-    "source": "GeoNet New Zealand",
-    "latitude": -42.31778,
-    "longitude": 173.79233,
-    "title": "M2.6 Earthquake - 10 km north-east of Kaikoura",
-    "hazard_type": "Earthquake",
-    "warning_level": "Information",
-    "location_name": "10 km north-east of Kaikoura",
-    "is_hazard_reduction": false,
-    "integration": "ausnz_disaster_watch",
-    "updated_at": "2026-10-14T17:56:54.899000+00:00",
-    "distance_km": 140.58,
-    "status": "Active",
-    "responsible_agency": "GeoNet (GNS Science)",
-    "web_url": "https://www.geonet.org.nz/earthquake/2026p774994",
-    "entry_id": "entry-nz",
-    "unit_of_measurement": "km",
-    "icon": "mdi:pulse",
-    "friendly_name": "M2.6 Earthquake - 10 km north-east of Kaikoura"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "geo_location.volcano_level_0_green_taupo": {
-   "entity_id": "geo_location.volcano_level_0_green_taupo",
-   "state": "294.4",
-   "attributes": {
-    "source": "GeoNet New Zealand",
-    "latitude": -38.784,
-    "longitude": 175.896,
-    "title": "Volcano Level 0 (Green) - Taupo",
-    "hazard_type": "Volcano",
-    "warning_level": "Information",
-    "location_name": "Taupo",
-    "is_hazard_reduction": false,
-    "integration": "ausnz_disaster_watch",
-    "distance_km": 294.4,
-    "status": "No volcanic unrest.",
-    "responsible_agency": "GeoNet (GNS Science)",
-    "web_url": "https://www.geonet.org.nz/volcano/taupo",
-    "entry_id": "entry-nz",
-    "unit_of_measurement": "km",
-    "icon": "mdi:volcano",
-    "friendly_name": "Volcano Level 0 (Green) - Taupo"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "geo_location.volcano_level_0_green_tongariro": {
-   "entity_id": "geo_location.volcano_level_0_green_tongariro",
-   "state": "250.7",
-   "attributes": {
-    "source": "GeoNet New Zealand",
-    "latitude": -39.13332,
-    "longitude": 175.64173,
-    "title": "Volcano Level 0 (Green) - Tongariro",
-    "hazard_type": "Volcano",
-    "warning_level": "Information",
-    "location_name": "Tongariro",
-    "is_hazard_reduction": false,
-    "integration": "ausnz_disaster_watch",
-    "distance_km": 250.72,
-    "status": "No volcanic unrest.",
-    "responsible_agency": "GeoNet (GNS Science)",
-    "web_url": "https://www.geonet.org.nz/volcano/tongariro",
-    "entry_id": "entry-nz",
-    "unit_of_measurement": "km",
-    "icon": "mdi:volcano",
-    "friendly_name": "Volcano Level 0 (Green) - Tongariro"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "geo_location.volcano_level_0_green_ngauruhoe": {
-   "entity_id": "geo_location.volcano_level_0_green_ngauruhoe",
-   "state": "248.1",
-   "attributes": {
-    "source": "GeoNet New Zealand",
-    "latitude": -39.156,
-    "longitude": 175.632,
-    "title": "Volcano Level 0 (Green) - Ngauruhoe",
-    "hazard_type": "Volcano",
-    "warning_level": "Information",
-    "location_name": "Ngauruhoe",
-    "is_hazard_reduction": false,
-    "integration": "ausnz_disaster_watch",
-    "distance_km": 248.07,
-    "status": "No volcanic unrest.",
-    "responsible_agency": "GeoNet (GNS Science)",
-    "web_url": "https://www.geonet.org.nz/volcano/ngauruhoe",
-    "entry_id": "entry-nz",
-    "unit_of_measurement": "km",
-    "icon": "mdi:volcano",
-    "friendly_name": "Volcano Level 0 (Green) - Ngauruhoe"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "geo_location.volcano_level_1_green_ruapehu": {
-   "entity_id": "geo_location.volcano_level_1_green_ruapehu",
-   "state": "233.1",
-   "attributes": {
-    "source": "GeoNet New Zealand",
-    "latitude": -39.281,
-    "longitude": 175.563,
-    "title": "Volcano Level 1 (Green) - Ruapehu",
-    "hazard_type": "Volcano",
-    "warning_level": "Advice",
-    "location_name": "Ruapehu",
-    "is_hazard_reduction": false,
-    "integration": "ausnz_disaster_watch",
-    "distance_km": 233.05,
-    "status": "Minor volcanic unrest.",
-    "responsible_agency": "GeoNet (GNS Science)",
-    "web_url": "https://www.geonet.org.nz/volcano/ruapehu",
-    "entry_id": "entry-nz",
-    "unit_of_measurement": "km",
-    "icon": "mdi:volcano",
-    "friendly_name": "Volcano Level 1 (Green) - Ruapehu"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "geo_location.volcano_level_0_green_taranaki_maunga": {
-   "entity_id": "geo_location.volcano_level_0_green_taranaki_maunga",
-   "state": "229.7",
-   "attributes": {
-    "source": "GeoNet New Zealand",
-    "latitude": -39.298,
-    "longitude": 174.061,
-    "title": "Volcano Level 0 (Green) - Taranaki Maunga",
-    "hazard_type": "Volcano",
-    "warning_level": "Information",
-    "location_name": "Taranaki Maunga",
-    "is_hazard_reduction": false,
-    "integration": "ausnz_disaster_watch",
-    "distance_km": 229.74,
-    "status": "No volcanic unrest.",
-    "responsible_agency": "GeoNet (GNS Science)",
-    "web_url": "https://www.geonet.org.nz/volcano/taranakiegmont",
-    "entry_id": "entry-nz",
-    "unit_of_measurement": "km",
-    "icon": "mdi:volcano",
-    "friendly_name": "Volcano Level 0 (Green) - Taranaki Maunga"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "binary_sensor.australia_and_new_zealand_disaster_watch_nz_wellington_emergency_warning_nearby": {
-   "entity_id": "binary_sensor.australia_and_new_zealand_disaster_watch_nz_wellington_emergency_warning_nearby",
-   "state": "off",
-   "attributes": {
-    "highest_warning_level": "Advice",
-    "incident_count": 6,
-    "nearest_incident_title": "M2.6 Earthquake - 10 km north-east of Kaikoura",
-    "nearest_incident_distance": 140.58,
-    "device_class": "safety",
-    "icon": "mdi:shield-check",
-    "friendly_name": "Australia and New Zealand Disaster Watch (NZ - Wellington) Emergency Warning Nearby"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "binary_sensor.australia_and_new_zealand_disaster_watch_nz_wellington_active_hazards_nearby": {
-   "entity_id": "binary_sensor.australia_and_new_zealand_disaster_watch_nz_wellington_active_hazards_nearby",
-   "state": "on",
-   "attributes": {
-    "incident_count": 6,
-    "highest_warning_level": "Advice",
-    "device_class": "problem",
-    "icon": "mdi:alert",
-    "friendly_name": "Australia and New Zealand Disaster Watch (NZ - Wellington) Active Hazards Nearby"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "binary_sensor.australia_and_new_zealand_disaster_watch_nz_wellington_power_outage_active": {
-   "entity_id": "binary_sensor.australia_and_new_zealand_disaster_watch_nz_wellington_power_outage_active",
-   "state": "off",
-   "attributes": {
-    "outages_count": 0,
-    "customers_affected": 0,
-    "device_class": "problem",
-    "icon": "mdi:transmission-tower",
-    "friendly_name": "Australia and New Zealand Disaster Watch (NZ - Wellington) Power Outage Active"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "binary_sensor.australia_and_new_zealand_disaster_watch_nz_wellington_road_closure_nearby": {
-   "entity_id": "binary_sensor.australia_and_new_zealand_disaster_watch_nz_wellington_road_closure_nearby",
-   "state": "off",
-   "attributes": {
-    "closures_count": 0,
-    "device_class": "problem",
-    "icon": "mdi:road-variant",
-    "friendly_name": "Australia and New Zealand Disaster Watch (NZ - Wellington) Road Closure Nearby"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_nearest_hazard_distance": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_nearest_hazard_distance",
-   "state": "140.58",
-   "attributes": {
-    "state_class": "measurement",
-    "title": "M2.6 Earthquake - 10 km north-east of Kaikoura",
-    "hazard_type": "Earthquake",
-    "warning_level": "Information",
-    "location_name": "10 km north-east of Kaikoura",
-    "responsible_agency": "GeoNet (GNS Science)",
-    "web_url": "https://www.geonet.org.nz/earthquake/2026p774994",
-    "unit_of_measurement": "km",
-    "device_class": "distance",
-    "icon": "mdi:map-marker-distance",
-    "friendly_name": "Australia and New Zealand Disaster Watch (NZ - Wellington) Nearest Hazard Distance"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_active_hazards_count": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_active_hazards_count",
-   "state": "6",
-   "attributes": {
-    "state_class": "measurement",
-    "unit_of_measurement": "hazards",
-    "icon": "mdi:shield-alert",
-    "friendly_name": "Australia and New Zealand Disaster Watch (NZ - Wellington) Active Hazards Count"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_highest_warning_level": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_highest_warning_level",
-   "state": "Advice",
-   "attributes": {
-    "emergency_news": [],
-    "nearby_councils": [],
-    "icon": "mdi:information",
-    "friendly_name": "Australia and New Zealand Disaster Watch (NZ - Wellington) Highest Warning Level"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_nearest_hazard_title": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_nearest_hazard_title",
-   "state": "M2.6 Earthquake - 10 km north-east of Kaikoura",
-   "attributes": {
-    "icon": "mdi:text-box-search",
-    "friendly_name": "Australia and New Zealand Disaster Watch (NZ - Wellington) Nearest Hazard Title"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_power_outages_count": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_power_outages_count",
-   "state": "0",
-   "attributes": {
-    "state_class": "measurement",
-    "customers_affected": 0,
-    "outages": [],
-    "unit_of_measurement": "outages",
-    "icon": "mdi:transmission-tower-off",
-    "friendly_name": "Australia and New Zealand Disaster Watch (NZ - Wellington) Power Outages Count"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_power_outages_customers_affected": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_power_outages_customers_affected",
-   "state": "0",
-   "attributes": {
-    "state_class": "measurement",
-    "unit_of_measurement": "customers",
-    "icon": "mdi:account-alert",
-    "friendly_name": "Australia and New Zealand Disaster Watch (NZ - Wellington) Power Outages Customers Affected"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_road_closures_count": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_road_closures_count",
-   "state": "0",
-   "attributes": {
-    "state_class": "measurement",
-    "closures": [],
-    "unit_of_measurement": "closures",
-    "icon": "mdi:traffic-cone",
-    "friendly_name": "Australia and New Zealand Disaster Watch (NZ - Wellington) Road Closures Count"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_weather_warnings_count": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_weather_warnings_count",
-   "state": "0",
-   "attributes": {
-    "state_class": "measurement",
-    "warnings": [],
-    "emergency_news": [],
-    "nearby_councils": [],
-    "unit_of_measurement": "warnings",
-    "icon": "mdi:weather-lightning-rainy",
-    "friendly_name": "Australia and New Zealand Disaster Watch (NZ - Wellington) Weather Warnings Count"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_fire_danger_rating": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_fire_danger_rating",
-   "state": "unknown",
-   "attributes": {
-    "icon": "mdi:shield-check",
-    "friendly_name": "Australia and New Zealand Disaster Watch (NZ - Wellington) Fire Danger Rating"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_air_quality": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_air_quality",
-   "state": "unknown",
-   "attributes": {
-    "icon": "mdi:air-filter",
-    "friendly_name": "Australia and New Zealand Disaster Watch (NZ - Wellington) Air Quality"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_local_weather_observation": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_local_weather_observation",
-   "state": "unknown",
-   "attributes": {
-    "state_class": "measurement",
-    "unit_of_measurement": "°C",
-    "device_class": "temperature",
-    "icon": "mdi:thermometer",
-    "friendly_name": "Australia and New Zealand Disaster Watch (NZ - Wellington) Local Weather Observation"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_relief_facilities_count": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_relief_facilities_count",
-   "state": "0",
-   "attributes": {
-    "state_class": "measurement",
-    "facilities": [],
-    "unit_of_measurement": "facilities",
-    "icon": "mdi:home-heart",
-    "friendly_name": "Australia and New Zealand Disaster Watch (NZ - Wellington) Relief Facilities Count"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "geo_location.16_05_24_est_road_weather_alert_for_brisbane": {
-   "entity_id": "geo_location.16_05_24_est_road_weather_alert_for_brisbane",
-   "state": "0.0",
-   "attributes": {
-    "source": "Bureau of Meteorology",
-    "latitude": -27.47,
-    "longitude": 153.02,
-    "title": "16/05:24 EST Road Weather Alert for Brisbane",
-    "hazard_type": "Road Hazard / Crash",
-    "warning_level": "Advice",
-    "location_name": "16/05:24 EST Road Weather Alert for Brisbane - ",
-    "is_hazard_reduction": false,
-    "integration": "ausnz_disaster_watch",
-    "updated_at": "2026-10-15T19:24:14+00:00",
-    "distance_km": 0,
-    "responsible_agency": "Bureau of Meteorology",
-    "web_url": "http://www.bom.gov.au/qld/warnings/road.shtml",
-    "entry_id": "entry-qld",
-    "unit_of_measurement": "km",
-    "icon": "mdi:car-emergency",
-    "friendly_name": "16/05:24 EST Road Weather Alert for Brisbane"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "geo_location.road_weather_alert_for_brisbane": {
-   "entity_id": "geo_location.road_weather_alert_for_brisbane",
-   "state": "0.0",
-   "attributes": {
-    "source": "Bureau of Meteorology",
-    "latitude": -27.47,
-    "longitude": 153.02,
-    "title": "Road Weather Alert for Brisbane",
-    "hazard_type": "Road Hazard / Crash",
-    "warning_level": "Advice",
-    "location_name": "Slippery roads will make driving conditions dangerous during Friday in the Brisbane Area.",
-    "is_hazard_reduction": false,
-    "integration": "ausnz_disaster_watch",
-    "updated_at": "2026-10-15T19:28:19+00:00",
-    "distance_km": 0,
-    "responsible_agency": "Bureau of Meteorology",
-    "web_url": "https://severeweather.wmo.int/v2/cap-alerts/au-bom-en/2026/10/15/19/24/14-f8595c97c07e1110c1d3bf680b20878e.xml",
-    "entry_id": "entry-qld",
-    "unit_of_measurement": "km",
-    "icon": "mdi:car-emergency",
-    "friendly_name": "Road Weather Alert for Brisbane"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "geo_location.severe_thunderstorm_warning_for_central_highlands_and_coalfields_and_central_west_forecast_districts": {
-   "entity_id": "geo_location.severe_thunderstorm_warning_for_central_highlands_and_coalfields_and_central_west_forecast_districts",
-   "state": "0.0",
-   "attributes": {
-    "source": "Bureau of Meteorology",
-    "latitude": -27.47,
-    "longitude": 153.02,
-    "title": "Severe Thunderstorm Warning for Central Highlands and Coalfields and Central West forecast districts",
-    "hazard_type": "Severe Storm",
-    "warning_level": "Watch and Act",
-    "location_name": "Severe thunderstorms are likely to produce damaging winds, large hailstones and heavy rainfall that may lead to flash fl",
-    "is_hazard_reduction": false,
-    "integration": "ausnz_disaster_watch",
-    "updated_at": "2026-10-15T10:07:22+00:00",
-    "distance_km": 0,
-    "responsible_agency": "Bureau of Meteorology",
-    "web_url": "https://severeweather.wmo.int/v2/cap-alerts/au-bom-en/2026/10/15/10/02/25-401c47aba125d32da865249984a6a8f9.xml",
-    "entry_id": "entry-qld",
-    "unit_of_measurement": "km",
-    "icon": "mdi:weather-lightning",
-    "friendly_name": "Severe Thunderstorm Warning for Central Highlands and Coalfields and Central West forecast districts"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "geo_location.severe_thunderstorm_warning_for_central_highlands_and_coalfields_central_west_and_maranoa_and_warrego_forecast_districts": {
-   "entity_id": "geo_location.severe_thunderstorm_warning_for_central_highlands_and_coalfields_central_west_and_maranoa_and_warrego_forecast_districts",
-   "state": "0.0",
-   "attributes": {
-    "source": "Bureau of Meteorology",
-    "latitude": -27.47,
-    "longitude": 153.02,
-    "title": "Severe Thunderstorm Warning for Central Highlands and Coalfields, Central West and Maranoa and Warrego forecast districts",
-    "hazard_type": "Severe Storm",
-    "warning_level": "Watch and Act",
-    "location_name": "Severe thunderstorms are likely to produce damaging winds, large hailstones and heavy rainfall that may lead to flash fl",
-    "is_hazard_reduction": false,
-    "integration": "ausnz_disaster_watch",
-    "updated_at": "2026-10-15T08:50:24+00:00",
-    "distance_km": 0,
-    "responsible_agency": "Bureau of Meteorology",
-    "web_url": "https://severeweather.wmo.int/v2/cap-alerts/au-bom-en/2026/10/15/08/43/19-7403c22897c3e6416f2a411169fa3b75.xml",
-    "entry_id": "entry-qld",
-    "unit_of_measurement": "km",
-    "icon": "mdi:weather-lightning",
-    "friendly_name": "Severe Thunderstorm Warning for Central Highlands and Coalfields, Central West and Maranoa and Warrego forecast districts"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_central_highlands_and_coalfields_central_west_north_west_and_maranoa_and_warrego_forecast_districts": {
-   "entity_id": "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_central_highlands_and_coalfields_central_west_north_west_and_maranoa_and_warrego_forecast_districts",
-   "state": "0.0",
-   "attributes": {
-    "source": "Bureau of Meteorology",
-    "latitude": -27.47,
-    "longitude": 153.02,
-    "title": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Central Highlands and Coalfields, Central West, North West and Maranoa and Warrego forecast districts",
-    "hazard_type": "Severe Storm",
-    "warning_level": "Watch and Act",
-    "location_name": "Severe thunderstorms are likely to produce heavy rainfall that may lead to flash flooding over the next several hours in",
-    "is_hazard_reduction": false,
-    "integration": "ausnz_disaster_watch",
-    "updated_at": "2026-10-15T07:56:26+00:00",
-    "distance_km": 0,
-    "responsible_agency": "Bureau of Meteorology",
-    "web_url": "https://severeweather.wmo.int/v2/cap-alerts/au-bom-en/2026/10/15/07/46/32-b09a8b6bb2a45b4188bb00279f31afd.xml",
-    "entry_id": "entry-qld",
-    "unit_of_measurement": "km",
-    "icon": "mdi:weather-lightning",
-    "friendly_name": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Central Highlands and Coalfields, Central West, North West and Maranoa and Warrego forecast districts"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_central_highlands_and_coalfields_central_west_north_west_and_maranoa_and_warrego_forecast_districts_2": {
-   "entity_id": "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_central_highlands_and_coalfields_central_west_north_west_and_maranoa_and_warrego_forecast_districts_2",
-   "state": "0.0",
-   "attributes": {
-    "source": "Bureau of Meteorology",
-    "latitude": -27.47,
-    "longitude": 153.02,
-    "title": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Central Highlands and Coalfields, Central West, North West and Maranoa and Warrego forecast districts",
-    "hazard_type": "Severe Storm",
-    "warning_level": "Watch and Act",
-    "location_name": "Severe thunderstorms are likely to produce heavy rainfall that may lead to flash flooding over the next several hours in",
-    "is_hazard_reduction": false,
-    "integration": "ausnz_disaster_watch",
-    "updated_at": "2026-10-15T07:50:31+00:00",
-    "distance_km": 0,
-    "responsible_agency": "Bureau of Meteorology",
-    "web_url": "https://severeweather.wmo.int/v2/cap-alerts/au-bom-en/2026/10/15/07/44/38-5b447f2101e90b73dfd8b76f017c66af.xml",
-    "entry_id": "entry-qld",
-    "unit_of_measurement": "km",
-    "icon": "mdi:weather-lightning",
-    "friendly_name": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Central Highlands and Coalfields, Central West, North West and Maranoa and Warrego forecast districts"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_central_highlands_and_coalfields_central_west_north_west_and_maranoa_and_warrego_forecast_districts_3": {
-   "entity_id": "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_central_highlands_and_coalfields_central_west_north_west_and_maranoa_and_warrego_forecast_districts_3",
-   "state": "0.0",
-   "attributes": {
-    "source": "Bureau of Meteorology",
-    "latitude": -27.47,
-    "longitude": 153.02,
-    "title": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Central Highlands and Coalfields, Central West, North West and Maranoa and Warrego forecast districts",
-    "hazard_type": "Severe Storm",
-    "warning_level": "Watch and Act",
-    "location_name": "Severe thunderstorms are likely to produce heavy rainfall that may lead to flash flooding over the next several hours in",
-    "is_hazard_reduction": false,
-    "integration": "ausnz_disaster_watch",
-    "updated_at": "2026-10-15T07:30:35+00:00",
-    "distance_km": 0,
-    "responsible_agency": "Bureau of Meteorology",
-    "web_url": "https://severeweather.wmo.int/v2/cap-alerts/au-bom-en/2026/10/15/07/20/25-44a8f43a4d52f7ce60d532975694da73.xml",
-    "entry_id": "entry-qld",
-    "unit_of_measurement": "km",
-    "icon": "mdi:weather-lightning",
-    "friendly_name": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Central Highlands and Coalfields, Central West, North West and Maranoa and Warrego forecast districts"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_central_highlands_and_coalfields_central_west_and_maranoa_and_warrego_forecast_districts": {
-   "entity_id": "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_central_highlands_and_coalfields_central_west_and_maranoa_and_warrego_forecast_districts",
-   "state": "0.0",
-   "attributes": {
-    "source": "Bureau of Meteorology",
-    "latitude": -27.47,
-    "longitude": 153.02,
-    "title": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Central Highlands and Coalfields, Central West and Maranoa and Warrego forecast districts",
-    "hazard_type": "Severe Storm",
-    "warning_level": "Watch and Act",
-    "location_name": "Severe thunderstorms are likely to produce heavy rainfall that may lead to flash flooding over the next several hours in",
-    "is_hazard_reduction": false,
-    "integration": "ausnz_disaster_watch",
-    "updated_at": "2026-10-15T06:26:24+00:00",
-    "distance_km": 0,
-    "responsible_agency": "Bureau of Meteorology",
-    "web_url": "https://severeweather.wmo.int/v2/cap-alerts/au-bom-en/2026/10/15/06/17/40-29ed747077a6239174c687d081165710.xml",
-    "entry_id": "entry-qld",
-    "unit_of_measurement": "km",
-    "icon": "mdi:weather-lightning",
-    "friendly_name": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Central Highlands and Coalfields, Central West and Maranoa and Warrego forecast districts"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "geo_location.strong_wind_warning_for_coastal_waters_between_st_lawrence_and_burnett_heads_for_15_october": {
-   "entity_id": "geo_location.strong_wind_warning_for_coastal_waters_between_st_lawrence_and_burnett_heads_for_15_october",
-   "state": "0.0",
-   "attributes": {
-    "source": "Bureau of Meteorology",
-    "latitude": -27.47,
-    "longitude": 153.02,
-    "title": "Strong Wind Warning for coastal waters between St Lawrence and Burnett Heads for 15 October",
-    "hazard_type": "Severe Storm",
-    "warning_level": "Advice",
-    "location_name": "QLD",
-    "is_hazard_reduction": false,
-    "integration": "ausnz_disaster_watch",
-    "updated_at": "2026-10-15T05:50:45+00:00",
-    "distance_km": 0,
-    "responsible_agency": "Bureau of Meteorology",
-    "web_url": "https://severeweather.wmo.int/v2/cap-alerts/au-bom-en/2026/10/15/05/41/50-1143fcadb8313b2f866e59f71ab5fd1b.xml",
-    "entry_id": "entry-qld",
-    "unit_of_measurement": "km",
-    "icon": "mdi:weather-lightning",
-    "friendly_name": "Strong Wind Warning for coastal waters between St Lawrence and Burnett Heads for 15 October"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "geo_location.strong_wind_warning_for_coastal_waters_between_st_lawrence_and_burnett_heads_for_15_october_2": {
-   "entity_id": "geo_location.strong_wind_warning_for_coastal_waters_between_st_lawrence_and_burnett_heads_for_15_october_2",
-   "state": "0.0",
-   "attributes": {
-    "source": "Bureau of Meteorology",
-    "latitude": -27.47,
-    "longitude": 153.02,
-    "title": "Strong Wind Warning for coastal waters between St Lawrence and Burnett Heads for 15 October",
-    "hazard_type": "Severe Storm",
-    "warning_level": "Advice",
-    "location_name": "QLD",
-    "is_hazard_reduction": false,
-    "integration": "ausnz_disaster_watch",
-    "updated_at": "2026-10-15T05:08:23+00:00",
-    "distance_km": 0,
-    "responsible_agency": "Bureau of Meteorology",
-    "web_url": "https://severeweather.wmo.int/v2/cap-alerts/au-bom-en/2026/10/15/05/04/35-45c867769a70f49e32a0c0159d098663.xml",
-    "entry_id": "entry-qld",
-    "unit_of_measurement": "km",
-    "icon": "mdi:weather-lightning",
-    "friendly_name": "Strong Wind Warning for coastal waters between St Lawrence and Burnett Heads for 15 October"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_forecast_district": {
-   "entity_id": "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_forecast_district",
-   "state": "0.0",
-   "attributes": {
-    "source": "Bureau of Meteorology",
-    "latitude": -27.47,
-    "longitude": 153.02,
-    "title": "Severe Thunderstorm Warning for Central Coast and Whitsundays forecast district",
-    "hazard_type": "Severe Storm",
-    "warning_level": "Watch and Act",
-    "location_name": "Severe thunderstorms are likely to produce heavy rainfall that may lead to flash flooding in the warning area over the n",
-    "is_hazard_reduction": false,
-    "integration": "ausnz_disaster_watch",
-    "updated_at": "2026-10-15T04:56:22+00:00",
-    "distance_km": 0,
-    "responsible_agency": "Bureau of Meteorology",
-    "web_url": "https://severeweather.wmo.int/v2/cap-alerts/au-bom-en/2026/10/15/04/47/08-4b013dd407a02ce195a0fca9e5867689.xml",
-    "entry_id": "entry-qld",
-    "unit_of_measurement": "km",
-    "icon": "mdi:weather-lightning",
-    "friendly_name": "Severe Thunderstorm Warning for Central Coast and Whitsundays forecast district"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_capricornia_and_central_highlands_and_coalfields_forecast_districts": {
-   "entity_id": "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_capricornia_and_central_highlands_and_coalfields_forecast_districts",
-   "state": "0.0",
-   "attributes": {
-    "source": "Bureau of Meteorology",
-    "latitude": -27.47,
-    "longitude": 153.02,
-    "title": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Capricornia and Central Highlands and Coalfields forecast districts",
-    "hazard_type": "Severe Storm",
-    "warning_level": "Watch and Act",
-    "location_name": "Severe thunderstorms are likely to produce heavy rainfall that may lead to flash flooding in the warning area over the n",
-    "is_hazard_reduction": false,
-    "integration": "ausnz_disaster_watch",
-    "updated_at": "2026-10-15T03:04:26+00:00",
-    "distance_km": 0,
-    "responsible_agency": "Bureau of Meteorology",
-    "web_url": "https://severeweather.wmo.int/v2/cap-alerts/au-bom-en/2026/10/15/02/59/50-120fa31e9ac2729bcef2daf16a3cb539.xml",
-    "entry_id": "entry-qld",
-    "unit_of_measurement": "km",
-    "icon": "mdi:weather-lightning",
-    "friendly_name": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Capricornia and Central Highlands and Coalfields forecast districts"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_capricornia_and_central_highlands_and_coalfields_forecast_districts_2": {
-   "entity_id": "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_capricornia_and_central_highlands_and_coalfields_forecast_districts_2",
-   "state": "0.0",
-   "attributes": {
-    "source": "Bureau of Meteorology",
-    "latitude": -27.47,
-    "longitude": 153.02,
-    "title": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Capricornia and Central Highlands and Coalfields forecast districts",
-    "hazard_type": "Severe Storm",
-    "warning_level": "Watch and Act",
-    "location_name": "VERY DANGEROUS THUNDERSTORMS are likely to produce heavy, locally intense rainfall that may lead to dangerous and life-t",
-    "is_hazard_reduction": false,
-    "integration": "ausnz_disaster_watch",
-    "updated_at": "2026-10-15T01:44:27+00:00",
-    "distance_km": 0,
-    "responsible_agency": "Bureau of Meteorology",
-    "web_url": "https://severeweather.wmo.int/v2/cap-alerts/au-bom-en/2026/10/15/01/37/46-1563852c6cb90e4bf6958d3fb9d26790.xml",
-    "entry_id": "entry-qld",
-    "unit_of_measurement": "km",
-    "icon": "mdi:weather-lightning",
-    "friendly_name": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Capricornia and Central Highlands and Coalfields forecast districts"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_capricornia_and_central_highlands_and_coalfields_forecast_districts_3": {
-   "entity_id": "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_capricornia_and_central_highlands_and_coalfields_forecast_districts_3",
-   "state": "0.0",
-   "attributes": {
-    "source": "Bureau of Meteorology",
-    "latitude": -27.47,
-    "longitude": 153.02,
-    "title": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Capricornia and Central Highlands and Coalfields forecast districts",
-    "hazard_type": "Severe Storm",
-    "warning_level": "Watch and Act",
-    "location_name": "Severe thunderstorms are likely to produce heavy rainfall that may lead to flash flooding in the warning area over the n",
-    "is_hazard_reduction": false,
-    "integration": "ausnz_disaster_watch",
-    "updated_at": "2026-10-15T00:50:24+00:00",
-    "distance_km": 0,
-    "responsible_agency": "Bureau of Meteorology",
-    "web_url": "https://severeweather.wmo.int/v2/cap-alerts/au-bom-en/2026/10/15/00/43/07-68c357fbb75c16a6a14e32ee03511c40.xml",
-    "entry_id": "entry-qld",
-    "unit_of_measurement": "km",
-    "icon": "mdi:weather-lightning",
-    "friendly_name": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Capricornia and Central Highlands and Coalfields forecast districts"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "binary_sensor.australia_and_new_zealand_disaster_watch_qld_dev_emergency_warning_nearby": {
-   "entity_id": "binary_sensor.australia_and_new_zealand_disaster_watch_qld_dev_emergency_warning_nearby",
-   "state": "on",
-   "attributes": {
-    "highest_warning_level": "Watch and Act",
-    "incident_count": 60,
-    "nearest_incident_title": "16/05:24 EST Road Weather Alert for Brisbane",
-    "nearest_incident_distance": 0,
-    "device_class": "safety",
-    "icon": "mdi:alert-octagon",
-    "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Emergency Warning Nearby"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "binary_sensor.australia_and_new_zealand_disaster_watch_qld_dev_active_hazards_nearby": {
-   "entity_id": "binary_sensor.australia_and_new_zealand_disaster_watch_qld_dev_active_hazards_nearby",
-   "state": "on",
-   "attributes": {
-    "incident_count": 60,
-    "highest_warning_level": "Watch and Act",
-    "device_class": "problem",
-    "icon": "mdi:alert",
-    "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Active Hazards Nearby"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "binary_sensor.australia_and_new_zealand_disaster_watch_qld_dev_power_outage_active": {
-   "entity_id": "binary_sensor.australia_and_new_zealand_disaster_watch_qld_dev_power_outage_active",
-   "state": "on",
-   "attributes": {
-    "outages_count": 1,
-    "customers_affected": 124,
-    "device_class": "problem",
-    "icon": "mdi:transmission-tower-off",
-    "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Power Outage Active"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "binary_sensor.australia_and_new_zealand_disaster_watch_qld_dev_road_closure_nearby": {
-   "entity_id": "binary_sensor.australia_and_new_zealand_disaster_watch_qld_dev_road_closure_nearby",
-   "state": "on",
-   "attributes": {
-    "closures_count": 5,
-    "device_class": "problem",
-    "icon": "mdi:traffic-cone",
-    "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Road Closure Nearby"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_qld_dev_nearest_hazard_distance": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_nearest_hazard_distance",
-   "state": "0.0",
-   "attributes": {
-    "state_class": "measurement",
-    "title": "16/05:24 EST Road Weather Alert for Brisbane",
-    "hazard_type": "Road Hazard / Crash",
-    "warning_level": "Advice",
-    "location_name": "16/05:24 EST Road Weather Alert for Brisbane - ",
-    "responsible_agency": "Bureau of Meteorology",
-    "web_url": "http://www.bom.gov.au/qld/warnings/road.shtml",
-    "unit_of_measurement": "km",
-    "device_class": "distance",
-    "icon": "mdi:map-marker-distance",
-    "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Nearest Hazard Distance"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_qld_dev_active_hazards_count": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_active_hazards_count",
-   "state": "60",
-   "attributes": {
-    "state_class": "measurement",
-    "unit_of_measurement": "hazards",
-    "icon": "mdi:shield-alert",
-    "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Active Hazards Count"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_qld_dev_highest_warning_level": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_highest_warning_level",
-   "state": "Watch and Act",
-   "attributes": {
-    "emergency_news": [],
-    "nearby_councils": [
-     {
-      "name": "Sunshine Coast Regional Council",
-      "url": "https://disasterhub.sunshinecoast.qld.gov.au"
-     },
-     {
-      "name": "City of Gold Coast",
-      "url": "https://dashboard.cityofgoldcoast.com.au"
-     },
-     {
-      "name": "Brisbane City Council",
-      "url": "https://disaster.brisbane.qld.gov.au"
-     },
-     {
-      "name": "Somerset Regional Council",
-      "url": "http://disaster.somerset.qld.gov.au"
-     },
-     {
-      "name": "Noosa Shire Council",
-      "url": "https://disaster.noosa.qld.gov.au"
-     }
-    ],
-    "icon": "mdi:alert",
-    "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Highest Warning Level"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_qld_dev_nearest_hazard_title": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_nearest_hazard_title",
-   "state": "16/05:24 EST Road Weather Alert for Brisbane",
-   "attributes": {
-    "icon": "mdi:text-box-search",
-    "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Nearest Hazard Title"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_qld_dev_power_outages_count": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_power_outages_count",
-   "state": "1",
-   "attributes": {
-    "state_class": "measurement",
-    "customers_affected": 124,
-    "outages": [
-     {
-      "suburb": "KURWONGBAH",
-      "cause": "Under Investigation",
-      "restore_time": "/Date(1792116000000)/",
-      "customers_affected": 124,
-      "latitude": null,
-      "longitude": null
-     }
-    ],
-    "unit_of_measurement": "outages",
-    "icon": "mdi:transmission-tower-off",
-    "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Power Outages Count"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_qld_dev_power_outages_customers_affected": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_power_outages_customers_affected",
-   "state": "124",
-   "attributes": {
-    "state_class": "measurement",
-    "unit_of_measurement": "customers",
-    "icon": "mdi:account-alert",
-    "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Power Outages Customers Affected"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_qld_dev_road_closures_count": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_road_closures_count",
-   "state": "5",
-   "attributes": {
-    "state_class": "measurement",
-    "closures": [
-     {
-      "id": "COUNCIL_LPR_001",
-      "road": "Dugandan Road",
-      "suburb": "BUNYA",
-      "status": "Closed",
-      "reason": "Flooded",
-      "description": "Flood Damage at Bunya Crossing Reserve car park",
-      "advice": null,
-      "source": "Local Council",
-      "updated_at": "2026-05-29T01:27:00Z",
-      "latitude": -27.3549270927878,
-      "longitude": 152.948095718641,
-      "distance_km": 14.63
-     },
-     {
-      "id": "TMR_834569",
-      "road": "Bribie Island Road",
-      "suburb": "Sandstone Point",
-      "status": "Published",
-      "reason": "Lights flashing yellow",
-      "description": "Intersection with Spinnaker Drive",
-      "advice": "Proceed with caution",
-      "source": "Department of Transport and Main Roads",
-      "updated_at": "2026-10-15T19:48:20.541062Z",
-      "latitude": -27.0721673,
-      "longitude": 153.1348889,
-      "distance_km": 45.67
-     },
-     {
-      "id": "TMR_725992",
-      "road": "Goodrich Road East",
-      "suburb": "Griffin",
-      "status": "Published",
-      "reason": "Road closed to all traffic",
-      "description": "Goodrich Road East, access from Dohles Rocks Road",
-      "advice": "Use alternative route",
-      "source": "Department of Transport and Main Roads",
-      "updated_at": "2026-10-15T01:55:01.051760Z",
-      "latitude": -27.2739148,
-      "longitude": 153.0183826,
-      "distance_km": 21.8
-     },
-     {
-      "id": "TMR_727382",
-      "road": "Bruce Highway",
-      "suburb": "Murrumba Downs",
-      "status": "Published",
-      "reason": "Lane or lanes blocked",
-      "description": "Between Dohles Rocks Road and Anzac Avenue",
-      "advice": "Reduced speed limit (80km/h)",
-      "source": "Department of Transport and Main Roads",
-      "updated_at": "2026-10-15T01:54:51.817009Z",
-      "latitude": -27.26583,
-      "longitude": 153.01808,
-      "distance_km": 22.7
-     },
-     {
-      "id": "TMR_803504",
-      "road": "Morayfield Road",
-      "suburb": "Morayfield",
-      "status": "Published",
-      "reason": "All lanes affected",
-      "description": "Between Lindsay Road and Parkland Crescent.",
-      "advice": "Traffic control on scene",
-      "source": "Department of Transport and Main Roads",
-      "updated_at": "2026-10-13T05:42:15.810453Z",
-      "latitude": -27.121415,
-      "longitude": 152.9561091,
-      "distance_km": 39.27
-     }
-    ],
-    "unit_of_measurement": "closures",
-    "icon": "mdi:traffic-cone",
-    "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Road Closures Count"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_qld_dev_weather_warnings_count": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_weather_warnings_count",
-   "state": "1",
-   "attributes": {
-    "state_class": "measurement",
-    "warnings": [
-     {
-      "title": "16/05:24 EST Road Weather Alert for Brisbane",
-      "link": "http://www.bom.gov.au/qld/warnings/road.shtml",
-      "locations": "16/05:24 EST Road Weather Alert for Brisbane - ",
-      "pub_date": "2026-10-15T19:24:14Z"
-     }
-    ],
-    "emergency_news": [],
-    "nearby_councils": [
-     {
-      "name": "Sunshine Coast Regional Council",
-      "url": "https://disasterhub.sunshinecoast.qld.gov.au"
-     },
-     {
-      "name": "City of Gold Coast",
-      "url": "https://dashboard.cityofgoldcoast.com.au"
-     },
-     {
-      "name": "Brisbane City Council",
-      "url": "https://disaster.brisbane.qld.gov.au"
-     },
-     {
-      "name": "Somerset Regional Council",
-      "url": "http://disaster.somerset.qld.gov.au"
-     },
-     {
-      "name": "Noosa Shire Council",
-      "url": "https://disaster.noosa.qld.gov.au"
-     }
-    ],
-    "unit_of_measurement": "warnings",
-    "icon": "mdi:weather-lightning-rainy",
-    "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Weather Warnings Count"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_qld_dev_fire_danger_rating": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_fire_danger_rating",
-   "state": "Moderate",
-   "attributes": {
-    "district_name": "Southeast Coast",
-    "district_number": "QLD_15",
-    "total_fire_ban": false,
-    "day": "Friday",
-    "icon": "mdi:fire",
-    "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Fire Danger Rating"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_qld_dev_air_quality": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_air_quality",
-   "state": "Good",
-   "attributes": {
-    "station_name": "Deception Bay",
-    "pm2_5": "2.8 µg/m³",
-    "pm10": "6.8 µg/m³",
-    "no2": "0.005 ppm",
-    "o3": "0.02 ppm",
-    "stations": [
-     {
-      "station_id": "dcb",
-      "station_name": "Deception Bay",
-      "pm2_5_measurement": "2.8 µg/m³",
-      "pm2_5_rating": "Good",
-      "pm2_5_running_average": "3.7 µg/m³ (24hr avg)",
-      "pm10_measurement": "6.8 µg/m³",
-      "pm10_rating": "Good",
-      "pm10_running_average": "10.9 µg/m³ (24hr avg)",
-      "no2_measurement": "0.005 ppm",
-      "no2_rating": "Good",
-      "o3_measurement": "0.02 ppm",
-      "o3_rating": "Good",
-      "overall_rating": "Good"
-     },
-     {
-      "station_id": "petr",
-      "station_name": "Petrie",
-      "pm2_5_measurement": "0.1 µg/m³",
-      "pm2_5_rating": "Good",
-      "pm2_5_running_average": "0.1 µg/m³ (24hr avg)",
-      "pm10_measurement": "",
-      "pm10_rating": "",
-      "pm10_running_average": "",
-      "no2_measurement": "",
-      "no2_rating": "",
-      "o3_measurement": "",
-      "o3_rating": "",
-      "overall_rating": "Good"
-     }
-    ],
-    "icon": "mdi:air-filter",
-    "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Air Quality"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_qld_dev_local_weather_observation": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_local_weather_observation",
-   "state": "15.5",
-   "attributes": {
-    "state_class": "measurement",
-    "station_name": "Burpengary",
-    "apparent_temperature": null,
-    "relative_humidity": 95,
-    "pressure_hpa": 1024.9,
-    "wind_speed_avg_kph": 5.1,
-    "wind_speed_max_kph": 16.1,
-    "wind_direction_deg": 160.8,
-    "solar_radiation_wm2": 145.4,
-    "stations": [
-     {
-      "station_id": "62e1d51780a94fcaa972255d",
-      "station_name": "Burpengary",
-      "temperature": 15.5,
-      "apparent_temperature": null,
-      "relative_humidity": 95,
-      "pressure_hpa": 1024.9,
-      "wind_direction": 160.8,
-      "wind_speed_avg": 5.1,
-      "wind_speed_max": 16.1,
-      "rain_since_9am": null,
-      "solar_radiation": 145.4
-     },
-     {
-      "station_id": "62f1b2d7c6f869e48bedb3ed",
-      "station_name": "Woodford",
-      "temperature": 14.7,
-      "apparent_temperature": null,
-      "relative_humidity": 96.6,
-      "pressure_hpa": 1011.3,
-      "wind_direction": 79,
-      "wind_speed_avg": 4.5,
-      "wind_speed_max": 10.6,
-      "rain_since_9am": null,
-      "solar_radiation": 98.9
-     }
-    ],
-    "unit_of_measurement": "°C",
-    "device_class": "temperature",
-    "icon": "mdi:thermometer",
-    "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Local Weather Observation"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "sensor.australia_and_new_zealand_disaster_watch_qld_dev_relief_facilities_count": {
-   "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_relief_facilities_count",
-   "state": "0",
-   "attributes": {
-    "state_class": "measurement",
-    "facilities": [],
-    "unit_of_measurement": "facilities",
-    "icon": "mdi:home-heart",
-    "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Relief Facilities Count"
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "camera.australia_and_new_zealand_disaster_watch_qld_dev_goodna_ipswich_mwy_east": {
-   "entity_id": "camera.australia_and_new_zealand_disaster_watch_qld_dev_goodna_ipswich_mwy_east",
-   "state": "idle",
-   "attributes": {
-    "access_token": "fixture-token",
-    "image_url": "http://131940.qld.gov.au/img/WebCamImages/Metropolitan/Goodna_Ipswich_Mwy_East.jpg",
-    "integration": "ausnz_disaster_watch",
-    "suburb": "Goodna",
-    "latitude": -27.6083,
-    "longitude": 152.8942,
-    "icon": "mdi:cctv",
-    "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Goodna - Ipswich Mwy East",
-    "supported_features": 0
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "camera.australia_and_new_zealand_disaster_watch_qld_dev_dinmore_ipswich_mwy_east": {
-   "entity_id": "camera.australia_and_new_zealand_disaster_watch_qld_dev_dinmore_ipswich_mwy_east",
-   "state": "idle",
-   "attributes": {
-    "access_token": "fixture-token",
-    "image_url": "http://131940.qld.gov.au/img/WebCamImages/Metropolitan/Dinmore_Ipswich_Mwy_east.jpg",
-    "integration": "ausnz_disaster_watch",
-    "suburb": "Dinmore",
-    "latitude": -27.5956,
-    "longitude": 152.8365,
-    "icon": "mdi:cctv",
-    "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Dinmore - Ipswich Mwy East",
-    "supported_features": 0
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "camera.australia_and_new_zealand_disaster_watch_qld_dev_metropolitan_camera_1218": {
-   "entity_id": "camera.australia_and_new_zealand_disaster_watch_qld_dev_metropolitan_camera_1218",
-   "state": "idle",
-   "attributes": {
-    "access_token": "fixture-token",
-    "image_url": "http://131940.qld.gov.au/img/WebCamImages/Metropolitan/MRMETRO-1218.jpg",
-    "integration": "ausnz_disaster_watch",
-    "suburb": "Brisbane / Moreton",
-    "latitude": -27.35,
-    "longitude": 153,
-    "icon": "mdi:cctv",
-    "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Metropolitan Camera 1218",
-    "supported_features": 0
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  },
-  "camera.australia_and_new_zealand_disaster_watch_qld_dev_bruce_highway_caboolture": {
-   "entity_id": "camera.australia_and_new_zealand_disaster_watch_qld_dev_bruce_highway_caboolture",
-   "state": "idle",
-   "attributes": {
-    "access_token": "fixture-token",
-    "image_url": "http://131940.qld.gov.au/img/WebCamImages/NorthCoast/MRNC-0131.jpg",
-    "integration": "ausnz_disaster_watch",
-    "suburb": "Caboolture",
-    "latitude": -27.085,
-    "longitude": 152.955,
-    "icon": "mdi:cctv",
-    "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Bruce Highway - Caboolture",
-    "supported_features": 0
-   },
-   "last_changed": "2026-10-16T00:00:00+00:00",
-   "last_updated": "2026-10-16T00:00:00+00:00"
-  }
- },
- "config": {
-  "latitude": -27.47,
-  "longitude": 153.02,
-  "time_zone": "Australia/Brisbane",
-  "location_name": "Dev"
- }
 }
