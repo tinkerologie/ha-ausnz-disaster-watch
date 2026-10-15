@@ -40,6 +40,7 @@
     },
     "error": {
       "invalid_coordinates": "Invalid latitude or longitude provided.",
+      "invalid_config": "The settings are out of range. Check the radius, coordinates and state, then try again.",
       "cannot_connect": "Failed to connect to emergency data feeds."
     },
     "abort": {
