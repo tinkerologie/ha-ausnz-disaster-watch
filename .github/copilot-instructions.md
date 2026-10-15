@@ -38,7 +38,7 @@ Generate code that passes these checks on first run. As an AI agent, you should 
 
 - `coordinator/` — DataUpdateCoordinator (base + data_processing + error_handling + listeners)
 - `api/` — External API client (async aiohttp)
-- `entity/` — Base entity class (`VaultEntity`)
+- `entity/` — Base entity class (`AusNZDisasterWatchEntity`)
 - `entity_utils/` — Entity-specific helpers (device_info, state formatting)
 - `config_flow_handler/` — Config flow with `schemas/` and `validators/` subdirs
 - `[platform]/` — One directory per platform (sensor, switch, etc.), one class per file
@@ -49,7 +49,7 @@ Generate code that passes these checks on first run. As an AI agent, you should 
 
 **Key patterns** (details in path-specific `*.instructions.md`):
 
-- Entity MRO: `(PlatformEntity, VaultEntity)` — order matters
+- Entity MRO: `(PlatformEntity, AusNZDisasterWatchEntity)` — order matters
 - Unique ID: `{entry_id}_{description.key}` (set in base entity)
 - Services: register in `async_setup()`, NOT `async_setup_entry()` (Quality Scale requirement)
 - Config entry data: `entry.runtime_data.client` / `entry.runtime_data.coordinator`

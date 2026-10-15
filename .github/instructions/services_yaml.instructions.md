@@ -110,7 +110,7 @@ turn_on:
 
 ## Related Files
 
-Service action implementations are in `custom_components/vault/service_actions/`.
+Service action implementations are in `custom_components/ausnz_disaster_watch/service_actions/`.
 
 ## Validation
 

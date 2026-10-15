@@ -74,7 +74,7 @@ body:
       options:
         - label: I searched existing open and closed issues before opening this request.
           required: true
-        - label: I confirm this request targets ha-vault, not upstream Home Assistant core.
+        - label: I confirm this request targets ha-australian-disaster-watch, not upstream Home Assistant core.
           required: true
         - label: I provided sufficient technical context and acceptance criteria for plan generation.
           required: true

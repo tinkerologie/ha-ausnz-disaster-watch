@@ -2,8 +2,9 @@
 
 from datetime import UTC, datetime
 
-from custom_components.australian_disaster_watch.models import (
+from custom_components.ausnz_disaster_watch.models import (
     CanonicalHazard,
+    DisasterCoordinatorData,
     DisasterWatchConfigModel,
     HazardType,
     WarningLevel,
@@ -43,9 +44,12 @@ def test_hazard_type_parsing() -> None:
     assert HazardType.from_str("River Flood Warning") == HazardType.FLOOD
     assert HazardType.from_str("Severe Thunderstorm") == HazardType.SEVERE_STORM
     assert HazardType.from_str("Tropical Cyclone Jasper") == HazardType.CYCLONE
-    assert HazardType.from_str("Tsunami Warning") == HazardType.EARTHQUAKE
+    assert HazardType.from_str("Tsunami Warning") == HazardType.TSUNAMI
+    assert HazardType.from_str("Volcano Activity") == HazardType.VOLCANO
+    assert HazardType.from_str("Earthquake tremor") == HazardType.EARTHQUAKE
     assert HazardType.from_str("Chemical Hazmat spill") == HazardType.HAZMAT
     assert HazardType.from_str("Road closed hazard") == HazardType.ROAD_INCIDENT
+    assert HazardType.from_str("Kitchen fire") == HazardType.BUSHFIRE
     assert HazardType.from_str("Unspecified event") == HazardType.OTHER
     assert HazardType.from_str(None) == HazardType.OTHER
 
@@ -202,3 +206,31 @@ def test_canonical_hazard_conflicting_raw_property() -> None:
     assert attrs["title"] == "Incident"
     assert "prop_title" not in attrs
     assert attrs["prop_custom_key"] == "val"
+
+
+def test_disaster_coordinator_data_mapping() -> None:
+    """Test DisasterCoordinatorData mapping protocol methods."""
+    hazard = CanonicalHazard(
+        id="h1",
+        source="TEST",
+        title="Incident 1",
+        hazard_type=HazardType.BUSHFIRE,
+        warning_level=WarningLevel.ADVICE,
+        latitude=-27.0,
+        longitude=153.0,
+        updated_at=datetime.now(UTC),
+    )
+    coord_data = DisasterCoordinatorData(hazards={"h1": hazard})
+
+    assert len(coord_data) == 1
+    assert bool(coord_data) is True
+    assert "h1" in coord_data
+    assert "missing" not in coord_data
+    assert coord_data["h1"] == hazard
+    assert coord_data.get("h1") == hazard
+    assert coord_data.get("missing") is None
+    assert coord_data.get("missing", 42) == 42
+
+    empty_data = DisasterCoordinatorData()
+    assert len(empty_data) == 0
+    assert bool(empty_data) is True

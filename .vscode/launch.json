@@ -45,7 +45,7 @@
       "module": "pytest",
       "console": "integratedTerminal",
       "justMyCode": false,
-      "args": ["tests/", "--cov=custom_components.vault", "--cov-report=term-missing"]
+      "args": ["tests/", "--cov=custom_components.ausnz_disaster_watch", "--cov-report=term-missing"]
     },
     {
       // Debug by attaching to local Home Assistant server using Remote Python Debugger.

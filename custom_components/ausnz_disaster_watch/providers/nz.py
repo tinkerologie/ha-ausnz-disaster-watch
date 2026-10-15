@@ -1,0 +1,248 @@
+"""New Zealand Emergency Hazard Provider (GeoNet, NEMA, MetService)."""
+
+from __future__ import annotations
+
+import logging
+from typing import Any
+
+import defusedxml.ElementTree as ET
+
+from custom_components.ausnz_disaster_watch.const import STATE_NZ
+from custom_components.ausnz_disaster_watch.models import CanonicalHazard, HazardType, WarningLevel, WeatherWarningItem
+
+from .base import BaseHazardProvider
+
+_LOGGER = logging.getLogger(__name__)
+
+GEONET_QUAKE_URL = "https://api.geonet.org.nz/quake?MMI=3"
+GEONET_VOLCANO_URL = "https://api.geonet.org.nz/volcano/val"
+NEMA_ALERTHUB_URL = "https://alerthub.civildefence.govt.nz/atom/pwp"
+METSERVICE_ALERTS_URL = "https://alerts.metservice.com/cap/rss"
+
+
+class NZHazardProvider(BaseHazardProvider):
+    """Provider for New Zealand natural hazards and civil defence emergencies."""
+
+    @property
+    def state_code(self) -> str:
+        """Return jurisdiction identifier."""
+        return STATE_NZ
+
+    async def async_fetch_hazards(self) -> list[CanonicalHazard]:
+        """Fetch and aggregate New Zealand hazards from GeoNet and NEMA."""
+        hazards: list[CanonicalHazard] = []
+
+        # 1. Fetch GeoNet Earthquakes
+        try:
+            quakes_data = await self.async_fetch_json(GEONET_QUAKE_URL)
+            hazards.extend(self._parse_geonet_quakes(quakes_data))
+        except Exception:
+            _LOGGER.exception("Failed to fetch GeoNet earthquakes")
+
+        # 2. Fetch GeoNet Volcanoes
+        try:
+            volcano_data = await self.async_fetch_json(GEONET_VOLCANO_URL)
+            hazards.extend(self._parse_geonet_volcanoes(volcano_data))
+        except Exception:
+            _LOGGER.exception("Failed to fetch GeoNet volcanic unrest")
+
+        # 3. Fetch NEMA AlertHub Emergency Alerts
+        try:
+            nema_xml = await self.async_fetch_text(NEMA_ALERTHUB_URL)
+            hazards.extend(self._parse_nema_atom(nema_xml))
+        except Exception:
+            _LOGGER.exception("Failed to fetch NEMA AlertHub emergency alerts")
+
+        return hazards
+
+    async def async_fetch_weather_warnings(self) -> list[WeatherWarningItem]:
+        """Fetch MetService severe weather watches and warnings."""
+        warnings: list[WeatherWarningItem] = []
+        try:
+            rss_text = await self.async_fetch_text(METSERVICE_ALERTS_URL)
+            root = ET.fromstring(rss_text)
+            for item in root.findall(".//item"):
+                title = item.findtext("title", "").strip()
+                link = item.findtext("link", "").strip()
+                desc = item.findtext("description", "").strip()
+                pub_date_str = item.findtext("pubDate", "")
+                pub_date = self.parse_datetime(pub_date_str) if pub_date_str else None
+
+                if title:
+                    warnings.append(
+                        WeatherWarningItem(
+                            title=title,
+                            link=link or None,
+                            locations=desc or None,
+                            pub_date=pub_date,
+                        )
+                    )
+        except Exception:
+            _LOGGER.exception("Failed to fetch MetService CAP RSS alerts")
+
+        return warnings
+
+    def _parse_geonet_quakes(self, data: dict[str, Any]) -> list[CanonicalHazard]:
+        """Parse GeoNet earthquake GeoJSON FeatureCollection."""
+        hazards: list[CanonicalHazard] = []
+        features = data.get("features", [])
+
+        for feat in features:
+            props = feat.get("properties", {})
+            geom = feat.get("geometry", {})
+            centroid = self.calculate_centroid(geom)
+            if not centroid:
+                continue
+
+            lat, lon = centroid
+            public_id = str(props.get("publicID", ""))
+            mag = float(props.get("magnitude", 0.0))
+            mmi = int(props.get("mmi", 0))
+            locality = props.get("locality", "New Zealand")
+            time_str = props.get("time")
+
+            # AWS Warning Level normalization for seismic events
+            if mag >= 6.0 or mmi >= 6:
+                level = WarningLevel.EMERGENCY_WARNING
+            elif mag >= 5.0 or mmi >= 5:
+                level = WarningLevel.WATCH_AND_ACT
+            elif mag >= 4.0 or mmi >= 4:
+                level = WarningLevel.ADVICE
+            else:
+                level = WarningLevel.INFORMATION
+
+            hazard_id = f"nz_quake_{public_id}"
+            title = f"M{mag:.1f} Earthquake - {locality}"
+
+            hazards.append(
+                CanonicalHazard(
+                    id=hazard_id,
+                    source="GeoNet New Zealand",
+                    title=title,
+                    hazard_type=HazardType.EARTHQUAKE,
+                    warning_level=level,
+                    latitude=lat,
+                    longitude=lon,
+                    updated_at=self.parse_datetime(time_str),
+                    location_name=locality,
+                    status="Active",
+                    responsible_agency="GeoNet (GNS Science)",
+                    web_url=f"https://www.geonet.org.nz/earthquake/{public_id}",
+                    raw_properties={
+                        "magnitude": mag,
+                        "mmi": mmi,
+                        "depth": props.get("depth"),
+                        "quality": props.get("quality"),
+                    },
+                )
+            )
+
+        return hazards
+
+    def _parse_geonet_volcanoes(self, data: dict[str, Any]) -> list[CanonicalHazard]:
+        """Parse GeoNet volcanic activity level GeoJSON."""
+        hazards: list[CanonicalHazard] = []
+        features = data.get("features", [])
+
+        for feat in features:
+            props = feat.get("properties", {})
+            geom = feat.get("geometry", {})
+            centroid = self.calculate_centroid(geom)
+            if not centroid:
+                continue
+
+            lat, lon = centroid
+            volcano_id = str(props.get("volcanoID", ""))
+            title_name = props.get("volcanoTitle", volcano_id.capitalize())
+            level_num = int(props.get("level", 0))
+            acc = props.get("acc", "Green")
+            activity = props.get("activity", "No volcanic unrest.")
+            hazards_desc = props.get("hazards", "")
+
+            # Determine AWS Warning Level mapping
+            if level_num >= 3:
+                level = WarningLevel.EMERGENCY_WARNING
+            elif level_num == 2:
+                level = WarningLevel.WATCH_AND_ACT
+            elif level_num == 1:
+                level = WarningLevel.ADVICE
+            else:
+                level = WarningLevel.INFORMATION
+
+            hazard_id = f"nz_volcano_{volcano_id}"
+            title = f"Volcano Level {level_num} ({acc}) - {title_name}"
+
+            hazards.append(
+                CanonicalHazard(
+                    id=hazard_id,
+                    source="GeoNet New Zealand",
+                    title=title,
+                    hazard_type=HazardType.OTHER,
+                    warning_level=level,
+                    latitude=lat,
+                    longitude=lon,
+                    updated_at=self.parse_datetime(None),
+                    location_name=title_name,
+                    status=activity,
+                    responsible_agency="GeoNet (GNS Science)",
+                    web_url=f"https://www.geonet.org.nz/volcano/{volcano_id}",
+                    raw_properties={
+                        "volcanoID": volcano_id,
+                        "level": level_num,
+                        "acc": acc,
+                        "activity": activity,
+                        "hazards": hazards_desc,
+                    },
+                )
+            )
+
+        return hazards
+
+    def _parse_nema_atom(self, xml_text: str) -> list[CanonicalHazard]:
+        """Parse NEMA Emergency Mobile Alert feed."""
+        hazards: list[CanonicalHazard] = []
+        if not xml_text.strip():
+            return hazards
+
+        try:
+            root = ET.fromstring(xml_text)
+            ns = {"atom": "http://www.w3.org/2005/Atom", "cap": "urn:oasis:names:tc:emergency:cap:1.2"}
+
+            for entry in root.findall("atom:entry", ns):
+                entry_id = entry.findtext("atom:id", "", ns).strip()
+                title = entry.findtext("atom:title", "", ns).strip()
+                updated_str = entry.findtext("atom:updated", "", ns)
+                updated_at = self.parse_datetime(updated_str)
+
+                # Check for embedded CAP alert coordinates or circle
+                lat = -41.2865  # Default Wellington centroid if coordinates not specified
+                lon = 174.7762
+                circle = entry.findtext(".//cap:circle", "", ns)
+                if circle and "," in circle:
+                    try:
+                        coords_part = circle.strip().split()[0]
+                        lat_s, lon_s = coords_part.split(",")
+                        lat, lon = float(lat_s), float(lon_s)
+                    except (ValueError, IndexError):
+                        pass
+
+                hazards.append(
+                    CanonicalHazard(
+                        id=f"nz_nema_{entry_id or title}",
+                        source="NEMA New Zealand Civil Defence",
+                        title=title or "Civil Defence Emergency Mobile Alert",
+                        hazard_type=HazardType.from_str(title),
+                        warning_level=WarningLevel.EMERGENCY_WARNING,
+                        latitude=lat,
+                        longitude=lon,
+                        updated_at=updated_at,
+                        location_name="New Zealand",
+                        status="Active Alert",
+                        responsible_agency="NEMA",
+                        web_url="https://www.civildefence.govt.nz",
+                    )
+                )
+        except Exception:
+            _LOGGER.exception("Error parsing NEMA ATOM feed")
+
+        return hazards

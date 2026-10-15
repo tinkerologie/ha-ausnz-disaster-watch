@@ -19,7 +19,7 @@ If not provided, ask for:
 
 ### 1. Create Platform Directory Structure
 
-**Directory:** `custom_components/vault/[platform]/`
+**Directory:** `custom_components/ausnz_disaster_watch/[platform]/`
 
 **Files to create:**
 
@@ -29,7 +29,7 @@ If not provided, ask for:
 ### 2. Platform `__init__.py` Template
 
 ```python
-"""[Platform] platform for Vault."""
+"""[Platform] platform for AusNZDisasterWatch."""
 
 from __future__ import annotations
 
@@ -38,10 +38,10 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .entity import VaultEntity
-from .[entity_file] import Vault[EntityName]
+from .entity import AusNZDisasterWatchEntity
+from .[entity_file] import AusNZDisasterWatch[EntityName]
 from .const import DOMAIN
-from .coordinator import VaultDataUpdateCoordinator
+from .coordinator import AusNZDisasterWatchCoordinator
 
 
 async def async_setup_entry(
@@ -50,13 +50,13 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up [platform] platform."""
-    coordinator: VaultDataUpdateCoordinator = hass.data[DOMAIN][
+    coordinator: AusNZDisasterWatchCoordinator = hass.data[DOMAIN][
         entry.entry_id
     ]
 
     async_add_entities(
         [
-            Vault[EntityName](coordinator, entry),
+            AusNZDisasterWatch[EntityName](coordinator, entry),
             # Add more entities here
         ]
     )
@@ -65,7 +65,7 @@ async def async_setup_entry(
 ### 3. Entity Implementation Template
 
 ```python
-"""[Entity description] for Vault."""
+"""[Entity description] for AusNZDisasterWatch."""
 
 from __future__ import annotations
 
@@ -78,13 +78,13 @@ from homeassistant.components.[platform] import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import callback
 
-from .coordinator import VaultDataUpdateCoordinator
-from .entity import VaultEntity
+from .coordinator import AusNZDisasterWatchCoordinator
+from .entity import AusNZDisasterWatchEntity
 
 
-class Vault[EntityName](
+class AusNZDisasterWatch[EntityName](
     [PlatformEntityClass],
-    VaultEntity,
+    AusNZDisasterWatchEntity,
 ):
     """Representation of [entity description]."""
 
@@ -100,7 +100,7 @@ class Vault[EntityName](
 
     def __init__(
         self,
-        coordinator: VaultDataUpdateCoordinator,
+        coordinator: AusNZDisasterWatchCoordinator,
         entry: ConfigEntry,
     ) -> None:
         """Initialize the [entity]."""
@@ -129,7 +129,7 @@ class Vault[EntityName](
 
 ### 4. Update Manifest
 
-Add platform to `custom_components/vault/manifest.json`:
+Add platform to `custom_components/ausnz_disaster_watch/manifest.json`:
 
 ```json
 {
@@ -237,15 +237,15 @@ script/develop         # Start Home Assistant for testing
 from homeassistant.helpers.device_registry import DeviceInfo
 
 
-class Vault[EntityName](
+class AusNZDisasterWatch[EntityName](
     [PlatformEntityClass],
-    VaultEntity,
+    AusNZDisasterWatchEntity,
 ):
     """Entity with device grouping."""
 
     def __init__(
         self,
-        coordinator: VaultDataUpdateCoordinator,
+        coordinator: AusNZDisasterWatchCoordinator,
         entry: ConfigEntry,
     ) -> None:
         """Initialize entity."""
@@ -292,7 +292,7 @@ async def async_press(self) -> None:
 ## Validation Checklist
 
 - [ ] Platform directory created with `__init__.py`
-- [ ] Entity class inherits from platform class first, then `VaultEntity` — e.g., `VaultConnectivitySensor(BinarySensorEntity, VaultEntity)` — order is significant for correct MRO (platform-then-vault pattern)
+- [ ] Entity class inherits from platform class first, then `AusNZDisasterWatchEntity` — e.g., `AusNZDisasterWatchSensor(BinarySensorEntity, AusNZDisasterWatchEntity)` — order is significant for correct MRO (platform-then-ausnz_disaster_watch pattern)
 - [ ] `_attr_has_entity_name = True` set (MANDATORY for new integrations)
 - [ ] Entity uses `translation_key` instead of hardcoded `name`
 - [ ] Unique ID set correctly
@@ -308,10 +308,10 @@ async def async_press(self) -> None:
 
 ## Integration Context
 
-- **Domain:** `vault`
-- **Class prefix:** `Vault`
-- **Base entity:** `VaultEntity` in `entity/base.py`
-- **Coordinator:** `VaultDataUpdateCoordinator`
+- **Domain:** `ausnz_disaster_watch`
+- **Class prefix:** `AusNZDisasterWatch`
+- **Base entity:** `AusNZDisasterWatchEntity` in `entity/base.py`
+- **Coordinator:** `AusNZDisasterWatchCoordinator`
 
 Follow patterns from existing platforms in the integration for consistency.
 

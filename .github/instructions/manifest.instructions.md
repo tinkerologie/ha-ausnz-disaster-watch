@@ -4,7 +4,7 @@ applyTo: "**/manifest.json"
 
 # Manifest Instructions
 
-**Applies to:** `custom_components/vault/manifest.json`
+**Applies to:** `custom_components/ausnz_disaster_watch/manifest.json`
 
 ## Schema Validation
 
@@ -16,14 +16,14 @@ This schema combines Home Assistant's official manifest requirements with HACS-s
 
 ```json
 {
-  "domain": "vault",
-  "name": "Vault",
+  "domain": "ausnz_disaster_watch",
+  "name": "AusNZDisasterWatch",
   "codeowners": ["@ruaan-deysel"],
   "config_flow": true,
-  "documentation": "https://github.com/tinkerologie/ha-vault",
+  "documentation": "https://github.com/tinkerologie/ha-australian-disaster-watch",
   "integration_type": "device",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/tinkerologie/ha-vault/issues",
+  "issue_tracker": "https://github.com/tinkerologie/ha-australian-disaster-watch/issues",
   "requirements": [],
   "version": "0.0.0"
 }

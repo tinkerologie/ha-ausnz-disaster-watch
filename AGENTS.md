@@ -354,7 +354,7 @@ See `.github/instructions/coordinator.instructions.md` and `.github/instructions
 
 **Entities:**
 
-- Inherit from platform base + `VaultEntity`
+- Inherit from platform base + `AusNZDisasterWatchEntity`
 - Read from `coordinator.data`, never call API directly
 - Use `EntityDescription` for static metadata
 

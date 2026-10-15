@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock, patch
 
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.australian_disaster_watch import async_setup, async_update_listener
-from custom_components.australian_disaster_watch.const import DOMAIN
+from custom_components.ausnz_disaster_watch import async_setup, async_update_listener
+from custom_components.ausnz_disaster_watch.const import DOMAIN
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 
@@ -24,7 +24,7 @@ async def test_integration_lifecycle(
     mock_provider.async_fetch_hazards.return_value = []
 
     with patch(
-        "custom_components.australian_disaster_watch.coordinator.get_providers_for_config",
+        "custom_components.ausnz_disaster_watch.coordinator.get_providers_for_config",
         return_value=[mock_provider],
     ):
         assert await hass.config_entries.async_setup(mock_config_entry.entry_id) is True

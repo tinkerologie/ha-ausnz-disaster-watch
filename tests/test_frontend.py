@@ -3,7 +3,7 @@
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from custom_components.australian_disaster_watch.frontend import (
+from custom_components.ausnz_disaster_watch.frontend import (
     _REGISTERED,
     CARD_FILES,
     FRONTEND_PATH,
@@ -47,7 +47,7 @@ async def test_frontend_registration(hass: HomeAssistant) -> None:
     hass.http = mock_http
 
     with patch(
-        "custom_components.australian_disaster_watch.frontend._async_register_resources",
+        "custom_components.ausnz_disaster_watch.frontend._async_register_resources",
         new_callable=AsyncMock,
     ) as mock_res:
         await async_register_frontend(hass)
@@ -72,13 +72,13 @@ async def test_frontend_deferred_on_start(hass: HomeAssistant) -> None:
     hass.config.components = set()
     with (
         patch.object(hass, "is_running", False),
-        patch("custom_components.australian_disaster_watch.frontend.async_at_started") as mock_at_started,
+        patch("custom_components.ausnz_disaster_watch.frontend.async_at_started") as mock_at_started,
     ):
         await async_register_frontend(hass)
         mock_at_started.assert_called_once()
         # Trigger the deferred callback
         callback = mock_at_started.call_args[0][1]
-        with patch("custom_components.australian_disaster_watch.frontend.async_register_frontend") as mock_reg:
+        with patch("custom_components.ausnz_disaster_watch.frontend.async_register_frontend") as mock_reg:
             await callback(hass)
             mock_reg.assert_called_once()
 
@@ -96,7 +96,7 @@ async def test_frontend_registration_error_handled(hass: HomeAssistant) -> None:
 
 async def test_async_register_resources_fallback(hass: HomeAssistant) -> None:
     """Test fallback to add_extra_js_url when Lovelace collection is absent."""
-    with patch("custom_components.australian_disaster_watch.frontend.add_extra_js_url") as mock_add_extra:
+    with patch("custom_components.ausnz_disaster_watch.frontend.add_extra_js_url") as mock_add_extra:
         await _async_register_resources(hass, {"/test/url": "/test/url?v=1"})
         mock_add_extra.assert_called_once()
 

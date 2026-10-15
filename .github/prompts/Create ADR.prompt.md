@@ -96,8 +96,8 @@ Create a new ADR in `docs/development/adr/NNNN-title-of-decision.md`:
 
 **Files affected:**
 
-- `custom_components/vault/[file1.py]`
-- `custom_components/vault/[file2.py]`
+- `custom_components/ausnz_disaster_watch/[file1.py]`
+- `custom_components/ausnz_disaster_watch/[file2.py]`
 
 **Code pattern to follow:**
 
@@ -216,8 +216,8 @@ Create a new ADR in `docs/development/adr/NNNN-title-of-decision.md`:
 
 ## Integration Context
 
-- **Domain:** `vault`
-- **Class prefix:** `Vault`
+- **Domain:** `ausnz_disaster_watch`
+- **Class prefix:** `AusNZDisasterWatch`
 - **Architecture docs:** `docs/development/ARCHITECTURE.md`
 - **Decisions log:** `docs/development/DECISIONS.md`
 

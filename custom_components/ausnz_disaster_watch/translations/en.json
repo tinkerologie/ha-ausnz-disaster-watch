@@ -1,0 +1,118 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Australia and New Zealand Disaster Watch Setup",
+        "description": "Configure disaster and emergency incident monitoring for your region in Australia and New Zealand.",
+        "data": {
+          "state": "State / Jurisdiction",
+          "location_mode": "Location Source",
+          "radius": "Monitoring Radius (km)",
+          "override_emergency": "Statewide / National Emergency Warning Override (alert on Level 3 warnings across region regardless of radius)",
+          "exclude_hazard_reduction": "Exclude Hazard Reduction / Planned Burns"
+        }
+      },
+      "location": {
+        "title": "Configure Monitored Location & Council Dashboard",
+        "description": "Select a preset local council disaster dashboard (such as Moreton Bay) or enter custom coordinates.",
+        "data": {
+          "preset_council": "Preset Local Council Dashboard",
+          "location_name": "Location Name (e.g. City of Moreton Bay)",
+          "latitude": "Latitude",
+          "longitude": "Longitude",
+          "council_dashboard_url": "Council Disaster Dashboard URL (Guardian IMS / Open API)"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure Australia and New Zealand Disaster Watch",
+        "description": "Update location coordinates, state jurisdiction, or council dashboard endpoint.",
+        "data": {
+          "state": "State / Jurisdiction",
+          "location_name": "Location Name",
+          "latitude": "Latitude",
+          "longitude": "Longitude",
+          "radius": "Monitoring Radius (km)",
+          "override_emergency": "Statewide / National Emergency Warning Override",
+          "exclude_hazard_reduction": "Exclude Hazard Reduction / Planned Burns",
+          "council_dashboard_url": "Council Disaster Dashboard URL"
+        }
+      }
+    },
+    "error": {
+      "invalid_coordinates": "Invalid latitude or longitude provided.",
+      "cannot_connect": "Failed to connect to emergency data feeds."
+    },
+    "abort": {
+      "already_configured": "This jurisdiction and location is already configured.",
+      "reconfigure_successful": "Reconfiguration successful."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Configure Australia and New Zealand Disaster Watch Options",
+        "description": "Adjust spatial perimeter radius, emergency warning overrides, and council dashboard endpoints.",
+        "data": {
+          "radius": "Monitoring Radius (km)",
+          "override_emergency": "Statewide Emergency Warning Override",
+          "exclude_hazard_reduction": "Exclude Hazard Reduction / Planned Burns",
+          "council_dashboard_url": "Council Disaster Dashboard URL"
+        }
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "emergency_warning_nearby": {
+        "name": "Emergency Warning Nearby"
+      },
+      "active_hazards_nearby": {
+        "name": "Active Hazards Nearby"
+      },
+      "power_outage_active": {
+        "name": "Power Outage Active"
+      },
+      "road_closure_nearby": {
+        "name": "Road Closure Nearby"
+      }
+    },
+    "sensor": {
+      "nearest_hazard_distance": {
+        "name": "Nearest Hazard Distance"
+      },
+      "active_hazards_count": {
+        "name": "Active Hazards Count"
+      },
+      "highest_warning_level": {
+        "name": "Highest Warning Level"
+      },
+      "nearest_hazard_title": {
+        "name": "Nearest Hazard Title"
+      },
+      "power_outages_count": {
+        "name": "Power Outages Count"
+      },
+      "power_outages_customers_affected": {
+        "name": "Power Outages Customers Affected"
+      },
+      "road_closures_count": {
+        "name": "Road Closures Count"
+      },
+      "weather_warnings_count": {
+        "name": "Weather Warnings Count"
+      },
+      "fire_danger_rating": {
+        "name": "Fire Danger Rating"
+      },
+      "air_quality_rating": {
+        "name": "Air Quality"
+      },
+      "primary_weather_observation": {
+        "name": "Local Weather Observation"
+      },
+      "relief_facilities_count": {
+        "name": "Relief Facilities Count"
+      }
+    }
+  }
+}

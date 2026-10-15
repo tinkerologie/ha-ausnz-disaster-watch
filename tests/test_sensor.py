@@ -5,9 +5,31 @@ from unittest.mock import AsyncMock, patch
 
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.australian_disaster_watch.coordinator import AustralianDisasterWatchCoordinator
-from custom_components.australian_disaster_watch.models import CanonicalHazard, HazardType, WarningLevel
-from custom_components.australian_disaster_watch.sensor import HighestWarningLevelSensor
+from custom_components.ausnz_disaster_watch.coordinator import AustralianDisasterWatchCoordinator
+from custom_components.ausnz_disaster_watch.models import (
+    AirQualityStationData,
+    CanonicalHazard,
+    DisasterCoordinatorData,
+    FireDangerRating,
+    HazardType,
+    PowerOutageItem,
+    ReliefFacilityItem,
+    RoadClosureItem,
+    WarningLevel,
+    WeatherStationObservation,
+    WeatherWarningItem,
+)
+from custom_components.ausnz_disaster_watch.sensor import (
+    AirQualityIndexSensor,
+    FireDangerRatingSensor,
+    HighestWarningLevelSensor,
+    PowerOutagesCountSensor,
+    PowerOutagesCustomersAffectedSensor,
+    PrimaryWeatherObservationSensor,
+    ReliefFacilitiesCountSensor,
+    RoadClosuresCountSensor,
+    WeatherWarningsCountSensor,
+)
 from homeassistant.core import HomeAssistant
 
 
@@ -27,13 +49,13 @@ async def test_sensors_telemetry(
     ]
 
     with patch(
-        "custom_components.australian_disaster_watch.coordinator.get_providers_for_config",
+        "custom_components.ausnz_disaster_watch.coordinator.get_providers_for_config",
         return_value=[mock_provider],
     ):
         await hass.config_entries.async_setup(mock_config_entry.entry_id)
         await hass.async_block_till_done()
 
-    prefix = "sensor.australian_disaster_watch_qld_city_of_moreton_bay"
+    prefix = "sensor.australia_and_new_zealand_disaster_watch_qld_city_of_moreton_bay"
 
     # Nearest Distance sensor: closest is mock_hazard_advice (~10.9 km)
     dist_state = hass.states.get(f"{prefix}_nearest_hazard_distance")
@@ -70,13 +92,13 @@ async def test_sensors_clear_state(
     mock_provider.async_fetch_hazards.return_value = []
 
     with patch(
-        "custom_components.australian_disaster_watch.coordinator.get_providers_for_config",
+        "custom_components.ausnz_disaster_watch.coordinator.get_providers_for_config",
         return_value=[mock_provider],
     ):
         await hass.config_entries.async_setup(mock_config_entry.entry_id)
         await hass.async_block_till_done()
 
-    prefix = "sensor.australian_disaster_watch_qld_city_of_moreton_bay"
+    prefix = "sensor.australia_and_new_zealand_disaster_watch_qld_city_of_moreton_bay"
 
     dist_state = hass.states.get(f"{prefix}_nearest_hazard_distance")
     assert dist_state is not None
@@ -137,3 +159,124 @@ async def test_highest_warning_level_sensor_icons(hass: HomeAssistant, mock_conf
     )
     coordinator.data = {"3": hazard_ew}
     assert sensor.icon == "mdi:alert-octagon"
+
+
+async def test_expanded_disaster_sensors(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+) -> None:
+    """Test all expanded disaster sensors: power outages, roads, warnings, fire danger, AQI, weather, and relief."""
+    coordinator = AustralianDisasterWatchCoordinator(hass, mock_config_entry)
+
+    po = PowerOutageItem(suburb="Caboolture", cause="Storm", restore_time="14:00", customers_affected=25)
+    rc = RoadClosureItem(
+        id="rc1", road="Main St", suburb="Morayfield", status="Closed", reason="Water", distance_km=5.2
+    )
+    ww = WeatherWarningItem(title="Severe Thunderstorm", locations="Moreton Bay")
+    fd = FireDangerRating(
+        district_name="Moreton", district_number="1", rating="Catastrophic", total_fire_ban=True, day="Today"
+    )
+    aq = AirQualityStationData(
+        station_id="s1",
+        station_name="Burpengary",
+        overall_rating="Fair",
+        pm2_5_measurement="12.5",
+        pm10_measurement="22.0",
+        no2_measurement="5.0",
+        o3_measurement="15.0",
+    )
+    ws = WeatherStationObservation(
+        station_id="w1",
+        station_name="Caboolture Telemetry",
+        temperature=24.6,
+        apparent_temperature=25.1,
+        relative_humidity=65.0,
+        pressure_hpa=1013.2,
+        wind_speed_avg=18.0,
+        wind_speed_max=28.0,
+    )
+    rf = ReliefFacilityItem(
+        id="rf1",
+        facility_type="sandbag_station",
+        name="Caboolture Sandbags",
+        suburb="Caboolture",
+        address="123 Road",
+        status="Open",
+        distance_km=3.1,
+    )
+
+    coordinator.data = DisasterCoordinatorData(
+        power_outages=[po],
+        road_closures=[rc],
+        weather_warnings=[ww],
+        fire_danger=fd,
+        air_quality_stations=[aq],
+        weather_stations=[ws],
+        relief_facilities=[rf],
+    )
+
+    po_count = PowerOutagesCountSensor(coordinator)
+    assert po_count.native_value == 1
+    assert "outages" in po_count.extra_state_attributes
+
+    po_customers = PowerOutagesCustomersAffectedSensor(coordinator)
+    assert po_customers.native_value == 25
+
+    rc_count = RoadClosuresCountSensor(coordinator)
+    assert rc_count.native_value == 1
+    assert "closures" in rc_count.extra_state_attributes
+
+    ww_count = WeatherWarningsCountSensor(coordinator)
+    assert ww_count.native_value == 1
+    assert "warnings" in ww_count.extra_state_attributes
+
+    fd_sensor = FireDangerRatingSensor(coordinator)
+    assert fd_sensor.native_value == "Catastrophic"
+    assert fd_sensor.icon == "mdi:fire-alert"
+    fd_attrs = fd_sensor.extra_state_attributes
+    assert fd_attrs["district_name"] == "Moreton"
+    assert fd_attrs["total_fire_ban"] is True
+
+    # Test fire danger sensor with Extreme, High, Moderate, and None
+    coordinator.data.fire_danger.rating = "Extreme"
+    assert fd_sensor.icon == "mdi:fire-alert"
+    coordinator.data.fire_danger.rating = "High"
+    assert fd_sensor.icon == "mdi:fire"
+    coordinator.data.fire_danger.rating = "Moderate"
+    assert fd_sensor.icon == "mdi:fire"
+    coordinator.data.fire_danger.rating = "No Rating"
+    assert fd_sensor.icon == "mdi:shield-check"
+
+    coordinator.data.fire_danger = None
+    assert fd_sensor.native_value == "Moderate"
+    assert fd_sensor.extra_state_attributes == {}
+
+    aq_sensor = AirQualityIndexSensor(coordinator)
+    assert aq_sensor.native_value == "Fair"
+    aq_attrs = aq_sensor.extra_state_attributes
+    assert aq_attrs["station_name"] == "Burpengary"
+    assert aq_attrs["pm2_5"] == "12.5"
+
+    coordinator.data.air_quality_stations = []
+    assert aq_sensor.native_value == "Good"
+    assert aq_sensor.extra_state_attributes == {}
+
+    ws_sensor = PrimaryWeatherObservationSensor(coordinator)
+    assert ws_sensor.native_value == 24.6
+    ws_attrs = ws_sensor.extra_state_attributes
+    assert ws_attrs["station_name"] == "Caboolture Telemetry"
+    assert ws_attrs["relative_humidity"] == 65.0
+
+    # Weather station with None temperature
+    coordinator.data.weather_stations = [
+        WeatherStationObservation(station_id="w2", station_name="No Temp", temperature=None)
+    ]
+    assert ws_sensor.native_value is None
+
+    coordinator.data.weather_stations = []
+    assert ws_sensor.native_value is None
+    assert ws_sensor.extra_state_attributes == {}
+
+    rf_count = ReliefFacilitiesCountSensor(coordinator)
+    assert rf_count.native_value == 1
+    assert "facilities" in rf_count.extra_state_attributes

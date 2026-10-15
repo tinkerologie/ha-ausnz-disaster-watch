@@ -4,11 +4,11 @@ from unittest.mock import patch
 
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.australian_disaster_watch.config_flow import (
+from custom_components.ausnz_disaster_watch.config_flow import (
     AustralianDisasterWatchConfigFlow,
     infer_state_from_coordinates,
 )
-from custom_components.australian_disaster_watch.const import (
+from custom_components.ausnz_disaster_watch.const import (
     CONF_COUNCIL_DASHBOARD_URL,
     CONF_EXCLUDE_HAZARD_REDUCTION,
     CONF_LATITUDE,
@@ -52,6 +52,8 @@ def test_infer_state_from_coordinates() -> None:
     assert infer_state_from_coordinates(-27.2657, 152.9818) == STATE_QLD
     # New South Wales (Sydney)
     assert infer_state_from_coordinates(-33.8688, 151.2093) == STATE_NSW
+    # New Zealand (Wellington)
+    assert infer_state_from_coordinates(-41.2865, 174.7762) == "NZ"
 
 
 async def test_flow_user_step_home_mode(hass: HomeAssistant) -> None:
@@ -68,7 +70,7 @@ async def test_flow_user_step_home_mode(hass: HomeAssistant) -> None:
     assert result["step_id"] == "user"
 
     with patch(
-        "custom_components.australian_disaster_watch.async_setup_entry",
+        "custom_components.ausnz_disaster_watch.async_setup_entry",
         return_value=True,
     ):
         result2 = await hass.config_entries.flow.async_configure(
@@ -112,7 +114,7 @@ async def test_flow_custom_location_moreton_bay(hass: HomeAssistant) -> None:
     assert result2["step_id"] == "location"
 
     with patch(
-        "custom_components.australian_disaster_watch.async_setup_entry",
+        "custom_components.ausnz_disaster_watch.async_setup_entry",
         return_value=True,
     ):
         result3 = await hass.config_entries.flow.async_configure(
@@ -150,7 +152,7 @@ async def test_flow_custom_location_manual(hass: HomeAssistant) -> None:
 
     # Complete with valid manual coordinates
     with patch(
-        "custom_components.australian_disaster_watch.async_setup_entry",
+        "custom_components.ausnz_disaster_watch.async_setup_entry",
         return_value=True,
     ):
         result_ok = await hass.config_entries.flow.async_configure(
@@ -215,7 +217,7 @@ async def test_reconfigure_flow(
     assert result["step_id"] == "reconfigure"
 
     with patch(
-        "custom_components.australian_disaster_watch.async_setup_entry",
+        "custom_components.ausnz_disaster_watch.async_setup_entry",
         return_value=True,
     ):
         result_ok = await hass.config_entries.flow.async_configure(

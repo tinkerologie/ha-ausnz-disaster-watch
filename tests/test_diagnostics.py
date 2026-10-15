@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock, patch
 
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.australian_disaster_watch.diagnostics import async_get_config_entry_diagnostics
-from custom_components.australian_disaster_watch.models import CanonicalHazard
+from custom_components.ausnz_disaster_watch.diagnostics import async_get_config_entry_diagnostics
+from custom_components.ausnz_disaster_watch.models import CanonicalHazard
 from homeassistant.core import HomeAssistant
 
 
@@ -21,7 +21,7 @@ async def test_diagnostics_redaction(
     mock_provider.async_fetch_hazards.return_value = [mock_hazard_emergency_warning]
 
     with patch(
-        "custom_components.australian_disaster_watch.coordinator.get_providers_for_config",
+        "custom_components.ausnz_disaster_watch.coordinator.get_providers_for_config",
         return_value=[mock_provider],
     ):
         await hass.config_entries.async_setup(mock_config_entry.entry_id)

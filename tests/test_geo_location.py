@@ -1,13 +1,16 @@
 """Unit tests for the Geolocation platform and dynamic entity synchronization."""
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.australian_disaster_watch.const import DOMAIN
-from custom_components.australian_disaster_watch.coordinator import AustralianDisasterWatchCoordinator
-from custom_components.australian_disaster_watch.geo_location import AustralianDisasterWatchGeolocationEvent
-from custom_components.australian_disaster_watch.models import CanonicalHazard
+from custom_components.ausnz_disaster_watch.const import DOMAIN
+from custom_components.ausnz_disaster_watch.coordinator import AustralianDisasterWatchCoordinator
+from custom_components.ausnz_disaster_watch.geo_location import (
+    AustralianDisasterWatchGeolocationEvent,
+    async_setup_entry,
+)
+from custom_components.ausnz_disaster_watch.models import CanonicalHazard
 from homeassistant.core import HomeAssistant
 
 
@@ -26,7 +29,7 @@ async def test_geolocation_dynamic_lifecycle(
     ]
 
     with patch(
-        "custom_components.australian_disaster_watch.coordinator.get_providers_for_config",
+        "custom_components.ausnz_disaster_watch.coordinator.get_providers_for_config",
         return_value=[mock_provider],
     ):
         await hass.config_entries.async_setup(mock_config_entry.entry_id)
@@ -74,7 +77,7 @@ async def test_geolocation_empty_feed(
     mock_provider.async_fetch_hazards.return_value = []
 
     with patch(
-        "custom_components.australian_disaster_watch.coordinator.get_providers_for_config",
+        "custom_components.ausnz_disaster_watch.coordinator.get_providers_for_config",
         return_value=[mock_provider],
     ):
         await hass.config_entries.async_setup(mock_config_entry.entry_id)
@@ -84,10 +87,56 @@ async def test_geolocation_empty_feed(
     assert len(geo_states) == 0
 
 
-async def test_geolocation_event_fallback(hass: HomeAssistant, mock_config_entry: MockConfigEntry) -> None:
-    """Test geolocation event fallback when coordinator data is empty."""
+async def test_geolocation_event_fallback(
+    hass: HomeAssistant, mock_config_entry: MockConfigEntry, mock_hazard_advice: CanonicalHazard
+) -> None:
+    """Test geolocation event fallback when coordinator data is empty or diverse types."""
     coordinator = AustralianDisasterWatchCoordinator(hass, mock_config_entry)
     coordinator.data = {}
     event = AustralianDisasterWatchGeolocationEvent(coordinator, "missing_id")
     assert event.hazard is None
     assert event.name == "Emergency Incident"
+
+    # When coordinator.data is a dict containing the hazard
+    coordinator.data = {"h1": mock_hazard_advice}
+    event_dict = AustralianDisasterWatchGeolocationEvent(coordinator, "h1")
+    assert event_dict.hazard == mock_hazard_advice
+
+    # When coordinator.data is an unexpected truthy object
+    class DummyData:
+        pass
+
+    coordinator.data = DummyData()  # type: ignore[assignment]
+    event_dummy = AustralianDisasterWatchGeolocationEvent(coordinator, "h1")
+    assert event_dummy.hazard is None
+
+
+async def test_geolocation_sync_with_dict_and_fallback(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    mock_hazard_advice: CanonicalHazard,
+) -> None:
+    """Test _sync_entities handles plain dict and unexpected coordinator data objects."""
+    mock_config_entry.add_to_hass(hass)
+    coordinator = AustralianDisasterWatchCoordinator(hass, mock_config_entry)
+    coordinator.data = {"adv_1": mock_hazard_advice}
+    hass.data.setdefault(DOMAIN, {})[mock_config_entry.entry_id] = coordinator
+
+    async_add_entities = MagicMock()
+    await async_setup_entry(hass, mock_config_entry, async_add_entities)
+    assert async_add_entities.called
+
+    # Test with object that has no hazards attribute
+    class NonHazardData:
+        pass
+
+    coordinator.data = NonHazardData()  # type: ignore[assignment]
+    async_add_entities.reset_mock()
+    await async_setup_entry(hass, mock_config_entry, async_add_entities)
+    assert not async_add_entities.called
+
+    # Test with coordinator.data = None
+    coordinator.data = None  # type: ignore[assignment]
+    async_add_entities.reset_mock()
+    await async_setup_entry(hass, mock_config_entry, async_add_entities)
+    assert not async_add_entities.called

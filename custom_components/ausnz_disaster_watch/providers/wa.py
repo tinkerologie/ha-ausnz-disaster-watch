@@ -1,0 +1,174 @@
+"""Western Australia Emergency Hazard Provider (Emergency WA / DFES)."""
+
+from __future__ import annotations
+
+import logging
+from typing import Any
+
+from custom_components.ausnz_disaster_watch.const import STATE_WA
+from custom_components.ausnz_disaster_watch.models import CanonicalHazard, FireDangerRating, HazardType, WarningLevel
+
+from .base import BaseHazardProvider
+
+_LOGGER = logging.getLogger(__name__)
+
+WA_INCIDENTS_URL = "https://api.emergency.wa.gov.au/v1/incidents"
+WA_WARNINGS_URL = "https://api.emergency.wa.gov.au/v1/warnings"
+WA_FDR_URL = "https://api.emergency.wa.gov.au/v1/fire-danger-ratings"
+
+
+class WAHazardProvider(BaseHazardProvider):
+    """Provider for Western Australia DFES / Emergency WA incident and warning feeds."""
+
+    @property
+    def state_code(self) -> str:
+        """Return jurisdiction identifier."""
+        return STATE_WA
+
+    async def async_fetch_hazards(self) -> list[CanonicalHazard]:
+        """Fetch active warnings and CAD incidents from Emergency WA API."""
+        hazards: list[CanonicalHazard] = []
+
+        # 1. Fetch Official Warnings
+        try:
+            warnings_payload = await self.async_fetch_json(WA_WARNINGS_URL)
+            hazards.extend(self._parse_warnings(warnings_payload))
+        except Exception:
+            _LOGGER.exception("Failed to fetch Emergency WA warnings")
+
+        # 2. Fetch Active Incidents
+        try:
+            incidents_payload = await self.async_fetch_json(WA_INCIDENTS_URL)
+            hazards.extend(self._parse_incidents(incidents_payload))
+        except Exception:
+            _LOGGER.exception("Failed to fetch Emergency WA incidents")
+
+        return hazards
+
+    async def async_fetch_fire_danger(self) -> FireDangerRating | None:
+        """Fetch current Fire Danger Rating for Western Australia."""
+        try:
+            data = await self.async_fetch_json(WA_FDR_URL)
+            ratings = data.get("fireDangerRatings", [])
+            if ratings:
+                first = ratings[0]
+                return FireDangerRating(
+                    district_number=str(first.get("districtCode", "")),
+                    district_name=str(first.get("districtName", "Western Australia")),
+                    rating=str(first.get("rating", "Moderate")),
+                    total_fire_ban=bool(first.get("totalFireBan", False)),
+                )
+        except Exception:  # noqa: BLE001
+            _LOGGER.debug("Failed to fetch WA fire danger rating")
+        return None
+
+    def _parse_warnings(self, payload: dict[str, Any]) -> list[CanonicalHazard]:
+        """Parse Emergency WA warnings."""
+        hazards: list[CanonicalHazard] = []
+        warnings = payload.get("warnings", [])
+
+        for item in warnings:
+            item_id = str(item.get("id", ""))
+            title = str(item.get("title") or item.get("name") or "Emergency Warning")
+            sub_type = str(item.get("entitySubType", "")).lower()
+            warn_type = str(item.get("warning-type", "")).lower()
+
+            if "emergency" in sub_type or "emergency" in warn_type:
+                level = WarningLevel.EMERGENCY_WARNING
+            elif "watch" in sub_type or "watch" in warn_type:
+                level = WarningLevel.WATCH_AND_ACT
+            elif "advice" in sub_type or "advice" in warn_type:
+                level = WarningLevel.ADVICE
+            else:
+                level = WarningLevel.from_str(warn_type)
+
+            loc_data = item.get("location", {})
+            lat = loc_data.get("latitude")
+            lon = loc_data.get("longitude")
+
+            if lat is None or lon is None:
+                # Try centroid from geo-source
+                geo_source = item.get("geo-source", {})
+                centroid = self.calculate_centroid(geo_source)
+                if centroid:
+                    lat, lon = centroid
+
+            if lat is None or lon is None:
+                continue
+
+            event_type = item.get("cap-category") or item.get("incident-type") or title
+            suburbs = item.get("suburbs", [])
+            locality = ", ".join(suburbs) if suburbs else str(loc_data.get("value", "WA"))
+
+            hazards.append(
+                CanonicalHazard(
+                    id=f"wa_warn_{item_id}",
+                    source="Emergency WA / DFES",
+                    title=title,
+                    hazard_type=HazardType.from_str(str(event_type)),
+                    warning_level=level,
+                    latitude=float(lat),
+                    longitude=float(lon),
+                    updated_at=self.parse_datetime(item.get("updatedAt") or item.get("issued-date-time")),
+                    location_name=locality,
+                    status=str(item.get("action-statement", "Active")),
+                    responsible_agency="DFES Western Australia",
+                    web_url=f"https://www.emergency.wa.gov.au/#/warning/{item_id}",
+                    raw_properties={
+                        "urgency": item.get("cap-urgency"),
+                        "severity": item.get("cap-severity"),
+                        "headline": item.get("headline"),
+                    },
+                )
+            )
+
+        return hazards
+
+    def _parse_incidents(self, payload: dict[str, Any]) -> list[CanonicalHazard]:
+        """Parse Emergency WA active incidents."""
+        hazards: list[CanonicalHazard] = []
+        incidents = payload.get("incidents", [])
+
+        for item in incidents:
+            item_id = str(item.get("id", ""))
+            inc_type = str(item.get("incident-type", "Incident"))
+            status = str(item.get("incident-status", "Monitoring"))
+            loc_data = item.get("location", {})
+            lat = loc_data.get("latitude")
+            lon = loc_data.get("longitude")
+
+            if lat is None or lon is None:
+                geo_source = item.get("geo-source", {})
+                centroid = self.calculate_centroid(geo_source)
+                if centroid:
+                    lat, lon = centroid
+
+            if lat is None or lon is None:
+                continue
+
+            suburbs = item.get("suburbs", [])
+            locality = ", ".join(suburbs) if suburbs else str(loc_data.get("value", "WA"))
+            title = f"{inc_type} - {locality}"
+
+            hazards.append(
+                CanonicalHazard(
+                    id=f"wa_inc_{item_id}",
+                    source="Emergency WA / DFES",
+                    title=title,
+                    hazard_type=HazardType.from_str(inc_type),
+                    warning_level=WarningLevel.INFORMATION,
+                    latitude=float(lat),
+                    longitude=float(lon),
+                    updated_at=self.parse_datetime(item.get("updatedAt") or item.get("issued-date-time")),
+                    location_name=locality,
+                    status=status,
+                    responsible_agency="DFES Western Australia",
+                    web_url="https://www.emergency.wa.gov.au",
+                    raw_properties={
+                        "cad_id": item.get("cad-id"),
+                        "dfes_regions": item.get("dfes-regions"),
+                    },
+                )
+            )
+
+        return hazards

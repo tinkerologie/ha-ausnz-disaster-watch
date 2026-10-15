@@ -8,165 +8,24 @@ The changelog uses date sections in `YYYY.MM.DD` format.
 
 ### Added
 
-- **Australian Disaster Watch Integration**: Complete real-time hazard, disaster, and emergency incident monitoring integration for Home Assistant across Australian jurisdictions.
-  - Multi-jurisdiction provider architecture supporting Queensland (QFD & Local Council Disaster Dashboards such as Moreton Bay, Sunshine Coast, Gold Coast, Cairns, Townsville), NSW (RFS & SES), Victoria (EMV OSOM), and Federal (Bureau of Meteorology weather alerts).
-  - Australian Warning System (AWS) normalization for Emergency Warning (Level 3), Watch and Act (Level 2), Advice (Level 1), and Information.
-  - Dynamic map pin rendering via `geo_location` entities with automatic lifecycle cleanup and centroid calculations.
-  - Spatial radius filtering (5–300 km) around Home Zone or Custom Location, with statewide emergency warning override.
-  - `binary_sensor` and `sensor` metric entities for active threat triggers, closest incident distance, and active count.
-  - Pydantic v2 data models and validation schemas with strict bounds checking.
-  - Config flow, reconfigure flow, and options flow for setup and seamless runtime adjustments.
-  - Diagnostics redact sensitive coordinate data conforming to Home Assistant Gold Quality Scale standards.
-  - Bundled Lovelace card (`custom:aus-disaster-card`) for real-time dashboard display.
-  - 100% unit and integration test coverage across all integration files.
-
-## [2026.10.1] - 2026-10-07
-
-### Fixed
-
-- **Storage Destinations Capacity & Display**: Resolved issue where Storage card and unified dashboard card showed no destinations when storage entities were reported in units such as TB or when total space sensors were not registered. Storage sensors now also expose raw byte capacities (`free_bytes`, `used_bytes`, `total_bytes`) as attributes for instant fallback, and `storage-card` gracefully discovers all storage targets.
-- **Protected Items Coverage**: Fixed Protected card and unified dashboard card displaying `0 / 0` when `jobs_total` / `jobs_enabled` entities were not enabled in Home Assistant's entity registry. The card now calculates protected items from `items_backed_up` and dynamically discovers configured jobs from active status entities.
-- **Data Size & Duration Formatting**: Added unit-aware parsing for TB/GB/MB/KB states in `dashboard-cards-base`, prevented 40 TB from formatting as 41 B, supported string duration representations (e.g. `1m 37s`), and added fallback to event entity attributes (`size_bytes`).
-- **Next Run & Activity Feeds**: Enabled automatic job status fallback when job count sensors are disabled, and humanized future run hours and minutes cleanly.
-
-## [2026.10.0] - 2026-10-07
-
-### Added
-
-- **Modular Lovelace Dashboard Cards** ([#63](https://github.com/tinkerologie/ha-vault/pull/63)): Complete set of 11 customizable Lit 3 custom elements for Home Assistant dashboards matching the native Vault plugin UI:
-  - `custom:vault-health-card`: Radial health score ring with gradient meter and status badges.
-  - `custom:vault-protected-card`: Protected Docker containers / VMs count with coverage progress bar.
-  - `custom:vault-next-run-card`: Scheduled backup countdown and previous run summary.
-  - `custom:vault-last-backup-card`: Last backup status badge, byte size, duration, and humanized timestamp.
-  - `custom:vault-progress-card`: Active runner job tracking with percent bar, step indicator, and idle state.
-  - `custom:vault-rules-card`: Interactive 3-2-1 backup rule compliance checklist (3 copies, 2 media, 1 offsite).
-  - `custom:vault-jobs-card`: Backup job cards with one-click "Run Now" service triggers and direct "Restore" deep links to Unraid.
-  - `custom:vault-activity-card`: Recent backup activity feed with item check chips, durations, and sizes.
-  - `custom:vault-storage-card`: Storage destination cards with capacity progress bars and health badges.
-  - `custom:vault-anomalies-card`: Anomaly detection alert box with severity icons and resolution badges.
-  - `custom:vault-dashboard-card`: Master unified card combining all tiles into a responsive layout matching the Vault plugin UI.
-- **Dynamic Frontend Card Resource Serving** ([#63](https://github.com/tinkerologie/ha-vault/pull/63)): Added `frontend.py` serving the card bundle via Home Assistant's static HTTP path config, automatically registering module resources in Lovelace storage collections with cache-busting SHA-256 digests.
-- **Playwright Browser Regression Suite** ([#63](https://github.com/tinkerologie/ha-vault/pull/63)): Added 12 end-to-end browser tests verifying element registration, template rendering, and button service triggers.
-- **CI Test Workflow** ([#63](https://github.com/tinkerologie/ha-vault/pull/63)): Added `.github/workflows/test.yml` covering backend validation, unit tests, Playwright browser tests, artifact trace uploads, and frontend bundle synchronization checks.
-
-### Changed
-
-- **Modernized to Home Assistant 2026+ and Gold Quality Scale** ([#63](https://github.com/tinkerologie/ha-vault/pull/63)): Manifest keys sorted alphabetically, quality scale set to `gold`, and `after_dependencies` declared for frontend and Lovelace integration lifecycle.
-- **Updated Device Registry Lookups** ([#63](https://github.com/tinkerologie/ha-vault/pull/63)): Migrated deprecated `device_registry.async_get_device` references in test fixtures to `device_registry.async_get_device_by_identifier`.
-- **Refined Repairs Flow Typing** ([#63](https://github.com/tinkerologie/ha-vault/pull/63)): Updated `RepairsFlowResult` return types in `repairs.py` for modern Home Assistant typing conventions.
-
-
-## [2026.06.06] - 2026-06-20
-
-### Added
-
-- **UI-based removal of orphaned devices** ([#34](https://github.com/tinkerologie/ha-vault/issues/34)): Implemented `async_remove_config_entry_device` so Home Assistant's device UI can remove orphaned backup-job or storage-target devices without a full integration reload. The main Vault device is protected from accidental deletion; any other device may be removed manually via the UI.
-
-## [2026.06.05] - 2026-06-14
-
-### Fixed
-
-- **Zeroconf discovery no longer crashes with AttributeError** ([#30](https://github.com/tinkerologie/ha-vault/issues/30)): The config flow was attempting to use dictionary `.get()` method on a `ZeroconfServiceInfo` dataclass object passed by Home Assistant during device discovery. Now correctly uses attribute access (`.host`, `.port`, `.properties`) instead of dictionary access, and properly handles `None` values for port with fallback to `DEFAULT_PORT`.
-
-## [2026.06.04] - 2026-06-14
-
-### Added
-
-- **Auto-discovery of Vault daemons via zeroconf/mDNS** ([#28](https://github.com/tinkerologie/ha-vault/issues/28)): Home Assistant can now automatically discover Vault instances on the local network using the `_vault._tcp.local.` service type. When a Vault daemon is running and bound to a non-loopback address, it appears in Settings → Devices & Services with automatic host/port detection and TLS configuration from mDNS advertisements. Users can confirm discovery with optional API key authentication if required.
-
-## [2026.06.03] - 2026-06-13
-
-### Added
-- **Anomaly alerts now flow into Home Assistant** ([#27](https://github.com/tinkerologie/ha-vault/issues/27)): the coordinator polls Vault's open anomalies (failure streaks, size drift, etc. — the same alerts Vault sends to Unraid notifications)
-  - New **"Open anomalies" sensor** with per-anomaly details (detector, severity, summary, affected job) as attributes
-  - New per-job **"Problem" binary sensor** that turns on while the job has an open anomaly
-  - `anomaly.raised` / `anomaly.updated` / `anomaly.resolved` / `anomaly.acknowledged` and `baseline.updated` WebSocket events are now forwarded to the Home Assistant event bus (`vault_anomaly_*`, `vault_baseline_updated`)
-- **New `vault_backup_failed` bus event**: a `job_run_completed` WebSocket message with a `failed`/`partial` status now fires `vault_backup_failed` instead of `vault_backup_completed`, so automations can no longer mistake a failed backup for a successful one ([#27](https://github.com/tinkerologie/ha-vault/issues/27))
-- **New `missing_items_detected` event type** on the per-job event entities, fired when Vault skips items that no longer exist on the server (with the item list as attributes) — previously these runs looked like clean completions
-- **Instant entity sync after state changes**: job start/completion, verify completion, storage health/capacity changes, anomaly updates, stale-item detections, config changes, and imports now trigger an immediate (debounced) coordinator refresh, so sensors update within ~1 second instead of waiting up to 60 seconds for the next poll
-
-### Fixed
-
-- **Integration no longer locks up during backup runs** ([#27](https://github.com/tinkerologie/ha-vault/issues/27)): Vault reports `null` for fields like `duration_seconds` while a run is in progress, which crashed every coordinator poll for the duration of the run and made all entities unavailable (the "lockup" seen when stress-testing the backup buttons). API models now treat explicit nulls as missing values, and unexpected payload shapes mark the update as failed instead of raising an unhandled error
-- **Failed backups no longer show as completed** ([#27](https://github.com/tinkerologie/ha-vault/issues/27)): the combination of the lockup fix (status sensors froze mid-run) and the corrected completion event mapping means job status, "Last run successful", and event entities now reflect failures in real time
-- **WebSocket event payloads are no longer dropped**: `stale_items_detected` (count + items), `activity` (log entry), and anomaly events (full anomaly data) previously arrived on the Home Assistant bus with only their type — the payload fields were missing from the event model
-- `async_get_anomalies` API client method now unwraps the `{"anomalies": [...]}` response envelope (it previously always returned an empty list)
-
-## [2026.06.02] - 2026-06-13
-
-- Branding updates
-
-## [2026.06.01] - 2026-06-13
-
-### Added
-
-- **Event platform**: New per-job event entities (`event.<job>_last_event`) exposing the backup lifecycle (`backup_started`, `backup_completed`, `backup_failed`) driven by WebSocket push events
-- **Storage health and capacity sensors**: Per-destination health status, free/used/total space sensors (used/total disabled by default), populated from data already polled by the coordinator
-- **Repair issues**: A repair issue is raised when a storage destination reports an unhealthy health check or an open circuit breaker, and cleared automatically when it recovers
-- **Stale entity cleanup**: Entities belonging to jobs or storage destinations that are deleted or renamed (while running or while Home Assistant was offline) are now removed from the entity registry automatically
-- **Live progress updates**: Per-job progress sensors now update instantly from WebSocket progress events instead of waiting for the next poll
-- WebSocket events fired on the Home Assistant bus now include the `entry_id`, so automations can distinguish multiple Vault instances
-
-### Fixed
-
-- **API client timeout now covers response body reads** — a stalled response could previously hang the coordinator indefinitely
-- **Authentication failures during per-job data fetches now trigger the reauth flow** instead of being silently logged as warnings
-- **Backup progress tracking moved from `hass.data` to config entry runtime data**, fixing job-ID collisions when multiple Vault instances are configured (Quality Scale `runtime-data` rule)
-- **WebSocket listener is now registered before connecting**, so events arriving immediately after connect are no longer dropped
-- **Service calls now validate that the target config entry is loaded** and raise translated `ServiceValidationError`s instead of failing with an internal error
-- **Reconfigure flow updates the config entry unique ID** when host/port changes and aborts on collision with another entry
-- **Device "Visit" link now opens the Unraid web UI** (`http://<host>`) instead of the non-browsable Vault API port
-- **Diagnostics now redact the full payload** including settings keys that may contain secrets (webhook URLs, passphrases, tokens)
-- Jobs/storage list API responses with unexpected shapes now raise an error instead of being treated as empty (protects entity cleanup from wiping entities on malformed payloads)
-- Added `CONFIG_SCHEMA = config_entry_only_config_schema` for hassfest compliance
-
-### Changed
-
-- **Human-friendly entity values across the board:**
-  - Job durations show as adaptive text (`51s`, `3m 29s`, `1h 12m`) instead of raw seconds; the raw value remains available in the `duration_seconds` attribute
-  - Data sizes auto-scale their display unit (MB/GB/TB) to the value instead of always showing bytes or GB
-  - "Runner current job ID" became "Runner active job" and shows the running job's name (or `idle`) instead of a numeric ID
-  - Progress sensors report `0 %` when no backup is running instead of `unknown`
-  - "Last failure reason" reports `No failures` after a successful run instead of `unknown`
-  - Capacity sensors report `unknown` (instead of a misleading `0 GB`) for remote destinations that don't support capacity probing (S3, WebDAV)
-- **BREAKING: Entity unique IDs are now derived from immutable job/storage IDs** (`job_<id>_<key>`, `storage_<id>_<key>`) instead of name slugs. Jobs with names that slugify identically no longer collide, and renaming a job no longer orphans its entities — entity names now follow renames automatically. Entities registered by previous versions are removed and re-created on first start (friendly entity IDs are unchanged since they derive from names)
-- Sensor, binary sensor, and event platforms set `PARALLEL_UPDATES = 0` (recommended for read-only coordinator platforms); progress sensors use the shared `PERCENTAGE` constant
-
-## [2026.06.00] - Initial release
-
-### Added
-
-- **Core Integration**: Full Vault backup plugin integration for Home Assistant with secure API client
-- **Configuration Flow**: Setup wizard with connection validation and multiple config entry support
-- **Coordinator Pattern**: DataUpdateCoordinator for efficient data fetching with configurable intervals
-- **WebSocket Real-time Events**: Direct event streaming from Vault with 20+ event types mapped to Home Assistant event bus
-- **Entities**:
-  - Sensors: Current job status, queue length, storage metrics, runner status
-  - Binary Sensors: Connection status, runner active status
-  - Buttons: Quick-trigger backup jobs
-- **Service Actions**:
-  - `vault.run_backup` - Trigger immediate backup of any Vault job
-  - `vault.restore` - Restore items from backup restore points
-  - `vault.test_storage` - Test connectivity to storage destinations
-- **Diagnostics**: Sensitive data redaction for troubleshooting
-- **Repairs**: Issue detection and guided repair flows
-- **Automation Support**: Comprehensive automation examples for:
-  - Backup before Home Assistant updates
-  - Daily automatic backups
-  - Critical addon backup triggers
-  - Storage maintenance workflows
-- **Documentation**:
-  - Getting Started guide
-  - Configuration reference
-  - Automation ideas and examples with best practices
-
-### Fixed
-
-- Runner status null safety in sensor queries
-- DevContainer configuration JSON structure
-
-### Dependencies
-
-- aiohttp for async HTTP client
-- Pydantic v2 for data validation
-- Home Assistant 2025.7.0+
+- **Australia and New Zealand Disaster Watch Integration**: Complete real-time hazard, disaster, and emergency incident monitoring integration for Home Assistant across Australian jurisdictions and New Zealand.
+  - Nationwide Australian and New Zealand coverage:
+    - **Queensland (QLD)**: QFD incident feed, BoM telemetry, and local Council Disaster Dashboards (Moreton Bay, Sunshine Coast, Brisbane, Gold Coast, Cairns, Townsville, etc.).
+    - **New South Wales (NSW)**: NSW RFS bushfire and NSW SES storm/flood incident feeds.
+    - **Victoria (VIC)**: EMV OSOM (VicEmergency) multi-agency emergency incidents.
+    - **Western Australia (WA)**: Emergency WA / DFES official warnings, active CAD incidents, and fire danger ratings.
+    - **South Australia (SA)**: SA SAFECOM / CFS CAP-AU XML warning and incident feed.
+    - **Tasmania (TAS)**: TasALERT multi-agency emergency alert feed.
+    - **Northern Territory (NT)**: NT Police, Fire and Emergency Services (PFES) incident map data.
+    - **Australian Capital Territory (ACT)**: ACT Emergency Services Agency (ESA) GeoRSS feed.
+    - **New Zealand (NZ)**: GeoNet earthquakes REST API, GeoNet volcanic activity alerts, NEMA AlertHub CAP Atom feed, and MetService severe weather warning RSS.
+    - **Federal (BoM)**: Bureau of Meteorology national and statewide warning summaries.
+  - Australian Warning System (AWS) & CAP normalization across all jurisdictions.
+  - Multi-platform sensor suite:
+    - `geo_location` entities with dynamic lifecycle synchronization and native Home Assistant map plotting.
+    - `binary_sensor` entities for active threats, emergency warnings, road closures, and power outages.
+    - `sensor` entities for active hazard count, highest warning level, closest incident distance, nearest incident title, fire danger ratings, air quality, local weather observation, road closures count, power outages count, weather warnings count, and relief facilities.
+    - `camera` platform providing live flood camera and traffic webcam snapshot streaming.
+  - Custom Lovelace dashboard cards (`ausnz-disaster-card` / `aus-disaster-card`).
+  - Professional branding package in `branding/` (`icon.png`, `logo.png`, `icon.svg`).
+  - Strict 100% test coverage across all integration files, zero lint warnings/errors, and complete validation with Home Assistant 2026 standards.

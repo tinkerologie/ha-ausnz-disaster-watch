@@ -21,13 +21,13 @@ For development and testing, keep configuration minimal:
 default_config:
 
 # Enable your integration
-vault:
+ausnz_disaster_watch:
 
 # Logging for development
 logger:
   default: info
   logs:
-    custom_components.vault: debug
+    custom_components.ausnz_disaster_watch: debug
 ```
 
 ## Modern Syntax Only
@@ -82,7 +82,7 @@ logger:
   default: warning
   logs:
     # Your integration - verbose
-    custom_components.vault: debug
+    custom_components.ausnz_disaster_watch: debug
 
     # Reduce noise from other components
     homeassistant.components.http: warning

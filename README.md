@@ -1,4 +1,4 @@
-# Australian Disaster Watch for Home Assistant
+# Australia and New Zealand Disaster Watch for Home Assistant
 
 [![GitHub Release](https://img.shields.io/github/v/release/ruaandeysel/ha-australian-disaster-watch?style=flat-square)](https://github.com/ruaandeysel/ha-australian-disaster-watch/releases)
 [![License](https://img.shields.io/github/license/ruaandeysel/ha-australian-disaster-watch?style=flat-square)](LICENSE)

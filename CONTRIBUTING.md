@@ -1,8 +1,8 @@
-# Contributing to Home Assistant Vault Integration
+# Contributing to Home Assistant AusNZDisasterWatch Integration
 
-Thank you for your interest in contributing to Home Assistant Vault Integration. This project welcomes contributions from human developers and autonomous AI coding agents alike.
+Thank you for your interest in contributing to Home Assistant AusNZDisasterWatch Integration. This project welcomes contributions from human developers and autonomous AI coding agents alike.
 
-Home Assistant integration for Vault backup management, job monitoring, and snapshots.
+Home Assistant integration for AusNZDisasterWatch backup management, job monitoring, and snapshots.
 
 To maintain code quality, protect maintainer capacity, and prevent maintainer burnout, all contributors must follow the standardized development and governance workflow outlined below.
 

@@ -20,8 +20,8 @@ If not provided, ask for:
 
 **Entity Implementation:**
 
-- Create new sensor file in `custom_components/vault/sensor/`
-- Inherit from `VaultEntity` and `SensorEntity`
+- Create new sensor file in `custom_components/ausnz_disaster_watch/sensor/`
+- Inherit from `AusNZDisasterWatchEntity` and `SensorEntity`
 - Use `SensorEntityDescription` for static metadata
 - Implement `native_value` property to return sensor value from coordinator data
 - Add proper type hints for all methods and properties
@@ -48,7 +48,7 @@ If not provided, ask for:
 **Entity Template:**
 
 ```python
-"""[Sensor description] for Vault."""
+"""[Sensor description] for AusNZDisasterWatch."""
 
 from __future__ import annotations
 
@@ -62,12 +62,12 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import [UNIT_CONSTANT]  # e.g., PERCENTAGE, UnitOfTemperature
 from homeassistant.core import callback
 
-from ..coordinator import VaultDataUpdateCoordinator
-from ..entity import VaultEntity
+from ..coordinator import AusNZDisasterWatchCoordinator
+from ..entity import AusNZDisasterWatchEntity
 
 
-class Vault[SensorName]Sensor(
-    VaultEntity,
+class AusNZDisasterWatch[SensorName]Sensor(
+    AusNZDisasterWatchEntity,
     SensorEntity,
 ):
     """Sensor for [description]."""
@@ -85,7 +85,7 @@ class Vault[SensorName]Sensor(
 
     def __init__(
         self,
-        coordinator: VaultDataUpdateCoordinator,
+        coordinator: AusNZDisasterWatchCoordinator,
         entry: ConfigEntry,
     ) -> None:
         """Initialize the sensor."""
@@ -151,9 +151,9 @@ async def async_setup_entry(
 
 **Related Files:**
 
-- Entity: `custom_components/vault/sensor/[sensor_name].py`
-- Platform: `custom_components/vault/sensor/__init__.py`
-- Translations: `custom_components/vault/translations/*.json`
+- Entity: `custom_components/ausnz_disaster_watch/sensor/[sensor_name].py`
+- Platform: `custom_components/ausnz_disaster_watch/sensor/__init__.py`
+- Translations: `custom_components/ausnz_disaster_watch/translations/*.json`
 - Documentation: Reference [#file:docs/development/ARCHITECTURE.md]
 
 **DO NOT create tests unless explicitly requested.**

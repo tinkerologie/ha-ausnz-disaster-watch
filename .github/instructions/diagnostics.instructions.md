@@ -29,7 +29,7 @@ async def async_get_config_entry_diagnostics(
     entry: ConfigEntry,
 ) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
-    coordinator: VaultDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id].coordinator
+    coordinator: AusNZDisasterWatchCoordinator = hass.data[DOMAIN][entry.entry_id].coordinator
 
     return {
         "entry_data": async_redact_data(entry.data, TO_REDACT),

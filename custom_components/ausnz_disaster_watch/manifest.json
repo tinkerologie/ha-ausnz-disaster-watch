@@ -1,0 +1,19 @@
+{
+  "domain": "ausnz_disaster_watch",
+  "name": "Australia and New Zealand Disaster Watch",
+  "after_dependencies": [
+    "frontend",
+    "http",
+    "lovelace"
+  ],
+  "codeowners": [
+    "@ruaandeysel"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/ruaandeysel/ha-australian-disaster-watch",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/ruaandeysel/ha-australian-disaster-watch/issues",
+  "requirements": [],
+  "version": "1.0.0"
+}

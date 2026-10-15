@@ -40,7 +40,7 @@ Report any errors found. Fix critical issues before proceeding.
 
 **Entity Organization:**
 
-- [ ] Entities inherit from both platform base and `VaultEntity`
+- [ ] Entities inherit from both platform base and `AusNZDisasterWatchEntity`
 - [ ] `_attr_has_entity_name = True` for all new entities (MANDATORY 2025)
 - [ ] Entity names use `translation_key` instead of hardcoded `name`
 - [ ] Entity IDs are stable (won't change on restart)
@@ -125,7 +125,7 @@ requests.get(url)
 
 **Naming Conventions:**
 
-- [ ] Classes use `PascalCase` with `Vault` prefix
+- [ ] Classes use `PascalCase` with `AusNZDisasterWatch` prefix
 - [ ] Functions and variables use `snake_case`
 - [ ] Constants use `UPPER_SNAKE_CASE`
 - [ ] Private members have `_leading_underscore`
@@ -360,8 +360,8 @@ Create report in `.ai-scratch/review-report.md`:
 
 ## Integration Context
 
-- **Domain:** `vault`
-- **Class prefix:** `Vault`
+- **Domain:** `ausnz_disaster_watch`
+- **Class prefix:** `AusNZDisasterWatch`
 - **Instructions:** `.github/instructions/*.instructions.md`
 - **Guidelines:** `AGENTS.md`, `CONTRIBUTING.md`
 
