@@ -5,8 +5,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from custom_components.aus_emergency_hazards.const import STATE_VIC
-from custom_components.aus_emergency_hazards.models import CanonicalHazard, HazardType, WarningLevel
+from custom_components.australian_disaster_watch.const import STATE_VIC
+from custom_components.australian_disaster_watch.models import CanonicalHazard, HazardType, WarningLevel
 
 from .base import BaseHazardProvider
 
@@ -52,9 +52,10 @@ class VictoriaHazardProvider(BaseHazardProvider):
             return None
 
         lat, lon = centroid
-        inc_id = str(props.get("id") or props.get("sourceId"))
-        if not inc_id:
+        raw_id = props.get("id") or props.get("sourceId")
+        if not raw_id:
             return None
+        inc_id = str(raw_id)
 
         cat1 = str(props.get("category1", ""))
         cat2 = str(props.get("category2", ""))

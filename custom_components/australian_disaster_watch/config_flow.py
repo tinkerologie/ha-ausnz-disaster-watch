@@ -1,4 +1,4 @@
-"""Config flow and Options flow for Australian Emergency Hazards."""
+"""Config flow and Options flow for Australian Disaster Watch."""
 
 from __future__ import annotations
 
@@ -52,6 +52,7 @@ from .const import (
     STATE_WA,
     SUPPORTED_STATES,
 )
+from .models import DisasterWatchConfigModel
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -68,14 +69,14 @@ def infer_state_from_coordinates(lat: float, lon: float) -> str:
     if lat < -11.0 and lat > -26.0 and 129.0 <= lon < 138.0:
         return STATE_NT
     # South Australia
-    if lat <= -26.0 and 129.0 <= lon < 141.0:
+    if lat >= -38.5 and 129.0 <= lon < 141.0:
         return STATE_SA
-    # Victoria
-    if lat <= -34.0 and lon < 150.0 and lat < -35.8:
-        return STATE_VIC
-    # ACT
+    # ACT check (approximate box around Canberra)
     if -36.0 <= lat <= -35.1 and 148.7 <= lon <= 149.4:
         return STATE_ACT
+    # Victoria
+    if lat < -34.0 and lon >= 141.0:
+        return STATE_VIC
     # Queensland
     if lat >= -29.0:
         return STATE_QLD
@@ -83,8 +84,8 @@ def infer_state_from_coordinates(lat: float, lon: float) -> str:
     return STATE_NSW
 
 
-class EmergencyHazardsConfigFlow(ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for Australian Emergency Hazards."""
+class AustralianDisasterWatchConfigFlow(ConfigFlow, domain=DOMAIN):
+    """Handle a config flow for Australian Disaster Watch."""
 
     VERSION = 1
 
@@ -132,11 +133,14 @@ class EmergencyHazardsConfigFlow(ConfigFlow, domain=DOMAIN):
                 CONF_COUNCIL_DASHBOARD_URL: council_url,
             }
 
+            # Validate entry data with Pydantic model
+            DisasterWatchConfigModel.model_validate(entry_data)
+
             unique_id = f"{DOMAIN}_{state.lower()}_home"
             await self.async_set_unique_id(unique_id)
             self._abort_if_unique_id_configured()
 
-            title = f"Emergency Hazards ({state} - {entry_data[CONF_LOCATION_NAME]})"
+            title = f"Australian Disaster Watch ({state} - {entry_data[CONF_LOCATION_NAME]})"
             return self.async_create_entry(title=title, data=entry_data)
 
         state_options = [SelectOptionDict(value=s, label=s) for s in SUPPORTED_STATES]
@@ -223,12 +227,15 @@ class EmergencyHazardsConfigFlow(ConfigFlow, domain=DOMAIN):
                     CONF_COUNCIL_DASHBOARD_URL: council_url,
                 }
 
+                # Validate entry data with Pydantic model
+                DisasterWatchConfigModel.model_validate(entry_data)
+
                 clean_loc = str(location_name).lower().replace(" ", "_").replace("/", "_")
                 unique_id = f"{DOMAIN}_{state.lower()}_{clean_loc}"
                 await self.async_set_unique_id(unique_id)
                 self._abort_if_unique_id_configured()
 
-                title = f"Emergency Hazards ({state} - {entry_data[CONF_LOCATION_NAME]})"
+                title = f"Australian Disaster Watch ({state} - {entry_data[CONF_LOCATION_NAME]})"
                 return self.async_create_entry(title=title, data=entry_data)
 
         # Build preset options filtered by selected state
@@ -288,17 +295,100 @@ class EmergencyHazardsConfigFlow(ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
+    async def async_step_reconfigure(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> ConfigFlowResult:
+        """Handle reconfiguration of an existing entry."""
+        errors: dict[str, str] = {}
+        entry = self._get_reconfigure_entry()
+
+        if user_input is not None:
+            lat = user_input.get(CONF_LATITUDE)
+            lon = user_input.get(CONF_LONGITUDE)
+            parsed_lat: float | None = None
+            parsed_lon: float | None = None
+            try:
+                if lat is not None and lon is not None:
+                    parsed_lat = float(lat)
+                    parsed_lon = float(lon)
+                    if not (-90.0 <= parsed_lat <= 90.0 and -180.0 <= parsed_lon <= 180.0):
+                        errors["base"] = "invalid_coordinates"
+                else:
+                    errors["base"] = "invalid_coordinates"
+            except (ValueError, TypeError):
+                errors["base"] = "invalid_coordinates"
+
+            if not errors and parsed_lat is not None and parsed_lon is not None:
+                updates = {
+                    **user_input,
+                    CONF_LATITUDE: parsed_lat,
+                    CONF_LONGITUDE: parsed_lon,
+                }
+                DisasterWatchConfigModel.model_validate({**entry.data, **updates})
+                return self.async_update_reload_and_abort(
+                    entry,
+                    data_updates=updates,
+                )
+
+        current = {**entry.data, **entry.options}
+        state_options = [SelectOptionDict(value=s, label=s) for s in SUPPORTED_STATES]
+
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_STATE, default=current.get(CONF_STATE, STATE_QLD)): SelectSelector(
+                    SelectSelectorConfig(options=state_options, mode=SelectSelectorMode.DROPDOWN)
+                ),
+                vol.Required(CONF_LOCATION_NAME, default=current.get(CONF_LOCATION_NAME, "Home")): TextSelector(
+                    TextSelectorConfig(type=TextSelectorType.TEXT)
+                ),
+                vol.Required(CONF_LATITUDE, default=float(current.get(CONF_LATITUDE, -27.2657))): NumberSelector(
+                    NumberSelectorConfig(min=-50.0, max=-5.0, step="any", mode=NumberSelectorMode.BOX)
+                ),
+                vol.Required(CONF_LONGITUDE, default=float(current.get(CONF_LONGITUDE, 152.9818))): NumberSelector(
+                    NumberSelectorConfig(min=100.0, max=165.0, step="any", mode=NumberSelectorMode.BOX)
+                ),
+                vol.Required(CONF_RADIUS, default=int(current.get(CONF_RADIUS, DEFAULT_RADIUS))): NumberSelector(
+                    NumberSelectorConfig(
+                        min=MIN_RADIUS,
+                        max=MAX_RADIUS,
+                        step=5,
+                        unit_of_measurement="km",
+                        mode=NumberSelectorMode.SLIDER,
+                    )
+                ),
+                vol.Required(
+                    CONF_OVERRIDE_EMERGENCY,
+                    default=bool(current.get(CONF_OVERRIDE_EMERGENCY, DEFAULT_OVERRIDE_EMERGENCY)),
+                ): BooleanSelector(),
+                vol.Required(
+                    CONF_EXCLUDE_HAZARD_REDUCTION,
+                    default=bool(current.get(CONF_EXCLUDE_HAZARD_REDUCTION, DEFAULT_EXCLUDE_HAZARD_REDUCTION)),
+                ): BooleanSelector(),
+                vol.Optional(
+                    CONF_COUNCIL_DASHBOARD_URL,
+                    default=current.get(CONF_COUNCIL_DASHBOARD_URL, "") or "",
+                ): TextSelector(TextSelectorConfig(type=TextSelectorType.URL)),
+            }
+        )
+
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=schema,  # type: ignore[arg-type]
+            errors=errors,
+        )
+
     @staticmethod
     @callback
     def async_get_options_flow(
         config_entry: ConfigEntry,
     ) -> OptionsFlow:
         """Create the options flow."""
-        return EmergencyHazardsOptionsFlowHandler()
+        return AustralianDisasterWatchOptionsFlowHandler()
 
 
-class EmergencyHazardsOptionsFlowHandler(OptionsFlow):
-    """Handle options flow for Australian Emergency Hazards."""
+class AustralianDisasterWatchOptionsFlowHandler(OptionsFlow):
+    """Handle options flow for Australian Disaster Watch."""
 
     async def async_step_init(
         self,
@@ -346,3 +436,7 @@ class EmergencyHazardsOptionsFlowHandler(OptionsFlow):
             step_id="init",
             data_schema=schema,  # type: ignore[arg-type]
         )
+
+
+EmergencyHazardsConfigFlow = AustralianDisasterWatchConfigFlow
+EmergencyHazardsOptionsFlowHandler = AustralianDisasterWatchOptionsFlowHandler

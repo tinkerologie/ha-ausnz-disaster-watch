@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 import aiohttp
 
-from custom_components.aus_emergency_hazards.const import STATE_NSW, STATE_QLD, STATE_VIC
+from custom_components.australian_disaster_watch.const import STATE_NSW, STATE_QLD, STATE_VIC
 
 from .base import BaseHazardProvider
 from .bom import BoMHazardProvider

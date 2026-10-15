@@ -1,4 +1,4 @@
-"""Geolocation platform for Australian Emergency Hazards.
+"""Geolocation platform for Australian Disaster Watch.
 
 Renders active emergency incidents as interactive pins on Home Assistant map with
 dynamic lifecycle management (adding and removing entities cleanly).
@@ -17,7 +17,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
-from .coordinator import EmergencyDataCoordinator
+from .coordinator import AustralianDisasterWatchCoordinator
 from .models import CanonicalHazard, HazardType
 
 _LOGGER = logging.getLogger(__name__)
@@ -41,20 +41,20 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up Australian Emergency Hazards geolocation entities from a config entry."""
-    coordinator: EmergencyDataCoordinator = hass.data[DOMAIN][entry.entry_id]
-    registered_entities: dict[str, AustralianEmergencyHazardGeolocationEvent] = {}
+    """Set up Australian Disaster Watch geolocation entities from a config entry."""
+    coordinator: AustralianDisasterWatchCoordinator = hass.data[DOMAIN][entry.entry_id]
+    registered_entities: dict[str, AustralianDisasterWatchGeolocationEvent] = {}
 
     @callback
     def _sync_entities() -> None:
         """Dynamically add new incidents and remove expired ones on coordinator update."""
         current_data: dict[str, CanonicalHazard] = coordinator.data or {}
-        new_entities: list[AustralianEmergencyHazardGeolocationEvent] = []
+        new_entities: list[AustralianDisasterWatchGeolocationEvent] = []
 
         # Instantiate new entities for newly appeared incidents
         for hazard_id in current_data:
             if hazard_id not in registered_entities:
-                entity = AustralianEmergencyHazardGeolocationEvent(coordinator, hazard_id)
+                entity = AustralianDisasterWatchGeolocationEvent(coordinator, hazard_id)
                 registered_entities[hazard_id] = entity
                 new_entities.append(entity)
 
@@ -75,14 +75,14 @@ async def async_setup_entry(
     entry.async_on_unload(coordinator.async_add_listener(_sync_entities))
 
 
-class AustralianEmergencyHazardGeolocationEvent(CoordinatorEntity[EmergencyDataCoordinator], GeolocationEvent):
+class AustralianDisasterWatchGeolocationEvent(CoordinatorEntity[AustralianDisasterWatchCoordinator], GeolocationEvent):
     """Geolocation event entity representing an active disaster hazard or warning."""
 
     _attr_unit_of_measurement = UnitOfLength.KILOMETERS
 
     def __init__(
         self,
-        coordinator: EmergencyDataCoordinator,
+        coordinator: AustralianDisasterWatchCoordinator,
         hazard_id: str,
     ) -> None:
         """Initialize geolocation event."""
@@ -144,3 +144,6 @@ class AustralianEmergencyHazardGeolocationEvent(CoordinatorEntity[EmergencyDataC
         if not self.hazard:
             return {}
         return self.hazard.to_safe_attributes()
+
+
+AustralianEmergencyHazardGeolocationEvent = AustralianDisasterWatchGeolocationEvent

@@ -3,7 +3,7 @@ import { defineConfig } from "vite";
 export default defineConfig({
   build: {
     modulePreload: false,
-    outDir: "../custom_components/aus_emergency_hazards/frontend",
+    outDir: "../custom_components/australian_disaster_watch/frontend",
     emptyOutDir: true,
     target: "es2022",
     minify: true,

@@ -6,10 +6,10 @@
 
 ## Project Identity
 
-- **Domain:** `aus_emergency_hazards`
-- **Title:** Australian Emergency Hazards
-- **Class prefix:** `AusEmergencyHazards`
-- **Main code:** `custom_components/aus_emergency_hazards/`
+- **Domain:** `australian_disaster_watch`
+- **Title:** Australian Disaster Watch
+- **Class prefix:** `AustralianDisasterWatch`
+- **Main code:** `custom_components/australian_disaster_watch/`
 - **Validate:** `script/check` (type-check + lint-check + spell-check)
 - **Start HA:** `./script/develop` (kills existing, starts on port 8123)
 - **Force restart:** `pkill -f "hass --config" || true && pkill -f "debugpy.*5678" || true && ./script/develop`
@@ -117,7 +117,7 @@ script/check      # Always run before considering task complete
 
 - Live: terminal where `./script/develop` runs
 - File: `config/home-assistant.log` (most recent), `config/home-assistant.log.1` (previous)
-- Debug level: `custom_components.aus_emergency_hazards: debug` in `config/configuration.yaml`
+- Debug level: `custom_components.australian_disaster_watch: debug` in `config/configuration.yaml`
 
 ## Working With the Developer
 

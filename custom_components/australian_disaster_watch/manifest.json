@@ -1,6 +1,6 @@
 {
-  "domain": "aus_emergency_hazards",
-  "name": "Australian Emergency Hazards",
+  "domain": "australian_disaster_watch",
+  "name": "Australian Disaster Watch",
   "after_dependencies": [
     "frontend",
     "http",

@@ -5,9 +5,12 @@ from unittest.mock import AsyncMock
 
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.aus_emergency_hazards.const import DEFAULT_SCAN_INTERVAL, THREAT_SCAN_INTERVAL
-from custom_components.aus_emergency_hazards.coordinator import EmergencyDataCoordinator, calculate_haversine_distance
-from custom_components.aus_emergency_hazards.models import CanonicalHazard, WarningLevel
+from custom_components.australian_disaster_watch.const import DEFAULT_SCAN_INTERVAL, THREAT_SCAN_INTERVAL
+from custom_components.australian_disaster_watch.coordinator import (
+    AustralianDisasterWatchCoordinator,
+    calculate_haversine_distance,
+)
+from custom_components.australian_disaster_watch.models import CanonicalHazard, WarningLevel
 from homeassistant.core import HomeAssistant
 
 
@@ -37,7 +40,7 @@ async def test_coordinator_filtering_and_override(
 ) -> None:
     """Test spatial filtering, hazard reduction exclusion, and emergency warning override."""
     mock_config_entry.add_to_hass(hass)
-    coordinator = EmergencyDataCoordinator(hass, mock_config_entry)
+    coordinator = AustralianDisasterWatchCoordinator(hass, mock_config_entry)
 
     # Mock provider returning 5 hazards:
     # 1. Nearby emergency warning (~21 km) -> Keep
@@ -85,7 +88,7 @@ async def test_coordinator_normal_polling_when_no_threat(
 ) -> None:
     """Test coordinator reverts to standard 5 min polling when only Advice or Information is present."""
     mock_config_entry.add_to_hass(hass)
-    coordinator = EmergencyDataCoordinator(hass, mock_config_entry)
+    coordinator = AustralianDisasterWatchCoordinator(hass, mock_config_entry)
 
     mock_provider = AsyncMock()
     mock_provider.async_fetch_hazards.return_value = [mock_hazard_advice]
@@ -105,7 +108,7 @@ async def test_coordinator_options_update(
 ) -> None:
     """Test updating coordinator options dynamically."""
     mock_config_entry.add_to_hass(hass)
-    coordinator = EmergencyDataCoordinator(hass, mock_config_entry)
+    coordinator = AustralianDisasterWatchCoordinator(hass, mock_config_entry)
     assert coordinator.radius_km == 50.0
 
     # Simulate options update to 100 km radius
@@ -115,3 +118,57 @@ async def test_coordinator_options_update(
     )
     coordinator.update_options()
     assert coordinator.radius_km == 100.0
+
+
+async def test_coordinator_provider_exception_handling(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    mock_hazard_advice: CanonicalHazard,
+) -> None:
+    """Test coordinator handles provider exceptions gracefully."""
+    mock_config_entry.add_to_hass(hass)
+    coordinator = AustralianDisasterWatchCoordinator(hass, mock_config_entry)
+
+    failing_provider = AsyncMock()
+    failing_provider.async_fetch_hazards.side_effect = RuntimeError("Feed offline")
+    working_provider = AsyncMock()
+    working_provider.async_fetch_hazards.return_value = [mock_hazard_advice]
+    coordinator.providers = [failing_provider, working_provider]
+
+    await coordinator.async_refresh()
+    assert len(coordinator.data) == 1
+    assert mock_hazard_advice.id in coordinator.data
+
+
+async def test_coordinator_dynamic_interval_reset(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    mock_hazard_emergency_warning: CanonicalHazard,
+) -> None:
+    """Test coordinator reverts interval from 60s to 300s when threat resolves."""
+    mock_config_entry.add_to_hass(hass)
+    coordinator = AustralianDisasterWatchCoordinator(hass, mock_config_entry)
+
+    mock_provider = AsyncMock()
+    mock_provider.async_fetch_hazards.return_value = [mock_hazard_emergency_warning]
+    coordinator.providers = [mock_provider]
+
+    await coordinator.async_refresh()
+    assert coordinator.update_interval == timedelta(seconds=THREAT_SCAN_INTERVAL)
+
+    # Next refresh has no hazards -> reverts to DEFAULT_SCAN_INTERVAL
+    mock_provider.async_fetch_hazards.return_value = []
+    await coordinator.async_refresh()
+    assert coordinator.update_interval == timedelta(seconds=DEFAULT_SCAN_INTERVAL)
+
+
+async def test_coordinator_empty_data_properties(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+) -> None:
+    """Test properties when coordinator has no data."""
+    coordinator = AustralianDisasterWatchCoordinator(hass, mock_config_entry)
+    coordinator.data = {}
+    assert coordinator.active_hazards == []
+    assert coordinator.highest_warning_level == WarningLevel.INFORMATION
+    assert coordinator.nearest_hazard is None

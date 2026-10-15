@@ -302,7 +302,7 @@ export class AusDisasterCard extends LitElement {
     const incidents: IncidentItem[] = [];
     const geoPrefix = "geo_location.";
 
-    // Look for geo_location entities added by the aus_emergency_hazards integration
+    // Look for geo_location entities added by the australian_disaster_watch integration
     for (const [entityId, stateObj] of Object.entries(this._hass.states)) {
       if (
         entityId.startsWith(geoPrefix) &&
@@ -312,7 +312,7 @@ export class AusDisasterCard extends LitElement {
           stateObj.attributes.source?.includes("NSW") ||
           stateObj.attributes.source?.includes("Vic") ||
           stateObj.attributes.source?.includes("Bureau") ||
-          stateObj.attributes.source?.includes("aus_emergency_hazards"))
+          stateObj.attributes.source?.includes("australian_disaster_watch"))
       ) {
         incidents.push({
           id: entityId,

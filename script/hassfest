@@ -31,7 +31,7 @@ source "$SCRIPT_DIR/.lib/output.sh"
 # Configuration
 HA_CORE_DIR=".local/ha-core"
 HA_CORE_REPO="https://github.com/home-assistant/core.git"
-INTEGRATION_PATH="custom_components/aus_emergency_hazards"
+INTEGRATION_PATH="custom_components/australian_disaster_watch"
 
 # Detect Home Assistant version to use
 if [ -n "${HA_VERSION:-}" ]; then

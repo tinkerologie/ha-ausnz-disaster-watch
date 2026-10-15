@@ -6,8 +6,8 @@ import logging
 import re
 from typing import Any
 
-from custom_components.aus_emergency_hazards.const import STATE_NSW
-from custom_components.aus_emergency_hazards.models import CanonicalHazard, HazardType, WarningLevel
+from custom_components.australian_disaster_watch.const import STATE_NSW
+from custom_components.australian_disaster_watch.models import CanonicalHazard, HazardType, WarningLevel
 
 from .base import BaseHazardProvider
 

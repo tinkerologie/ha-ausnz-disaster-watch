@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.aus_emergency_hazards.const import (
+from custom_components.australian_disaster_watch.const import (
     CONF_COUNCIL_DASHBOARD_URL,
     CONF_EXCLUDE_HAZARD_REDUCTION,
     CONF_LATITUDE,
@@ -21,7 +21,7 @@ from custom_components.aus_emergency_hazards.const import (
     LOCATION_MODE_CUSTOM,
     STATE_QLD,
 )
-from custom_components.aus_emergency_hazards.models import CanonicalHazard, HazardType, WarningLevel
+from custom_components.australian_disaster_watch.models import CanonicalHazard, HazardType, WarningLevel
 
 
 @pytest.fixture(autouse=True)
@@ -138,7 +138,7 @@ def mock_config_entry() -> MockConfigEntry:
     """Create a mock config entry configured for Moreton Bay, Queensland."""
     return MockConfigEntry(
         domain=DOMAIN,
-        title="Emergency Hazards (QLD - City of Moreton Bay)",
+        title="Australian Disaster Watch (QLD - City of Moreton Bay)",
         data={
             CONF_STATE: STATE_QLD,
             CONF_LOCATION_MODE: LOCATION_MODE_CUSTOM,
@@ -150,5 +150,5 @@ def mock_config_entry() -> MockConfigEntry:
             CONF_EXCLUDE_HAZARD_REDUCTION: True,
             CONF_COUNCIL_DASHBOARD_URL: "https://disaster.moretonbay.qld.gov.au",
         },
-        unique_id="aus_emergency_hazards_qld_city_of_moreton_bay",
+        unique_id="australian_disaster_watch_qld_city_of_moreton_bay",
     )

@@ -1,10 +1,10 @@
-"""Constants for the Australian Emergency Hazards integration."""
+"""Constants for the Australian Disaster Watch integration."""
 
 from __future__ import annotations
 
 from typing import Final
 
-DOMAIN: Final = "aus_emergency_hazards"
+DOMAIN: Final = "australian_disaster_watch"
 
 # Configuration options
 CONF_STATE: Final = "state"
@@ -22,7 +22,7 @@ LOCATION_MODE_HOME: Final = "home"
 LOCATION_MODE_CUSTOM: Final = "custom"
 
 # Default values
-DEFAULT_NAME: Final = "Australian Emergency Hazards"
+DEFAULT_NAME: Final = "Australian Disaster Watch"
 DEFAULT_RADIUS: Final = 50  # km
 MIN_RADIUS: Final = 5  # km
 MAX_RADIUS: Final = 300  # km

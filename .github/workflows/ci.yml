@@ -145,10 +145,10 @@ jobs:
 
       - name: Committed bundle matches source
         run: |
-          changes="$(git status --porcelain --untracked-files=all -- ../custom_components/aus_emergency_hazards/frontend/)"
+          changes="$(git status --porcelain --untracked-files=all -- ../custom_components/australian_disaster_watch/frontend/)"
           if [ -n "$changes" ]; then
             echo "Committed frontend bundle is out of date:"
             echo "$changes"
-            git diff -- ../custom_components/aus_emergency_hazards/frontend/
+            git diff -- ../custom_components/australian_disaster_watch/frontend/
             exit 1
           fi

@@ -1,4 +1,4 @@
-"""DataUpdateCoordinator for Australian Emergency Hazards."""
+"""DataUpdateCoordinator for Australian Disaster Watch."""
 
 from __future__ import annotations
 
@@ -10,20 +10,8 @@ from typing import TYPE_CHECKING, Any
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from .const import (
-    CONF_EXCLUDE_HAZARD_REDUCTION,
-    CONF_LATITUDE,
-    CONF_LONGITUDE,
-    CONF_OVERRIDE_EMERGENCY,
-    CONF_RADIUS,
-    DEFAULT_EXCLUDE_HAZARD_REDUCTION,
-    DEFAULT_OVERRIDE_EMERGENCY,
-    DEFAULT_RADIUS,
-    DEFAULT_SCAN_INTERVAL,
-    DOMAIN,
-    THREAT_SCAN_INTERVAL,
-)
-from .models import CanonicalHazard, WarningLevel
+from .const import DEFAULT_SCAN_INTERVAL, DOMAIN, THREAT_SCAN_INTERVAL
+from .models import CanonicalHazard, DisasterWatchConfigModel, WarningLevel
 from .providers import get_providers_for_config
 
 if TYPE_CHECKING:
@@ -53,7 +41,7 @@ def calculate_haversine_distance(
     return r * c
 
 
-class EmergencyDataCoordinator(DataUpdateCoordinator[dict[str, CanonicalHazard]]):
+class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[dict[str, CanonicalHazard]]):
     """Coordinator to manage polling of emergency hazards with spatial filtering."""
 
     config_entry: ConfigEntry
@@ -74,27 +62,23 @@ class EmergencyDataCoordinator(DataUpdateCoordinator[dict[str, CanonicalHazard]]
         )
 
     def _update_config_values(self) -> None:
-        """Update internal parameters from entry data and options."""
+        """Update internal parameters from entry data and options using Pydantic."""
         # Merge data and options (options take precedence)
         self.combined_config: dict[str, Any] = {
             **self.entry.data,
             **self.entry.options,
         }
 
-        self.state_code: str = str(self.combined_config.get("state", "QLD")).upper()
-        self.radius_km: float = float(self.combined_config.get(CONF_RADIUS, DEFAULT_RADIUS))
-        self.override_emergency: bool = bool(
-            self.combined_config.get(CONF_OVERRIDE_EMERGENCY, DEFAULT_OVERRIDE_EMERGENCY)
-        )
-        self.exclude_hazard_reduction: bool = bool(
-            self.combined_config.get(CONF_EXCLUDE_HAZARD_REDUCTION, DEFAULT_EXCLUDE_HAZARD_REDUCTION)
-        )
+        # Validate using Pydantic v2 model
+        cfg = DisasterWatchConfigModel.model_validate(self.combined_config)
+        self.state_code: str = cfg.state.upper()
+        self.radius_km: float = float(cfg.radius)
+        self.override_emergency: bool = cfg.override_emergency
+        self.exclude_hazard_reduction: bool = cfg.exclude_hazard_reduction
 
         # Latitude and Longitude (fallback to HA default home location)
-        self.latitude: float = float(self.combined_config.get(CONF_LATITUDE) or self.hass.config.latitude or -27.2657)
-        self.longitude: float = float(
-            self.combined_config.get(CONF_LONGITUDE) or self.hass.config.longitude or 152.9818
-        )
+        self.latitude: float = float(cfg.latitude or self.hass.config.latitude or -27.2657)
+        self.longitude: float = float(cfg.longitude or self.hass.config.longitude or 152.9818)
 
     def update_options(self) -> None:
         """Handle options update without full integration reload."""
@@ -194,3 +178,6 @@ class EmergencyDataCoordinator(DataUpdateCoordinator[dict[str, CanonicalHazard]]
     def has_emergency_warning_nearby(self) -> bool:
         """Return True if any Emergency Warning or Watch and Act is active nearby."""
         return any(h.is_active_threat for h in self.active_hazards)
+
+
+EmergencyDataCoordinator = AustralianDisasterWatchCoordinator

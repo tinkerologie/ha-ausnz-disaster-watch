@@ -2,7 +2,7 @@
   "config": {
     "step": {
       "user": {
-        "title": "Australian Emergency Hazards Setup",
+        "title": "Australian Disaster Watch Setup",
         "description": "Configure disaster and emergency incident monitoring for your region in Australia.",
         "data": {
           "state": "State / Jurisdiction",
@@ -22,6 +22,20 @@
           "longitude": "Longitude",
           "council_dashboard_url": "Council Disaster Dashboard URL (Guardian IMS / Open API)"
         }
+      },
+      "reconfigure": {
+        "title": "Reconfigure Australian Disaster Watch",
+        "description": "Update location coordinates, state jurisdiction, or council dashboard endpoint.",
+        "data": {
+          "state": "State / Jurisdiction",
+          "location_name": "Location Name",
+          "latitude": "Latitude",
+          "longitude": "Longitude",
+          "radius": "Monitoring Radius (km)",
+          "override_emergency": "Statewide Emergency Warning Override",
+          "exclude_hazard_reduction": "Exclude Hazard Reduction / Planned Burns",
+          "council_dashboard_url": "Council Disaster Dashboard URL"
+        }
       }
     },
     "error": {
@@ -29,13 +43,14 @@
       "cannot_connect": "Failed to connect to emergency data feeds."
     },
     "abort": {
-      "already_configured": "This jurisdiction and location is already configured."
+      "already_configured": "This jurisdiction and location is already configured.",
+      "reconfigure_successful": "Reconfiguration successful."
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Configure Australian Emergency Hazards Options",
+        "title": "Configure Australian Disaster Watch Options",
         "description": "Adjust spatial perimeter radius, emergency warning overrides, and council dashboard endpoints.",
         "data": {
           "radius": "Monitoring Radius (km)",

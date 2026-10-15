@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any
 
 import aiohttp
 
-from custom_components.aus_emergency_hazards.models import CanonicalHazard
+from custom_components.australian_disaster_watch.models import CanonicalHazard
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -60,7 +60,6 @@ class BaseHazardProvider(ABC):
             req_headers.update(headers)
 
         backoff = INITIAL_BACKOFF
-        last_error: Exception | None = None
 
         for attempt in range(1, MAX_RETRIES + 1):
             try:
@@ -87,7 +86,6 @@ class BaseHazardProvider(ABC):
                             continue
                     resp.raise_for_status()
             except (TimeoutError, aiohttp.ClientError) as err:
-                last_error = err
                 _LOGGER.debug(
                     "Network error fetching %s (attempt %s/%s): %s",
                     url,
@@ -101,9 +99,8 @@ class BaseHazardProvider(ABC):
                 else:
                     raise
 
-        if last_error:
-            raise last_error
-        return None
+        msg = f"Failed to fetch {url} after {MAX_RETRIES} attempts"  # pragma: no cover
+        raise aiohttp.ClientError(msg)  # pragma: no cover
 
     @staticmethod
     def calculate_centroid(geometry: dict[str, Any]) -> tuple[float, float] | None:

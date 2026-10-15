@@ -1,4 +1,4 @@
-"""The Australian Emergency Hazards integration."""
+"""The Australian Disaster Watch integration."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 
 from .const import DOMAIN
-from .coordinator import EmergencyDataCoordinator
+from .coordinator import AustralianDisasterWatchCoordinator
 from .frontend import async_register_frontend
 
 _LOGGER = logging.getLogger(__name__)
@@ -26,15 +26,15 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Set up the Australian Emergency Hazards component."""
+    """Set up the Australian Disaster Watch component."""
     # Register dashboard frontend cards
     await async_register_frontend(hass)
     return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up Australian Emergency Hazards from a config entry."""
-    coordinator = EmergencyDataCoordinator(hass, entry)
+    """Set up Australian Disaster Watch from a config entry."""
+    coordinator = AustralianDisasterWatchCoordinator(hass, entry)
 
     # Perform initial data fetch
     await coordinator.async_config_entry_first_refresh()
@@ -52,7 +52,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Handle options or config entry update without full reload."""
-    coordinator: EmergencyDataCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator: AustralianDisasterWatchCoordinator = hass.data[DOMAIN][entry.entry_id]
     coordinator.update_options()
     await coordinator.async_refresh()
 

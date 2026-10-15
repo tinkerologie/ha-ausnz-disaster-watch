@@ -1,4 +1,4 @@
-"""Base entity class for Australian Emergency Hazards integration."""
+"""Base entity class for Australian Disaster Watch integration."""
 
 from __future__ import annotations
 
@@ -6,17 +6,17 @@ from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import CONF_LOCATION_NAME, DEFAULT_NAME, DOMAIN
-from .coordinator import EmergencyDataCoordinator
+from .coordinator import AustralianDisasterWatchCoordinator
 
 
-class EmergencyHazardBaseEntity(CoordinatorEntity[EmergencyDataCoordinator]):
-    """Base entity for Australian Emergency Hazards."""
+class AustralianDisasterWatchEntity(CoordinatorEntity[AustralianDisasterWatchCoordinator]):
+    """Base entity for Australian Disaster Watch."""
 
     _attr_has_entity_name = True
 
     def __init__(
         self,
-        coordinator: EmergencyDataCoordinator,
+        coordinator: AustralianDisasterWatchCoordinator,
         entity_key: str,
     ) -> None:
         """Initialize the base entity."""
@@ -36,3 +36,6 @@ class EmergencyHazardBaseEntity(CoordinatorEntity[EmergencyDataCoordinator]):
             model=f"Disaster Monitor ({state})",
             entry_type=DeviceEntryType.SERVICE,
         )
+
+
+EmergencyHazardBaseEntity = AustralianDisasterWatchEntity

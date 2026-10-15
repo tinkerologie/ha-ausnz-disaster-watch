@@ -25,13 +25,13 @@ This is a Home Assistant custom integration that was generated from a blueprint 
 
 **Integration details:**
 
-- **Domain:** `aus_emergency_hazards`
-- **Title:** Australian Emergency Hazards
+- **Domain:** `australian_disaster_watch`
+- **Title:** Australian Disaster Watch
 - **Repository:** ruaan-deysel/ha-australian-disaster-watch
 
 **Key directories:**
 
-- `custom_components/aus_emergency_hazards/` - Main integration code
+- `custom_components/australian_disaster_watch/` - Main integration code
 - `config/` - Home Assistant configuration for local testing
 - `tests/` - Unit and integration tests
 - `script/` - Development and validation scripts
@@ -64,7 +64,7 @@ pkill -f "hass --config" || true && pkill -f "debugpy.*5678" || true && ./script
 
 **Adjusting log levels:**
 
-- Integration logs: `custom_components.aus_emergency_hazards: debug` in `config/configuration.yaml`
+- Integration logs: `custom_components.australian_disaster_watch: debug` in `config/configuration.yaml`
 - You can modify log levels when debugging - just restart HA after changes
 
 **Context-specific instructions:**
@@ -197,15 +197,15 @@ As an AI agent, **aim for Silver or Gold Quality Scale** when generating code:
 
 This integration uses the following identifiers consistently:
 
-- **Domain:** `aus_emergency_hazards`
-- **Title:** Australian Emergency Hazards
-- **Class prefix:** `AusEmergencyHazards`
+- **Domain:** `australian_disaster_watch`
+- **Title:** Australian Disaster Watch
+- **Class prefix:** `AustralianDisasterWatch`
 
 **When creating new files:**
 
-- Use the domain `aus_emergency_hazards` for all DOMAIN references
-- Prefix all integration-specific classes with `AusEmergencyHazards`
-- Use "Australian Emergency Hazards" as the display title
+- Use the domain `australian_disaster_watch` for all DOMAIN references
+- Prefix all integration-specific classes with `AustralianDisasterWatch`
+- Use "Australian Disaster Watch" as the display title
 - Never hardcode different values
 
 ### Integration Structure
@@ -470,7 +470,7 @@ See `.github/instructions/python.instructions.md` for linter overrides and error
 
 **Test structure:**
 
-- `tests/` mirrors `custom_components/aus_emergency_hazards/` structure
+- `tests/` mirrors `custom_components/australian_disaster_watch/` structure
 - Use fixtures for common setup (Home Assistant mock, coordinator, etc.)
 - Mock external API calls
 

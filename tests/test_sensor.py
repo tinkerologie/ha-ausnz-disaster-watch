@@ -1,10 +1,13 @@
 """Unit tests for Australian Emergency Hazards sensor platform."""
 
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.aus_emergency_hazards.models import CanonicalHazard
+from custom_components.australian_disaster_watch.coordinator import AustralianDisasterWatchCoordinator
+from custom_components.australian_disaster_watch.models import CanonicalHazard, HazardType, WarningLevel
+from custom_components.australian_disaster_watch.sensor import HighestWarningLevelSensor
 from homeassistant.core import HomeAssistant
 
 
@@ -24,13 +27,13 @@ async def test_sensors_telemetry(
     ]
 
     with patch(
-        "custom_components.aus_emergency_hazards.coordinator.get_providers_for_config",
+        "custom_components.australian_disaster_watch.coordinator.get_providers_for_config",
         return_value=[mock_provider],
     ):
         await hass.config_entries.async_setup(mock_config_entry.entry_id)
         await hass.async_block_till_done()
 
-    prefix = "sensor.australian_emergency_hazards_qld_city_of_moreton_bay"
+    prefix = "sensor.australian_disaster_watch_qld_city_of_moreton_bay"
 
     # Nearest Distance sensor: closest is mock_hazard_advice (~10.9 km)
     dist_state = hass.states.get(f"{prefix}_nearest_hazard_distance")
@@ -67,13 +70,13 @@ async def test_sensors_clear_state(
     mock_provider.async_fetch_hazards.return_value = []
 
     with patch(
-        "custom_components.aus_emergency_hazards.coordinator.get_providers_for_config",
+        "custom_components.australian_disaster_watch.coordinator.get_providers_for_config",
         return_value=[mock_provider],
     ):
         await hass.config_entries.async_setup(mock_config_entry.entry_id)
         await hass.async_block_till_done()
 
-    prefix = "sensor.australian_emergency_hazards_qld_city_of_moreton_bay"
+    prefix = "sensor.australian_disaster_watch_qld_city_of_moreton_bay"
 
     dist_state = hass.states.get(f"{prefix}_nearest_hazard_distance")
     assert dist_state is not None
@@ -86,3 +89,51 @@ async def test_sensors_clear_state(
     level_state = hass.states.get(f"{prefix}_highest_warning_level")
     assert level_state is not None
     assert level_state.state == "All Clear"
+
+
+async def test_highest_warning_level_sensor_icons(hass: HomeAssistant, mock_config_entry: MockConfigEntry) -> None:
+    """Test icon selection for different warning levels."""
+    coordinator = AustralianDisasterWatchCoordinator(hass, mock_config_entry)
+    sensor = HighestWarningLevelSensor(coordinator)
+
+    coordinator.data = {}
+    assert sensor.icon == "mdi:shield-check"
+
+    hazard_advice = CanonicalHazard(
+        id="1",
+        source="s",
+        title="t",
+        hazard_type=HazardType.BUSHFIRE,
+        warning_level=WarningLevel.ADVICE,
+        latitude=-25.0,
+        longitude=150.0,
+        updated_at=datetime.now(UTC),
+    )
+    coordinator.data = {"1": hazard_advice}
+    assert sensor.icon == "mdi:information"
+
+    hazard_wa = CanonicalHazard(
+        id="2",
+        source="s",
+        title="t",
+        hazard_type=HazardType.BUSHFIRE,
+        warning_level=WarningLevel.WATCH_AND_ACT,
+        latitude=-25.0,
+        longitude=150.0,
+        updated_at=datetime.now(UTC),
+    )
+    coordinator.data = {"2": hazard_wa}
+    assert sensor.icon == "mdi:alert"
+
+    hazard_ew = CanonicalHazard(
+        id="3",
+        source="s",
+        title="t",
+        hazard_type=HazardType.BUSHFIRE,
+        warning_level=WarningLevel.EMERGENCY_WARNING,
+        latitude=-25.0,
+        longitude=150.0,
+        updated_at=datetime.now(UTC),
+    )
+    coordinator.data = {"3": hazard_ew}
+    assert sensor.icon == "mdi:alert-octagon"

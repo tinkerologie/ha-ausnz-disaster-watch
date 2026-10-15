@@ -6,8 +6,8 @@ import hashlib
 import logging
 from typing import Any
 
-from custom_components.aus_emergency_hazards.const import CONF_COUNCIL_DASHBOARD_URL, STATE_QLD
-from custom_components.aus_emergency_hazards.models import CanonicalHazard, HazardType, WarningLevel
+from custom_components.australian_disaster_watch.const import CONF_COUNCIL_DASHBOARD_URL, STATE_QLD
+from custom_components.australian_disaster_watch.models import CanonicalHazard, HazardType, WarningLevel
 
 from .base import BaseHazardProvider
 
@@ -111,9 +111,10 @@ class QueenslandHazardProvider(BaseHazardProvider):
             return None
 
         lat, lon = centroid
-        unique_id = (
-            str(properties.get("UniqueID")) or str(properties.get("OBJECTID")) or str(properties.get("Incident_Number"))
-        )
+        raw_uid = properties.get("UniqueID") or properties.get("OBJECTID") or properties.get("Incident_Number")
+        if not raw_uid:
+            return None
+        unique_id = str(raw_uid).strip()
         if not unique_id:
             return None
 
@@ -182,9 +183,10 @@ class QueenslandHazardProvider(BaseHazardProvider):
         except (ValueError, TypeError):
             return None
 
-        inc_id = str(props.get("Master_Incident_Number") or props.get("MIN_ID") or item.get("id"))
-        if not inc_id or inc_id == "0":
+        raw_inc = props.get("Master_Incident_Number") or props.get("MIN_ID") or item.get("id")
+        if not raw_inc or str(raw_inc) == "0":
             return None
+        inc_id = str(raw_inc)
 
         title = str(
             props.get("Location_Name")
@@ -233,9 +235,10 @@ class QueenslandHazardProvider(BaseHazardProvider):
             return None
 
         lat, lon = centroid
-        road_id = str(props.get("id") or item.get("id"))
-        if not road_id:
+        raw_road_id = props.get("id") or item.get("id")
+        if not raw_road_id:
             return None
+        road_id = str(raw_road_id)
 
         event_type = props.get("event_type", "Hazard")
         impact = props.get("impact", {})
@@ -323,9 +326,10 @@ class QueenslandHazardProvider(BaseHazardProvider):
         lat = centroid[0] if centroid else float(self.config.get("latitude", -27.2657))
         lon = centroid[1] if centroid else float(self.config.get("longitude", 152.9818))
 
-        bulletin_id = str(props.get("id") or props.get("bulletin_id"))
-        if not bulletin_id:
+        raw_id = props.get("id") or props.get("bulletin_id")
+        if not raw_id:
             return None
+        bulletin_id = str(raw_id)
 
         title = str(props.get("title") or props.get("headline") or "Council Disaster Bulletin").strip()
         warning_level = WarningLevel.from_str(props.get("priority") or props.get("level"))

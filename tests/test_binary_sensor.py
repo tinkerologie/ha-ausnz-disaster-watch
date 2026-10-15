@@ -4,13 +4,13 @@ from unittest.mock import AsyncMock, patch
 
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.aus_emergency_hazards.const import (
+from custom_components.australian_disaster_watch.const import (
     ATTR_HIGHEST_WARNING_LEVEL,
     ATTR_INCIDENT_COUNT,
     ATTR_NEAREST_INCIDENT_DISTANCE,
     ATTR_NEAREST_INCIDENT_TITLE,
 )
-from custom_components.aus_emergency_hazards.models import CanonicalHazard
+from custom_components.australian_disaster_watch.models import CanonicalHazard
 from homeassistant.const import STATE_OFF, STATE_ON
 from homeassistant.core import HomeAssistant
 
@@ -31,16 +31,14 @@ async def test_emergency_warning_nearby_binary_sensor(
     ]
 
     with patch(
-        "custom_components.aus_emergency_hazards.coordinator.get_providers_for_config",
+        "custom_components.australian_disaster_watch.coordinator.get_providers_for_config",
         return_value=[mock_provider],
     ):
         await hass.config_entries.async_setup(mock_config_entry.entry_id)
         await hass.async_block_till_done()
 
     # Verify binary_sensor.emergency_warning_nearby is ON
-    state = hass.states.get(
-        "binary_sensor.australian_emergency_hazards_qld_city_of_moreton_bay_emergency_warning_nearby"
-    )
+    state = hass.states.get("binary_sensor.australian_disaster_watch_qld_city_of_moreton_bay_emergency_warning_nearby")
     assert state is not None
     assert state.state == STATE_ON
     assert state.attributes[ATTR_HIGHEST_WARNING_LEVEL] == "Emergency Warning"
@@ -50,7 +48,7 @@ async def test_emergency_warning_nearby_binary_sensor(
 
     # Verify active hazards nearby binary sensor is ON
     active_state = hass.states.get(
-        "binary_sensor.australian_emergency_hazards_qld_city_of_moreton_bay_active_hazards_nearby"
+        "binary_sensor.australian_disaster_watch_qld_city_of_moreton_bay_active_hazards_nearby"
     )
     assert active_state is not None
     assert active_state.state == STATE_ON
@@ -67,20 +65,18 @@ async def test_binary_sensors_off_when_no_threats(
     mock_provider.async_fetch_hazards.return_value = []
 
     with patch(
-        "custom_components.aus_emergency_hazards.coordinator.get_providers_for_config",
+        "custom_components.australian_disaster_watch.coordinator.get_providers_for_config",
         return_value=[mock_provider],
     ):
         await hass.config_entries.async_setup(mock_config_entry.entry_id)
         await hass.async_block_till_done()
 
-    state = hass.states.get(
-        "binary_sensor.australian_emergency_hazards_qld_city_of_moreton_bay_emergency_warning_nearby"
-    )
+    state = hass.states.get("binary_sensor.australian_disaster_watch_qld_city_of_moreton_bay_emergency_warning_nearby")
     assert state is not None
     assert state.state == STATE_OFF
 
     active_state = hass.states.get(
-        "binary_sensor.australian_emergency_hazards_qld_city_of_moreton_bay_active_hazards_nearby"
+        "binary_sensor.australian_disaster_watch_qld_city_of_moreton_bay_active_hazards_nearby"
     )
     assert active_state is not None
     assert active_state.state == STATE_OFF

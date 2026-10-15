@@ -13,10 +13,10 @@ Read `AGENTS.md` completely before starting any work. It contains:
 
 ## Quick Reference
 
-- **Domain:** `aus_emergency_hazards`
-- **Title:** Australian Emergency Hazards
-- **Class prefix:** `AusEmergencyHazards`
-- **Main code:** `custom_components/aus_emergency_hazards/`
+- **Domain:** `australian_disaster_watch`
+- **Title:** Australian Disaster Watch
+- **Class prefix:** `AustralianDisasterWatch`
+- **Main code:** `custom_components/australian_disaster_watch/`
 - **Validate:** `script/check` (type-check + lint + spell)
 - **Test:** `script/test`
 - **Run HA:** `./script/develop`

@@ -4,9 +4,10 @@ from unittest.mock import AsyncMock, patch
 
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.aus_emergency_hazards.const import DOMAIN
-from custom_components.aus_emergency_hazards.coordinator import EmergencyDataCoordinator
-from custom_components.aus_emergency_hazards.models import CanonicalHazard
+from custom_components.australian_disaster_watch.const import DOMAIN
+from custom_components.australian_disaster_watch.coordinator import AustralianDisasterWatchCoordinator
+from custom_components.australian_disaster_watch.geo_location import AustralianDisasterWatchGeolocationEvent
+from custom_components.australian_disaster_watch.models import CanonicalHazard
 from homeassistant.core import HomeAssistant
 
 
@@ -25,13 +26,13 @@ async def test_geolocation_dynamic_lifecycle(
     ]
 
     with patch(
-        "custom_components.aus_emergency_hazards.coordinator.get_providers_for_config",
+        "custom_components.australian_disaster_watch.coordinator.get_providers_for_config",
         return_value=[mock_provider],
     ):
         await hass.config_entries.async_setup(mock_config_entry.entry_id)
         await hass.async_block_till_done()
 
-    coordinator: EmergencyDataCoordinator = hass.data[DOMAIN][mock_config_entry.entry_id]
+    coordinator: AustralianDisasterWatchCoordinator = hass.data[DOMAIN][mock_config_entry.entry_id]
 
     # Verify initial geolocation entity is present
     geo_states = [s for s in hass.states.async_all() if s.entity_id.startswith("geo_location.")]
@@ -73,7 +74,7 @@ async def test_geolocation_empty_feed(
     mock_provider.async_fetch_hazards.return_value = []
 
     with patch(
-        "custom_components.aus_emergency_hazards.coordinator.get_providers_for_config",
+        "custom_components.australian_disaster_watch.coordinator.get_providers_for_config",
         return_value=[mock_provider],
     ):
         await hass.config_entries.async_setup(mock_config_entry.entry_id)
@@ -81,3 +82,12 @@ async def test_geolocation_empty_feed(
 
     geo_states = [s for s in hass.states.async_all() if s.entity_id.startswith("geo_location.")]
     assert len(geo_states) == 0
+
+
+async def test_geolocation_event_fallback(hass: HomeAssistant, mock_config_entry: MockConfigEntry) -> None:
+    """Test geolocation event fallback when coordinator data is empty."""
+    coordinator = AustralianDisasterWatchCoordinator(hass, mock_config_entry)
+    coordinator.data = {}
+    event = AustralianDisasterWatchGeolocationEvent(coordinator, "missing_id")
+    assert event.hazard is None
+    assert event.name == "Emergency Incident"

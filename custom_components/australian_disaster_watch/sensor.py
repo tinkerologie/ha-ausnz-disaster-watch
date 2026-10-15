@@ -1,4 +1,4 @@
-"""Sensor platform for Australian Emergency Hazards."""
+"""Sensor platform for Australian Disaster Watch."""
 
 from __future__ import annotations
 
@@ -11,8 +11,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
-from .coordinator import EmergencyDataCoordinator
-from .entity import EmergencyHazardBaseEntity
+from .coordinator import AustralianDisasterWatchCoordinator
+from .entity import AustralianDisasterWatchEntity
 
 
 async def async_setup_entry(
@@ -20,8 +20,8 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up Australian Emergency Hazards sensors."""
-    coordinator: EmergencyDataCoordinator = hass.data[DOMAIN][entry.entry_id]
+    """Set up Australian Disaster Watch sensors."""
+    coordinator: AustralianDisasterWatchCoordinator = hass.data[DOMAIN][entry.entry_id]
 
     async_add_entities(
         [
@@ -33,7 +33,7 @@ async def async_setup_entry(
     )
 
 
-class NearestHazardDistanceSensor(EmergencyHazardBaseEntity, SensorEntity):
+class NearestHazardDistanceSensor(AustralianDisasterWatchEntity, SensorEntity):
     """Sensor tracking distance to the closest active emergency hazard."""
 
     _attr_device_class = SensorDeviceClass.DISTANCE
@@ -42,7 +42,7 @@ class NearestHazardDistanceSensor(EmergencyHazardBaseEntity, SensorEntity):
     _attr_translation_key = "nearest_hazard_distance"
     _attr_icon = "mdi:map-marker-distance"
 
-    def __init__(self, coordinator: EmergencyDataCoordinator) -> None:
+    def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize distance sensor."""
         super().__init__(coordinator, "nearest_hazard_distance")
         self._attr_name = "Nearest Hazard Distance"
@@ -71,7 +71,7 @@ class NearestHazardDistanceSensor(EmergencyHazardBaseEntity, SensorEntity):
         }
 
 
-class ActiveHazardsCountSensor(EmergencyHazardBaseEntity, SensorEntity):
+class ActiveHazardsCountSensor(AustralianDisasterWatchEntity, SensorEntity):
     """Sensor tracking total count of active hazards within perimeter."""
 
     _attr_state_class = SensorStateClass.MEASUREMENT
@@ -79,7 +79,7 @@ class ActiveHazardsCountSensor(EmergencyHazardBaseEntity, SensorEntity):
     _attr_translation_key = "active_hazards_count"
     _attr_icon = "mdi:counter"
 
-    def __init__(self, coordinator: EmergencyDataCoordinator) -> None:
+    def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize count sensor."""
         super().__init__(coordinator, "active_hazards_count")
         self._attr_name = "Active Hazards Count"
@@ -90,13 +90,13 @@ class ActiveHazardsCountSensor(EmergencyHazardBaseEntity, SensorEntity):
         return len(self.coordinator.active_hazards)
 
 
-class HighestWarningLevelSensor(EmergencyHazardBaseEntity, SensorEntity):
+class HighestWarningLevelSensor(AustralianDisasterWatchEntity, SensorEntity):
     """Sensor reporting the highest Australian Warning System level in the perimeter."""
 
     _attr_translation_key = "highest_warning_level"
     _attr_icon = "mdi:alert-decagram"
 
-    def __init__(self, coordinator: EmergencyDataCoordinator) -> None:
+    def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize highest warning level sensor."""
         super().__init__(coordinator, "highest_warning_level")
         self._attr_name = "Highest Warning Level"
@@ -121,13 +121,13 @@ class HighestWarningLevelSensor(EmergencyHazardBaseEntity, SensorEntity):
         return "mdi:shield-check"
 
 
-class NearestHazardTitleSensor(EmergencyHazardBaseEntity, SensorEntity):
+class NearestHazardTitleSensor(AustralianDisasterWatchEntity, SensorEntity):
     """Sensor displaying the title/headline of the nearest active hazard."""
 
     _attr_translation_key = "nearest_hazard_title"
     _attr_icon = "mdi:text-box-search"
 
-    def __init__(self, coordinator: EmergencyDataCoordinator) -> None:
+    def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize nearest hazard title sensor."""
         super().__init__(coordinator, "nearest_hazard_title")
         self._attr_name = "Nearest Hazard Title"

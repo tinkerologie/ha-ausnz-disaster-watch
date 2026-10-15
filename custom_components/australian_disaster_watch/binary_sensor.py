@@ -1,4 +1,4 @@
-"""Binary sensor platform for Australian Emergency Hazards."""
+"""Binary sensor platform for Australian Disaster Watch."""
 
 from __future__ import annotations
 
@@ -17,8 +17,8 @@ from .const import (
     ATTR_NEAREST_INCIDENT_TITLE,
     DOMAIN,
 )
-from .coordinator import EmergencyDataCoordinator
-from .entity import EmergencyHazardBaseEntity
+from .coordinator import AustralianDisasterWatchCoordinator
+from .entity import AustralianDisasterWatchEntity
 
 
 async def async_setup_entry(
@@ -26,8 +26,8 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up Australian Emergency Hazards binary sensors."""
-    coordinator: EmergencyDataCoordinator = hass.data[DOMAIN][entry.entry_id]
+    """Set up Australian Disaster Watch binary sensors."""
+    coordinator: AustralianDisasterWatchCoordinator = hass.data[DOMAIN][entry.entry_id]
 
     async_add_entities(
         [
@@ -37,13 +37,13 @@ async def async_setup_entry(
     )
 
 
-class EmergencyWarningNearbyBinarySensor(EmergencyHazardBaseEntity, BinarySensorEntity):
+class EmergencyWarningNearbyBinarySensor(AustralianDisasterWatchEntity, BinarySensorEntity):
     """Binary sensor that turns on if an Emergency Warning or Watch and Act is active nearby."""
 
     _attr_device_class = BinarySensorDeviceClass.SAFETY
     _attr_translation_key = "emergency_warning_nearby"
 
-    def __init__(self, coordinator: EmergencyDataCoordinator) -> None:
+    def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize binary sensor."""
         super().__init__(coordinator, "emergency_warning_nearby")
         self._attr_name = "Emergency Warning Nearby"
@@ -72,13 +72,13 @@ class EmergencyWarningNearbyBinarySensor(EmergencyHazardBaseEntity, BinarySensor
         }
 
 
-class ActiveHazardsNearbyBinarySensor(EmergencyHazardBaseEntity, BinarySensorEntity):
+class ActiveHazardsNearbyBinarySensor(AustralianDisasterWatchEntity, BinarySensorEntity):
     """Binary sensor that turns on if any active hazard is within the configured perimeter."""
 
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
     _attr_translation_key = "active_hazards_nearby"
 
-    def __init__(self, coordinator: EmergencyDataCoordinator) -> None:
+    def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize binary sensor."""
         super().__init__(coordinator, "active_hazards_nearby")
         self._attr_name = "Active Hazards Nearby"

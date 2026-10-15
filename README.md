@@ -1,4 +1,4 @@
-# Australian Emergency Hazards (Disaster Watch) for Home Assistant
+# Australian Disaster Watch for Home Assistant
 
 [![GitHub Release](https://img.shields.io/github/v/release/ruaandeysel/ha-australian-disaster-watch?style=flat-square)](https://github.com/ruaandeysel/ha-australian-disaster-watch/releases)
 [![License](https://img.shields.io/github/license/ruaandeysel/ha-australian-disaster-watch?style=flat-square)](LICENSE)
@@ -72,7 +72,7 @@ Renders interactive pins on the native Home Assistant Map for every active hazar
 2. Click the three dots in the top right corner and select **Custom repositories**.
 3. Enter repository URL: `https://github.com/ruaandeysel/ha-australian-disaster-watch`
 4. Select Category: **Integration**
-5. Click **Add**, then find **Australian Emergency Hazards** and click **Download**.
+5. Click **Add**, then find **Australian Disaster Watch** and click **Download**.
 6. **Restart Home Assistant**.
 
 ---
@@ -80,7 +80,7 @@ Renders interactive pins on the native Home Assistant Map for every active hazar
 ## Setup & Configuration
 
 1. In Home Assistant, go to **Settings** > **Devices & Services** > **Add Integration**.
-2. Search for **Australian Emergency Hazards**.
+2. Search for **Australian Disaster Watch**.
 3. **Step 1: Jurisdiction & Monitoring**:
    - **State / Jurisdiction**: Select your state (e.g. `QLD`, `NSW`, `VIC`, etc.).
    - **Location Source**: Choose **Use Home Zone** or **Specify Custom Location**.
@@ -123,16 +123,16 @@ show_map_button: true
 alias: "Emergency Warning: Alert Household"
 trigger:
   - platform: state
-    entity_id: binary_sensor.australian_emergency_hazards_qld_city_of_moreton_bay_emergency_warning_nearby
+    entity_id: binary_sensor.australian_disaster_watch_qld_city_of_moreton_bay_emergency_warning_nearby
     to: "on"
 action:
   - service: notify.notify
     data:
       title: "🚨 EMERGENCY WARNING ACTIVE"
       message: >-
-        {{ state_attr('binary_sensor.australian_emergency_hazards_qld_city_of_moreton_bay_emergency_warning_nearby', 'highest_warning_level') }}:
-        {{ state_attr('binary_sensor.australian_emergency_hazards_qld_city_of_moreton_bay_emergency_warning_nearby', 'nearest_incident_title') }}
-        is currently {{ state_attr('binary_sensor.australian_emergency_hazards_qld_city_of_moreton_bay_emergency_warning_nearby', 'nearest_incident_distance') }} km away.
+        {{ state_attr('binary_sensor.australian_disaster_watch_qld_city_of_moreton_bay_emergency_warning_nearby', 'highest_warning_level') }}:
+        {{ state_attr('binary_sensor.australian_disaster_watch_qld_city_of_moreton_bay_emergency_warning_nearby', 'nearest_incident_title') }}
+        is currently {{ state_attr('binary_sensor.australian_disaster_watch_qld_city_of_moreton_bay_emergency_warning_nearby', 'nearest_incident_distance') }} km away.
       data:
         push:
           sound: "critical"
@@ -143,7 +143,7 @@ action:
 alias: "Disaster Alert: Red Light Notification"
 trigger:
   - platform: state
-    entity_id: binary_sensor.australian_emergency_hazards_qld_city_of_moreton_bay_emergency_warning_nearby
+    entity_id: binary_sensor.australian_disaster_watch_qld_city_of_moreton_bay_emergency_warning_nearby
     to: "on"
 action:
   - service: light.turn_on

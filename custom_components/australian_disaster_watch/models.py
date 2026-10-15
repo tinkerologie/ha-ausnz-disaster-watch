@@ -1,11 +1,12 @@
-"""Core data models and contracts for Australian Emergency Hazards."""
+"""Core data models and contracts for Australian Disaster Watch using Pydantic v2."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class WarningLevel(StrEnum):
@@ -89,25 +90,46 @@ class HazardType(StrEnum):
         return cls.OTHER
 
 
-@dataclass
-class CanonicalHazard:
+class CanonicalHazard(BaseModel):
     """Canonical representation of an emergency hazard incident or warning."""
 
-    id: str  # Globally unique ID (e.g. "QLD_QFD_128945", "NSW_RFS_681307")
-    source: str  # Source agency / feed identifier
-    title: str  # Descriptive headline
-    hazard_type: HazardType
-    warning_level: WarningLevel
-    latitude: float
-    longitude: float
-    updated_at: datetime  # UTC aware
-    location_name: str
-    distance_km: float | None = None
-    is_hazard_reduction: bool = False
-    status: str | None = None
-    responsible_agency: str | None = None
-    web_url: str | None = None
-    raw_properties: dict[str, Any] = field(default_factory=dict)
+    model_config = ConfigDict(
+        frozen=False,
+        arbitrary_types_allowed=True,
+        populate_by_name=True,
+        extra="ignore",
+    )
+
+    id: str = Field(description="Globally unique hazard identifier")
+    source: str = Field(description="Source agency or feed identifier")
+    title: str = Field(description="Descriptive headline")
+    hazard_type: HazardType = Field(description="Normalized hazard classification")
+    warning_level: WarningLevel = Field(description="Normalized Australian Warning System level")
+    latitude: float = Field(ge=-90.0, le=90.0, description="Centroid latitude in degrees")
+    longitude: float = Field(ge=-180.0, le=180.0, description="Centroid longitude in degrees")
+    updated_at: datetime = Field(description="Timezone-aware UTC timestamp of last update")
+    location_name: str = Field(default="", description="Locality, suburb, or region name")
+    distance_km: float | None = Field(
+        default=None, ge=0.0, description="Haversine distance from center coordinates in km"
+    )
+    is_hazard_reduction: bool = Field(default=False, description="Flag indicating planned/controlled burn")
+    status: str | None = Field(default=None, description="Operational status (e.g. Going, Safe)")
+    responsible_agency: str | None = Field(default=None, description="Responsible operational authority")
+    web_url: str | None = Field(default=None, description="Direct URL to official emergency alert document")
+    raw_properties: dict[str, Any] = Field(
+        default_factory=dict, description="Raw upstream properties preserved for inspection"
+    )
+
+    @field_validator("updated_at", mode="before")
+    @classmethod
+    def ensure_utc_datetime(cls, v: Any) -> datetime:
+        """Ensure updated_at is a timezone-aware UTC datetime."""
+        if isinstance(v, str):
+            dt = datetime.fromisoformat(v)
+            return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
+        if isinstance(v, datetime):
+            return v if v.tzinfo else v.replace(tzinfo=UTC)
+        return datetime.now(tz=UTC)
 
     @property
     def is_active_threat(self) -> bool:
@@ -149,3 +171,19 @@ class CanonicalHazard:
                 attrs[f"prop_{k}"] = v
 
         return attrs
+
+
+class DisasterWatchConfigModel(BaseModel):
+    """Pydantic model validating configuration entry parameters."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    state: str = Field(default="QLD", pattern=r"^[A-Z]{2,3}$")
+    radius: int = Field(default=50, ge=5, le=300)
+    override_emergency: bool = Field(default=True)
+    exclude_hazard_reduction: bool = Field(default=True)
+    location_mode: str = Field(default="home")
+    latitude: float | None = Field(default=None, ge=-90.0, le=90.0)
+    longitude: float | None = Field(default=None, ge=-180.0, le=180.0)
+    location_name: str | None = Field(default=None)
+    council_dashboard_url: str | None = Field(default=None)

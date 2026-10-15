@@ -10,7 +10,7 @@ import defusedxml.ElementTree as ET
 if TYPE_CHECKING:
     from xml.etree.ElementTree import Element
 
-from custom_components.aus_emergency_hazards.const import (
+from custom_components.australian_disaster_watch.const import (
     STATE_ACT,
     STATE_NSW,
     STATE_NT,
@@ -20,7 +20,7 @@ from custom_components.aus_emergency_hazards.const import (
     STATE_VIC,
     STATE_WA,
 )
-from custom_components.aus_emergency_hazards.models import CanonicalHazard, HazardType, WarningLevel
+from custom_components.australian_disaster_watch.models import CanonicalHazard, HazardType, WarningLevel
 
 from .base import DEFAULT_TIMEOUT, BaseHazardProvider
 

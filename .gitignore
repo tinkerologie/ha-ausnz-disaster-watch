@@ -4,7 +4,7 @@ config/*
 
 # Custom components (HACS-installed dependencies and dev symlinks)
 custom_components/*
-!custom_components/aus_emergency_hazards/
+!custom_components/australian_disaster_watch/
 
 # Development tool caches and dependency locks
 .ruff_cache/
