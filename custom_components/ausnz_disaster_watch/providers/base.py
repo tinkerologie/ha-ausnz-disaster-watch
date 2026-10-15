@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 import asyncio
+from collections.abc import Awaitable, Callable, Iterable
 import contextlib
 from datetime import UTC, datetime, timedelta, timezone, tzinfo
 from email.utils import parsedate_to_datetime
@@ -63,6 +64,15 @@ _LOCAL_FORMATS = (
 )
 
 
+class ProviderUnavailableError(Exception):
+    """A provider could not fetch or decode its feed (as opposed to a valid, empty feed) (#16)."""
+
+
+# Errors that mean "this one upstream record is malformed": skip the record, keep the feed.
+# pydantic's ValidationError is a ValueError subclass.
+MALFORMED_ITEM_ERRORS: tuple[type[Exception], ...] = (ValueError, TypeError, KeyError, AttributeError, IndexError)
+
+
 def stable_id(prefix: str, *parts: object) -> str:
     """Return a deterministic identifier from stable upstream fields (#7).
 
@@ -103,7 +113,89 @@ class BaseHazardProvider(ABC):
 
     @abstractmethod
     async def async_fetch_hazards(self) -> list[CanonicalHazard]:
-        """Fetch upstream endpoints, parse payload, and return canonical hazard objects."""
+        """Fetch upstream endpoints, parse payload, and return canonical hazard objects.
+
+        Return a list on success (an empty list is a valid "no hazards" result). Raise
+        ProviderUnavailableError when no hazard data could be fetched or decoded, so the
+        coordinator can tell an outage apart from an all-clear (#16).
+        """
+
+    async def async_collect_sources(
+        self,
+        sources: Iterable[tuple[str, Callable[[], Awaitable[Any]], Callable[[Any], list[CanonicalHazard]]]],
+    ) -> list[CanonicalHazard]:
+        """Fetch and parse several endpoints; partial results are fine, all failing is not.
+
+        Each source is ``(label, fetch, parse)``. A source fails when fetch or parse raises
+        ProviderUnavailableError. Raises ProviderUnavailableError only if every source failed.
+        """
+        hazards: list[CanonicalHazard] = []
+        failures: list[str] = []
+        succeeded = 0
+        for label, fetch, parse in sources:
+            try:
+                payload = await fetch()
+                try:
+                    parsed = parse(payload)
+                except MALFORMED_ITEM_ERRORS as err:
+                    # A structurally broken document fails this source only, not the others
+                    raise ProviderUnavailableError(f"{label} returned a malformed payload: {err}") from err
+                hazards.extend(parsed)
+            except ProviderUnavailableError as err:
+                _LOGGER.debug("%s source failed: %s", label, err)
+                failures.append(str(err))
+            else:
+                succeeded += 1
+        if not succeeded:
+            raise ProviderUnavailableError("; ".join(failures) or "no sources configured")
+        return hazards
+
+    @staticmethod
+    def require_list(payload: dict[str, Any], field: str, label: str) -> list[Any]:
+        """Return ``payload[field]`` if it is a list (an empty list is a valid feed).
+
+        A missing or non-list collection is a broken response, so it raises
+        ProviderUnavailableError instead of being read as "no hazards".
+        """
+        value = payload.get(field)
+        if not isinstance(value, list):
+            raise ProviderUnavailableError(f"{label} returned an unexpected payload ({field!r} is not a list)")
+        return value
+
+    @staticmethod
+    def require_xml_root(root: Any, kind: str, label: str) -> None:
+        """Raise ProviderUnavailableError unless ``root`` is an RSS document with a channel or an Atom feed.
+
+        A well-formed XML error page parses fine but has no items; without this check it
+        would be read as a healthy feed with no hazards.
+        """
+        if kind == "rss":
+            ok = root.tag == "rss" and root.find("channel") is not None
+        else:
+            ok = root.tag == "{http://www.w3.org/2005/Atom}feed"
+        if not ok:
+            raise ProviderUnavailableError(f"{label} returned an unexpected document <{root.tag}>")
+
+    @staticmethod
+    def require_dict(payload: Any, label: str) -> dict[str, Any]:
+        """Return payload if it is a JSON object, else raise ProviderUnavailableError."""
+        if not isinstance(payload, dict):
+            raise ProviderUnavailableError(f"{label} returned an unexpected payload")
+        return payload
+
+    async def async_fetch_feed_text(self, url: str, label: str, headers: dict[str, str] | None = None) -> str:
+        """Fetch a text/XML feed, raising ProviderUnavailableError on transport failure."""
+        try:
+            return await self.async_fetch_text(url, headers=headers)
+        except (aiohttp.ClientError, TimeoutError) as err:
+            raise ProviderUnavailableError(f"{label} unavailable: {err}") from err
+
+    async def async_fetch_feed_json(self, url: str, label: str, headers: dict[str, str] | None = None) -> Any:
+        """Fetch a JSON feed, raising ProviderUnavailableError on transport or decode failure."""
+        try:
+            return await self.async_fetch_json(url, headers=headers)
+        except (aiohttp.ClientError, TimeoutError, ValueError) as err:
+            raise ProviderUnavailableError(f"{label} unavailable: {err}") from err
 
     async def async_fetch_power_outages(self) -> list[PowerOutageItem]:
         """Fetch active power outages for jurisdiction/council."""

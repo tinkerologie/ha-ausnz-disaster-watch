@@ -8,7 +8,7 @@ from typing import Any
 from custom_components.ausnz_disaster_watch.const import STATE_VIC
 from custom_components.ausnz_disaster_watch.models import CanonicalHazard, HazardType, WarningLevel
 
-from .base import BaseHazardProvider
+from .base import MALFORMED_ITEM_ERRORS, BaseHazardProvider, ProviderUnavailableError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -27,22 +27,20 @@ class VictoriaHazardProvider(BaseHazardProvider):
 
     async def async_fetch_hazards(self) -> list[CanonicalHazard]:
         """Fetch hazards from VicEmergency OSOM feed."""
+        headers = {"Accept-Encoding": "gzip, deflate"}
+        data = await self.async_fetch_feed_json(VIC_OSOM_URL, "VicEmergency", headers=headers)
+        if not isinstance(data, dict):
+            raise ProviderUnavailableError("VicEmergency returned an unexpected payload")
+
         hazards: list[CanonicalHazard] = []
-        try:
-            # Enable gzip compression header
-            headers = {"Accept-Encoding": "gzip, deflate"}
-            data = await self.async_fetch_json(VIC_OSOM_URL, headers=headers)
-            if not data or not isinstance(data, dict):
-                return hazards
-
-            features = data.get("features", [])
-            for feature in features:
+        for feature in self.require_list(data, "features", "VicEmergency"):
+            try:
                 hazard = self._parse_vic_feature(feature)
-                if hazard:
-                    hazards.append(hazard)
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.warning("Error fetching VicEmergency OSOM feed: %s", err)
-
+            except MALFORMED_ITEM_ERRORS as err:
+                _LOGGER.debug("Skipping malformed VicEmergency item: %s", err)
+                continue
+            if hazard:
+                hazards.append(hazard)
         return hazards
 
     def _parse_vic_feature(self, feature: dict[str, Any]) -> CanonicalHazard | None:

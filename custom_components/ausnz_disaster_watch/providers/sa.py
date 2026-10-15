@@ -9,7 +9,7 @@ import defusedxml.ElementTree as ET
 from custom_components.ausnz_disaster_watch.const import STATE_SA
 from custom_components.ausnz_disaster_watch.models import CanonicalHazard, HazardType, WarningLevel
 
-from .base import BaseHazardProvider
+from .base import MALFORMED_ITEM_ERRORS, BaseHazardProvider, ProviderUnavailableError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -28,30 +28,28 @@ class SAHazardProvider(BaseHazardProvider):
 
     async def async_fetch_hazards(self) -> list[CanonicalHazard]:
         """Fetch active emergency incidents and warnings from SA CAP-AU feed."""
-        hazards: list[CanonicalHazard] = []
-
-        try:
-            xml_text = await self.async_fetch_text(SA_CAP_AU_URL)
-            hazards.extend(self._parse_cap_feed(xml_text))
-        except Exception:
-            _LOGGER.exception("Failed to fetch SA SAFECOM CAP-AU feed")
-
-        return hazards
+        xml_text = await self.async_fetch_feed_text(SA_CAP_AU_URL, "SA SAFECOM")
+        return self._parse_cap_feed(xml_text)
 
     def _parse_cap_feed(self, xml_text: str) -> list[CanonicalHazard]:
         """Parse SA Emergency Services CAP-AU Atom XML."""
         hazards: list[CanonicalHazard] = []
         if not xml_text.strip():
-            return hazards
+            # Even "no alerts" is a well-formed XML document; a blank body is a broken feed (#16)
+            raise ProviderUnavailableError("SA SAFECOM returned an empty response")
 
         try:
             root = ET.fromstring(xml_text)
-            ns = {
-                "atom": "http://www.w3.org/2005/Atom",
-                "cap": "urn:oasis:names:tc:emergency:cap:1.2",
-            }
+        except (ET.ParseError, ValueError) as err:
+            raise ProviderUnavailableError(f"SA SAFECOM returned invalid XML: {err}") from err
+        self.require_xml_root(root, "atom", "SA SAFECOM")
+        ns = {
+            "atom": "http://www.w3.org/2005/Atom",
+            "cap": "urn:oasis:names:tc:emergency:cap:1.2",
+        }
 
-            for entry in root.findall("atom:entry", ns):
+        for entry in root.findall("atom:entry", ns):
+            try:
                 entry_id = entry.findtext("atom:id", "", ns).strip()
                 title = entry.findtext("atom:title", "", ns).strip()
                 updated_str = entry.findtext("atom:updated", "", ns)
@@ -121,7 +119,7 @@ class SAHazardProvider(BaseHazardProvider):
                         },
                     )
                 )
-        except Exception:
-            _LOGGER.exception("Error parsing SA CAP-AU XML feed")
+            except MALFORMED_ITEM_ERRORS as err:
+                _LOGGER.debug("Skipping malformed SA SAFECOM item: %s", err)
 
         return hazards

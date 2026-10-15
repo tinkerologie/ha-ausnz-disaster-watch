@@ -11,7 +11,7 @@ import defusedxml.ElementTree as ET
 from custom_components.ausnz_disaster_watch.const import STATE_NZ
 from custom_components.ausnz_disaster_watch.models import CanonicalHazard, HazardType, WarningLevel, WeatherWarningItem
 
-from .base import BaseHazardProvider, stable_id
+from .base import MALFORMED_ITEM_ERRORS, BaseHazardProvider, ProviderUnavailableError, stable_id
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -34,30 +34,25 @@ class NZHazardProvider(BaseHazardProvider):
 
     async def async_fetch_hazards(self) -> list[CanonicalHazard]:
         """Fetch and aggregate New Zealand hazards from GeoNet and NEMA."""
-        hazards: list[CanonicalHazard] = []
-
-        # 1. Fetch GeoNet Earthquakes
-        try:
-            quakes_data = await self.async_fetch_json(GEONET_QUAKE_URL)
-            hazards.extend(self._parse_geonet_quakes(quakes_data))
-        except Exception:
-            _LOGGER.exception("Failed to fetch GeoNet earthquakes")
-
-        # 2. Fetch GeoNet Volcanoes
-        try:
-            volcano_data = await self.async_fetch_json(GEONET_VOLCANO_URL)
-            hazards.extend(self._parse_geonet_volcanoes(volcano_data))
-        except Exception:
-            _LOGGER.exception("Failed to fetch GeoNet volcanic unrest")
-
-        # 3. Fetch NEMA AlertHub Emergency Alerts
-        try:
-            nema_xml = await self.async_fetch_text(NEMA_ALERTHUB_URL)
-            hazards.extend(self._parse_nema_atom(nema_xml))
-        except Exception:
-            _LOGGER.exception("Failed to fetch NEMA AlertHub emergency alerts")
-
-        return hazards
+        return await self.async_collect_sources(
+            [
+                (
+                    "GeoNet quakes",
+                    lambda: self.async_fetch_feed_json(GEONET_QUAKE_URL, "GeoNet quakes"),
+                    lambda payload: self._parse_geonet_quakes(self.require_dict(payload, "GeoNet quakes")),
+                ),
+                (
+                    "GeoNet volcanoes",
+                    lambda: self.async_fetch_feed_json(GEONET_VOLCANO_URL, "GeoNet volcanoes"),
+                    lambda payload: self._parse_geonet_volcanoes(self.require_dict(payload, "GeoNet volcanoes")),
+                ),
+                (
+                    "NEMA AlertHub",
+                    lambda: self.async_fetch_feed_text(NEMA_ALERTHUB_URL, "NEMA AlertHub"),
+                    self._parse_nema_atom,
+                ),
+            ]
+        )
 
     async def async_fetch_weather_warnings(self) -> list[WeatherWarningItem]:
         """Fetch MetService severe weather watches and warnings."""
@@ -81,132 +76,139 @@ class NZHazardProvider(BaseHazardProvider):
                             pub_date=pub_date,
                         )
                     )
-        except Exception:
-            _LOGGER.exception("Failed to fetch MetService CAP RSS alerts")
+        except Exception as err:  # noqa: BLE001
+            # Auxiliary feed: an outage here must not affect hazard availability
+            _LOGGER.debug("MetService CAP RSS alerts unavailable: %s", err)
 
         return warnings
 
     def _parse_geonet_quakes(self, data: dict[str, Any]) -> list[CanonicalHazard]:
         """Parse GeoNet earthquake GeoJSON FeatureCollection."""
         hazards: list[CanonicalHazard] = []
-        features = data.get("features", [])
+        features = self.require_list(data, "features", "GeoNet")
         now = datetime.now(UTC)
 
         for feat in features:
-            props = feat.get("properties", {})
-            if props.get("quality") == "deleted":
-                continue
+            try:
+                props = feat.get("properties", {})
+                if props.get("quality") == "deleted":
+                    continue
 
-            time_str = props.get("time")
-            updated_at = self.parse_datetime(time_str)
-            if updated_at and (now - updated_at > QUAKE_MAX_AGE):
-                continue
+                time_str = props.get("time")
+                updated_at = self.parse_datetime(time_str)
+                if updated_at and (now - updated_at > QUAKE_MAX_AGE):
+                    continue
 
-            geom = feat.get("geometry", {})
-            centroid = self.calculate_centroid(geom)
-            if not centroid:
-                continue
+                geom = feat.get("geometry", {})
+                centroid = self.calculate_centroid(geom)
+                if not centroid:
+                    continue
 
-            lat, lon = centroid
-            public_id = str(props.get("publicID", ""))
-            mag = float(props.get("magnitude", 0.0))
-            mmi = int(props.get("mmi", 0))
-            locality = props.get("locality", "New Zealand")
+                lat, lon = centroid
+                public_id = str(props.get("publicID", ""))
+                mag = float(props.get("magnitude", 0.0))
+                mmi = int(props.get("mmi", 0))
+                locality = props.get("locality", "New Zealand")
 
-            # AWS Warning Level normalization for seismic events
-            if mag >= 6.0 or mmi >= 6:
-                level = WarningLevel.EMERGENCY_WARNING
-            elif mag >= 5.0 or mmi >= 5:
-                level = WarningLevel.WATCH_AND_ACT
-            elif mag >= 4.0 or mmi >= 4:
-                level = WarningLevel.ADVICE
-            else:
-                level = WarningLevel.INFORMATION
+                # AWS Warning Level normalization for seismic events
+                if mag >= 6.0 or mmi >= 6:
+                    level = WarningLevel.EMERGENCY_WARNING
+                elif mag >= 5.0 or mmi >= 5:
+                    level = WarningLevel.WATCH_AND_ACT
+                elif mag >= 4.0 or mmi >= 4:
+                    level = WarningLevel.ADVICE
+                else:
+                    level = WarningLevel.INFORMATION
 
-            hazard_id = f"nz_quake_{public_id}"
-            title = f"M{mag:.1f} Earthquake - {locality}"
+                hazard_id = f"nz_quake_{public_id}"
+                title = f"M{mag:.1f} Earthquake - {locality}"
 
-            hazards.append(
-                CanonicalHazard(
-                    id=hazard_id,
-                    source="GeoNet New Zealand",
-                    title=title,
-                    hazard_type=HazardType.EARTHQUAKE,
-                    warning_level=level,
-                    latitude=lat,
-                    longitude=lon,
-                    updated_at=updated_at,
-                    location_name=locality,
-                    status="Active",
-                    responsible_agency="GeoNet (GNS Science)",
-                    web_url=f"https://www.geonet.org.nz/earthquake/{public_id}",
-                    raw_properties={
-                        "magnitude": mag,
-                        "mmi": mmi,
-                        "depth": props.get("depth"),
-                        "quality": props.get("quality"),
-                    },
+                hazards.append(
+                    CanonicalHazard(
+                        id=hazard_id,
+                        source="GeoNet New Zealand",
+                        title=title,
+                        hazard_type=HazardType.EARTHQUAKE,
+                        warning_level=level,
+                        latitude=lat,
+                        longitude=lon,
+                        updated_at=updated_at,
+                        location_name=locality,
+                        status="Active",
+                        responsible_agency="GeoNet (GNS Science)",
+                        web_url=f"https://www.geonet.org.nz/earthquake/{public_id}",
+                        raw_properties={
+                            "magnitude": mag,
+                            "mmi": mmi,
+                            "depth": props.get("depth"),
+                            "quality": props.get("quality"),
+                        },
+                    )
                 )
-            )
+            except MALFORMED_ITEM_ERRORS as err:
+                _LOGGER.debug("Skipping malformed GeoNet quake item: %s", err)
 
         return hazards
 
     def _parse_geonet_volcanoes(self, data: dict[str, Any]) -> list[CanonicalHazard]:
         """Parse GeoNet volcanic activity level GeoJSON."""
         hazards: list[CanonicalHazard] = []
-        features = data.get("features", [])
+        features = self.require_list(data, "features", "GeoNet")
 
         for feat in features:
-            props = feat.get("properties", {})
-            geom = feat.get("geometry", {})
-            centroid = self.calculate_centroid(geom)
-            if not centroid:
-                continue
+            try:
+                props = feat.get("properties", {})
+                geom = feat.get("geometry", {})
+                centroid = self.calculate_centroid(geom)
+                if not centroid:
+                    continue
 
-            lat, lon = centroid
-            volcano_id = str(props.get("volcanoID", ""))
-            title_name = props.get("volcanoTitle", volcano_id.capitalize())
-            level_num = int(props.get("level", 0))
-            acc = props.get("acc", "Green")
-            activity = props.get("activity", "No volcanic unrest.")
-            hazards_desc = props.get("hazards", "")
+                lat, lon = centroid
+                volcano_id = str(props.get("volcanoID", ""))
+                title_name = props.get("volcanoTitle", volcano_id.capitalize())
+                level_num = int(props.get("level", 0))
+                acc = props.get("acc", "Green")
+                activity = props.get("activity", "No volcanic unrest.")
+                hazards_desc = props.get("hazards", "")
 
-            # Determine AWS Warning Level mapping
-            if level_num >= 3:
-                level = WarningLevel.EMERGENCY_WARNING
-            elif level_num == 2:
-                level = WarningLevel.WATCH_AND_ACT
-            elif level_num == 1:
-                level = WarningLevel.ADVICE
-            else:
-                level = WarningLevel.INFORMATION
+                # Determine AWS Warning Level mapping
+                if level_num >= 3:
+                    level = WarningLevel.EMERGENCY_WARNING
+                elif level_num == 2:
+                    level = WarningLevel.WATCH_AND_ACT
+                elif level_num == 1:
+                    level = WarningLevel.ADVICE
+                else:
+                    level = WarningLevel.INFORMATION
 
-            hazard_id = f"nz_volcano_{volcano_id}"
-            title = f"Volcano Level {level_num} ({acc}) - {title_name}"
+                hazard_id = f"nz_volcano_{volcano_id}"
+                title = f"Volcano Level {level_num} ({acc}) - {title_name}"
 
-            hazards.append(
-                CanonicalHazard(
-                    id=hazard_id,
-                    source="GeoNet New Zealand",
-                    title=title,
-                    hazard_type=HazardType.VOLCANO,
-                    warning_level=level,
-                    latitude=lat,
-                    longitude=lon,
-                    updated_at=self.parse_datetime(None),
-                    location_name=title_name,
-                    status=activity,
-                    responsible_agency="GeoNet (GNS Science)",
-                    web_url=f"https://www.geonet.org.nz/volcano/{volcano_id}",
-                    raw_properties={
-                        "volcanoID": volcano_id,
-                        "level": level_num,
-                        "acc": acc,
-                        "activity": activity,
-                        "hazards": hazards_desc,
-                    },
+                hazards.append(
+                    CanonicalHazard(
+                        id=hazard_id,
+                        source="GeoNet New Zealand",
+                        title=title,
+                        hazard_type=HazardType.VOLCANO,
+                        warning_level=level,
+                        latitude=lat,
+                        longitude=lon,
+                        updated_at=self.parse_datetime(None),
+                        location_name=title_name,
+                        status=activity,
+                        responsible_agency="GeoNet (GNS Science)",
+                        web_url=f"https://www.geonet.org.nz/volcano/{volcano_id}",
+                        raw_properties={
+                            "volcanoID": volcano_id,
+                            "level": level_num,
+                            "acc": acc,
+                            "activity": activity,
+                            "hazards": hazards_desc,
+                        },
+                    )
                 )
-            )
+            except MALFORMED_ITEM_ERRORS as err:
+                _LOGGER.debug("Skipping malformed GeoNet volcano item: %s", err)
 
         return hazards
 
@@ -214,13 +216,18 @@ class NZHazardProvider(BaseHazardProvider):
         """Parse NEMA Emergency Mobile Alert feed."""
         hazards: list[CanonicalHazard] = []
         if not xml_text.strip():
-            return hazards
+            # Even "no alerts" is a well-formed XML document; a blank body is a broken feed (#16)
+            raise ProviderUnavailableError("NEMA AlertHub returned an empty response")
 
         try:
             root = ET.fromstring(xml_text)
-            ns = {"atom": "http://www.w3.org/2005/Atom", "cap": "urn:oasis:names:tc:emergency:cap:1.2"}
+        except (ET.ParseError, ValueError) as err:
+            raise ProviderUnavailableError(f"NEMA AlertHub returned invalid XML: {err}") from err
+        self.require_xml_root(root, "atom", "NEMA AlertHub")
+        ns = {"atom": "http://www.w3.org/2005/Atom", "cap": "urn:oasis:names:tc:emergency:cap:1.2"}
 
-            for entry in root.findall("atom:entry", ns):
+        for entry in root.findall("atom:entry", ns):
+            try:
                 msg_type = entry.findtext(".//cap:msgType", "", ns).lower()
                 if msg_type == "cancel":
                     continue
@@ -294,7 +301,7 @@ class NZHazardProvider(BaseHazardProvider):
                         },
                     )
                 )
-        except Exception:
-            _LOGGER.exception("Error parsing NEMA ATOM feed")
+            except MALFORMED_ITEM_ERRORS as err:
+                _LOGGER.debug("Skipping malformed NEMA AlertHub item: %s", err)
 
         return hazards

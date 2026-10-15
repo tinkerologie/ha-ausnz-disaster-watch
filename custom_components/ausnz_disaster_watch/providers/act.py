@@ -11,7 +11,7 @@ import defusedxml.ElementTree as ET
 from custom_components.ausnz_disaster_watch.const import STATE_ACT
 from custom_components.ausnz_disaster_watch.models import CanonicalHazard, HazardType, WarningLevel
 
-from .base import BaseHazardProvider
+from .base import MALFORMED_ITEM_ERRORS, BaseHazardProvider, ProviderUnavailableError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -39,27 +39,25 @@ class ACTHazardProvider(BaseHazardProvider):
 
     async def async_fetch_hazards(self) -> list[CanonicalHazard]:
         """Fetch active incidents from ACT ESA GeoRSS feed."""
-        hazards: list[CanonicalHazard] = []
-
-        try:
-            xml_text = await self.async_fetch_text(ACT_ESA_FEED_URL)
-            hazards.extend(self._parse_act_feed(xml_text))
-        except Exception:
-            _LOGGER.exception("Failed to fetch ACT ESA GeoRSS feed")
-
-        return hazards
+        xml_text = await self.async_fetch_feed_text(ACT_ESA_FEED_URL, "ACT ESA")
+        return self._parse_act_feed(xml_text)
 
     def _parse_act_feed(self, xml_text: str) -> list[CanonicalHazard]:
         """Parse ACT ESA GeoRSS XML."""
         hazards: list[CanonicalHazard] = []
         if not xml_text.strip():
-            return hazards
+            # Even "no alerts" is a well-formed XML document; a blank body is a broken feed (#16)
+            raise ProviderUnavailableError("ACT ESA returned an empty response")
 
         try:
             root = ET.fromstring(xml_text)
-            ns = {"georss": "http://www.georss.org/georss"}
+        except (ET.ParseError, ValueError) as err:
+            raise ProviderUnavailableError(f"ACT ESA returned invalid XML: {err}") from err
+        self.require_xml_root(root, "rss", "ACT ESA")
+        ns = {"georss": "http://www.georss.org/georss"}
 
-            for item in root.findall(".//item"):
+        for item in root.findall(".//item"):
+            try:
                 title = item.findtext("title", "").strip()
                 guid = item.findtext("guid", "").strip() or title
                 desc = item.findtext("description", "").strip()
@@ -119,7 +117,7 @@ class ACTHazardProvider(BaseHazardProvider):
                         raw_properties={"description": desc},
                     )
                 )
-        except Exception:
-            _LOGGER.exception("Error parsing ACT ESA feed")
+            except MALFORMED_ITEM_ERRORS as err:
+                _LOGGER.debug("Skipping malformed ACT ESA item: %s", err)
 
         return hazards
