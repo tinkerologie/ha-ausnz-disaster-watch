@@ -61,6 +61,9 @@ jobs:
   backend:
     name: Test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # Codecov OIDC upload
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -104,8 +107,10 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          # OIDC: no stored token needed (organisation secrets are not exposed to this private repo)
+          use_oidc: true
           files: ./coverage.xml
+          disable_search: true
           fail_ci_if_error: true
 
   imports:
