@@ -47,13 +47,11 @@ async def test_act_skips_malformed_item(hass: HomeAssistant) -> None:
 
 
 async def test_tas_skips_malformed_item(hass: HomeAssistant) -> None:
-    """One bad TasALERT item is skipped."""
+    """One bad TasALERT feature is skipped."""
     provider = TasmaniaHazardProvider(hass, AsyncMock(), {"state": "TAS"})
-    xml = f"""<rss xmlns:georss="http://www.georss.org/georss"><channel>
-      <item><title>Bushfire - Good</title><guid>G1</guid><georss:point>-42.9 147.3</georss:point></item>
-      <item><title>Bushfire - Bad</title><guid>B1</guid><georss:point>{BAD_LAT} 147.3</georss:point></item>
-    </channel></rss>"""
-    assert len(provider._parse_tasalert_feed(xml)) == 1
+    good = {"properties": {"id": "G1", "title": "Bushfire", "location": {"lat": -42.9, "lng": 147.3}}}
+    bad = {"properties": {"id": "B1", "title": "Bushfire", "location": {"lat": "x", "lng": 147.3}}}
+    assert [h.id for h in provider._parse_tasalert_geojson({"features": [good, bad, {}]})] == ["tas_alert_G1"]
 
 
 async def test_sa_skips_malformed_item(hass: HomeAssistant) -> None:
@@ -393,7 +391,6 @@ async def test_qld_counts_only_well_formed_council_responses(hass: HomeAssistant
     ("provider_cls", "parse_name", "valid_empty"),
     [
         (ACTHazardProvider, "_parse_act_feed", "<rss><channel><title>ACT</title></channel></rss>"),
-        (TasmaniaHazardProvider, "_parse_tasalert_feed", "<rss><channel/></rss>"),
         (SAHazardProvider, "_parse_cap_feed", '<feed xmlns="http://www.w3.org/2005/Atom"><title>SA</title></feed>'),
         (NZHazardProvider, "_parse_nema_atom", '<feed xmlns="http://www.w3.org/2005/Atom"/>'),
     ],
