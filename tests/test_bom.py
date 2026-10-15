@@ -219,7 +219,7 @@ async def test_cap_cache_and_fetch_failures(hass: HomeAssistant) -> None:
     # Items that leave the feed are forgotten
     docs[BOM_WMO_FEED_URL] = rss()
     await provider.async_fetch_hazards()
-    assert provider._cap_cache == {}
+    assert len(provider._cap_documents) == 0
 
 
 async def test_feed_level_failures(hass: HomeAssistant) -> None:
