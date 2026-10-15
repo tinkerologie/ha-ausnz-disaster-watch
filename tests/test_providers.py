@@ -3,7 +3,6 @@ import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import aiohttp
-import defusedxml.ElementTree as ET
 import pytest
 
 from custom_components.ausnz_disaster_watch.const import (
@@ -254,57 +253,6 @@ async def test_vic_provider_parsing(hass: HomeAssistant) -> None:
     assert "Boil Tap Water" in h.title
     assert h.warning_level == WarningLevel.ADVICE
     assert h.responsible_agency == "EMV"
-
-
-async def test_bom_provider_parsing(hass: HomeAssistant) -> None:
-    """Test BoM weather warnings provider parsing WMO CAP RSS XML."""
-    session = AsyncMock()
-    config = {"state": STATE_QLD, "latitude": -27.2657, "longitude": 152.9818}
-    provider = BoMHazardProvider(hass, session, config)
-
-    xml_content = """<?xml version="1.0" encoding="UTF-8" ?>
-    <rss version="2.0">
-      <channel>
-        <item>
-          <title>Severe Thunderstorm Warning for Moreton Bay</title>
-          <description>Severe thunderstorms likely to produce damaging winds and heavy rainfall</description>
-          <link>https://www.bom.gov.au/warning/IDQ21033</link>
-          <pubDate>Thu, 15 Oct 2026 00:43:07 +0000</pubDate>
-          <guid isPermaLink="false">AusBoM-IDQ21033-2026-10-15T00:43:07+00:00</guid>
-        </item>
-        <item>
-          <title>Severe Thunderstorm Warning for Sydney</title>
-          <description>NSW Storms</description>
-          <link>https://www.bom.gov.au/warning/IDN12345</link>
-          <pubDate>Thu, 15 Oct 2026 00:43:07 +0000</pubDate>
-          <guid isPermaLink="false">AusBoM-IDN12345-2026-10-15T00:43:07+00:00</guid>
-        </item>
-      </channel>
-    </rss>
-    """
-
-    mock_resp = AsyncMock()
-    mock_resp.status = 200
-    mock_resp.text = AsyncMock(return_value=xml_content)
-
-    class MockContextManager:
-        async def __aenter__(self):
-            return mock_resp
-
-        async def __aexit__(self, exc_type, exc_val, exc_tb):
-            pass
-
-    session.get = MagicMock(return_value=MockContextManager())
-
-    hazards = await provider.async_fetch_hazards()
-
-    # Config is STATE_QLD, so only IDQ hazard should be returned (IDN is filtered out)
-    assert len(hazards) == 1
-    h = hazards[0]
-    assert "IDQ21033" in h.id
-    assert "Moreton Bay" in h.title
-    assert h.hazard_type == HazardType.SEVERE_STORM
-    assert h.warning_level == WarningLevel.WATCH_AND_ACT
 
 
 def test_get_providers_for_config(hass: HomeAssistant) -> None:
@@ -638,61 +586,6 @@ async def test_vic_provider_edge_cases(hass: HomeAssistant) -> None:
     assert h_info.warning_level == WarningLevel.INFORMATION
 
 
-async def test_bom_provider_edge_cases(hass: HomeAssistant) -> None:
-    """Test BoM provider edge cases."""
-    session = MagicMock()
-    provider = BoMHazardProvider(hass, session, {"state": "ALL"})
-    assert provider.state_code == "ALL"
-
-    # Non-200 status
-    mock_resp_404 = AsyncMock()
-    mock_resp_404.status = 404
-
-    class MockCM:
-        async def __aenter__(self):
-            return mock_resp_404
-
-        async def __aexit__(self, exc_type, exc_val, exc_tb):
-            pass
-
-    session.get = MagicMock(return_value=MockCM())
-    with pytest.raises(ProviderUnavailableError):
-        await provider.async_fetch_hazards()
-
-    # XML without channel
-    mock_resp_bad_xml = AsyncMock()
-    mock_resp_bad_xml.status = 200
-    mock_resp_bad_xml.text = AsyncMock(return_value="<rss></rss>")
-
-    class MockCM2:
-        async def __aenter__(self):
-            return mock_resp_bad_xml
-
-        async def __aexit__(self, exc_type, exc_val, exc_tb):
-            pass
-
-    session.get = MagicMock(return_value=MockCM2())
-    with pytest.raises(ProviderUnavailableError):
-        await provider.async_fetch_hazards()
-
-    # Parse item cancellation and missing title
-    item_cancel = ET.fromstring("<item><title>Cancellation Severe Weather Warning</title></item>")
-    assert provider._parse_item(item_cancel) is None
-
-    item_empty = ET.fromstring("<item><title></title></item>")
-    assert provider._parse_item(item_empty) is None
-
-    # State prefixes and fallback centroid
-    prov_tas = BoMHazardProvider(hass, session, {"state": "TAS"})
-    item_tas = ET.fromstring(
-        "<item><title>Flood Warning for South Esk River</title><guid>AusBoM-IDT12345</guid></item>"
-    )
-    h_tas = prov_tas._parse_item(item_tas)
-    assert h_tas is not None
-    assert h_tas.latitude == -42.0
-    assert h_tas.longitude == 146.5
-
-
 async def test_base_provider_headers_and_status(hass: HomeAssistant) -> None:
     """Test BaseHazardProvider headers update, 404 raise_for_status, and non-list centroid points."""
     session = MagicMock()
@@ -740,25 +633,6 @@ async def test_base_provider_headers_and_status(hass: HomeAssistant) -> None:
     }
     centroid = BaseHazardProvider.calculate_centroid(geom)
     assert centroid is not None
-
-
-async def test_bom_provider_exception_and_fallbacks(hass: HomeAssistant) -> None:
-    """Test BoM exception catching, advice fallback, and unknown centroid fallback."""
-    session = MagicMock()
-    session.get.side_effect = aiohttp.ClientError("Fatal network error")
-    provider = BoMHazardProvider(hass, session, {"state": "ALL"})
-
-    # Network failure: unavailable, not an all-clear (#16)
-    with pytest.raises(ProviderUnavailableError):
-        await provider.async_fetch_hazards()
-
-    # Advice fallback for non-severe/flood/cyclone warning & unknown target_state centroid fallback
-    item = ET.fromstring("<item><title>Marine Wind Warning</title><guid>AusBoM-UNK-999</guid></item>")
-    h = provider._parse_item(item)
-    assert h is not None
-    assert h.warning_level == WarningLevel.ADVICE
-    assert h.latitude == -27.2657
-    assert h.longitude == 152.9818
 
 
 async def test_nsw_and_vic_empty_and_cap_none(hass: HomeAssistant) -> None:
@@ -2408,8 +2282,8 @@ async def test_nt_ids_stable_across_feed_reordering(hass: HomeAssistant) -> None
     assert len(bare_ids) == 2
 
 
-async def test_wa_and_bom_id_fallbacks_are_stable(hass: HomeAssistant) -> None:
-    """Items without an upstream ID get a deterministic, distinct fallback (#7)."""
+async def test_wa_id_fallbacks_are_stable(hass: HomeAssistant) -> None:
+    """WA items without an upstream ID get a deterministic, distinct fallback (#7). BoM IDs: tests/test_bom.py."""
     wa = WAHazardProvider(hass, AsyncMock(), {"state": "WA"})
     payload = {
         "warnings": [
@@ -2434,13 +2308,6 @@ async def test_wa_and_bom_id_fallbacks_are_stable(hass: HomeAssistant) -> None:
     assert [h.id for h in wa._parse_warnings(payload)] == ids_first
     assert len(set(ids_first)) == 2
     assert all(i != "wa_warn_" for i in ids_first)
-
-    bom = BoMHazardProvider(hass, AsyncMock(), {"state": "QLD"})
-    item = ET.fromstring("<item><title>Severe Thunderstorm Warning for Wide Bay</title></item>")
-    first = bom._parse_item(item)
-    second = bom._parse_item(item)
-    assert first is not None and second is not None
-    assert first.id == second.id == f"BOM_{stable_id('BOM', 'Severe Thunderstorm Warning for Wide Bay')}"
 
 
 async def test_nt_ids_disambiguate_identical_features(hass: HomeAssistant) -> None:

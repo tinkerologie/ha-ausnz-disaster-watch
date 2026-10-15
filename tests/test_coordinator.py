@@ -8,6 +8,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.ausnz_disaster_watch.const import DEFAULT_SCAN_INTERVAL, DOMAIN, THREAT_SCAN_INTERVAL
 from custom_components.ausnz_disaster_watch.coordinator import (
     AustralianDisasterWatchCoordinator,
+    _unique_by_title,
     calculate_haversine_distance,
 )
 from custom_components.ausnz_disaster_watch.models import (
@@ -16,6 +17,7 @@ from custom_components.ausnz_disaster_watch.models import (
     DisasterCameraItem,
     EmergencyNewsItem,
     FireDangerRating,
+    HazardType,
     PowerOutageItem,
     ReliefFacilityItem,
     RoadClosureItem,
@@ -142,6 +144,9 @@ async def test_coordinator_falls_back_to_home_location(hass: HomeAssistant) -> N
     assert coordinator.latitude == -33.8688
     assert coordinator.longitude == 151.2093
     assert coordinator.state_code == "NSW"
+    # Providers receive the resolved home location, not the missing entry coordinates
+    assert coordinator.providers
+    assert all((p.config["latitude"], p.config["longitude"]) == (-33.8688, 151.2093) for p in coordinator.providers)
 
 
 async def test_coordinator_provider_exception_handling(
@@ -337,3 +342,41 @@ async def test_coordinator_composite_exceptions_handled(
     assert coordinator.relief_facilities == []
     assert coordinator.cameras == []
     assert coordinator.nearby_councils == []
+
+
+async def test_provider_area_distance_is_respected(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+) -> None:
+    """A provider-supplied distance (home inside a warning area) wins over the far-away centroid (#10)."""
+    mock_config_entry.add_to_hass(hass)
+    coordinator = AustralianDisasterWatchCoordinator(hass, mock_config_entry)
+    district = CanonicalHazard(
+        id="BOM_IDQ21033",
+        source="Bureau of Meteorology",
+        title="Severe Thunderstorm Warning",
+        hazard_type=HazardType.SEVERE_STORM,
+        warning_level=WarningLevel.WATCH_AND_ACT,
+        latitude=-25.5,  # district centroid ~200 km from the configured home
+        longitude=152.0,
+        distance_km=0.0,
+    )
+    filtered, has_threat = coordinator._filter_and_process_hazards([district])
+    assert "BOM_IDQ21033" in filtered
+    assert filtered["BOM_IDQ21033"].distance_km == 0.0
+    assert has_threat
+
+
+def test_unique_weather_warnings_by_title() -> None:
+    """Exact repeats are listed once (order kept); same title for different areas stays separate."""
+    warnings = [
+        WeatherWarningItem(title="Flood Watch", locations="QLD: Southeast Coast"),
+        WeatherWarningItem(title="Severe Thunderstorm Warning", locations="QLD: Wide Bay"),
+        WeatherWarningItem(title="Flood Watch", locations="QLD: Southeast Coast", link="https://council"),
+        WeatherWarningItem(title="Severe Thunderstorm Warning", locations="NSW: Northern Tablelands"),
+    ]
+    assert [(w.title, w.locations) for w in _unique_by_title(warnings)] == [
+        ("Flood Watch", "QLD: Southeast Coast"),
+        ("Severe Thunderstorm Warning", "QLD: Wide Bay"),
+        ("Severe Thunderstorm Warning", "NSW: Northern Tablelands"),
+    ]

@@ -58,6 +58,22 @@ def calculate_haversine_distance(
     return r * c
 
 
+def _unique_by_title(warnings: list[WeatherWarningItem]) -> list[WeatherWarningItem]:
+    """Drop repeated warnings, keeping order.
+
+    The key includes the affected locations: generic titles such as "Severe Thunderstorm
+    Warning" are reused by every state, so title alone would merge different warnings.
+    """
+    seen: set[tuple[str, str | None]] = set()
+    unique: list[WeatherWarningItem] = []
+    for warning in warnings:
+        key = (warning.title, warning.locations)
+        if key not in seen:
+            seen.add(key)
+            unique.append(warning)
+    return unique
+
+
 class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinatorData]):
     """Coordinator to manage polling of emergency hazards with spatial filtering."""
 
@@ -84,7 +100,9 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         self._update_config_values()
 
         session = async_get_clientsession(hass)
-        self.providers = get_providers_for_config(hass, session, self.combined_config)
+        # Providers that measure distance to warning areas need the resolved home location
+        provider_config = {**self.combined_config, "latitude": self.latitude, "longitude": self.longitude}
+        self.providers = get_providers_for_config(hass, session, provider_config)
 
     def _update_config_values(self) -> None:
         """Update internal parameters from entry data and options using Pydantic."""
@@ -166,13 +184,18 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
             if self.exclude_hazard_reduction and hazard.is_hazard_reduction:
                 continue
 
-            dist = calculate_haversine_distance(
-                self.latitude,
-                self.longitude,
-                hazard.latitude,
-                hazard.longitude,
-            )
-            hazard.distance_km = dist
+            if hazard.distance_km is not None:
+                # Provider-supplied distance to the warning *area* (0 when home is inside it);
+                # the centroid of a large district can be far away even when home is inside (#10)
+                dist = hazard.distance_km
+            else:
+                dist = calculate_haversine_distance(
+                    self.latitude,
+                    self.longitude,
+                    hazard.latitude,
+                    hazard.longitude,
+                )
+                hazard.distance_km = dist
 
             within_radius = dist <= self.radius_km
             is_emergency_override = self.override_emergency and hazard.warning_level == WarningLevel.EMERGENCY_WARNING
@@ -371,7 +394,7 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         return {
             "power_outages": power_outages,
             "road_closures": road_closures,
-            "weather_warnings": weather_warnings,
+            "weather_warnings": _unique_by_title(weather_warnings),
             "emergency_news": emergency_news,
             "fire_danger": fire_danger,
             "weather_stations": weather_stations,
