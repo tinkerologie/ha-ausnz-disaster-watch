@@ -3,16 +3,25 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Lovelace card for Australia and New Zealand Disaster Watch",
+  "description": "Lovelace card suite for Australia and New Zealand Disaster Watch",
   "scripts": {
     "build": "vite build",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint:modern": "node scripts/check-modern.mjs",
+    "lint:drift": "node scripts/check-ha-drift.mjs",
+    "test": "vitest run",
+    "test:browser": "playwright test"
   },
   "dependencies": {
-    "lit": "^3.3.3"
+    "leaflet": "1.9.4",
+    "lit": "3.3.3"
   },
   "devDependencies": {
-    "typescript": "^7.0.2",
-    "vite": "^8.3.4"
+    "@playwright/test": "1.64.1",
+    "@types/leaflet": "1.9.22",
+    "@types/node": "22.20.5",
+    "typescript": "7.0.2",
+    "vite": "8.3.4",
+    "vitest": "5.0.4"
   }
 }

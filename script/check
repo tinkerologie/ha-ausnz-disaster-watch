@@ -25,6 +25,18 @@ echo ""
 echo ""
 "$SCRIPT_DIR/spell-check"
 
+# Dashboard card design guard (#42): no deprecated patterns, and every HA token and
+# element the cards use must exist in the installed Home Assistant frontend.
+if command -v node >/dev/null 2>&1; then
+    echo ""
+    log_header "Checking dashboard cards (lint:modern, lint:drift)"
+    node frontend/scripts/check-modern.mjs
+    HASS_FRONTEND="$(python3 -c 'import hass_frontend, pathlib; print(pathlib.Path(hass_frontend.__file__).parent / "frontend_latest")' 2>/dev/null || true)" \
+        node frontend/scripts/check-ha-drift.mjs
+else
+    log_warning "node not found; skipping dashboard card checks"
+fi
+
 # Run hassfest validation if it has been set up (only in local environment, not CI)
 if [ -z "${CI:-}" ] && [ -z "${GITHUB_ACTIONS:-}" ] && [ -d "$SCRIPT_DIR/../.local/ha-core" ]; then
     echo ""

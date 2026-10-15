@@ -70,6 +70,9 @@ async def test_geolocation_dynamic_lifecycle(
     assert geo_state.attributes["warning_level"] == "Emergency Warning"
     assert geo_state.attributes["hazard_type"] == "Bushfire"
     assert geo_state.attributes["icon"] == "mdi:fire"
+    # Cards scope incidents per config entry through these attributes (#26).
+    assert geo_state.attributes["integration"] == "ausnz_disaster_watch"
+    assert geo_state.attributes["entry_id"] == mock_config_entry.entry_id
 
     registry_entry = entity_registry.async_get(EMERGENCY_ENTITY_ID)
     assert registry_entry is not None

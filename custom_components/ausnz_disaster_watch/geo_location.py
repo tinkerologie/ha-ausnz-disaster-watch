@@ -212,10 +212,13 @@ class AustralianDisasterWatchGeolocationEvent(CoordinatorEntity[AustralianDisast
 
         The agency is exposed as ``agency``; the ``source`` state attribute stays the
         integration-level platform source used by geo_location triggers and map cards.
+        ``entry_id`` lets the dashboard cards scope incidents to one config entry: the
+        frontend's entity registry entries do not carry the config entry (#26).
         """
         attrs = self._hazard.to_safe_attributes()
         attrs["agency"] = attrs.pop("source")
         attrs["integration"] = DOMAIN
+        attrs["entry_id"] = self.coordinator.config_entry.entry_id
         return attrs
 
 
