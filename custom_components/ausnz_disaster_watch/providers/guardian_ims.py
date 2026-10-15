@@ -184,8 +184,9 @@ class GuardianDashboard:
         """Return the decoded payload of ``/dashboard/<endpoint>``, or None if there is none.
 
         None means the dashboard does not have the endpoint (not asked again for six hours) or
-        the request failed this time (retried next poll). Successful payloads, empty ones
-        included, are reused until the next poll.
+        the request failed this time (retried next poll). Every result, failures included,
+        is reused until the next poll, so an endpoint that is down is not retried (with its
+        backoff) by each consumer within one refresh.
         """
         if endpoint in self._poll_cache:
             return self._poll_cache[endpoint]
@@ -202,10 +203,10 @@ class GuardianDashboard:
                 self._unavailable[endpoint] = time.monotonic()
             else:
                 _LOGGER.debug("Error fetching %s: %s", url, err)
-            return None
+            payload = None
         except (aiohttp.ClientError, TimeoutError, ValueError) as err:
             _LOGGER.debug("Error fetching %s: %s", url, err)
-            return None
+            payload = None
         self._poll_cache[endpoint] = payload
         return payload
 

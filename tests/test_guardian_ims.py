@@ -122,6 +122,11 @@ async def test_fetch_decodes_caches_and_remembers_missing_endpoints(hass: HomeAs
     assert await dashboard.fetch("dashOutages") is None  # undecodable body
     assert await dashboard.fetch("bom") is None  # 500 after retries
     assert await dashboard.fetch("fireDangerRating") is None  # network error
+    # Failures are reused for the rest of the poll instead of being fetched again
+    failed_calls = mock.await_count
+    for endpoint in ("energexOutages", "getCameras", "dashOutages", "bom", "fireDangerRating"):
+        assert await dashboard.fetch(endpoint) is None
+    assert mock.await_count == failed_calls
 
     dashboard.start_poll()
     mock.reset_mock()
