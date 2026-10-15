@@ -5,8 +5,9 @@
  * Assistant frontend, so a future HA release cannot silently break styling.
  *
  * Looks for `hass_frontend` in HASS_FRONTEND, else in the repository's `.local/ha-venv`.
- * Skips (exit 0) with a notice when no installed frontend is found, e.g. in the Node-only
- * CI job; `script/check` runs it with the venv present.
+ * An explicit HASS_FRONTEND that does not exist is an error. Without one, it skips (exit 0)
+ * with a notice when no installed frontend is found, e.g. in the Node-only CI job, unless
+ * LINT_DRIFT_REQUIRED=1 is set: `script/check` sets it, so a missing frontend fails there.
  */
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
@@ -37,7 +38,15 @@ function* walk(dir) {
 const OWN_VARIABLES = new Set(["--tone"]);
 
 const frontend = findFrontend();
+if (process.env.HASS_FRONTEND && !(existsSync(frontend) && statSync(frontend).isDirectory())) {
+  console.error(`lint:drift: HASS_FRONTEND=${frontend} is not a directory.`);
+  process.exit(1);
+}
 if (!frontend) {
+  if (process.env.LINT_DRIFT_REQUIRED === "1") {
+    console.error("lint:drift: no installed hass_frontend found (set HASS_FRONTEND).");
+    process.exit(1);
+  }
   console.log("lint:drift: no installed hass_frontend found (set HASS_FRONTEND); skipped.");
   process.exit(0);
 }

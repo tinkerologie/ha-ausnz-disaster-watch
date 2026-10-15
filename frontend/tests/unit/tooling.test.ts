@@ -1,3 +1,8 @@
+import { spawnSync } from "node:child_process";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 // @ts-expect-error -- plain ES module without types
 import { check } from "../../scripts/check-modern.mjs";
@@ -85,5 +90,37 @@ describe("RainViewer (#41)", () => {
     resetRadarCache();
     const fetcher = (async () => ({ ok: false, status: 429 }) as Response) as typeof fetch;
     await expect(fetchRadarFrames(0, fetcher)).rejects.toThrow("429");
+  });
+});
+
+describe("lint:drift (#42)", () => {
+  const script = fileURLToPath(new URL("../../scripts/check-ha-drift.mjs", import.meta.url));
+  const venv = fileURLToPath(new URL("../../../.local/ha-venv/lib", import.meta.url));
+  const run = (env: Record<string, string>) =>
+    spawnSync(process.execPath, [script], { env: { PATH: process.env.PATH ?? "", ...env }, encoding: "utf8" });
+
+  it("fails when an explicit HASS_FRONTEND does not exist", () => {
+    const result = run({ HASS_FRONTEND: join(tmpdir(), "adw-no-such-frontend") });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("is not a directory");
+  });
+
+  it("checks against an explicit HASS_FRONTEND", () => {
+    const dir = mkdtempSync(join(tmpdir(), "adw-frontend-"));
+    try {
+      writeFileSync(join(dir, "app.js"), "// no tokens here");
+      const result = run({ HASS_FRONTEND: dir });
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain(`not found in ${dir}`);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it.skipIf(existsSync(venv))("fails instead of skipping when required and no frontend is found", () => {
+    expect(run({}).status).toBe(0);
+    const result = run({ LINT_DRIFT_REQUIRED: "1" });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("no installed hass_frontend found");
   });
 });

@@ -31,8 +31,12 @@ if command -v node >/dev/null 2>&1; then
     echo ""
     log_header "Checking dashboard cards (lint:modern, lint:drift)"
     node frontend/scripts/check-modern.mjs
-    HASS_FRONTEND="$(python3 -c 'import hass_frontend, pathlib; print(pathlib.Path(hass_frontend.__file__).parent / "frontend_latest")' 2>/dev/null || true)" \
-        node frontend/scripts/check-ha-drift.mjs
+    # An explicit HASS_FRONTEND wins; otherwise ask Python where hass_frontend lives.
+    if [ -z "${HASS_FRONTEND:-}" ]; then
+        HASS_FRONTEND="$(python3 -c 'import hass_frontend, pathlib; print(pathlib.Path(hass_frontend.__file__).parent / "frontend_latest")' 2>/dev/null || true)"
+    fi
+    # Required here: the drift check must not pass without a frontend to check against.
+    HASS_FRONTEND="$HASS_FRONTEND" LINT_DRIFT_REQUIRED=1 node frontend/scripts/check-ha-drift.mjs
 else
     log_warning "node not found; skipping dashboard card checks"
 fi
