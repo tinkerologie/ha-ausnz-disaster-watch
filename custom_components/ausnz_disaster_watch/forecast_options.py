@@ -155,7 +155,9 @@ class ForecastOptionsFlow(OptionsFlowWithReload):
             location = user_input[CONF_LOCATION]
             lat, lon = float(location[CONF_LATITUDE]), float(location[CONF_LONGITUDE])
             default_location = {CONF_LATITUDE: lat, CONF_LONGITUDE: lon}
-            if not name or any(str(p.get(RIVER_POINT_NAME, "")).lower() == name.lower() for p in self._points):
+            if not name:
+                errors[RIVER_POINT_NAME] = "empty_river_point_name"
+            elif any(str(p.get(RIVER_POINT_NAME, "")).lower() == name.lower() for p in self._points):
                 errors[RIVER_POINT_NAME] = "duplicate_river_point"
             else:
                 self._pending = {RIVER_POINT_NAME: name, CONF_LATITUDE: lat, CONF_LONGITUDE: lon}

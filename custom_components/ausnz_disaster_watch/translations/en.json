@@ -138,6 +138,7 @@
     "error": {
       "cannot_connect": "Could not reach Open-Meteo. Try again later.",
       "duplicate_river_point": "Enter a name that no other river point uses.",
+      "empty_river_point_name": "Enter a name for the river point.",
       "no_river_cell": "No river cell with data was found near this point. Pick a point on or next to a larger river.",
       "invalid_threshold": "The threshold must be greater than 0."
     },

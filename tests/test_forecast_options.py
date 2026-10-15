@@ -192,7 +192,7 @@ async def test_add_point_name_rules(hass: HomeAssistant, mock_config_entry: Mock
     result = await hass.config_entries.options.async_configure(
         result["flow_id"], {"name": "  ", "location": {"latitude": -27.47, "longitude": 153.02}}
     )
-    assert result["errors"] == {"name": "duplicate_river_point"}
+    assert result["errors"] == {"name": "empty_river_point_name"}
     client.async_get_river_forecasts.assert_not_called()
 
     full = _entry(hass, mock_config_entry, {CONF_RIVER_POINTS: [{**POINT, "id": str(i)} for i in range(10)]})
