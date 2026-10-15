@@ -431,11 +431,13 @@ async def test_json_feeds_reject_missing_collections(hass: HomeAssistant) -> Non
         await nsw.async_fetch_hazards()
 
     nt = NTHazardProvider(hass, AsyncMock(), {"state": "NT"})
-    for payload in ({}, {"incidents": None}, {"incidents": "error"}):
+    for payload in ({}, {"incidents": None}, {"incidents": "error"}, {"incidents": {"error": "bad"}}, []):
         nt.async_fetch_json = AsyncMock(return_value=payload)
         with pytest.raises(ProviderUnavailableError, match="unexpected payload"):
             await nt.async_fetch_hazards()
     nt.async_fetch_json = AsyncMock(return_value={"incidents": {"type": "FeatureCollection", "features": []}})
     assert await nt.async_fetch_hazards() == []
     nt.async_fetch_json = AsyncMock(return_value={"features": []})
+    assert await nt.async_fetch_hazards() == []
+    nt.async_fetch_json = AsyncMock(return_value={"incidents": []})
     assert await nt.async_fetch_hazards() == []
