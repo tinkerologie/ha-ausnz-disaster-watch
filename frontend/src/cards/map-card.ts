@@ -270,7 +270,7 @@ export class MapCard extends DisasterCard<MapCardConfig> {
           tone: level.tone,
           latitude,
           longitude,
-          agency: stringAttr(s.attributes.responsible_agency) ?? stringAttr(s.attributes.source),
+          agency: stringAttr(s.attributes.responsible_agency) ?? stringAttr(s.attributes.agency),
         },
       ];
     });

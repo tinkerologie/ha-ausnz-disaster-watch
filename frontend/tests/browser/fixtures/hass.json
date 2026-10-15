@@ -305,7 +305,6 @@
       "entity_id": "geo_location.m2_6_earthquake_10_km_north_east_of_kaikoura",
       "state": "140.6",
       "attributes": {
-        "source": "GeoNet New Zealand",
         "latitude": -42.31778,
         "longitude": 173.79233,
         "title": "M2.6 Earthquake - 10 km north-east of Kaikoura",
@@ -322,7 +321,9 @@
         "entry_id": "entry-nz",
         "unit_of_measurement": "km",
         "icon": "mdi:pulse",
-        "friendly_name": "M2.6 Earthquake - 10 km north-east of Kaikoura"
+        "friendly_name": "M2.6 Earthquake - 10 km north-east of Kaikoura",
+        "agency": "GeoNet New Zealand",
+        "source": "ausnz_disaster_watch"
       },
       "last_changed": "2026-10-16T00:00:00+00:00",
       "last_updated": "2026-10-16T00:00:00+00:00"
@@ -331,7 +332,6 @@
       "entity_id": "geo_location.volcano_level_0_green_taupo",
       "state": "294.4",
       "attributes": {
-        "source": "GeoNet New Zealand",
         "latitude": -38.784,
         "longitude": 175.896,
         "title": "Volcano Level 0 (Green) - Taupo",
@@ -347,7 +347,9 @@
         "entry_id": "entry-nz",
         "unit_of_measurement": "km",
         "icon": "mdi:volcano",
-        "friendly_name": "Volcano Level 0 (Green) - Taupo"
+        "friendly_name": "Volcano Level 0 (Green) - Taupo",
+        "agency": "GeoNet New Zealand",
+        "source": "ausnz_disaster_watch"
       },
       "last_changed": "2026-10-16T00:00:00+00:00",
       "last_updated": "2026-10-16T00:00:00+00:00"
@@ -356,7 +358,6 @@
       "entity_id": "geo_location.volcano_level_0_green_tongariro",
       "state": "250.7",
       "attributes": {
-        "source": "GeoNet New Zealand",
         "latitude": -39.13332,
         "longitude": 175.64173,
         "title": "Volcano Level 0 (Green) - Tongariro",
@@ -372,7 +373,9 @@
         "entry_id": "entry-nz",
         "unit_of_measurement": "km",
         "icon": "mdi:volcano",
-        "friendly_name": "Volcano Level 0 (Green) - Tongariro"
+        "friendly_name": "Volcano Level 0 (Green) - Tongariro",
+        "agency": "GeoNet New Zealand",
+        "source": "ausnz_disaster_watch"
       },
       "last_changed": "2026-10-16T00:00:00+00:00",
       "last_updated": "2026-10-16T00:00:00+00:00"
@@ -381,7 +384,6 @@
       "entity_id": "geo_location.volcano_level_0_green_ngauruhoe",
       "state": "248.1",
       "attributes": {
-        "source": "GeoNet New Zealand",
         "latitude": -39.156,
         "longitude": 175.632,
         "title": "Volcano Level 0 (Green) - Ngauruhoe",
@@ -397,7 +399,9 @@
         "entry_id": "entry-nz",
         "unit_of_measurement": "km",
         "icon": "mdi:volcano",
-        "friendly_name": "Volcano Level 0 (Green) - Ngauruhoe"
+        "friendly_name": "Volcano Level 0 (Green) - Ngauruhoe",
+        "agency": "GeoNet New Zealand",
+        "source": "ausnz_disaster_watch"
       },
       "last_changed": "2026-10-16T00:00:00+00:00",
       "last_updated": "2026-10-16T00:00:00+00:00"
@@ -406,7 +410,6 @@
       "entity_id": "geo_location.volcano_level_1_green_ruapehu",
       "state": "233.1",
       "attributes": {
-        "source": "GeoNet New Zealand",
         "latitude": -39.281,
         "longitude": 175.563,
         "title": "Volcano Level 1 (Green) - Ruapehu",
@@ -422,7 +425,9 @@
         "entry_id": "entry-nz",
         "unit_of_measurement": "km",
         "icon": "mdi:volcano",
-        "friendly_name": "Volcano Level 1 (Green) - Ruapehu"
+        "friendly_name": "Volcano Level 1 (Green) - Ruapehu",
+        "agency": "GeoNet New Zealand",
+        "source": "ausnz_disaster_watch"
       },
       "last_changed": "2026-10-16T00:00:00+00:00",
       "last_updated": "2026-10-16T00:00:00+00:00"
@@ -431,7 +436,6 @@
       "entity_id": "geo_location.volcano_level_0_green_taranaki_maunga",
       "state": "229.7",
       "attributes": {
-        "source": "GeoNet New Zealand",
         "latitude": -39.298,
         "longitude": 174.061,
         "title": "Volcano Level 0 (Green) - Taranaki Maunga",
@@ -447,7 +451,9 @@
         "entry_id": "entry-nz",
         "unit_of_measurement": "km",
         "icon": "mdi:volcano",
-        "friendly_name": "Volcano Level 0 (Green) - Taranaki Maunga"
+        "friendly_name": "Volcano Level 0 (Green) - Taranaki Maunga",
+        "agency": "GeoNet New Zealand",
+        "source": "ausnz_disaster_watch"
       },
       "last_changed": "2026-10-16T00:00:00+00:00",
       "last_updated": "2026-10-16T00:00:00+00:00"
@@ -662,7 +668,6 @@
       "entity_id": "geo_location.16_05_24_est_road_weather_alert_for_brisbane",
       "state": "0.0",
       "attributes": {
-        "source": "Bureau of Meteorology",
         "latitude": -27.47,
         "longitude": 153.02,
         "title": "16/05:24 EST Road Weather Alert for Brisbane",
@@ -678,7 +683,9 @@
         "entry_id": "entry-qld",
         "unit_of_measurement": "km",
         "icon": "mdi:car-emergency",
-        "friendly_name": "16/05:24 EST Road Weather Alert for Brisbane"
+        "friendly_name": "16/05:24 EST Road Weather Alert for Brisbane",
+        "agency": "Bureau of Meteorology",
+        "source": "ausnz_disaster_watch"
       },
       "last_changed": "2026-10-16T00:00:00+00:00",
       "last_updated": "2026-10-16T00:00:00+00:00"
@@ -687,7 +694,6 @@
       "entity_id": "geo_location.road_weather_alert_for_brisbane",
       "state": "0.0",
       "attributes": {
-        "source": "Bureau of Meteorology",
         "latitude": -27.47,
         "longitude": 153.02,
         "title": "Road Weather Alert for Brisbane",
@@ -703,7 +709,9 @@
         "entry_id": "entry-qld",
         "unit_of_measurement": "km",
         "icon": "mdi:car-emergency",
-        "friendly_name": "Road Weather Alert for Brisbane"
+        "friendly_name": "Road Weather Alert for Brisbane",
+        "agency": "Bureau of Meteorology",
+        "source": "ausnz_disaster_watch"
       },
       "last_changed": "2026-10-16T00:00:00+00:00",
       "last_updated": "2026-10-16T00:00:00+00:00"
@@ -712,7 +720,6 @@
       "entity_id": "geo_location.severe_thunderstorm_warning_for_central_highlands_and_coalfields_and_central_west_forecast_districts",
       "state": "0.0",
       "attributes": {
-        "source": "Bureau of Meteorology",
         "latitude": -27.47,
         "longitude": 153.02,
         "title": "Severe Thunderstorm Warning for Central Highlands and Coalfields and Central West forecast districts",
@@ -728,7 +735,9 @@
         "entry_id": "entry-qld",
         "unit_of_measurement": "km",
         "icon": "mdi:weather-lightning",
-        "friendly_name": "Severe Thunderstorm Warning for Central Highlands and Coalfields and Central West forecast districts"
+        "friendly_name": "Severe Thunderstorm Warning for Central Highlands and Coalfields and Central West forecast districts",
+        "agency": "Bureau of Meteorology",
+        "source": "ausnz_disaster_watch"
       },
       "last_changed": "2026-10-16T00:00:00+00:00",
       "last_updated": "2026-10-16T00:00:00+00:00"
@@ -737,7 +746,6 @@
       "entity_id": "geo_location.severe_thunderstorm_warning_for_central_highlands_and_coalfields_central_west_and_maranoa_and_warrego_forecast_districts",
       "state": "0.0",
       "attributes": {
-        "source": "Bureau of Meteorology",
         "latitude": -27.47,
         "longitude": 153.02,
         "title": "Severe Thunderstorm Warning for Central Highlands and Coalfields, Central West and Maranoa and Warrego forecast districts",
@@ -753,7 +761,9 @@
         "entry_id": "entry-qld",
         "unit_of_measurement": "km",
         "icon": "mdi:weather-lightning",
-        "friendly_name": "Severe Thunderstorm Warning for Central Highlands and Coalfields, Central West and Maranoa and Warrego forecast districts"
+        "friendly_name": "Severe Thunderstorm Warning for Central Highlands and Coalfields, Central West and Maranoa and Warrego forecast districts",
+        "agency": "Bureau of Meteorology",
+        "source": "ausnz_disaster_watch"
       },
       "last_changed": "2026-10-16T00:00:00+00:00",
       "last_updated": "2026-10-16T00:00:00+00:00"
@@ -762,7 +772,6 @@
       "entity_id": "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_central_highlands_and_coalfields_central_west_north_west_and_maranoa_and_warrego_forecast_districts",
       "state": "0.0",
       "attributes": {
-        "source": "Bureau of Meteorology",
         "latitude": -27.47,
         "longitude": 153.02,
         "title": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Central Highlands and Coalfields, Central West, North West and Maranoa and Warrego forecast districts",
@@ -778,7 +787,9 @@
         "entry_id": "entry-qld",
         "unit_of_measurement": "km",
         "icon": "mdi:weather-lightning",
-        "friendly_name": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Central Highlands and Coalfields, Central West, North West and Maranoa and Warrego forecast districts"
+        "friendly_name": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Central Highlands and Coalfields, Central West, North West and Maranoa and Warrego forecast districts",
+        "agency": "Bureau of Meteorology",
+        "source": "ausnz_disaster_watch"
       },
       "last_changed": "2026-10-16T00:00:00+00:00",
       "last_updated": "2026-10-16T00:00:00+00:00"
@@ -787,7 +798,6 @@
       "entity_id": "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_central_highlands_and_coalfields_central_west_north_west_and_maranoa_and_warrego_forecast_districts_2",
       "state": "0.0",
       "attributes": {
-        "source": "Bureau of Meteorology",
         "latitude": -27.47,
         "longitude": 153.02,
         "title": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Central Highlands and Coalfields, Central West, North West and Maranoa and Warrego forecast districts",
@@ -803,7 +813,9 @@
         "entry_id": "entry-qld",
         "unit_of_measurement": "km",
         "icon": "mdi:weather-lightning",
-        "friendly_name": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Central Highlands and Coalfields, Central West, North West and Maranoa and Warrego forecast districts"
+        "friendly_name": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Central Highlands and Coalfields, Central West, North West and Maranoa and Warrego forecast districts",
+        "agency": "Bureau of Meteorology",
+        "source": "ausnz_disaster_watch"
       },
       "last_changed": "2026-10-16T00:00:00+00:00",
       "last_updated": "2026-10-16T00:00:00+00:00"
@@ -812,7 +824,6 @@
       "entity_id": "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_central_highlands_and_coalfields_central_west_north_west_and_maranoa_and_warrego_forecast_districts_3",
       "state": "0.0",
       "attributes": {
-        "source": "Bureau of Meteorology",
         "latitude": -27.47,
         "longitude": 153.02,
         "title": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Central Highlands and Coalfields, Central West, North West and Maranoa and Warrego forecast districts",
@@ -828,7 +839,9 @@
         "entry_id": "entry-qld",
         "unit_of_measurement": "km",
         "icon": "mdi:weather-lightning",
-        "friendly_name": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Central Highlands and Coalfields, Central West, North West and Maranoa and Warrego forecast districts"
+        "friendly_name": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Central Highlands and Coalfields, Central West, North West and Maranoa and Warrego forecast districts",
+        "agency": "Bureau of Meteorology",
+        "source": "ausnz_disaster_watch"
       },
       "last_changed": "2026-10-16T00:00:00+00:00",
       "last_updated": "2026-10-16T00:00:00+00:00"
@@ -837,7 +850,6 @@
       "entity_id": "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_central_highlands_and_coalfields_central_west_and_maranoa_and_warrego_forecast_districts",
       "state": "0.0",
       "attributes": {
-        "source": "Bureau of Meteorology",
         "latitude": -27.47,
         "longitude": 153.02,
         "title": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Central Highlands and Coalfields, Central West and Maranoa and Warrego forecast districts",
@@ -853,7 +865,9 @@
         "entry_id": "entry-qld",
         "unit_of_measurement": "km",
         "icon": "mdi:weather-lightning",
-        "friendly_name": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Central Highlands and Coalfields, Central West and Maranoa and Warrego forecast districts"
+        "friendly_name": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Central Highlands and Coalfields, Central West and Maranoa and Warrego forecast districts",
+        "agency": "Bureau of Meteorology",
+        "source": "ausnz_disaster_watch"
       },
       "last_changed": "2026-10-16T00:00:00+00:00",
       "last_updated": "2026-10-16T00:00:00+00:00"
@@ -862,7 +876,6 @@
       "entity_id": "geo_location.strong_wind_warning_for_coastal_waters_between_st_lawrence_and_burnett_heads_for_15_october",
       "state": "0.0",
       "attributes": {
-        "source": "Bureau of Meteorology",
         "latitude": -27.47,
         "longitude": 153.02,
         "title": "Strong Wind Warning for coastal waters between St Lawrence and Burnett Heads for 15 October",
@@ -878,7 +891,9 @@
         "entry_id": "entry-qld",
         "unit_of_measurement": "km",
         "icon": "mdi:weather-lightning",
-        "friendly_name": "Strong Wind Warning for coastal waters between St Lawrence and Burnett Heads for 15 October"
+        "friendly_name": "Strong Wind Warning for coastal waters between St Lawrence and Burnett Heads for 15 October",
+        "agency": "Bureau of Meteorology",
+        "source": "ausnz_disaster_watch"
       },
       "last_changed": "2026-10-16T00:00:00+00:00",
       "last_updated": "2026-10-16T00:00:00+00:00"
@@ -887,7 +902,6 @@
       "entity_id": "geo_location.strong_wind_warning_for_coastal_waters_between_st_lawrence_and_burnett_heads_for_15_october_2",
       "state": "0.0",
       "attributes": {
-        "source": "Bureau of Meteorology",
         "latitude": -27.47,
         "longitude": 153.02,
         "title": "Strong Wind Warning for coastal waters between St Lawrence and Burnett Heads for 15 October",
@@ -903,7 +917,9 @@
         "entry_id": "entry-qld",
         "unit_of_measurement": "km",
         "icon": "mdi:weather-lightning",
-        "friendly_name": "Strong Wind Warning for coastal waters between St Lawrence and Burnett Heads for 15 October"
+        "friendly_name": "Strong Wind Warning for coastal waters between St Lawrence and Burnett Heads for 15 October",
+        "agency": "Bureau of Meteorology",
+        "source": "ausnz_disaster_watch"
       },
       "last_changed": "2026-10-16T00:00:00+00:00",
       "last_updated": "2026-10-16T00:00:00+00:00"
@@ -912,7 +928,6 @@
       "entity_id": "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_forecast_district",
       "state": "0.0",
       "attributes": {
-        "source": "Bureau of Meteorology",
         "latitude": -27.47,
         "longitude": 153.02,
         "title": "Severe Thunderstorm Warning for Central Coast and Whitsundays forecast district",
@@ -928,7 +943,9 @@
         "entry_id": "entry-qld",
         "unit_of_measurement": "km",
         "icon": "mdi:weather-lightning",
-        "friendly_name": "Severe Thunderstorm Warning for Central Coast and Whitsundays forecast district"
+        "friendly_name": "Severe Thunderstorm Warning for Central Coast and Whitsundays forecast district",
+        "agency": "Bureau of Meteorology",
+        "source": "ausnz_disaster_watch"
       },
       "last_changed": "2026-10-16T00:00:00+00:00",
       "last_updated": "2026-10-16T00:00:00+00:00"
@@ -937,7 +954,6 @@
       "entity_id": "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_capricornia_and_central_highlands_and_coalfields_forecast_districts",
       "state": "0.0",
       "attributes": {
-        "source": "Bureau of Meteorology",
         "latitude": -27.47,
         "longitude": 153.02,
         "title": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Capricornia and Central Highlands and Coalfields forecast districts",
@@ -953,7 +969,9 @@
         "entry_id": "entry-qld",
         "unit_of_measurement": "km",
         "icon": "mdi:weather-lightning",
-        "friendly_name": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Capricornia and Central Highlands and Coalfields forecast districts"
+        "friendly_name": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Capricornia and Central Highlands and Coalfields forecast districts",
+        "agency": "Bureau of Meteorology",
+        "source": "ausnz_disaster_watch"
       },
       "last_changed": "2026-10-16T00:00:00+00:00",
       "last_updated": "2026-10-16T00:00:00+00:00"
@@ -962,7 +980,6 @@
       "entity_id": "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_capricornia_and_central_highlands_and_coalfields_forecast_districts_2",
       "state": "0.0",
       "attributes": {
-        "source": "Bureau of Meteorology",
         "latitude": -27.47,
         "longitude": 153.02,
         "title": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Capricornia and Central Highlands and Coalfields forecast districts",
@@ -978,7 +995,9 @@
         "entry_id": "entry-qld",
         "unit_of_measurement": "km",
         "icon": "mdi:weather-lightning",
-        "friendly_name": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Capricornia and Central Highlands and Coalfields forecast districts"
+        "friendly_name": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Capricornia and Central Highlands and Coalfields forecast districts",
+        "agency": "Bureau of Meteorology",
+        "source": "ausnz_disaster_watch"
       },
       "last_changed": "2026-10-16T00:00:00+00:00",
       "last_updated": "2026-10-16T00:00:00+00:00"
@@ -987,7 +1006,6 @@
       "entity_id": "geo_location.severe_thunderstorm_warning_for_central_coast_and_whitsundays_capricornia_and_central_highlands_and_coalfields_forecast_districts_3",
       "state": "0.0",
       "attributes": {
-        "source": "Bureau of Meteorology",
         "latitude": -27.47,
         "longitude": 153.02,
         "title": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Capricornia and Central Highlands and Coalfields forecast districts",
@@ -1003,7 +1021,9 @@
         "entry_id": "entry-qld",
         "unit_of_measurement": "km",
         "icon": "mdi:weather-lightning",
-        "friendly_name": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Capricornia and Central Highlands and Coalfields forecast districts"
+        "friendly_name": "Severe Thunderstorm Warning for Central Coast and Whitsundays, Capricornia and Central Highlands and Coalfields forecast districts",
+        "agency": "Bureau of Meteorology",
+        "source": "ausnz_disaster_watch"
       },
       "last_changed": "2026-10-16T00:00:00+00:00",
       "last_updated": "2026-10-16T00:00:00+00:00"
