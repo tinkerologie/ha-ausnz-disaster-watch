@@ -10,6 +10,7 @@ public advice text. Licence and terms: see docs/development/DATA_SOURCES.md.
 
 from __future__ import annotations
 
+import asyncio
 from collections import Counter
 from collections.abc import Awaitable, Callable
 import logging
@@ -91,18 +92,36 @@ class NTHazardProvider(BaseHazardProvider):
         Each point layer is a separate source: one failing layer keeps the other's
         incidents; both failing raises ProviderUnavailableError (#16).
         """
-        advice = await self._async_fetch_advice()
+        # All three layers are fetched at once, so the optional advice layer never delays
+        # the incident layers
+        layer_results, advice = await asyncio.gather(
+            asyncio.gather(*(self._async_try_fetch_layer(layer, label) for layer, label in NT_INCIDENT_LAYERS.items())),
+            self._async_fetch_advice(),
+        )
 
-        def _fetch(layer: int, label: str) -> Callable[[], Awaitable[list[Any]]]:
-            return lambda: self._async_fetch_layer(layer, _QUERY, label)
+        def _fetch(result: list[Any] | ProviderUnavailableError) -> Callable[[], Awaitable[list[Any]]]:
+            async def fetch() -> list[Any]:
+                if isinstance(result, ProviderUnavailableError):
+                    raise result
+                return result
+
+            return fetch
 
         def _parse(layer: int) -> Callable[[list[Any]], list[CanonicalHazard]]:
             return lambda features: self._parse_features(features, layer, advice)
 
         hazards = await self.async_collect_sources(
-            (label, _fetch(layer, label), _parse(layer)) for layer, label in NT_INCIDENT_LAYERS.items()
+            (label, _fetch(result), _parse(layer))
+            for (layer, label), result in zip(NT_INCIDENT_LAYERS.items(), layer_results, strict=True)
         )
         return self._disambiguate_ids(hazards)
+
+    async def _async_try_fetch_layer(self, layer: int, label: str) -> list[Any] | ProviderUnavailableError:
+        """Fetch one incident layer, returning the failure instead of raising it."""
+        try:
+            return await self._async_fetch_layer(layer, _QUERY, label)
+        except ProviderUnavailableError as err:
+            return err
 
     async def _async_fetch_layer(self, layer: int, query: str, label: str) -> list[Any]:
         """Query one layer and return its feature list, validating the response."""

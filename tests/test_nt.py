@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime
 import logging
 from typing import Any
@@ -251,3 +252,21 @@ def test_nt_attribution(hass: HomeAssistant) -> None:
     assert provider.attribution is not None
     assert "Northern Territory" in provider.attribution
     assert "CC BY" not in provider.attribution
+
+
+async def test_nt_advice_layer_does_not_delay_incident_layers(hass: HomeAssistant) -> None:
+    """The optional advice layer is fetched alongside the incident layers, not before them."""
+    provider = NTHazardProvider(hass, AsyncMock(), {"state": STATE_NT})
+    incidents_started = asyncio.Event()
+
+    async def fetch(url: str, headers: dict[str, str] | None = None) -> Any:
+        layer = int(url.removeprefix(f"{NT_FIRE_INCIDENTS_URL}/").split("/", 1)[0])
+        if layer == 2:
+            # Only completes once an incident layer request has started
+            await asyncio.wait_for(incidents_started.wait(), timeout=1)
+            return _collection()
+        incidents_started.set()
+        return _collection(_feature()) if layer == 0 else _collection()
+
+    provider.async_fetch_json = AsyncMock(side_effect=fetch)
+    assert len(await provider.async_fetch_hazards()) == 1
