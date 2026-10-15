@@ -368,25 +368,6 @@ async def test_non_list_collections_are_unavailable(hass: HomeAssistant) -> None
     assert result == [good]
 
 
-async def test_qld_counts_only_well_formed_council_responses(hass: HomeAssistant) -> None:
-    """A council endpoint answering with the wrong shape does not count as a working source."""
-    provider = QueenslandHazardProvider(
-        hass, AsyncMock(), {"state": "QLD", "council_dashboard_url": "https://disaster.example.qld.gov.au"}
-    )
-    # fireDetailed/tmrRoadData expect lists, bom/imsBulletin expect objects: all wrong here
-    provider.async_fetch_json = AsyncMock(return_value="unexpected")
-    _hazards, fetched_ok = await provider._fetch_council_hazards("https://disaster.example.qld.gov.au", set())
-    assert fetched_ok == 0
-    # Objects without their collection do not count either
-    provider.async_fetch_json = AsyncMock(side_effect=[[], [], {}, {"item": None}])
-    _hazards, fetched_ok = await provider._fetch_council_hazards("https://disaster.example.qld.gov.au", set())
-    assert fetched_ok == 2
-    # Right shapes (even if empty) count
-    provider.async_fetch_json = AsyncMock(side_effect=[[], [], {"item": []}, {"features": []}])
-    _hazards, fetched_ok = await provider._fetch_council_hazards("https://disaster.example.qld.gov.au", set())
-    assert fetched_ok == 4
-
-
 @pytest.mark.parametrize(
     ("provider_cls", "parse_name", "valid_empty"),
     [

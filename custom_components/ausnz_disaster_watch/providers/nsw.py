@@ -8,20 +8,35 @@ from typing import Any
 
 from custom_components.ausnz_disaster_watch.const import CONF_COUNCIL_DASHBOARD_URL, STATE_NSW
 from custom_components.ausnz_disaster_watch.models import (
+    AirQualityStationData,
     CanonicalHazard,
+    DisasterCameraItem,
     EmergencyNewsItem,
     FireDangerRating,
     HazardType,
+    PowerOutageItem,
+    ReliefFacilityItem,
+    RoadClosureItem,
     WarningLevel,
+    WeatherStationObservation,
     WeatherWarningItem,
 )
 
 from .base import MALFORMED_ITEM_ERRORS, BaseHazardProvider, ProviderUnavailableError
+from .guardian_ims import GuardianDashboard, normalise_dashboard_url
 
 _LOGGER = logging.getLogger(__name__)
 
 NSW_RFS_MAJOR_INCIDENTS_URL = "https://www.rfs.nsw.gov.au/feeds/majorIncidents.json"
-DEFAULT_NSW_COUNCIL_URL = "https://disaster.hawkesbury.nsw.gov.au"
+
+# Links to NSW council dashboards (shown on the card; never polled)
+NSW_COUNCIL_LINKS: list[dict[str, str]] = [
+    {"name": "Hawkesbury City Council", "url": "https://disaster.hawkesbury.nsw.gov.au"},
+    {"name": "Blue Mountains City Council", "url": "https://emergency.bmcc.nsw.gov.au"},
+    {"name": "Ballina Shire Council", "url": "https://emergency.ballina.nsw.gov.au"},
+    {"name": "Byron Shire Council", "url": "https://emergency.byron.nsw.gov.au"},
+    {"name": "Northern Beaches Council", "url": "https://emergency.northernbeaches.nsw.gov.au"},
+]
 
 
 class NSWHazardProvider(BaseHazardProvider):
@@ -36,6 +51,8 @@ class NSWHazardProvider(BaseHazardProvider):
 
     async def async_fetch_hazards(self) -> list[CanonicalHazard]:
         """Fetch hazards from NSW RFS major incidents feed."""
+        if self.dashboard is not None:
+            self.dashboard.start_poll()
         data = await self.async_fetch_feed_json(NSW_RFS_MAJOR_INCIDENTS_URL, "NSW RFS")
         if not isinstance(data, dict):
             raise ProviderUnavailableError("NSW RFS returned an unexpected payload")
@@ -127,96 +144,48 @@ class NSWHazardProvider(BaseHazardProvider):
                 fields[k.strip().upper()] = v.strip()
         return fields
 
-    def _get_council_base_url(self) -> str | None:
-        """Return configured NSW Council Disaster Dashboard base URL or None."""
-        url = self.config.get(CONF_COUNCIL_DASHBOARD_URL)
-        if not url:
-            return None
-        return str(url).strip().rstrip("/")
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """Initialise the provider and its council dashboard client, if one is configured."""
+        super().__init__(*args, **kwargs)
+        base_url = normalise_dashboard_url(self.config.get(CONF_COUNCIL_DASHBOARD_URL))
+        self.dashboard: GuardianDashboard | None = GuardianDashboard(self, base_url) if base_url else None
 
-    async def async_fetch_fire_danger(self) -> FireDangerRating | None:
-        """Fetch AFDRS fire danger rating from NSW Council dashboard."""
-        base_url = self._get_council_base_url()
-        if not base_url:
-            return None
-        try:
-            fdr_data = await self.async_fetch_json(f"{base_url}/dashboard/fireDangerRating")
-            if isinstance(fdr_data, dict):
-                data_list = fdr_data.get("Data", [])
-                if isinstance(data_list, list) and len(data_list) > 0:
-                    first = data_list[0]
-                    toban = str(first.get("TOBAN", "")).lower() in ("yes", "true", "1")
-                    return FireDangerRating(
-                        district_number=str(first.get("District_Number", "")),
-                        district_name=str(first.get("District_Name", "")),
-                        rating=str(first.get("FDR", "Moderate")),
-                        total_fire_ban=toban,
-                        day=first.get("Day"),
-                    )
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Error fetching NSW Fire Danger Rating: %s", err)
-        return None
+    async def async_fetch_power_outages(self) -> list[PowerOutageItem]:
+        """Fetch power outages published on the council dashboard."""
+        return await self.dashboard.power_outages() if self.dashboard else []
+
+    async def async_fetch_road_closures(self) -> list[RoadClosureItem]:
+        """Fetch council road closures."""
+        return await self.dashboard.road_closures() if self.dashboard else []
 
     async def async_fetch_weather_warnings(self) -> list[WeatherWarningItem]:
-        """Fetch weather warnings summary from NSW council BoM feed."""
-        base_url = self._get_council_base_url()
-        if not base_url:
-            return []
-        warnings: list[WeatherWarningItem] = []
-        try:
-            bom_data = await self.async_fetch_json(f"{base_url}/dashboard/bom")
-            if isinstance(bom_data, dict):
-                items = bom_data.get("item", [])
-                if isinstance(items, list):
-                    for item in items:
-                        title = str(item.get("title", "")).strip()
-                        if not title:
-                            continue
-                        warnings.append(
-                            WeatherWarningItem(
-                                title=title,
-                                link=item.get("link"),
-                                locations=item.get("locations"),
-                                pub_date=self.parse_datetime(item.get("pubDate")),
-                            )
-                        )
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Error fetching NSW weather warnings: %s", err)
-        return warnings
+        """Fetch the BoM warning summary from the council dashboard."""
+        return await self.dashboard.weather_warnings() if self.dashboard else []
 
     async def async_fetch_emergency_news(self) -> list[EmergencyNewsItem]:
-        """Fetch emergency bulletins from NSW Council dashboard."""
-        base_url = self._get_council_base_url()
-        if not base_url:
-            return []
-        news_list: list[EmergencyNewsItem] = []
-        try:
-            bulletin_data = await self.async_fetch_json(f"{base_url}/dashboard/imsBulletin")
-            if isinstance(bulletin_data, dict):
-                features = bulletin_data.get("features", [])
-                for feat in features:
-                    props = feat.get("properties", {})
-                    raw_id = str(props.get("id") or props.get("bulletin_id") or len(news_list))
-                    title = str(props.get("title") or props.get("headline") or "Disaster News").strip()
-                    news_list.append(
-                        EmergencyNewsItem(
-                            id=raw_id,
-                            title=title,
-                            description=props.get("description") or props.get("content"),
-                            link=props.get("url"),
-                            pub_date=self.parse_datetime(props.get("created") or props.get("updated")),
-                        )
-                    )
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Error fetching NSW emergency news bulletins: %s", err)
-        return news_list
+        """Fetch council emergency bulletins."""
+        return await self.dashboard.emergency_news() if self.dashboard else []
+
+    async def async_fetch_fire_danger(self) -> FireDangerRating | None:
+        """Fetch the AFDRS fire danger rating from the council dashboard."""
+        return await self.dashboard.fire_danger() if self.dashboard else None
+
+    async def async_fetch_weather_telemetry(self) -> list[WeatherStationObservation]:
+        """Fetch weather observations for the council's stations."""
+        return await self.dashboard.weather_telemetry() if self.dashboard else []
+
+    async def async_fetch_air_quality(self) -> list[AirQualityStationData]:
+        """Fetch air quality for the council's monitoring stations."""
+        return await self.dashboard.air_quality() if self.dashboard else []
+
+    async def async_fetch_relief_facilities(self) -> list[ReliefFacilityItem]:
+        """Fetch evacuation centres and sandbag points."""
+        return await self.dashboard.relief_facilities() if self.dashboard else []
+
+    async def async_fetch_cameras(self) -> list[DisasterCameraItem]:
+        """Fetch the council dashboard's cameras."""
+        return await self.dashboard.cameras() if self.dashboard else []
 
     async def async_fetch_nearby_councils(self) -> list[dict[str, str]]:
-        """Fetch nearby NSW council disaster dashboard links."""
-        return [
-            {"name": "Hawkesbury City Council", "url": "https://disaster.hawkesbury.nsw.gov.au"},
-            {"name": "Blue Mountains City Council", "url": "https://emergency.bmcc.nsw.gov.au"},
-            {"name": "Tweed Shire Council", "url": "https://emergency.tweed.nsw.gov.au"},
-            {"name": "Ballina Shire Council", "url": "https://emergency.ballina.nsw.gov.au"},
-            {"name": "Bega Valley Shire Council", "url": "https://disaster.begavalley.nsw.gov.au"},
-        ]
+        """Return links to NSW council disaster dashboards."""
+        return [dict(link) for link in NSW_COUNCIL_LINKS]

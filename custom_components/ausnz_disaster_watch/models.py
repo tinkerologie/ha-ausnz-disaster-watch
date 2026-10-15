@@ -266,7 +266,7 @@ class FireDangerRating(BaseModel):
     district_name: str = Field(default="", description="Human-readable district name")
     rating: str = Field(default="Moderate", description="AFDRS level (Moderate, High, Extreme, Catastrophic)")
     total_fire_ban: bool | None = Field(
-        default=False, description="Flag indicating Total Fire Ban (TOBAN); None when the source does not publish it"
+        default=None, description="Total Fire Ban in force; None when the feed does not say"
     )
     day: str | None = Field(default=None, description="Forecast day")
 
