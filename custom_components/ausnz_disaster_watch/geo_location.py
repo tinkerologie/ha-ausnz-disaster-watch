@@ -78,6 +78,15 @@ def current_hazards(coordinator: AustralianDisasterWatchCoordinator) -> dict[str
     return {}
 
 
+def snapshot_is_complete(coordinator: AustralianDisasterWatchCoordinator) -> bool:
+    """Return True if the last refresh heard from every feed.
+
+    While a feed is down its hazards may be missing from the data, so an absent hazard
+    does not prove the incident has ended.
+    """
+    return coordinator.last_update_success and not getattr(coordinator.data, "feeds_failed", None)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: AusNZDisasterWatchConfigEntry,
@@ -91,9 +100,10 @@ async def async_setup_entry(
     # Assistant was stopped would otherwise come back as "unavailable" entities.
     active_unique_ids = {f"{entry.entry_id}_{hazard_id}" for hazard_id in current_hazards(coordinator)}
     entity_registry = er.async_get(hass)
-    for registry_entry in er.async_entries_for_config_entry(entity_registry, entry.entry_id):
-        if registry_entry.domain == GEO_LOCATION_DOMAIN and registry_entry.unique_id not in active_unique_ids:
-            entity_registry.async_remove(registry_entry.entity_id)
+    if snapshot_is_complete(coordinator):
+        for registry_entry in er.async_entries_for_config_entry(entity_registry, entry.entry_id):
+            if registry_entry.domain == GEO_LOCATION_DOMAIN and registry_entry.unique_id not in active_unique_ids:
+                entity_registry.async_remove(registry_entry.entity_id)
 
     @callback
     def _sync_entities() -> None:
@@ -109,9 +119,10 @@ async def async_setup_entry(
                 registered_entities[hazard_id] = entity
                 new_entities.append(entity)
 
-        # Remove entities that have cleared from upstream feeds. Removing the registry
-        # entry removes the entity and its state; events are transient.
-        expired_ids = set(registered_entities) - set(current_data)
+        # Remove entities that have cleared from upstream feeds, but only after a refresh
+        # that heard from every feed (#16). Removing the registry entry removes the entity
+        # and its state; events are transient.
+        expired_ids = set(registered_entities) - set(current_data) if snapshot_is_complete(coordinator) else set()
         for hazard_id in expired_ids:
             entity = registered_entities.pop(hazard_id)
             if entity_registry.async_get(entity.entity_id) is not None:

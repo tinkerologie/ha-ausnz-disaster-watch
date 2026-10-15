@@ -351,3 +351,52 @@ async def test_geolocation_expiry_without_registry_entry(
 
     added.async_remove.assert_awaited_once_with(force_remove=True)
     never_added.async_remove.assert_not_called()
+
+
+async def test_geolocation_keeps_entities_during_partial_outage(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    mock_hazard_emergency_warning: CanonicalHazard,
+    mock_hazard_watch_and_act: CanonicalHazard,
+) -> None:
+    """A hazard missing from a refresh where some feed failed is not removed (#16)."""
+    mock_provider = await _setup_with_hazards(
+        hass, mock_config_entry, [mock_hazard_emergency_warning, mock_hazard_watch_and_act]
+    )
+    coordinator: AustralianDisasterWatchCoordinator = mock_config_entry.runtime_data
+    entity_registry = er.async_get(hass)
+    assert {s.entity_id for s in _geo_states(hass)} == {EMERGENCY_ENTITY_ID, WATCH_ENTITY_ID}
+
+    # Snapshot that is missing a hazard while another feed is down: nothing is removed
+    partial = coordinator.data.model_copy(
+        update={"hazards": {mock_hazard_watch_and_act.id: mock_hazard_watch_and_act}, "feeds_failed": ["Other feed"]}
+    )
+    coordinator.async_set_updated_data(partial)
+    await hass.async_block_till_done()
+    assert entity_registry.async_get(EMERGENCY_ENTITY_ID) is not None
+
+    # A complete refresh confirms the hazard ended
+    mock_provider.async_fetch_hazards.return_value = [mock_hazard_watch_and_act]
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+    assert entity_registry.async_get(EMERGENCY_ENTITY_ID) is None
+    assert entity_registry.async_get(WATCH_ENTITY_ID) is not None
+
+
+async def test_geolocation_setup_keeps_registry_during_partial_outage(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    mock_hazard_emergency_warning: CanonicalHazard,
+) -> None:
+    """Setup does not clean registry entries when the first refresh was incomplete."""
+    mock_config_entry.add_to_hass(hass)
+    entity_registry = er.async_get(hass)
+    stale = entity_registry.async_get_or_create(
+        "geo_location", DOMAIN, f"{mock_config_entry.entry_id}_old_hazard", config_entry=mock_config_entry
+    )
+    coordinator = MagicMock()
+    coordinator.last_update_success = True
+    coordinator.data = MagicMock(hazards={}, feeds_failed=["QLD"])
+    mock_config_entry.runtime_data = coordinator
+    await async_setup_entry(hass, mock_config_entry, MagicMock())
+    assert entity_registry.async_get(stale.entity_id) is not None

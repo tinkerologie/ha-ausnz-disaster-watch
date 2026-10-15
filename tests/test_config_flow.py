@@ -524,3 +524,26 @@ async def test_user_steps_invalid_config_show_error(hass: HomeAssistant) -> None
     )
     assert result["type"] == data_entry_flow.FlowResultType.FORM
     assert result["errors"] == {"base": "invalid_config"}
+
+
+async def test_custom_location_with_blank_name_uses_stored_name_for_identity(hass: HomeAssistant) -> None:
+    """A blank custom location name is stored as "Custom Location" and the unique ID matches it."""
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={
+            CONF_STATE: STATE_NSW,
+            CONF_LOCATION_MODE: LOCATION_MODE_CUSTOM,
+            CONF_RADIUS: 60,
+            CONF_OVERRIDE_EMERGENCY: True,
+            CONF_EXCLUDE_HAZARD_REDUCTION: True,
+        },
+    )
+    with patch("custom_components.ausnz_disaster_watch.async_setup_entry", return_value=True):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={CONF_LOCATION_NAME: "", CONF_LATITUDE: -33.86, CONF_LONGITUDE: 151.2},
+        )
+    assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_LOCATION_NAME] == "Custom Location"
+    assert result["result"].unique_id.endswith("_custom_location")

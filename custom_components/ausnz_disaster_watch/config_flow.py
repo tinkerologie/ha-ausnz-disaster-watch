@@ -340,7 +340,9 @@ class AustralianDisasterWatchConfigFlow(ConfigFlow, domain=DOMAIN):
                 }
 
                 if is_valid_config(entry_data):
-                    await self.async_set_unique_id(build_unique_id(state, LOCATION_MODE_CUSTOM, str(location_name)))
+                    await self.async_set_unique_id(
+                        build_unique_id(state, LOCATION_MODE_CUSTOM, entry_data[CONF_LOCATION_NAME])
+                    )
                     self._abort_if_unique_id_configured()
 
                     title = build_title(state, entry_data[CONF_LOCATION_NAME])
