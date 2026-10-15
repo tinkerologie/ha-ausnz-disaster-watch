@@ -74,7 +74,9 @@ while queue:
         continue
     data = json.loads(manifest.read_text())
     requirements.extend(data.get("requirements", []))
+    # Home Assistant also sets up after_dependencies that are present (e.g. sensor -> recorder)
     queue.extend(data.get("dependencies", []))
+    queue.extend(data.get("after_dependencies", []))
 
 pathlib.Path(reqs_path).write_text("\n".join(dict.fromkeys(requirements)) + "\n")
 pathlib.Path(constraints_path).write_text((ha_root / "package_constraints.txt").read_text())
