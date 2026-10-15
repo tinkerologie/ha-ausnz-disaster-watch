@@ -251,7 +251,8 @@ export class MapCard extends DisasterCard<MapCardConfig> {
     super.updated(changed);
     if (this._map && this.renderRoot.querySelector(".map") !== this._container) this.teardown();
     if (!this._map) void this.ensureMap();
-    else this._map.update(this.viewOptions());
+    // Only map inputs: radar frame ticks re-render the card twice a second.
+    else if (changed.has("hass") || changed.has("_config" as keyof MapCard)) this._map.update(this.viewOptions());
   }
 
   private viewOptions(): MapViewOptions {

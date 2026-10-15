@@ -256,6 +256,11 @@ test("map loads its lazy chunk and radar respects reduced motion (#41)", async (
   const first = await el.locator(".radar-bar .time").textContent();
   await page.waitForTimeout(1500);
   expect(await el.locator(".radar-bar .time").textContent()).toBe(first);
+  // Incident markers are keyboard operable from the first render.
+  const marker = el.locator("path.incident").first();
+  await expect(marker).toHaveAttribute("role", "button");
+  await expect(marker).toHaveAttribute("tabindex", "0");
+  await expect(marker).toHaveAttribute("aria-label", /.+/);
   // The basemap goes through HA's map_tiles proxy with the short-lived token.
   const tiles = await el.locator(".basemap img").evaluateAll((imgs) => imgs.map((i) => (i as HTMLImageElement).src));
   expect(tiles.length).toBeGreaterThan(0);
@@ -266,6 +271,13 @@ test("radar animates without reduced motion and hides when RainViewer is down", 
   await setup(page);
   const el = await mount(page, "ausnz-disaster-map-card", { device: QLD });
   await expect(el.locator(".radar-bar ha-icon-button")).toHaveAttribute("aria-pressed", "true");
+  // Radar frames advancing must not rebuild the markers (focus would be lost).
+  const marker = el.locator("path.incident").first();
+  await marker.evaluate((m) => ((m as Element & { tagged?: boolean }).tagged = true));
+  await page.waitForTimeout(1200);
+  expect(await el.locator("path.incident").first().evaluate((m) => !!(m as Element & { tagged?: boolean }).tagged)).toBe(
+    true,
+  );
 
   const down = await page.context().newPage();
   await setup(down);

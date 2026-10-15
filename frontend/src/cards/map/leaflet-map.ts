@@ -87,6 +87,7 @@ export class IncidentMap {
   private unsubscribeToken?: () => void;
   private fitted = false;
   private lastIncidentKey = "";
+  private layerSignature = "";
   private attributionAgencies = new Set<string>();
   private options?: MapViewOptions;
   private destroyed = false;
@@ -137,13 +138,19 @@ export class IncidentMap {
     const previous = this.options;
     this.options = options;
     this.container.classList.toggle("dark", options.darkMode);
-    this.renderHome(options.home);
-    this.renderIncidents(options.incidents);
     const key = options.incidents.map((i) => i.id).join("|");
+    // Give the map a view first: Leaflet only creates marker elements on a loaded map.
     if (!this.fitted || previous?.zoom !== options.zoom || (!previous?.incidents.length && key !== this.lastIncidentKey)) {
       this.fitView(options);
     }
     this.lastIncidentKey = key;
+    // Rebuild markers only when they change, so focus and open tooltips survive updates.
+    const signature = JSON.stringify([options.home, options.incidents]);
+    if (signature !== this.layerSignature) {
+      this.layerSignature = signature;
+      this.renderHome(options.home);
+      this.renderIncidents(options.incidents);
+    }
 
     if (options.radar !== previous?.radar) {
       if (options.radar) void this.loadRadar();
