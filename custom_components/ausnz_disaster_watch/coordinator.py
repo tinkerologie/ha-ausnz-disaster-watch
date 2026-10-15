@@ -172,8 +172,15 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         self.longitude: float = float(lon)
 
     def _update_location(self) -> None:
-        """Resolve the monitored point and hand it to every provider."""
+        """Resolve the monitored point and hand it to every provider.
+
+        When the point moves, cached last-good hazards are dropped: their distances were
+        measured from the old point, so they would be filtered against the wrong location.
+        """
+        previous = (getattr(self, "latitude", None), getattr(self, "longitude", None))
         self._resolve_location()
+        if previous not in {(None, None), (self.latitude, self.longitude)}:
+            self._last_good_hazards.clear()
         for provider in self.providers:
             if isinstance(provider, BaseHazardProvider):
                 provider.set_location(self.latitude, self.longitude)

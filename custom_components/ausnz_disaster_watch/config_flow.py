@@ -428,12 +428,13 @@ class AustralianDisasterWatchConfigFlow(ConfigFlow, domain=DOMAIN):
                 errors["base"] = "invalid_coordinates"
 
             if not errors and parsed_lat is not None and parsed_lon is not None:
-                # Reconfigure edits a fixed point, so the entry stops following the home zone
                 updates = {
                     **user_input,
                     CONF_LATITUDE: parsed_lat,
                     CONF_LONGITUDE: parsed_lon,
-                    CONF_LOCATION_MODE: self._reconfigured_location_mode(entry, parsed_lat, parsed_lon),
+                    CONF_LOCATION_MODE: self._chosen_location_mode(
+                        entry, user_input.get(CONF_LOCATION_MODE), parsed_lat, parsed_lon
+                    ),
                 }
                 if updates[CONF_LOCATION_MODE] == LOCATION_MODE_HOME:
                     # Home-zone entries follow the Home Assistant home location; no stored point (#19)
@@ -468,12 +469,22 @@ class AustralianDisasterWatchConfigFlow(ConfigFlow, domain=DOMAIN):
             current[CONF_LATITUDE] = self.hass.config.latitude
             current[CONF_LONGITUDE] = self.hass.config.longitude
         state_options = [SelectOptionDict(value=s, label=s) for s in SUPPORTED_STATES]
+        location_mode_options = [
+            SelectOptionDict(
+                value=LOCATION_MODE_HOME,
+                label=f"Follow Home Zone ({self.hass.config.location_name or 'Home'})",
+            ),
+            SelectOptionDict(value=LOCATION_MODE_CUSTOM, label="Fixed location (the coordinates below)"),
+        ]
 
         schema = vol.Schema(
             {
                 vol.Required(CONF_STATE, default=current.get(CONF_STATE, STATE_QLD)): SelectSelector(
                     SelectSelectorConfig(options=state_options, mode=SelectSelectorMode.DROPDOWN)
                 ),
+                vol.Required(
+                    CONF_LOCATION_MODE, default=current.get(CONF_LOCATION_MODE, LOCATION_MODE_HOME)
+                ): SelectSelector(SelectSelectorConfig(options=location_mode_options, mode=SelectSelectorMode.LIST)),
                 vol.Required(CONF_LOCATION_NAME, default=current.get(CONF_LOCATION_NAME, "Home")): TextSelector(
                     TextSelectorConfig(type=TextSelectorType.TEXT)
                 ),
@@ -512,6 +523,21 @@ class AustralianDisasterWatchConfigFlow(ConfigFlow, domain=DOMAIN):
             data_schema=schema,  # type: ignore[arg-type]
             errors=errors,
         )
+
+    def _chosen_location_mode(self, entry: ConfigEntry, chosen: str | None, lat: float, lon: float) -> str:
+        """Return the location mode after reconfigure.
+
+        Choosing "fixed location" always fixes the submitted point, and choosing the home
+        zone switches a fixed entry back to following home. A home-zone entry left on the
+        home zone becomes a fixed location if its coordinates were changed, so edited
+        coordinates are never silently ignored.
+        """
+        current = entry.data.get(CONF_LOCATION_MODE, LOCATION_MODE_HOME)
+        if chosen == LOCATION_MODE_CUSTOM:
+            return LOCATION_MODE_CUSTOM
+        if chosen == LOCATION_MODE_HOME and current != LOCATION_MODE_HOME:
+            return LOCATION_MODE_HOME
+        return self._reconfigured_location_mode(entry, lat, lon)
 
     def _reconfigured_location_mode(self, entry: ConfigEntry, lat: float, lon: float) -> str:
         """Return the location mode after reconfigure.

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -62,6 +62,20 @@ async def test_home_mode_follows_home_location(hass: HomeAssistant) -> None:
         await coordinator._async_update_data()
     assert (coordinator.latitude, coordinator.longitude) == (0.0, 145.0)
     assert qld.config["latitude"] == 0.0
+
+
+async def test_moving_home_drops_cached_hazard_distances(hass: HomeAssistant) -> None:
+    """Last-good hazards carry distances from the old point, so a move discards them."""
+    hass.config.latitude, hass.config.longitude = -16.92, 145.77
+    entry = MockConfigEntry(domain=DOMAIN, data={CONF_STATE: "QLD", CONF_LOCATION_MODE: LOCATION_MODE_HOME})
+    entry.add_to_hass(hass)
+    coordinator = AustralianDisasterWatchCoordinator(hass, entry)
+    coordinator._last_good_hazards["QLD"] = (MagicMock(), [])
+    coordinator._update_location()  # same point: cache kept
+    assert "QLD" in coordinator._last_good_hazards
+    hass.config.latitude = -19.26
+    coordinator._update_location()
+    assert coordinator._last_good_hazards == {}
 
 
 async def test_custom_mode_uses_stored_point(hass: HomeAssistant) -> None:

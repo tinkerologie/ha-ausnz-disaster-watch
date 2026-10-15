@@ -70,8 +70,8 @@ SUPPORTED_STATES: Final = [
     STATE_NZ,
 ]
 
-# Preset Council Disaster Dashboards (Guardian IMS). A preset without a URL has no JSON
-# dashboard the integration can read.
+# These are the preset council disaster dashboards (Guardian IMS). A preset without a URL
+# has no JSON dashboard the integration can read.
 PRESET_COUNCIL_DASHBOARDS: Final[dict[str, dict[str, str | float | None]]] = {
     "moreton_bay": {
         "name": "City of Moreton Bay",
@@ -83,7 +83,7 @@ PRESET_COUNCIL_DASHBOARDS: Final[dict[str, dict[str, str | float | None]]] = {
     "sunshine_coast": {
         "name": "Sunshine Coast",
         "state": STATE_QLD,
-        # Disaster Hub (disasterhub.sunshinecoast.qld.gov.au) is not a Guardian IMS dashboard
+        # Disaster Hub (disasterhub.sunshinecoast.qld.gov.au) is not a Guardian IMS dashboard.
         "url": None,
         "latitude": -26.6500,
         "longitude": 153.0667,
@@ -153,7 +153,7 @@ PRESET_COUNCIL_DASHBOARDS: Final[dict[str, dict[str, str | float | None]]] = {
     },
 }
 
-# A home-zone entry gets the nearest preset council dashboard within this distance (#19)
+# A home-zone entry gets the nearest preset council dashboard within this distance (#19).
 COUNCIL_AUTO_MATCH_KM: Final = 40
 
 # Entity Attributes

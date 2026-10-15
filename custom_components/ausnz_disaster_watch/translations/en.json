@@ -25,7 +25,7 @@
       },
       "reconfigure": {
         "title": "Reconfigure Australia and New Zealand Disaster Watch",
-        "description": "Update location coordinates, state jurisdiction, or council dashboard endpoint.",
+        "description": "Update the location source (follow the Home Assistant home zone or a fixed point), coordinates, state jurisdiction, or council dashboard endpoint.",
         "data": {
           "state": "State / Jurisdiction",
           "location_name": "Location Name",
@@ -34,7 +34,8 @@
           "radius": "Monitoring Radius (km)",
           "override_emergency": "Statewide / National Emergency Warning Override",
           "exclude_hazard_reduction": "Exclude Hazard Reduction / Planned Burns",
-          "council_dashboard_url": "Council Disaster Dashboard URL"
+          "council_dashboard_url": "Council Disaster Dashboard URL",
+          "location_mode": "Location Source"
         }
       }
     },

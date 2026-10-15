@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -52,6 +53,28 @@ async def test_camera_entities_follow_coordinator_data(
     await hass.async_block_till_done()
     first.async_remove.assert_awaited_once()
     assert not async_add_entities.called
+
+    # A camera that comes back while its old entity is still being removed is re-added
+    # only after that removal finishes (otherwise HA rejects the duplicate unique ID)
+    removal_done = asyncio.Event()
+
+    async def slow_remove() -> None:
+        await removal_done.wait()
+
+    second.hass = hass
+    second.async_remove = AsyncMock(side_effect=slow_remove)  # type: ignore[method-assign]
+    async_add_entities.reset_mock()
+    coordinator.async_set_updated_data(DisasterCoordinatorData(cameras=[]))
+    await asyncio.sleep(0)
+    coordinator.async_set_updated_data(DisasterCoordinatorData(cameras=[_camera("b")]))
+    assert not async_add_entities.called
+    removal_done.set()
+    await hass.async_block_till_done()
+    (returned,) = async_add_entities.call_args[0][0]
+    assert returned.camera_id == "b"
+    assert returned is not second
+    second = returned
+    second.async_remove = AsyncMock()  # type: ignore[method-assign]
 
     # A removed entity that never got hass is just forgotten
     coordinator.async_set_updated_data(DisasterCoordinatorData(cameras=[]))

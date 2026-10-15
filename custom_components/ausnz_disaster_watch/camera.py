@@ -35,14 +35,28 @@ async def async_setup_entry(
     """Set up camera entities and keep them in step with the coordinator's cameras."""
     coordinator = entry.runtime_data
     tracked: dict[str, AustralianDisasterWatchCamera] = {}
+    removing: set[str] = set()
+
+    async def _async_remove(camera_id: str, entity: AustralianDisasterWatchCamera) -> None:
+        # Keep the ID tracked until the old entity is gone: re-adding a camera whose old
+        # entity still exists would be rejected as a unique-ID collision.
+        try:
+            await entity.async_remove()
+        finally:
+            tracked.pop(camera_id, None)
+            removing.discard(camera_id)
+            _sync_entities()
 
     @callback
     def _sync_entities() -> None:
         current = {camera.id for camera in coordinator.cameras}
-        for camera_id in set(tracked) - current:
-            entity = tracked.pop(camera_id)
-            if entity.hass is not None:
-                hass.async_create_task(entity.async_remove())
+        for camera_id in set(tracked) - current - removing:
+            entity = tracked[camera_id]
+            if entity.hass is None:
+                tracked.pop(camera_id)
+                continue
+            removing.add(camera_id)
+            hass.async_create_task(_async_remove(camera_id, entity))
         new_entities = [
             AustralianDisasterWatchCamera(coordinator, camera_id) for camera_id in current if camera_id not in tracked
         ]

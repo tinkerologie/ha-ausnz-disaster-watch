@@ -611,3 +611,35 @@ async def test_custom_location_with_blank_name_uses_stored_name_for_identity(has
     assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
     assert result["data"][CONF_LOCATION_NAME] == "Custom Location"
     assert result["result"].unique_id.endswith("_custom_location")
+
+
+async def test_reconfigure_explicit_location_source(hass: HomeAssistant) -> None:
+    """The reconfigure form asks whether to follow the home zone or keep a fixed point (#19)."""
+    hass.config.latitude, hass.config.longitude = -27.2657, 152.9818
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={CONF_STATE: STATE_QLD, CONF_LOCATION_MODE: LOCATION_MODE_HOME, CONF_LOCATION_NAME: "Home"},
+        unique_id="ausnz_disaster_watch_qld_home",
+    )
+    entry.add_to_hass(hass)
+
+    # Saving the prefilled home coordinates as a fixed location makes the entry custom
+    with patch("custom_components.ausnz_disaster_watch.async_setup_entry", return_value=True):
+        result = await entry.start_reconfigure_flow(hass)
+        defaults = {str(key): key.default() for key in result["data_schema"].schema}
+        assert defaults[CONF_LOCATION_MODE] == LOCATION_MODE_HOME
+        await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={**RECONFIGURE_INPUT, CONF_LOCATION_MODE: LOCATION_MODE_CUSTOM}
+        )
+    assert entry.data[CONF_LOCATION_MODE] == LOCATION_MODE_CUSTOM
+    assert entry.data[CONF_LATITUDE] == -27.2657
+
+    # Switching back to the home zone drops the stored point
+    with patch("custom_components.ausnz_disaster_watch.async_setup_entry", return_value=True):
+        result = await entry.start_reconfigure_flow(hass)
+        await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={**RECONFIGURE_INPUT, CONF_LOCATION_NAME: "Home", CONF_LOCATION_MODE: LOCATION_MODE_HOME},
+        )
+    assert entry.data[CONF_LOCATION_MODE] == LOCATION_MODE_HOME
+    assert entry.unique_id == "ausnz_disaster_watch_qld_home"
