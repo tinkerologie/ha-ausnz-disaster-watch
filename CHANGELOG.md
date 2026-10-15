@@ -11,6 +11,7 @@ The changelog uses date sections in `YYYY.MM.DD` format.
 - Declare the third-party packages the integration imports (`defusedxml>=0.7.1`, `pydantic>=2.10`) in `manifest.json`, so installs without them no longer fail to load (#17).
 - CI, release and PR-governance workflows now target `custom_components/ausnz_disaster_watch/`; release creation and the committed-bundle check work again (#9).
 - Manifest documentation, issue tracker and codeowner, README links, HACS repository URL and `hacs.json` name now match `tinkerologie/ha-ausnz-disaster-watch` (#9).
+- Hassfest and HACS validation jobs get `contents: read`; with `permissions: {}` they could not read the private repository and always failed (#9).
 - Lovelace card TypeScript build errors (undeclared sensor variables) and the weather observation entity lookup (#4).
 
 ### Changed
