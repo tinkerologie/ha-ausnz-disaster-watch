@@ -1,0 +1,9 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# Repository overrides on top of the organisation configuration.
+inheritance: true
+reviews:
+  auto_review:
+    enabled: true
+    # Review stacked pull requests too (their base is another feature branch, not main).
+    base_branches:
+      - ".*"
