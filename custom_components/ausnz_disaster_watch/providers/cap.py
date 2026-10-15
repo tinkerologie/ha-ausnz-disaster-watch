@@ -187,22 +187,22 @@ def cap_from_element(root: Element) -> CapAlert | None:
 class CapDocumentCache:
     """CAP documents referenced by a feed, fetched once each and kept while the feed lists them.
 
-    Feeds such as BoM's WMO RSS and MetService's RSS list pointers to CAP documents. A document
-    that fails to download is not cached, so it is retried on the next poll; one that downloads
-    but is not CAP is cached as unusable so it is not fetched again.
+    Feeds such as BoM's WMO RSS and MetService's RSS list pointers to CAP documents. Only
+    parsed alerts are cached. A document that fails to download, or downloads but is not CAP
+    (for example an HTTP 200 error page), is retried on the next poll.
 
-    If any download fails the load raises ProviderUnavailableError: the missing document could
-    be the update or cancellation that supersedes a cached one, so a partial set would be read
-    as fresh data. The coordinator then keeps the last good hazards (#16).
+    If any document is missing the load raises ProviderUnavailableError: it could be the update
+    or cancellation that supersedes a cached one, so a partial set would be read as fresh data.
+    The coordinator then keeps the last good hazards (#16).
     """
 
     def __init__(self, label: str) -> None:
         """Initialise an empty cache; ``label`` names the documents in log messages."""
         self._label = label
-        self._documents: dict[str, CapAlert | None] = {}
+        self._documents: dict[str, CapAlert] = {}
 
     def __len__(self) -> int:
-        """Return the number of cached documents (usable or not)."""
+        """Return the number of cached alerts."""
         return len(self._documents)
 
     def prune(self, live_keys: set[str]) -> None:
@@ -229,9 +229,13 @@ class CapDocumentCache:
                         _LOGGER.debug("%s %s unavailable: %s", self._label, url, err)
                         failed.append(url)
                         return None
-                self._documents[key] = parse_cap(document)
-            alert = self._documents[key]
-            return (payload, alert) if alert is not None else None
+                alert = parse_cap(document)
+                if alert is None:
+                    _LOGGER.debug("%s %s is not a CAP alert", self._label, url)
+                    failed.append(url)
+                    return None
+                self._documents[key] = alert
+            return (payload, self._documents[key])
 
         results = await asyncio.gather(*(load(payload, key, url) for payload, key, url in entries))
         if failed:
