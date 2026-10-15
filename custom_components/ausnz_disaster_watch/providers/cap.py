@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+from itertools import pairwise
 import math
 from typing import TYPE_CHECKING
 
@@ -207,15 +208,38 @@ def _centroid(ring: tuple[LatLon, ...]) -> LatLon:
     return (sum(p[0] for p in points) / len(points), sum(p[1] for p in points) / len(points))
 
 
+def _interior_point(ring: tuple[LatLon, ...]) -> LatLon:
+    """Return a point inside the polygon.
+
+    That is the vertex mean if it is inside, else the middle of the widest horizontal span
+    through the polygon (the vertex mean of a concave ring can lie outside it).
+    """
+    mean = _centroid(ring)
+    if point_in_polygon(mean[0], mean[1], ring):
+        return mean
+    lats = sorted({p[0] for p in ring})
+    best: tuple[float, LatLon] | None = None
+    for y in [(a + b) / 2 for a, b in pairwise(lats)]:
+        xs = sorted(
+            lon1 + (y - lat1) * (lon2 - lon1) / (lat2 - lat1)
+            for (lat1, lon1), (lat2, lon2) in zip(ring, ring[1:] + ring[:1], strict=True)
+            if (lat1 > y) != (lat2 > y)
+        )
+        for left, right in zip(xs[::2], xs[1::2], strict=False):
+            if best is None or right - left > best[0]:
+                best = (right - left, (y, (left + right) / 2))
+    return best[1] if best is not None else mean
+
+
 def representative_point(
     areas: tuple[CapArea, ...], lat: float | None = None, lon: float | None = None
 ) -> LatLon | None:
-    """Return a map location for the alert: the centre of the shape nearest the point, if given."""
+    """Return a map location for the alert: a point inside the shape nearest the point, if given."""
     candidates: list[tuple[float, LatLon]] = []
     for area in areas:
         for ring in area.polygons:
             dist = distance_to_polygon_km(lat, lon, ring) if lat is not None and lon is not None else 0.0
-            candidates.append((dist, _centroid(ring)))
+            candidates.append((dist, _interior_point(ring)))
         for c_lat, c_lon, radius in area.circles:
             dist = (
                 max(0.0, haversine_km(lat, lon, c_lat, c_lon) - radius) if lat is not None and lon is not None else 0.0

@@ -336,3 +336,64 @@ def test_parse_cap_without_info() -> None:
     assert alert is not None
     assert alert.areas == ()
     assert alert.event == "" and alert.expires is None
+
+
+async def test_lifecycle_ties_use_cap_sent_and_references(hass: HomeAssistant) -> None:
+    """When RSS dates tie or cannot be parsed, CAP references and sent decide, whatever the feed order."""
+    same = "Thu, 15 Oct 2026 09:00:00 +0000"
+    docs = {
+        "https://cap/a1": cap("A1", sent="2026-10-15T08:00:00+00:00", polygon=BRISBANE_POLY),
+        "https://cap/a2": cap("A2", msg_type="Cancel", sent="2026-10-15T08:00:00+00:00", references="CAP,A1,x"),
+        "https://cap/b1": cap("B1", sent="2026-10-15T08:00:00+00:00", polygon=BRISBANE_POLY),
+        "https://cap/b2": cap("B2", msg_type="Update", sent="2026-10-15T08:30:00+00:00", polygon=BRISBANE_POLY),
+    }
+    items = [
+        # Cancellation listed first, tying pubDate: the referenced alert must not resurface
+        ("AusBoM-IDQ21033-2", "Cancellation", "https://cap/a2", same),
+        ("AusBoM-IDQ21033-1", "Severe Thunderstorm Warning", "https://cap/a1", same),
+        # Unparsable pubDates: the later CAP sent wins
+        ("AusBoM-IDQ21034-2", "Severe Thunderstorm Warning (update)", "https://cap/b2", "not a date"),
+        ("AusBoM-IDQ21034-1", "Severe Thunderstorm Warning", "https://cap/b1", "not a date"),
+    ]
+    for order in (items, items[::-1]):
+        provider, _ = make_provider(hass, {BOM_WMO_FEED_URL: rss(*order), **docs})
+        hazards = await provider.async_fetch_hazards()
+        assert [(h.id, h.raw_properties["cap_identifier"]) for h in hazards] == [("BOM_IDQ21034", "B2")]
+
+
+async def test_weather_warnings_survive_short_outages_only(hass: HomeAssistant) -> None:
+    """During a feed outage the last warnings are kept until they expire or become too old."""
+    feed = rss(
+        ("AusBoM-IDQ21033-1", "Severe Thunderstorm Warning", "https://cap/1", "Thu, 15 Oct 2026 09:00:00 +0000"),
+        ("AusBoM-IDQ20085-1", "Strong Wind Warning", "https://cap/2", "Thu, 15 Oct 2026 09:00:00 +0000"),
+    )
+    docs = {
+        BOM_WMO_FEED_URL: feed,
+        "https://cap/1": cap("1", expires="2026-10-15T10:10:00+00:00"),
+        "https://cap/2": cap("2", expires="2026-10-15T18:00:00+00:00"),
+    }
+    provider, _ = make_provider(hass, docs)
+    assert await provider.async_fetch_weather_warnings() == []  # nothing polled yet
+    await provider.async_fetch_hazards()
+    assert len(await provider.async_fetch_weather_warnings()) == 2
+
+    del docs[BOM_WMO_FEED_URL]
+    bom_now = "custom_components.ausnz_disaster_watch.providers.bom.dt_util.utcnow"
+    with patch(bom_now, return_value=datetime(2026, 10, 15, 10, 20, tzinfo=UTC)):
+        with pytest.raises(ProviderUnavailableError):
+            await provider.async_fetch_hazards()
+        # The thunderstorm warning expired during the outage
+        assert [w.title for w in await provider.async_fetch_weather_warnings()] == ["Strong Wind Warning"]
+    with patch(bom_now, return_value=datetime(2026, 10, 15, 10, 31, tzinfo=UTC)):
+        assert await provider.async_fetch_weather_warnings() == []
+
+
+def test_representative_point_is_inside_concave_polygons() -> None:
+    """The vertex mean of an L-shaped ring lies outside it; the map point must not."""
+    ring = ((0.0, 0.0), (0.0, 4.0), (1.0, 4.0), (1.0, 1.0), (4.0, 1.0), (4.0, 0.0))
+    point = representative_point((CapArea("L", (ring,), (), ()),))
+    assert point is not None
+    assert point_in_polygon(point[0], point[1], ring)
+    # A degenerate ring has no interior: fall back to its vertex mean
+    flat = ((0.0, 0.0), (0.0, 2.0), (0.0, 4.0))
+    assert representative_point((CapArea("flat", (flat,), (), ()),)) == (0.0, 2.0)

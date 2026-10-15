@@ -13,14 +13,14 @@ warnings without geometry are exposed as weather warnings, not as located hazard
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime
+from datetime import UTC, datetime
 import logging
 import re
 from typing import TYPE_CHECKING, Any
 
 import defusedxml.ElementTree as ET
 
-from custom_components.ausnz_disaster_watch.const import STATE_ACT
+from custom_components.ausnz_disaster_watch.const import LAST_GOOD_MAX_AGE, STATE_ACT
 from custom_components.ausnz_disaster_watch.models import CanonicalHazard, HazardType, WarningLevel, WeatherWarningItem
 from homeassistant.util import dt as dt_util
 
@@ -35,6 +35,7 @@ _LOGGER = logging.getLogger(__name__)
 BOM_WMO_FEED_URL = "https://severeweather.wmo.int/v2/cap-alerts/au-bom-en/rss.xml"
 BOM_WARNINGS_PAGE = "https://www.bom.gov.au/australia/warnings"
 CAP_FETCH_CONCURRENCY = 4
+_EPOCH = datetime.min.replace(tzinfo=UTC)
 
 _PRODUCT_RE = re.compile(r"\bID[A-Z]\d{5}\b")
 
@@ -65,7 +66,9 @@ class BoMHazardProvider(BaseHazardProvider):
         """Initialise the provider with a CAP document cache that persists across polls."""
         super().__init__(*args, **kwargs)
         self._cap_cache: dict[str, CapAlert | None] = {}  # guid -> parsed alert (None = unusable)
-        self._weather_warnings: list[WeatherWarningItem] = []
+        # Unlocated warnings from the last successful poll, with each alert's expiry
+        self._weather_warnings: list[tuple[datetime | None, WeatherWarningItem]] = []
+        self._weather_warnings_at: datetime | None = None
 
     @property
     def state_code(self) -> str:
@@ -85,12 +88,12 @@ class BoMHazardProvider(BaseHazardProvider):
 
         items = channel.findall("item")
         self._prune_cache({(item.findtext("guid") or "").strip() for item in items})
-        latest = self._latest_item_per_product(items)
-        alerts = await self._async_load_alerts(latest)
+        candidates = self._candidate_items_per_product(items)
+        alerts = _newest_message_per_product(await self._async_load_alerts(candidates))
         now = dt_util.utcnow()
 
         hazards: list[CanonicalHazard] = []
-        weather_warnings: list[WeatherWarningItem] = []
+        weather_warnings: list[tuple[datetime | None, WeatherWarningItem]] = []
         for product_id, item, alert in alerts:
             try:
                 if not _is_current(alert, now):
@@ -99,15 +102,23 @@ class BoMHazardProvider(BaseHazardProvider):
                 if hazard is not None:
                     hazards.append(hazard)
                 else:
-                    weather_warnings.append(self._build_weather_warning(item, alert))
+                    weather_warnings.append((alert.expires, self._build_weather_warning(item, alert)))
             except MALFORMED_ITEM_ERRORS as err:
                 _LOGGER.debug("Skipping malformed BoM item %s: %s", product_id, err)
         self._weather_warnings = weather_warnings
+        self._weather_warnings_at = now
         return hazards
 
     async def async_fetch_weather_warnings(self) -> list[WeatherWarningItem]:
-        """Return current BoM warnings that have no area geometry (from the latest hazard poll)."""
-        return list(self._weather_warnings)
+        """Return current BoM warnings that have no area geometry (from the latest hazard poll).
+
+        While the feed is failing, the last good list is kept for ``LAST_GOOD_MAX_AGE`` like
+        hazards are, and warnings that have since expired are dropped.
+        """
+        now = dt_util.utcnow()
+        if self._weather_warnings_at is None or now - self._weather_warnings_at > LAST_GOOD_MAX_AGE:
+            return []
+        return [item for expires, item in self._weather_warnings if expires is None or expires > now]
 
     def _accepts_product(self, product_id: str | None) -> bool:
         """Return True if the product belongs to the configured jurisdiction."""
@@ -116,9 +127,13 @@ class BoMHazardProvider(BaseHazardProvider):
             return True  # "ALL"/unknown state, or an item without a product id
         return product_id.startswith(prefixes)
 
-    def _latest_item_per_product(self, items: list[Element]) -> list[tuple[str, Element]]:
-        """Group items by BoM product and keep the newest (by RSS pubDate) of each."""
-        newest: dict[str, tuple[datetime | None, Element]] = {}
+    def _candidate_items_per_product(self, items: list[Element]) -> list[tuple[str, Element]]:
+        """Group items by BoM product and keep the newest by RSS pubDate.
+
+        Items that tie on the newest pubDate, or whose pubDate cannot be parsed, are all kept so
+        the CAP lifecycle (``sent`` and ``references``) can decide between them.
+        """
+        groups: dict[str, list[tuple[datetime | None, Element]]] = {}
         for item in items:
             guid = (item.findtext("guid") or "").strip()
             title = (item.findtext("title") or "").strip()
@@ -127,14 +142,15 @@ class BoMHazardProvider(BaseHazardProvider):
             if not self._accepts_product(product_id):
                 continue
             key = product_id or stable_id("BOM", guid or title)
-            published = self.parse_datetime(item.findtext("pubDate"))
-            current = newest.get(key)
-            if current is None or (published is not None and (current[0] is None or published > current[0])):
-                newest[key] = (published, item)
-        return [(key, item) for key, (_, item) in newest.items()]
+            groups.setdefault(key, []).append((self.parse_datetime(item.findtext("pubDate")), item))
+        candidates: list[tuple[str, Element]] = []
+        for key, group in groups.items():
+            newest = max((published for published, _ in group if published is not None), default=None)
+            candidates.extend((key, item) for published, item in group if published in (None, newest))
+        return candidates
 
-    async def _async_load_alerts(self, latest: list[tuple[str, Element]]) -> list[tuple[str, Element, CapAlert]]:
-        """Fetch (or reuse cached) CAP documents for the newest item of each product."""
+    async def _async_load_alerts(self, candidates: list[tuple[str, Element]]) -> list[tuple[str, Element, CapAlert]]:
+        """Fetch (or reuse cached) CAP documents for each product's candidate items."""
         semaphore = asyncio.Semaphore(CAP_FETCH_CONCURRENCY)
 
         async def load(product_id: str, item: Element) -> tuple[str, Element, CapAlert] | None:
@@ -154,7 +170,7 @@ class BoMHazardProvider(BaseHazardProvider):
             alert = self._cap_cache[guid]
             return (product_id, item, alert) if alert is not None else None
 
-        results = await asyncio.gather(*(load(product_id, item) for product_id, item in latest))
+        results = await asyncio.gather(*(load(product_id, item) for product_id, item in candidates))
         return [result for result in results if result is not None]
 
     def _prune_cache(self, live_guids: set[str]) -> None:
@@ -205,6 +221,21 @@ class BoMHazardProvider(BaseHazardProvider):
             locations=alert.area_description or None,
             pub_date=alert.sent,
         )
+
+
+def _newest_message_per_product(
+    alerts: list[tuple[str, Element, CapAlert]],
+) -> list[tuple[str, Element, CapAlert]]:
+    """Keep one CAP message per product: never one a sibling updates or cancels, else the latest sent."""
+    groups: dict[str, list[tuple[str, Element, CapAlert]]] = {}
+    for entry in alerts:
+        groups.setdefault(entry[0], []).append(entry)
+    result: list[tuple[str, Element, CapAlert]] = []
+    for group in groups.values():
+        referenced = {ref for _, _, alert in group for ref in alert.references}
+        live = [entry for entry in group if entry[2].identifier not in referenced] or group
+        result.append(max(live, key=lambda entry: (entry[2].sent or _EPOCH, entry[2].identifier)))
+    return result
 
 
 def _is_current(alert: CapAlert, now: datetime) -> bool:
