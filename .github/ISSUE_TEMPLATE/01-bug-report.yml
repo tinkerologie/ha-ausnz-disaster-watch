@@ -98,7 +98,7 @@ body:
       options:
         - label: I searched existing open and closed issues before opening this bug report.
           required: true
-        - label: I confirm this issue targets ha-australian-disaster-watch, not upstream Home Assistant core or third-party hardware.
+        - label: I confirm this issue targets ha-ausnz-disaster-watch, not upstream Home Assistant core or third-party hardware.
           required: true
         - label: I confirmed that no sensitive credentials (passwords, auth tokens, private keys) are included in this report.
           required: true

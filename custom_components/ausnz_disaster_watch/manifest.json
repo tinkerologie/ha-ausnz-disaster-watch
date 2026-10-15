@@ -7,13 +7,16 @@
     "lovelace"
   ],
   "codeowners": [
-    "@ruaandeysel"
+    "@ruaan-deysel"
   ],
   "config_flow": true,
-  "documentation": "https://github.com/ruaandeysel/ha-australian-disaster-watch",
+  "documentation": "https://github.com/tinkerologie/ha-ausnz-disaster-watch",
   "integration_type": "service",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/ruaandeysel/ha-australian-disaster-watch/issues",
-  "requirements": [],
+  "issue_tracker": "https://github.com/tinkerologie/ha-ausnz-disaster-watch/issues",
+  "requirements": [
+    "defusedxml>=0.7.1",
+    "pydantic>=2.10"
+  ],
   "version": "1.0.0"
 }

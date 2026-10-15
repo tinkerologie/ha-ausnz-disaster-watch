@@ -608,7 +608,8 @@ export class AusDisasterCard extends LitElement {
     const weatherWarnSensor = this._findEntity("weather_warnings_count");
     const fireDangerSensor = this._findEntity("fire_danger_rating");
     const airQualitySensor = this._findEntity("air_quality");
-    const weatherObsSensor = this._findEntity("primary_weather_observation");
+    const weatherObsSensor =
+      this._findEntity("local_weather_observation") || this._findEntity("primary_weather_observation");
     const reliefSensor = this._findEntity("relief_facilities_count");
 
     const highestLevel = warningSensor?.state || "All Clear";
@@ -674,14 +675,14 @@ export class AusDisasterCard extends LitElement {
     const aqVal = airQualitySensor?.state && airQualitySensor.state !== "unknown" && airQualitySensor.state !== "unavailable" ? airQualitySensor.state : "--";
 
     const newsList =
-      weatherWarningsSensor?.attributes?.emergency_news ||
-      highestLevelSensor?.attributes?.emergency_news ||
+      weatherWarnSensor?.attributes?.emergency_news ||
+      warningSensor?.attributes?.emergency_news ||
       [];
     const newsCount = newsList.length;
 
     const councilsList =
-      weatherWarningsSensor?.attributes?.nearby_councils ||
-      highestLevelSensor?.attributes?.nearby_councils ||
+      weatherWarnSensor?.attributes?.nearby_councils ||
+      warningSensor?.attributes?.nearby_councils ||
       [];
 
     const cameraEntities = Object.entries(this._hass.states)

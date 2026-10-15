@@ -6,7 +6,7 @@ on:
     branches:
       - main
     paths:
-      - custom_components/australian_disaster_watch/manifest.json
+      - custom_components/ausnz_disaster_watch/manifest.json
 
 permissions:
   contents: read # jobs request only what they need
@@ -32,7 +32,7 @@ jobs:
       - name: Extract version from manifest
         id: version
         run: |
-          VERSION="$(jq -r '.version' custom_components/australian_disaster_watch/manifest.json)"
+          VERSION="$(jq -r '.version' custom_components/ausnz_disaster_watch/manifest.json)"
 
           if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
             echo "Manifest version is missing."

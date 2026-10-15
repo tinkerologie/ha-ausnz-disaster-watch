@@ -6,6 +6,19 @@ The changelog uses date sections in `YYYY.MM.DD` format.
 
 ## [Unreleased]
 
+### Fixed
+
+- Declare the third-party packages the integration imports (`defusedxml>=0.7.1`, `pydantic>=2.10`) in `manifest.json`, so installs without them no longer fail to load (#17).
+- CI, release and PR-governance workflows now target `custom_components/ausnz_disaster_watch/`; release creation and the committed-bundle check work again (#9).
+- Manifest documentation, issue tracker and codeowner, README links, HACS repository URL and `hacs.json` name now match `tinkerologie/ha-ausnz-disaster-watch` (#9).
+- Lovelace card TypeScript build errors (undeclared sensor variables) and the weather observation entity lookup (#4).
+
+### Changed
+
+- New `script/check-imports` and CI job verify every module imports in a clean Home Assistant environment with only the declared requirements (#17).
+- README entity tables, card type and automation examples (modern `triggers`/`actions` syntax, real entity IDs) updated; AGENTS.md/GEMINI.md/Copilot instructions describe the real package layout and domain (#9).
+- Browser regression test steps removed from CI until the card suite rebuild adds Playwright tests (#43).
+
 ### Added
 
 - **Australia and New Zealand Disaster Watch Integration**: Complete real-time hazard, disaster, and emergency incident monitoring integration for Home Assistant across Australian jurisdictions and New Zealand.

@@ -20,10 +20,10 @@ This schema combines Home Assistant's official manifest requirements with HACS-s
   "name": "AusNZDisasterWatch",
   "codeowners": ["@ruaan-deysel"],
   "config_flow": true,
-  "documentation": "https://github.com/tinkerologie/ha-australian-disaster-watch",
+  "documentation": "https://github.com/tinkerologie/ha-ausnz-disaster-watch",
   "integration_type": "device",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/tinkerologie/ha-australian-disaster-watch/issues",
+  "issue_tracker": "https://github.com/tinkerologie/ha-ausnz-disaster-watch/issues",
   "requirements": [],
   "version": "0.0.0"
 }
@@ -67,12 +67,12 @@ Choose the most accurate:
 
 ## Requirements Format
 
-Use package name with version constraint:
+Declare every third-party package the integration imports (anything not provided by Home Assistant core itself). Use **lower bounds** (`>=`) for custom integrations: exact `==` pins can conflict with Home Assistant's `package_constraints.txt` and fail to install. Keep `requirements.txt` in sync; `script/check-imports` verifies the declaration in a clean environment.
 
 ```json
 "requirements": [
-  "aiohttp>=3.9.0",
-  "some-package==1.2.3"
+  "defusedxml>=0.7.1",
+  "pydantic>=2.10"
 ]
 ```
 

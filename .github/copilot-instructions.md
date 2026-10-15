@@ -115,7 +115,7 @@ script/check      # Always run before considering task complete
 
 - Live: terminal where `./script/develop` runs
 - File: `config/home-assistant.log` (most recent), `config/home-assistant.log.1` (previous)
-- Debug level: `custom_components.australian_disaster_watch: debug` in `config/configuration.yaml`
+- Debug level: `custom_components.ausnz_disaster_watch: debug` in `config/configuration.yaml`
 
 ## Working With the Developer
 

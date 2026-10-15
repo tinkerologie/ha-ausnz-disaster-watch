@@ -1,0 +1,112 @@
+#!/bin/bash
+
+# script/check-imports: Verify the integration's declared requirements in a clean environment
+#
+# Creates a throwaway virtual environment containing only Home Assistant (at the minimum
+# version from hacs.json), the integration's manifest requirements, and the requirements of
+# the Home Assistant components it lists in "dependencies"/"after_dependencies" or provides
+# platforms for (resolved transitively). Home Assistant's own package_constraints.txt is
+# applied. Then every module of the integration is imported. Fails if a third-party import
+# is not declared in manifest.json.
+#
+# Usage:
+#   ./script/check-imports
+#   HA_VERSION=2026.10.1 ./script/check-imports
+#
+# Examples:
+#   ./script/check-imports
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR/.."
+
+# shellcheck source=script/.lib/output.sh
+source "$SCRIPT_DIR/.lib/output.sh"
+
+DOMAIN="ausnz_disaster_watch"
+VENV="${PWD}/.local/import-check-venv"
+HA_VERSION="${HA_VERSION:-$(python3 -c 'import json; print(json.load(open("hacs.json"))["homeassistant"])')}"
+
+if ! command -v uv >/dev/null 2>&1; then
+    log_error "uv is required (https://docs.astral.sh/uv/)"
+    exit 1
+fi
+
+log_header "Creating clean environment (Home Assistant ${HA_VERSION})"
+rm -rf "$VENV"
+uv venv --quiet --python 3.14 "$VENV"
+uv pip install --quiet --python "$VENV/bin/python" "homeassistant==${HA_VERSION}"
+
+log_header "Resolving declared requirements"
+REQS_FILE="$(mktemp)"
+CONSTRAINTS_FILE="$(mktemp)"
+trap 'rm -f "$REQS_FILE" "$CONSTRAINTS_FILE"' EXIT
+
+"$VENV/bin/python" - "$DOMAIN" "$REQS_FILE" "$CONSTRAINTS_FILE" <<'PY'
+import json
+import pathlib
+import sys
+
+import homeassistant
+
+domain, reqs_path, constraints_path = sys.argv[1:4]
+ha_root = pathlib.Path(homeassistant.__file__).parent
+own = json.loads(pathlib.Path(f"custom_components/{domain}/manifest.json").read_text())
+
+requirements = list(own.get("requirements", []))
+seen: set[str] = set()
+queue = list(own.get("dependencies", [])) + list(own.get("after_dependencies", []))
+# Entity platform modules (sensor.py, camera.py, ...) make Home Assistant load that
+# component too, which installs its requirements.
+queue += [
+    path.stem
+    for path in pathlib.Path(f"custom_components/{domain}").glob("*.py")
+    if (ha_root / "components" / path.stem / "manifest.json").exists()
+]
+while queue:
+    component = queue.pop()
+    if component in seen:
+        continue
+    seen.add(component)
+    manifest = ha_root / "components" / component / "manifest.json"
+    if not manifest.exists():
+        continue
+    data = json.loads(manifest.read_text())
+    requirements.extend(data.get("requirements", []))
+    queue.extend(data.get("dependencies", []))
+
+pathlib.Path(reqs_path).write_text("\n".join(dict.fromkeys(requirements)) + "\n")
+pathlib.Path(constraints_path).write_text((ha_root / "package_constraints.txt").read_text())
+print(f"Integration requirements: {own.get('requirements', [])}")
+print(f"Component dependencies resolved: {sorted(seen)}")
+PY
+
+uv pip install --quiet --python "$VENV/bin/python" --requirement "$REQS_FILE" --constraint "$CONSTRAINTS_FILE"
+
+log_header "Importing every module of custom_components/${DOMAIN}"
+PYTHONPATH="${PWD}" "$VENV/bin/python" - "$DOMAIN" <<'PY'
+import importlib
+import pathlib
+import sys
+
+domain = sys.argv[1]
+root = pathlib.Path("custom_components") / domain
+failures = []
+modules = sorted(
+    ".".join(path.with_suffix("").parts)
+    for path in root.rglob("*.py")
+)
+for name in (m.removesuffix(".__init__") for m in modules):
+    try:
+        importlib.import_module(name)
+    except ModuleNotFoundError as err:
+        failures.append(f"{name}: {err}")
+
+for failure in failures:
+    print(f"  ✗ {failure}")
+print(f"Imported {len(modules) - len(failures)}/{len(modules)} modules")
+sys.exit(1 if failures else 0)
+PY
+
+log_success "All modules import with only declared requirements"

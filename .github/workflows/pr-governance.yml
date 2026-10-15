@@ -197,7 +197,7 @@ jobs:
             ];
 
             const customComponentFiles = changedFiles.filter(
-              (f) => f.filename.startsWith("custom_components/australian_disaster_watch/") && f.filename.endsWith(".py")
+              (f) => f.filename.startsWith("custom_components/ausnz_disaster_watch/") && f.filename.endsWith(".py")
             );
 
             for (const file of customComponentFiles) {
