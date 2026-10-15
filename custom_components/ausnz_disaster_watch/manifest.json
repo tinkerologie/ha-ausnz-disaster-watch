@@ -18,5 +18,5 @@
     "defusedxml>=0.7.1",
     "pydantic>=2.10"
   ],
-  "version": "1.0.0"
+  "version": "2026.10.0b0"
 }
