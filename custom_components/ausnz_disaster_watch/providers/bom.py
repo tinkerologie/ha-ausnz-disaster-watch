@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+import aiohttp
 import defusedxml.ElementTree as ET
 
 if TYPE_CHECKING:
@@ -22,7 +23,7 @@ from custom_components.ausnz_disaster_watch.const import (
 )
 from custom_components.ausnz_disaster_watch.models import CanonicalHazard, HazardType, WarningLevel
 
-from .base import DEFAULT_TIMEOUT, BaseHazardProvider, stable_id
+from .base import DEFAULT_TIMEOUT, MALFORMED_ITEM_ERRORS, BaseHazardProvider, ProviderUnavailableError, stable_id
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -62,7 +63,6 @@ class BoMHazardProvider(BaseHazardProvider):
 
     async def async_fetch_hazards(self) -> list[CanonicalHazard]:
         """Fetch weather warnings from BoM CAP syndication."""
-        hazards: list[CanonicalHazard] = []
         try:
             req_headers = {"User-Agent": "HomeAssistant-AustralianDisasterWatch/1.0"}
             async with self.session.get(
@@ -71,23 +71,28 @@ class BoMHazardProvider(BaseHazardProvider):
                 timeout=DEFAULT_TIMEOUT,
             ) as resp:
                 if resp.status != 200:
-                    _LOGGER.debug("BoM CAP feed returned status %s", resp.status)
-                    return hazards
+                    raise ProviderUnavailableError(f"BoM CAP feed returned HTTP {resp.status}")
                 xml_text = await resp.text()
+        except (aiohttp.ClientError, TimeoutError) as err:
+            raise ProviderUnavailableError(f"BoM CAP feed unavailable: {err}") from err
 
+        try:
             root = ET.fromstring(xml_text)
-            channel = root.find("channel")
-            if channel is None:
-                return hazards
+        except (ET.ParseError, ValueError) as err:
+            raise ProviderUnavailableError(f"BoM CAP feed returned invalid XML: {err}") from err
+        channel = root.find("channel")
+        if channel is None:
+            raise ProviderUnavailableError("BoM CAP feed has no channel")
 
-            for item in channel.findall("item"):
+        hazards: list[CanonicalHazard] = []
+        for item in channel.findall("item"):
+            try:
                 hazard = self._parse_item(item)
-                if hazard:
-                    hazards.append(hazard)
-
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Error fetching Bureau of Meteorology CAP feed: %s", err)
-
+            except MALFORMED_ITEM_ERRORS as err:
+                _LOGGER.debug("Skipping malformed BoM item: %s", err)
+                continue
+            if hazard:
+                hazards.append(hazard)
         return hazards
 
     def _parse_item(self, item: Element) -> CanonicalHazard | None:

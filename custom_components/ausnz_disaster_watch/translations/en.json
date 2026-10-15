@@ -114,5 +114,10 @@
         "name": "Relief Facilities Count"
       }
     }
+  },
+  "exceptions": {
+    "feeds_unavailable": {
+      "message": "All emergency hazard feeds are unavailable: {feeds}"
+    }
   }
 }
