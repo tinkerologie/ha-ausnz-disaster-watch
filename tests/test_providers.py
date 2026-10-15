@@ -1512,6 +1512,11 @@ async def test_wa_fire_danger_uses_configured_district(hass: HomeAssistant) -> N
     assert fdr.rating == "Extreme"
     assert fdr.total_fire_ban is None  # the feed has no total fire ban field
     assert fdr.day == "Today"
+    # The district is resolved once per location (in an executor) and reused on later polls
+    assert perth._fdr_area == ((-31.95, 115.86), "WA_FW091")
+    with patch.object(hass, "async_add_executor_job") as executor_job:
+        assert await perth.async_fetch_fire_danger() == fdr
+    executor_job.assert_not_called()
 
     # The district has no forecast for today: unknown, not another district's rating
     rottnest = WAHazardProvider(hass, AsyncMock(), {"state": STATE_WA, "latitude": -32.0, "longitude": 115.52})

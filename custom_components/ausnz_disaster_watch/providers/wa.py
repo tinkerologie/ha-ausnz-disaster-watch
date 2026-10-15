@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, ClassVar
+from typing import Any
 
 import aiohttp
 
 from custom_components.ausnz_disaster_watch.const import STATE_WA
-from custom_components.ausnz_disaster_watch.fire_districts import find_district, load_fire_districts
+from custom_components.ausnz_disaster_watch.fire_districts import resolve_district
 from custom_components.ausnz_disaster_watch.models import CanonicalHazard, FireDangerRating, HazardType, WarningLevel
 
 from .base import MALFORMED_ITEM_ERRORS, BaseHazardProvider, stable_id
@@ -26,8 +26,8 @@ class WAHazardProvider(BaseHazardProvider):
 
     local_tz = "Australia/Perth"
 
-    # BoM fire weather district polygons, loaded once off the event loop
-    _districts: ClassVar[dict[str, dict[str, Any]] | None] = None
+    # ((lat, lon), district AAC) for the last resolved fire danger location
+    _fdr_area: tuple[tuple[float, float], str | None] | None = None
 
     @property
     def state_code(self) -> str:
@@ -63,11 +63,12 @@ class WAHazardProvider(BaseHazardProvider):
         except (KeyError, TypeError, ValueError):
             return None
 
-        districts = WAHazardProvider._districts
-        if districts is None:
-            districts = await self.hass.async_add_executor_job(load_fire_districts, WA_FIRE_DISTRICTS)
-            WAHazardProvider._districts = districts
-        area = find_district(districts, lat, lon)
+        # The polygon test reads a file and scans thousands of edges, so it runs in an
+        # executor, once per location
+        if self._fdr_area is None or self._fdr_area[0] != (lat, lon):
+            area = await self.hass.async_add_executor_job(resolve_district, WA_FIRE_DISTRICTS, lat, lon)
+            self._fdr_area = ((lat, lon), area)
+        area = self._fdr_area[1]
         if area is None:
             # Outside every WA district: report unknown rather than another district's rating
             return None

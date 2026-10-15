@@ -8,6 +8,7 @@ district with a point-in-polygon test (#14).
 
 from __future__ import annotations
 
+from functools import cache
 from itertools import pairwise
 import json
 from pathlib import Path
@@ -23,10 +24,11 @@ NEAREST_DISTRICT_MAX_DEG = 0.25
 type Ring = list[list[float]]
 
 
+@cache
 def load_fire_districts(name: str) -> dict[str, dict[str, Any]]:
     """Load bundled district polygons as ``{aac: {"name": str, "rings": [[[lon, lat], ...]]}}``.
 
-    This reads a file, so call it from an executor job, not the event loop.
+    This reads a file (once per name), so call it from an executor job, not the event loop.
     """
     with (_DATA_DIR / f"{name}.json").open(encoding="utf-8") as file:
         return json.load(file)["districts"]
@@ -72,3 +74,8 @@ def find_district(districts: dict[str, dict[str, Any]], lat: float, lon: float) 
                 if distance <= NEAREST_DISTRICT_MAX_DEG and (best is None or distance < best[0]):
                     best = (distance, aac)
     return best[1] if best else None
+
+
+def resolve_district(name: str, lat: float, lon: float) -> str | None:
+    """Return the AAC of the bundled ``name`` district for a point. Blocking: run in an executor."""
+    return find_district(load_fire_districts(name), lat, lon)
