@@ -86,11 +86,10 @@ class NTHazardProvider(BaseHazardProvider):
             else:
                 level = WarningLevel.INFORMATION
 
-            # Stable across polls and feed reordering: notified time + event type + full location (#7).
-            # Coordinates are not used because a fire's centroid moves as its perimeter changes.
+            # Stable across polls and feed reordering (#7). The NT feed has no upstream incident
+            # ID, so use notified time + event type + full location. Coordinates are only a
+            # tie-breaker when the notified time is missing, because a fire's centroid moves.
             notified = props.get("_datenotified") or props.get("Notified")
-            # The NT feed has no upstream incident ID. Coordinates are only a tie-breaker when
-            # the notified time is missing, because a fire's centroid moves as it spreads.
             item_id = (
                 stable_id("nt", notified, event_type, location)
                 if notified
