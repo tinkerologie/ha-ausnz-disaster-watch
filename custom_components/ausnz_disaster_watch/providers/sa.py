@@ -19,6 +19,8 @@ SA_CAP_AU_URL = "https://data.eso.sa.gov.au/feeds/prod/cap-au.xml"
 class SAHazardProvider(BaseHazardProvider):
     """Provider for South Australian emergency services (CFS / MFS / SES via SAFECOM CAP-AU)."""
 
+    local_tz = "Australia/Adelaide"
+
     @property
     def state_code(self) -> str:
         """Return jurisdiction identifier."""

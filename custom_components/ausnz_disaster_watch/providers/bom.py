@@ -22,7 +22,7 @@ from custom_components.ausnz_disaster_watch.const import (
 )
 from custom_components.ausnz_disaster_watch.models import CanonicalHazard, HazardType, WarningLevel
 
-from .base import DEFAULT_TIMEOUT, BaseHazardProvider
+from .base import DEFAULT_TIMEOUT, BaseHazardProvider, stable_id
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -149,7 +149,8 @@ class BoMHazardProvider(BaseHazardProvider):
         else:
             lat, lon = -27.2657, 152.9818
 
-        clean_id = guid.replace(":", "_").replace("-", "_") if guid else f"BOM_{hash(title)}"
+        # hash() is salted per process; stable_id survives restarts (#7)
+        clean_id = guid.replace(":", "_").replace("-", "_") if guid else stable_id("BOM", title)
 
         return CanonicalHazard(
             id=f"BOM_{clean_id}",

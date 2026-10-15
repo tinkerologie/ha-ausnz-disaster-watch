@@ -155,7 +155,7 @@ def test_canonical_hazard_datetime_validator() -> None:
     )
     assert h2.updated_at.tzinfo == UTC
 
-    # Non-string/non-datetime fallback to now(UTC)
+    # Unknown/unsupported values stay None instead of pretending to be "now" (#13)
     h3 = CanonicalHazard(
         id="3",
         source="s",
@@ -166,7 +166,35 @@ def test_canonical_hazard_datetime_validator() -> None:
         longitude=150.0,
         updated_at=12345,  # type: ignore[arg-type]
     )
-    assert h3.updated_at.tzinfo == UTC
+    assert h3.updated_at is None
+    assert "updated_at" not in h3.to_safe_attributes()
+
+    # An invalid ISO string is an unknown time, not a rejected hazard
+    h5 = CanonicalHazard(
+        id="5",
+        source="s",
+        title="t",
+        hazard_type=HazardType.BUSHFIRE,
+        warning_level=WarningLevel.ADVICE,
+        latitude=-25.0,
+        longitude=150.0,
+        updated_at="not a timestamp",  # type: ignore[arg-type]
+    )
+    assert h5.updated_at is None
+
+    # Aware non-UTC values are normalised to UTC
+    h4 = CanonicalHazard(
+        id="4",
+        source="s",
+        title="t",
+        hazard_type=HazardType.BUSHFIRE,
+        warning_level=WarningLevel.ADVICE,
+        latitude=-25.0,
+        longitude=150.0,
+        updated_at="2026-10-15T15:30:00+10:00",  # type: ignore[arg-type]
+    )
+    assert h4.updated_at == datetime(2026, 10, 15, 5, 30, tzinfo=UTC)
+    assert h4.to_safe_attributes()["updated_at"] == "2026-10-15T05:30:00+00:00"
 
 
 def test_disaster_watch_config_model() -> None:

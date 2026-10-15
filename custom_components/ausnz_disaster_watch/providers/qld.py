@@ -24,7 +24,7 @@ from custom_components.ausnz_disaster_watch.models import (
     WeatherWarningItem,
 )
 
-from .base import BaseHazardProvider
+from .base import BaseHazardProvider, stable_id
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -37,6 +37,8 @@ DEFAULT_QLD_COUNCIL_URL = "https://disaster.moretonbay.qld.gov.au"
 
 class QueenslandHazardProvider(BaseHazardProvider):
     """Provider for Queensland Fire Department and Local Disaster Dashboards."""
+
+    local_tz = "Australia/Brisbane"
 
     @property
     def state_code(self) -> str:
@@ -697,7 +699,7 @@ class QueenslandHazardProvider(BaseHazardProvider):
                     centroid = self.calculate_centroid(feat.get("geometry", {}))
                     facilities.append(
                         ReliefFacilityItem(
-                            id=f"sandbag_{props.get('OBJECTID') or props.get('NAME') or len(facilities)}",
+                            id=f"sandbag_{props.get('OBJECTID') or stable_id('qld_relief', props.get('NAME'), centroid)}",
                             facility_type="sandbag_station",
                             name=str(props.get("NAME") or "Sandbag Station"),
                             suburb=str(props.get("SUBURB") or ""),
@@ -719,7 +721,7 @@ class QueenslandHazardProvider(BaseHazardProvider):
                     centroid = self.calculate_centroid(feat.get("geometry", {}))
                     facilities.append(
                         ReliefFacilityItem(
-                            id=f"evac_{props.get('OBJECTID') or props.get('NAME') or len(facilities)}",
+                            id=f"evac_{props.get('OBJECTID') or stable_id('qld_relief', props.get('NAME'), centroid)}",
                             facility_type="evacuation_centre",
                             name=str(props.get("NAME") or "Evacuation Centre"),
                             suburb=str(props.get("SUBURB") or ""),

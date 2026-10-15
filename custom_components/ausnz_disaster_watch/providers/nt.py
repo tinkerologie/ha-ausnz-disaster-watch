@@ -8,7 +8,7 @@ from typing import Any
 from custom_components.ausnz_disaster_watch.const import STATE_NT
 from custom_components.ausnz_disaster_watch.models import CanonicalHazard, HazardType, WarningLevel
 
-from .base import BaseHazardProvider
+from .base import BaseHazardProvider, stable_id
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -17,6 +17,8 @@ NT_INCIDENTS_URL = "https://pfes.nt.gov.au/incidentmap/json/incidents.json"
 
 class NTHazardProvider(BaseHazardProvider):
     """Provider for Northern Territory Police, Fire and Emergency Services (PFES)."""
+
+    local_tz = "Australia/Darwin"
 
     @property
     def state_code(self) -> str:
@@ -53,7 +55,7 @@ class NTHazardProvider(BaseHazardProvider):
         if "features" in data and isinstance(data["features"], list):
             feature_list.extend(data["features"])
 
-        for idx, feat in enumerate(feature_list):
+        for feat in feature_list:
             if not isinstance(feat, dict):
                 continue
 
@@ -84,7 +86,16 @@ class NTHazardProvider(BaseHazardProvider):
             else:
                 level = WarningLevel.INFORMATION
 
-            item_id = f"nt_{props.get('_datenotified', idx)}_{location[:20].strip()}"
+            # Stable across polls and feed reordering: notified time + event type + full location (#7).
+            # Coordinates are not used because a fire's centroid moves as its perimeter changes.
+            notified = props.get("_datenotified") or props.get("Notified")
+            # The NT feed has no upstream incident ID. Coordinates are only a tie-breaker when
+            # the notified time is missing, because a fire's centroid moves as it spreads.
+            item_id = (
+                stable_id("nt", notified, event_type, location)
+                if notified
+                else stable_id("nt", event_type, location, round(lat, 3), round(lon, 3))
+            )
             title = f"{event_type} - {location}"
 
             hazards.append(

@@ -8,6 +8,8 @@ The changelog uses date sections in `YYYY.MM.DD` format.
 
 ### Fixed
 
+- Agency timestamps without a time zone are interpreted in the agency's local zone (Brisbane, Sydney, Melbourne, Adelaide, Perth, Hobart, Darwin, Auckland) instead of UTC, so `updated_at` is no longer 8–13 hours off. Zone abbreviations such as `AEDT` are understood, ACT uses the incident's "Updated:" time, and NSW RFS parses `UPDATED` as Sydney time. Unparsable or missing times are now omitted instead of being reported as "now" (#13).
+- Hazard IDs are deterministic: NT incidents no longer use list position or a 20-character location prefix (which collided), the BoM fallback no longer uses the per-process `hash()`, and WA items without an ID no longer collapse into one. This stops `geo_location` entity churn after restarts and feed reordering (#7).
 - Declare the third-party packages the integration imports (`defusedxml>=0.7.1`, `pydantic>=2.10`) in `manifest.json`, so installs without them no longer fail to load (#17).
 - CI, release and PR-governance workflows now target `custom_components/ausnz_disaster_watch/`; release creation and the committed-bundle check work again (#9).
 - Manifest documentation, issue tracker and codeowner, README links, HACS repository URL and `hacs.json` name now match `tinkerologie/ha-ausnz-disaster-watch` (#9).

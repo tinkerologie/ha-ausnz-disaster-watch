@@ -27,6 +27,8 @@ DEFAULT_NSW_COUNCIL_URL = "https://disaster.hawkesbury.nsw.gov.au"
 class NSWHazardProvider(BaseHazardProvider):
     """Provider for New South Wales Rural Fire Service and State Emergency Service."""
 
+    local_tz = "Australia/Sydney"
+
     @property
     def state_code(self) -> str:
         """Return state code."""
@@ -84,8 +86,8 @@ class NSWHazardProvider(BaseHazardProvider):
         status = desc_fields.get("STATUS")
         agency = desc_fields.get("RESPONSIBLE AGENCY") or "NSW Rural Fire Service"
 
-        updated_raw = desc_fields.get("UPDATED") or props.get("pubDate")
-        updated_at = self.parse_datetime(updated_raw)
+        # "UPDATED" in the description is Sydney local time; pubDate is the fallback (#13)
+        updated_at = self.parse_datetime(desc_fields.get("UPDATED")) or self.parse_datetime(props.get("pubDate"))
 
         is_hazard_reduction = bool(
             "hazard reduction" in description.lower()

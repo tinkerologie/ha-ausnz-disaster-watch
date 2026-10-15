@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import html
 import logging
+import re
 
 import defusedxml.ElementTree as ET
 
@@ -16,8 +18,19 @@ _LOGGER = logging.getLogger(__name__)
 ACT_ESA_FEED_URL = "https://www.esa.act.gov.au/feeds/currentincidents.xml"
 
 
+_UPDATED_RE = re.compile(r"updated:\s*(.+?)(?:<br\s*/?>|<|\n|$)", re.IGNORECASE)
+
+
+def _extract_updated(description: str) -> str | None:
+    """Return the value of the "Updated:" label in an ACT ESA item description."""
+    match = _UPDATED_RE.search(html.unescape(description))
+    return match.group(1).strip() if match else None
+
+
 class ACTHazardProvider(BaseHazardProvider):
     """Provider for Australian Capital Territory Emergency Services Agency (ACT ESA)."""
+
+    local_tz = "Australia/Sydney"
 
     @property
     def state_code(self) -> str:
@@ -51,8 +64,11 @@ class ACTHazardProvider(BaseHazardProvider):
                 guid = item.findtext("guid", "").strip() or title
                 desc = item.findtext("description", "").strip()
                 agency = item.findtext("agency", "").strip() or "ACT ESA"
-                pub_date_str = item.findtext("pubDate", "")
-                updated_at = self.parse_datetime(pub_date_str)
+                # pubDate is the feed build time; the incident time is the "Updated:" line in
+                # the description (e.g. "Updated: 2026-10-15 20:46 AEDT") (#13)
+                updated_at = self.parse_datetime(_extract_updated(desc)) or self.parse_datetime(
+                    item.findtext("pubDate", "")
+                )
 
                 # Extract georss:point
                 lat: float | None = None
