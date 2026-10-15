@@ -204,12 +204,17 @@ async def test_cap_cache_and_fetch_failures(hass: HomeAssistant) -> None:
     docs = {BOM_WMO_FEED_URL: feed, "https://cap/1": cap("one", polygon=BRISBANE_POLY), "https://cap/junk": "<not cap"}
     provider, fetch = make_provider(hass, docs)
 
-    assert [h.id for h in await provider.async_fetch_hazards()] == ["BOM_IDQ21033"]
-    await provider.async_fetch_hazards()
+    # A document that cannot be downloaded makes the poll incomplete, not an all-clear
+    for _ in range(2):
+        with pytest.raises(ProviderUnavailableError, match="1 BoM CAP document"):
+            await provider.async_fetch_hazards()
     urls = [call.args[0] for call in fetch.await_args_list]
     assert urls.count("https://cap/1") == 1  # cached
     assert urls.count("https://cap/junk") == 1  # unusable document cached as such
     assert urls.count("https://cap/down") == 2  # network failure retried
+
+    docs["https://cap/down"] = cap("down")
+    assert [h.id for h in await provider.async_fetch_hazards()] == ["BOM_IDQ21033"]
 
     # Items that leave the feed are forgotten
     docs[BOM_WMO_FEED_URL] = rss()

@@ -144,6 +144,9 @@ async def test_coordinator_falls_back_to_home_location(hass: HomeAssistant) -> N
     assert coordinator.latitude == -33.8688
     assert coordinator.longitude == 151.2093
     assert coordinator.state_code == "NSW"
+    # Providers receive the resolved home location, not the missing entry coordinates
+    assert coordinator.providers
+    assert all((p.config["latitude"], p.config["longitude"]) == (-33.8688, 151.2093) for p in coordinator.providers)
 
 
 async def test_coordinator_provider_exception_handling(

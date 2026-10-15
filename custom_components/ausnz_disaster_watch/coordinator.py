@@ -100,7 +100,9 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         self._update_config_values()
 
         session = async_get_clientsession(hass)
-        self.providers = get_providers_for_config(hass, session, self.combined_config)
+        # Providers that measure distance to warning areas need the resolved home location
+        provider_config = {**self.combined_config, "latitude": self.latitude, "longitude": self.longitude}
+        self.providers = get_providers_for_config(hass, session, provider_config)
 
     def _update_config_values(self) -> None:
         """Update internal parameters from entry data and options using Pydantic."""

@@ -152,6 +152,7 @@ class BoMHazardProvider(BaseHazardProvider):
     async def _async_load_alerts(self, candidates: list[tuple[str, Element]]) -> list[tuple[str, Element, CapAlert]]:
         """Fetch (or reuse cached) CAP documents for each product's candidate items."""
         semaphore = asyncio.Semaphore(CAP_FETCH_CONCURRENCY)
+        failed: list[str] = []
 
         async def load(product_id: str, item: Element) -> tuple[str, Element, CapAlert] | None:
             guid = (item.findtext("guid") or "").strip()
@@ -165,12 +166,17 @@ class BoMHazardProvider(BaseHazardProvider):
                     except ProviderUnavailableError as err:
                         # Not cached: retried on the next poll
                         _LOGGER.debug("BoM CAP document %s unavailable: %s", link, err)
+                        failed.append(link)
                         return None
                 self._cap_cache[guid] = parse_cap(document)
             alert = self._cap_cache[guid]
             return (product_id, item, alert) if alert is not None else None
 
         results = await asyncio.gather(*(load(product_id, item) for product_id, item in candidates))
+        if failed:
+            # A missing document could be a product's newest message (an update or a cancellation),
+            # so this poll is incomplete; let the coordinator keep the last good data (#16).
+            raise ProviderUnavailableError(f"{len(failed)} BoM CAP document(s) unavailable")
         return [result for result in results if result is not None]
 
     def _prune_cache(self, live_guids: set[str]) -> None:
