@@ -186,7 +186,7 @@ async def test_flow_home_mode_picks_nearest_council(
 
 
 async def test_reconfigure_home_entry_prefills_home_and_switches_to_custom(hass: HomeAssistant) -> None:
-    """Reconfigure shows the current home location and saving it fixes the point (#19)."""
+    """Reconfigure shows the current home location; choosing a fixed location stores it (#19)."""
     hass.config.latitude, hass.config.longitude = -19.26, 146.82
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -208,6 +208,27 @@ async def test_reconfigure_home_entry_prefills_home_and_switches_to_custom(hass:
             result["flow_id"],
             user_input={
                 CONF_STATE: STATE_QLD,
+                CONF_LOCATION_NAME: "Townsville",
+                CONF_LATITUDE: -19.26,
+                CONF_LONGITUDE: 146.82,
+                CONF_RADIUS: 50,
+                CONF_OVERRIDE_EMERGENCY: True,
+                CONF_EXCLUDE_HAZARD_REDUCTION: True,
+            },
+        )
+    # Submitting the displayed home location unchanged keeps following home and drops the
+    # coordinates an older version stored
+    assert entry.data[CONF_LOCATION_MODE] == LOCATION_MODE_HOME
+    assert CONF_LATITUDE not in entry.data
+    assert CONF_LONGITUDE not in entry.data
+
+    with patch("custom_components.ausnz_disaster_watch.async_setup_entry", return_value=True):
+        result = await entry.start_reconfigure_flow(hass)
+        await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={
+                CONF_STATE: STATE_QLD,
+                CONF_LOCATION_MODE: LOCATION_MODE_CUSTOM,
                 CONF_LOCATION_NAME: "Townsville",
                 CONF_LATITUDE: -19.26,
                 CONF_LONGITUDE: 146.82,
@@ -478,6 +499,8 @@ async def test_reconfigure_home_entry_moving_becomes_custom(
     hass: HomeAssistant,
 ) -> None:
     """Test a home-zone entry keeps its home ID until its coordinates change."""
+    hass.config.latitude = RECONFIGURE_INPUT[CONF_LATITUDE]
+    hass.config.longitude = RECONFIGURE_INPUT[CONF_LONGITUDE]
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="Australia and New Zealand Disaster Watch (QLD - Home)",
@@ -642,4 +665,6 @@ async def test_reconfigure_explicit_location_source(hass: HomeAssistant) -> None
             user_input={**RECONFIGURE_INPUT, CONF_LOCATION_NAME: "Home", CONF_LOCATION_MODE: LOCATION_MODE_HOME},
         )
     assert entry.data[CONF_LOCATION_MODE] == LOCATION_MODE_HOME
+    assert CONF_LATITUDE not in entry.data
+    assert CONF_LONGITUDE not in entry.data
     assert entry.unique_id == "ausnz_disaster_watch_qld_home"

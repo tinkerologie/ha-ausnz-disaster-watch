@@ -455,11 +455,15 @@ class AustralianDisasterWatchConfigFlow(ConfigFlow, domain=DOMAIN):
                         **entry.options,
                         **{key: updates[key] for key in RECONFIGURE_OPTION_KEYS if key in updates},
                     }
+                    if new_data[CONF_LOCATION_MODE] == LOCATION_MODE_HOME:
+                        # data_updates would merge into the stored data and keep an old fixed point
+                        new_data.pop(CONF_LATITUDE, None)
+                        new_data.pop(CONF_LONGITUDE, None)
                     return self.async_update_reload_and_abort(
                         entry,
                         unique_id=unique_id,
                         title=build_title(state, location_name),
-                        data_updates=updates,
+                        data=new_data,
                         options=options,
                     )
 
@@ -542,15 +546,15 @@ class AustralianDisasterWatchConfigFlow(ConfigFlow, domain=DOMAIN):
     def _reconfigured_location_mode(self, entry: ConfigEntry, lat: float, lon: float) -> str:
         """Return the location mode after reconfigure.
 
-        A home-zone entry stays in home mode only while the submitted coordinates are its
-        current location (the Home Assistant home location, or the coordinates stored by
-        older entries); moving the location makes it a custom location with its own unique ID.
+        A home-zone entry stays in home mode only while the submitted coordinates are the
+        Home Assistant home location the form showed (coordinates stored by older versions
+        are ignored); moving the location makes it a custom location with its own unique ID.
         """
         mode = entry.data.get(CONF_LOCATION_MODE, LOCATION_MODE_HOME)
         if mode != LOCATION_MODE_HOME:
             return str(mode)
-        old_lat = entry.data.get(CONF_LATITUDE, self.hass.config.latitude)
-        old_lon = entry.data.get(CONF_LONGITUDE, self.hass.config.longitude)
+        old_lat = self.hass.config.latitude
+        old_lon = self.hass.config.longitude
         if (
             old_lat is not None
             and old_lon is not None
