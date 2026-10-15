@@ -61,6 +61,9 @@ jobs:
   backend:
     name: Test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # Codecov OIDC upload
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -99,7 +102,40 @@ jobs:
         run: script/setup/bootstrap
 
       - name: Run tests
-        run: script/test
+        run: script/test --cov --cov-report=xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          # OIDC: no stored token needed (organisation secrets are not exposed to this private repo)
+          use_oidc: true
+          files: ./coverage.xml
+          disable_search: true
+          fail_ci_if_error: true
+
+  imports:
+    name: Declared requirements
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.14'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: 0.9.3
+          enable-cache: true
+          cache-dependency-glob: '**/requirements*.txt'
+
+      - name: Import every module with only declared requirements
+        run: script/check-imports
 
   frontend:
     name: Frontend
@@ -129,26 +165,14 @@ jobs:
       - name: Build bundle
         run: npm run build
 
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
-
-      - name: Browser regression tests
-        run: npm run test:browser
-
-      - name: Upload browser test traces
-        if: failure()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: browser-test-results
-          path: frontend/test-results/
-          retention-days: 7
+      # Browser regression tests (Playwright) return with the card suite rebuild (#43).
 
       - name: Committed bundle matches source
         run: |
-          changes="$(git status --porcelain --untracked-files=all -- ../custom_components/australian_disaster_watch/frontend/)"
+          changes="$(git status --porcelain --untracked-files=all -- ../custom_components/ausnz_disaster_watch/frontend/)"
           if [ -n "$changes" ]; then
             echo "Committed frontend bundle is out of date:"
             echo "$changes"
-            git diff -- ../custom_components/australian_disaster_watch/frontend/
+            git diff -- ../custom_components/ausnz_disaster_watch/frontend/
             exit 1
           fi

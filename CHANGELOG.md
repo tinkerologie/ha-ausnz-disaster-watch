@@ -2,9 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
-The changelog uses date sections in `YYYY.MM.DD` format.
+Versions follow Home Assistant's scheme, `YEAR.MONTH.PATCH` (for example `2026.10.0`), with `bN` suffixes for betas. Beta versions are not published as releases.
 
 ## [Unreleased]
+
+### Fixed
+
+- Declare the third-party packages the integration imports (`defusedxml>=0.7.1`, `pydantic>=2.10`) in `manifest.json`, so installs without them no longer fail to load (#17).
+- CI, release and PR-governance workflows now target `custom_components/ausnz_disaster_watch/`; release creation and the committed-bundle check work again (#9).
+- Manifest documentation, issue tracker and codeowner, README links, HACS repository URL and `hacs.json` name now match `tinkerologie/ha-ausnz-disaster-watch` (#9).
+- Hassfest validation gets `contents: read`; with `permissions: {}` it could not check out the private repository and always failed. HACS validation is skipped while the repository is private, because HACS cannot read or install private repositories (#9).
+- Lovelace card TypeScript build errors (undeclared sensor variables) and the weather observation entity lookup (#4).
+
+### Changed
+
+- Versioning follows Home Assistant (`YEAR.MONTH.PATCH`); the manifest is `2026.10.0b0`. The release workflow accepts that scheme and does not publish alpha, beta or release-candidate versions, so merging changes during the beta creates no release.
+- CI uploads test coverage to Codecov (`codecov.yml`: project coverage may not drop, patch coverage 100%) (#9).
+- New `script/check-imports` and CI job verify every module imports in a clean Home Assistant environment with only the declared requirements (#17).
+- README entity tables, card type and automation examples (modern `triggers`/`actions` syntax, real entity IDs) updated; AGENTS.md/GEMINI.md/Copilot instructions describe the real package layout and domain (#9).
+- Browser regression test steps removed from CI until the card suite rebuild adds Playwright tests (#43).
 
 ### Added
 

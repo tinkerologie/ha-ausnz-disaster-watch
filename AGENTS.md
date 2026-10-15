@@ -25,13 +25,13 @@ This is a Home Assistant custom integration that was generated from a blueprint 
 
 **Integration details:**
 
-- **Domain:** `australian_disaster_watch`
-- **Title:** Australian Disaster Watch
-- **Repository:** ruaan-deysel/ha-australian-disaster-watch
+- **Domain:** `ausnz_disaster_watch`
+- **Title:** Australia and New Zealand Disaster Watch
+- **Repository:** tinkerologie/ha-ausnz-disaster-watch
 
 **Key directories:**
 
-- `custom_components/australian_disaster_watch/` - Main integration code
+- `custom_components/ausnz_disaster_watch/` - Main integration code
 - `config/` - Home Assistant configuration for local testing
 - `tests/` - Unit and integration tests
 - `script/` - Development and validation scripts
@@ -64,7 +64,7 @@ pkill -f "hass --config" || true && pkill -f "debugpy.*5678" || true && ./script
 
 **Adjusting log levels:**
 
-- Integration logs: `custom_components.australian_disaster_watch: debug` in `config/configuration.yaml`
+- Integration logs: `custom_components.ausnz_disaster_watch: debug` in `config/configuration.yaml`
 - You can modify log levels when debugging - just restart HA after changes
 
 **Context-specific instructions:**
@@ -197,44 +197,41 @@ As an AI agent, **aim for Silver or Gold Quality Scale** when generating code:
 
 This integration uses the following identifiers consistently:
 
-- **Domain:** `australian_disaster_watch`
-- **Title:** Australian Disaster Watch
-- **Class prefix:** `AustralianDisasterWatch`
+- **Domain:** `ausnz_disaster_watch`
+- **Title:** Australia and New Zealand Disaster Watch
+- **Class prefix:** `AustralianDisasterWatch` / `AusNZDisasterWatch` (aliases keep both working)
 
 **When creating new files:**
 
-- Use the domain `australian_disaster_watch` for all DOMAIN references
-- Prefix all integration-specific classes with `AustralianDisasterWatch`
-- Use "Australian Disaster Watch" as the display title
+- Use the domain `ausnz_disaster_watch` for all DOMAIN references
+- Prefix integration-specific classes with `AustralianDisasterWatch` (or the `AusNZDisasterWatch` aliases)
+- Use "Australia and New Zealand Disaster Watch" as the display title
 - Never hardcode different values
 
 ### Integration Structure
 
-**Package organization (DO NOT create other packages):**
+**Package organization (flat modules plus one `providers/` package; do not add other packages without approval):**
 
-- `api/` - API client and exceptions
-- `coordinator/` - Data update coordinator
-- `config_flow_handler/` - Config flow, options, validators, schemas
-  - `validators/*.py` - Config flow validation functions
-  - `schemas/*.py` - Data schemas for config flow steps
-- `entity/` - Base entity classes
-- `entity_utils/` - Entity-specific helpers (device_info, state formatting)
-- `[platform]/` - Entity platforms (sensor, switch, etc.)
-- `service_actions/` - Service action implementations
-- `utils/` - Integration-wide utilities (string helpers, general validators)
+- `__init__.py` - Config entry setup/unload, platform forwarding, frontend registration in `async_setup`
+- `coordinator.py` - `AustralianDisasterWatchCoordinator` (DataUpdateCoordinator): fetches all providers concurrently, radius filtering, dynamic poll interval
+- `providers/` - One `BaseHazardProvider` subclass per jurisdiction (`qld`, `nsw`, `vic`, `wa`, `sa`, `tas`, `act`, `nt`, `nz`) plus `bom`; `providers/__init__.py:get_providers_for_config` selects them
+- `models.py` - Canonical data models (`CanonicalHazard`, `WarningLevel`, `HazardType`, infrastructure/telemetry items)
+- `entity.py` - Base entity (`AusNZDisasterWatchEntity`) with shared device info and unique ID
+- `sensor.py`, `binary_sensor.py`, `geo_location.py`, `camera.py` - Entity platforms
+- `config_flow.py` - Config, options and reconfigure flows
+- `diagnostics.py` - Redacted diagnostics
+- `frontend.py` + `frontend/` - Serves and registers the bundled Lovelace cards (source in repo-root `frontend/src/`)
+
+The integration registers no service actions.
 
 **Do NOT create:**
 
-- `helpers/`, `ha_helpers/`, or similar packages - use `utils/` or `entity_utils/` instead
-- `common/`, `shared/`, `lib/` - use existing packages above
+- `helpers/`, `utils/`, `common/`, `shared/`, `lib/` packages - keep helpers in the module that uses them or in `providers/base.py`
 - New top-level packages without explicit approval
 
 **Key patterns:**
 
 - Entities → Coordinator → API Client (never skip layers)
-- Each platform in own directory with `__init__.py`
-- One entity class per file for clarity
-- Individual entity classes in separate files (e.g., `air_quality.py`)
 - Use `EntityDescription` dataclasses for static entity metadata
 
 **Code organization principles:**
@@ -329,17 +326,16 @@ python3 -m script.scaffold config_flow_oauth2     # OAuth2 flow
 
 **Config flow:**
 
-- Implement in `config_flow_handler/` package
-- Support user setup, discovery, reauth, reconfigure
-- Always set unique_id for discovered entries
+- Implemented in `config_flow.py` (user, location, options and reconfigure steps)
+- No authentication, so no reauth flow; no discovery (cloud service)
+- Always set a stable unique_id per configured location
 
 See `.github/instructions/config_flow.instructions.md` for comprehensive patterns.
 
 **Service actions:**
 
-- Define in `services.yaml` with full descriptions (legacy filename)
-- Implement handlers in `service_actions/` directory
-- **Register in `async_setup()`** - NOT in `async_setup_entry()` (Quality Scale!)
+- The integration has none today. If one is added: define it in `services.yaml`,
+  implement the handler in its own module, and **register it in `async_setup()`**, not in `async_setup_entry()` (Quality Scale)
 - Format: `<integration_domain>.<action_name>`
 
 See `.github/instructions/service_actions.instructions.md` for service patterns.
@@ -470,7 +466,7 @@ See `.github/instructions/python.instructions.md` for linter overrides and error
 
 **Test structure:**
 
-- `tests/` mirrors `custom_components/australian_disaster_watch/` structure
+- `tests/` mirrors `custom_components/ausnz_disaster_watch/` structure
 - Use fixtures for common setup (Home Assistant mock, coordinator, etc.)
 - Mock external API calls
 

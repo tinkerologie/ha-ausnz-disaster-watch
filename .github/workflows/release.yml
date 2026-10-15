@@ -6,7 +6,7 @@ on:
     branches:
       - main
     paths:
-      - custom_components/australian_disaster_watch/manifest.json
+      - custom_components/ausnz_disaster_watch/manifest.json
 
 permissions:
   contents: read # jobs request only what they need
@@ -32,24 +32,39 @@ jobs:
       - name: Extract version from manifest
         id: version
         run: |
-          VERSION="$(jq -r '.version' custom_components/australian_disaster_watch/manifest.json)"
+          VERSION="$(jq -r '.version' custom_components/ausnz_disaster_watch/manifest.json)"
 
           if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
             echo "Manifest version is missing."
             exit 1
           fi
 
-          # Accept Home Assistant style numeric segments: YYYY.M.D or YYYY.MM.DD
-          if [[ ! "$VERSION" =~ ^[0-9]{4}\.[0-9]{1,2}\.[0-9]{1,2}$ ]]; then
-            echo "Manifest version '$VERSION' does not match expected format YYYY.MM.DD (or single-digit month/day)."
+          # Home Assistant versioning: YEAR.MONTH.PATCH, with an optional pre-release suffix
+          # (2026.10.0, 2026.10.1, 2026.10.0b0, 2026.10.0rc1)
+          if [[ ! "$VERSION" =~ ^[0-9]{4}\.[0-9]{1,2}\.[0-9]+((a|b|rc)[0-9]+)?$ ]]; then
+            echo "Manifest version '$VERSION' does not match YYYY.M.PATCH (optionally with a/b/rc suffix)."
             exit 1
+          fi
+
+          # Alpha, beta and release-candidate versions are not published
+          if [[ "$VERSION" =~ (a|b|rc)[0-9]+$ ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
           fi
 
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
 
+      - name: Skip pre-release versions
+        if: steps.version.outputs.prerelease == 'true'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: echo "::notice::Manifest version ${VERSION} is a pre-release; no GitHub release is created."
+
       - name: Check if tag already exists
         id: tag
+        if: steps.version.outputs.prerelease == 'false'
         env:
           VERSION_TAG: ${{ steps.version.outputs.tag }}
         run: |
@@ -61,6 +76,7 @@ jobs:
 
       - name: Extract latest changelog section
         id: changelog
+        if: steps.version.outputs.prerelease == 'false'
         env:
           VERSION: ${{ steps.version.outputs.version }}
           TAG: ${{ steps.version.outputs.tag }}
@@ -97,7 +113,7 @@ jobs:
 
           # Normalize a dotted version by stripping leading zeros from each
           # segment, so the manifest version (2026.6.1) matches zero-padded
-          # changelog headings ([2026.06.01]).
+          # changelog headings.
           norm() {
             awk -F. -v OFS=. '{ for (i = 1; i <= NF; i++) $i += 0; print }' <<< "$1"
           }
@@ -160,7 +176,7 @@ jobs:
           emit_notes /tmp/release_notes.md
 
       - name: Create GitHub release
-        if: steps.tag.outputs.exists == 'false'
+        if: steps.version.outputs.prerelease == 'false' && steps.tag.outputs.exists == 'false'
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           tag_name: ${{ steps.version.outputs.tag }}
@@ -169,7 +185,7 @@ jobs:
           generate_release_notes: false
 
       - name: Skip when release already exists
-        if: steps.tag.outputs.exists == 'true'
+        if: steps.version.outputs.prerelease == 'false' && steps.tag.outputs.exists == 'true'
         env:
           VERSION_TAG: ${{ steps.version.outputs.tag }}
         run: echo "Tag ${VERSION_TAG} already exists. Skipping release creation."

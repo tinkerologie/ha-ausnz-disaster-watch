@@ -13,10 +13,10 @@ Read `AGENTS.md` completely before starting any work. It contains:
 
 ## Quick Reference
 
-- **Domain:** `australian_disaster_watch`
-- **Title:** Australian Disaster Watch
-- **Class prefix:** `AustralianDisasterWatch`
-- **Main code:** `custom_components/australian_disaster_watch/`
+- **Domain:** `ausnz_disaster_watch`
+- **Title:** Australia and New Zealand Disaster Watch
+- **Class prefix:** `AustralianDisasterWatch` / `AusNZDisasterWatch` (aliases keep both working)
+- **Main code:** `custom_components/ausnz_disaster_watch/`
 - **Validate:** `script/check` (type-check + lint + spell)
 - **Test:** `script/test`
 - **Run HA:** `./script/develop`

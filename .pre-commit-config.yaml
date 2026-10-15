@@ -1,3 +1,6 @@
+# Generated frontend bundles are build output: never rewrite them, or the CI
+# "committed bundle matches source" check fails.
+exclude: ^custom_components/ausnz_disaster_watch/frontend/.*\.js$
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0

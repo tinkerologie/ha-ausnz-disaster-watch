@@ -1,7 +1,7 @@
 # Australia and New Zealand Disaster Watch for Home Assistant
 
-[![GitHub Release](https://img.shields.io/github/v/release/ruaandeysel/ha-australian-disaster-watch?style=flat-square)](https://github.com/ruaandeysel/ha-australian-disaster-watch/releases)
-[![License](https://img.shields.io/github/license/ruaandeysel/ha-australian-disaster-watch?style=flat-square)](LICENSE)
+[![GitHub Release](https://img.shields.io/github/v/release/tinkerologie/ha-ausnz-disaster-watch?style=flat-square)](https://github.com/tinkerologie/ha-ausnz-disaster-watch/releases)
+[![License](https://img.shields.io/github/license/tinkerologie/ha-ausnz-disaster-watch?style=flat-square)](LICENSE)
 [![hacs](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=flat-square)](https://hacs.xyz)
 
 A comprehensive, real-time emergency disaster and hazard monitoring integration for Home Assistant across Australian jurisdictions.
@@ -35,7 +35,7 @@ Directly integrates official emergency feeds—including the **Queensland Fire D
   - Normal update interval: 5 minutes (300 seconds).
   - Threat update interval: Automatically drops to 60 seconds when an active Emergency Warning or Watch and Act is detected in your perimeter.
 - **Bundled Lovelace Dashboard Card**:
-  - Includes a custom Lovelace card (`aus-disaster-card`) that automatically registers with Home Assistant.
+  - Includes a custom Lovelace card (`ausnz-disaster-card`) that automatically registers with Home Assistant.
   - Features real-time threat banners, nearest distance counters, category filtering (Fires, Weather/Floods, Roads), and quick map navigation.
 
 ---
@@ -49,18 +49,32 @@ Renders interactive pins on the native Home Assistant Map for every active hazar
 - **Dynamic Icons**: `mdi:fire` (Bushfire), `mdi:water-alert` (Flood), `mdi:weather-lightning` (Storm), `mdi:weather-hurricane` (Cyclone), `mdi:car-emergency` (Road Hazard), etc.
 
 ### Binary Sensors (`binary_sensor`)
-| Entity | Description | Device Class |
+| Entity (suffix) | Description | Device Class |
 | ------ | ----------- | ------------ |
-| `binary_sensor.emergency_warning_nearby` | `on` when any Emergency Warning (Level 3) or Watch & Act (Level 2) is active in perimeter | `safety` |
-| `binary_sensor.active_hazards_nearby` | `on` when any active incident is within perimeter | `problem` |
+| `…_emergency_warning_nearby` | `on` when any Emergency Warning (Level 3) or Watch and Act (Level 2) is active in perimeter | `safety` |
+| `…_active_hazards_nearby` | `on` when any active incident is within perimeter | `problem` |
+| `…_power_outage_active` | `on` when a power outage is reported nearby | `problem` |
+| `…_road_closure_nearby` | `on` when a road closure is reported nearby | `problem` |
 
 ### Sensors (`sensor`)
-| Entity | Description | Unit |
+| Entity (suffix) | Description | Unit |
 | ------ | ----------- | ---- |
-| `sensor.nearest_hazard_distance` | Physical distance to closest active incident | `km` |
-| `sensor.active_hazards_count` | Total active incidents in monitored perimeter | `hazards` |
-| `sensor.highest_warning_level` | Highest AWS level currently active (`Emergency Warning`, `Watch and Act`, `Advice`, `All Clear`) | string |
-| `sensor.nearest_hazard_title` | Headline of nearest incident | string |
+| `…_nearest_hazard_distance` | Distance to the closest active incident | `km` |
+| `…_nearest_hazard_title` | Headline of the nearest incident | — |
+| `…_active_hazards_count` | Active incidents in the monitored perimeter | `hazards` |
+| `…_highest_warning_level` | Highest AWS level currently active (`Emergency Warning`, `Watch and Act`, `Advice`, `Information`, `All Clear`) | — |
+| `…_weather_warnings_count` | Active weather warnings | `warnings` |
+| `…_fire_danger_rating` | Fire danger rating for the district | — |
+| `…_power_outages_count` / `…_power_outages_customers_affected` | Power outages and customers affected | `outages` / `customers` |
+| `…_road_closures_count` | Road closures nearby | `closures` |
+| `…_relief_facilities_count` | Evacuation centres and sandbag stations nearby | `facilities` |
+| `…_air_quality` | Air quality rating of the nearest station | — |
+| `…_local_weather_observation` | Temperature at the nearest weather station | `°C` |
+
+Entity IDs start with the device name, for example `binary_sensor.australia_and_new_zealand_disaster_watch_qld_home_emergency_warning_nearby`.
+
+### Cameras (`camera`)
+Flood and traffic camera snapshots near the monitored location, where the jurisdiction provides them.
 
 ---
 
@@ -70,9 +84,9 @@ Renders interactive pins on the native Home Assistant Map for every active hazar
 
 1. Open **HACS** in your Home Assistant instance.
 2. Click the three dots in the top right corner and select **Custom repositories**.
-3. Enter repository URL: `https://github.com/ruaandeysel/ha-australian-disaster-watch`
+3. Enter repository URL: `https://github.com/tinkerologie/ha-ausnz-disaster-watch`
 4. Select Category: **Integration**
-5. Click **Add**, then find **Australian Disaster Watch** and click **Download**.
+5. Click **Add**, then find **Australia and New Zealand Disaster Watch** and click **Download**.
 6. **Restart Home Assistant**.
 
 ---
@@ -80,7 +94,7 @@ Renders interactive pins on the native Home Assistant Map for every active hazar
 ## Setup & Configuration
 
 1. In Home Assistant, go to **Settings** > **Devices & Services** > **Add Integration**.
-2. Search for **Australian Disaster Watch**.
+2. Search for **Australia and New Zealand Disaster Watch**.
 3. **Step 1: Jurisdiction & Monitoring**:
    - **State / Jurisdiction**: Select your state (e.g. `QLD`, `NSW`, `VIC`, etc.).
    - **Location Source**: Choose **Use Home Zone** or **Specify Custom Location**.
@@ -98,10 +112,10 @@ You can adjust the radius, toggle overrides, or change council dashboard URLs an
 
 ## Lovelace Dashboard Card
 
-The integration automatically serves and registers the custom Lovelace card: `custom:aus-disaster-card`.
+The integration automatically serves and registers the custom Lovelace card: `custom:ausnz-disaster-card` (the older `custom:aus-disaster-card` name still works for now).
 
 ```yaml
-type: custom:aus-disaster-card
+type: custom:ausnz-disaster-card
 title: Moreton Bay Disaster Watch
 max_incidents: 10
 show_map_button: true
@@ -121,18 +135,18 @@ show_map_button: true
 ### 1. High Priority Alert on Nearby Emergency Warning
 ```yaml
 alias: "Emergency Warning: Alert Household"
-trigger:
-  - platform: state
-    entity_id: binary_sensor.australian_disaster_watch_qld_city_of_moreton_bay_emergency_warning_nearby
+triggers:
+  - trigger: state
+    entity_id: binary_sensor.australia_and_new_zealand_disaster_watch_qld_home_emergency_warning_nearby
     to: "on"
-action:
-  - service: notify.notify
+actions:
+  - action: notify.notify
     data:
       title: "🚨 EMERGENCY WARNING ACTIVE"
       message: >-
-        {{ state_attr('binary_sensor.australian_disaster_watch_qld_city_of_moreton_bay_emergency_warning_nearby', 'highest_warning_level') }}:
-        {{ state_attr('binary_sensor.australian_disaster_watch_qld_city_of_moreton_bay_emergency_warning_nearby', 'nearest_incident_title') }}
-        is currently {{ state_attr('binary_sensor.australian_disaster_watch_qld_city_of_moreton_bay_emergency_warning_nearby', 'nearest_incident_distance') }} km away.
+        {{ state_attr('binary_sensor.australia_and_new_zealand_disaster_watch_qld_home_emergency_warning_nearby', 'highest_warning_level') }}:
+        {{ state_attr('binary_sensor.australia_and_new_zealand_disaster_watch_qld_home_emergency_warning_nearby', 'nearest_incident_title') }}
+        is currently {{ state_attr('binary_sensor.australia_and_new_zealand_disaster_watch_qld_home_emergency_warning_nearby', 'nearest_incident_distance') }} km away.
       data:
         push:
           sound: "critical"
@@ -141,12 +155,12 @@ action:
 ### 2. Flash Red Lights on Emergency Warning
 ```yaml
 alias: "Disaster Alert: Red Light Notification"
-trigger:
-  - platform: state
-    entity_id: binary_sensor.australian_disaster_watch_qld_city_of_moreton_bay_emergency_warning_nearby
+triggers:
+  - trigger: state
+    entity_id: binary_sensor.australia_and_new_zealand_disaster_watch_qld_home_emergency_warning_nearby
     to: "on"
-action:
-  - service: light.turn_on
+actions:
+  - action: light.turn_on
     target:
       entity_id: light.living_room
     data:
