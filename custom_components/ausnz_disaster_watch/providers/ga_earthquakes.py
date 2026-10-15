@@ -78,6 +78,7 @@ class GAEarthquakeProvider(BaseHazardProvider):
         return hazards
 
     def _parse_feature(self, feature: dict[str, Any]) -> CanonicalHazard | None:
+        """Return the hazard for one GA feature, or None for hidden rows and quakes below M3."""
         props: dict[str, Any] = feature["properties"]
         # Rows GA does not display (display_flag "N") are placeholders without an event ID
         if props.get("display_flag") != "Y" or not props.get("event_id"):

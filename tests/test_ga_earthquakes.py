@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import copy
 import json
 from pathlib import Path
 from typing import Any
@@ -111,7 +112,7 @@ async def test_ga_earthquakes_edge_cases(hass: HomeAssistant, freezer: FrozenDat
     payload = _payload()
     quake = next(f for f in payload["features"] if f["properties"]["event_id"] == "ga2026ukndhi")
     quake["properties"].update(depth=None, evaluation_status=None, description=None)
-    future = json.loads(json.dumps(quake))
+    future = copy.deepcopy(quake)
     future["properties"].update(event_id="ga2099future", origin_time="2026-10-16T14:00:00Z")
     payload["features"] = [quake, future]
     hazards = await _provider(hass, payload).async_fetch_hazards()
