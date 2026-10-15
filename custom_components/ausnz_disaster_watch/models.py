@@ -352,6 +352,8 @@ class DisasterCoordinatorData(BaseModel):
     relief_facilities: list[ReliefFacilityItem] = Field(default_factory=list)
     cameras: list[DisasterCameraItem] = Field(default_factory=list)
     nearby_councils: list[dict[str, str]] = Field(default_factory=list)
+    feeds_ok: list[str] = Field(default_factory=list, description="Hazard providers that fetched successfully")
+    feeds_failed: list[str] = Field(default_factory=list, description="Hazard providers that failed this update")
 
     def __len__(self) -> int:
         """Return count of active hazards."""

@@ -24,7 +24,7 @@ from custom_components.ausnz_disaster_watch.models import (
     WeatherWarningItem,
 )
 
-from .base import BaseHazardProvider, stable_id
+from .base import MALFORMED_ITEM_ERRORS, BaseHazardProvider, ProviderUnavailableError, stable_id
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -51,39 +51,60 @@ class QueenslandHazardProvider(BaseHazardProvider):
         hazards: list[CanonicalHazard] = []
         seen_ids: set[str] = set()
 
-        # 1. Fetch State-wide QFD Public Warnings feed
+        # 1. State-wide QFD Public Warnings feed (primary source)
+        qfd_error: str | None = None
         try:
-            qfd_data = await self.async_fetch_json(QFD_WARNINGS_URL)
-            if qfd_data and isinstance(qfd_data, dict):
-                features = qfd_data.get("features", [])
-                for feature in features:
-                    hazard = self._parse_qfd_feature(feature)
-                    if hazard and hazard.id not in seen_ids:
-                        seen_ids.add(hazard.id)
-                        hazards.append(hazard)
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.warning("Error fetching Queensland Fire Department warnings feed: %s", err)
+            qfd_data = self.require_dict(await self.async_fetch_feed_json(QFD_WARNINGS_URL, "QFD"), "QFD")
+            qfd_features = self.require_list(qfd_data, "features", "QFD")
+        except ProviderUnavailableError as err:
+            qfd_error = str(err)
+            _LOGGER.debug("QFD warnings feed failed: %s", err)
+        else:
+            for feature in qfd_features:
+                self._add_parsed(hazards, seen_ids, self._parse_qfd_feature, feature, "QFD")
 
-        # 2. Fetch Council Disaster Dashboard feeds if URL configured
+        # 2. Council Disaster Dashboard feeds if URL configured (secondary sources)
+        council_ok = 0
         base_url = self._get_council_base_url()
         if base_url:
-            hazards.extend(await self._fetch_council_hazards(base_url, seen_ids))
+            council_hazards, council_ok = await self._fetch_council_hazards(base_url, seen_ids)
+            hazards.extend(council_hazards)
 
+        # Unavailable only if nothing could be fetched at all (#16)
+        if qfd_error is not None and council_ok == 0:
+            raise ProviderUnavailableError(qfd_error)
         return hazards
 
-    async def _fetch_council_hazards(self, base_url: str, seen_ids: set[str]) -> list[CanonicalHazard]:
-        """Fetch auxiliary hazards from council disaster dashboard feeds."""
+    @staticmethod
+    def _add_parsed(
+        hazards: list[CanonicalHazard],
+        seen_ids: set[str],
+        parse: Any,
+        item: Any,
+        label: str,
+    ) -> None:
+        """Parse one upstream item into ``hazards``; a malformed item is skipped, not fatal."""
+        try:
+            hazard = parse(item)
+        except MALFORMED_ITEM_ERRORS as err:
+            _LOGGER.debug("Skipping malformed %s item: %s", label, err)
+            return
+        if hazard and hazard.id not in seen_ids:
+            seen_ids.add(hazard.id)
+            hazards.append(hazard)
+
+    async def _fetch_council_hazards(self, base_url: str, seen_ids: set[str]) -> tuple[list[CanonicalHazard], int]:
+        """Fetch auxiliary hazards from council dashboard feeds; return (hazards, endpoints fetched OK)."""
         hazards: list[CanonicalHazard] = []
+        fetched_ok = 0
 
         # 2a. Detailed Fire Incidents
         try:
             fire_data = await self.async_fetch_json(f"{base_url}/dashboard/fireDetailed")
             if isinstance(fire_data, list):
+                fetched_ok += 1
                 for item in fire_data:
-                    hazard = self._parse_council_fire_item(item)
-                    if hazard and hazard.id not in seen_ids:
-                        seen_ids.add(hazard.id)
-                        hazards.append(hazard)
+                    self._add_parsed(hazards, seen_ids, self._parse_council_fire_item, item, "council fire")
         except Exception as err:  # noqa: BLE001
             _LOGGER.debug("Error fetching council fire incidents from %s: %s", base_url, err)
 
@@ -91,14 +112,13 @@ class QueenslandHazardProvider(BaseHazardProvider):
         try:
             tmr_url = f"{base_url}/dashboard/tmrRoadData"
             road_data = await self.async_fetch_json(tmr_url)
+            if isinstance(road_data, list):
+                fetched_ok += 1
             if road_data:
                 self._payload_cache[tmr_url] = road_data
             if isinstance(road_data, list):
                 for item in road_data:
-                    hazard = self._parse_council_road_item(item)
-                    if hazard and hazard.id not in seen_ids:
-                        seen_ids.add(hazard.id)
-                        hazards.append(hazard)
+                    self._add_parsed(hazards, seen_ids, self._parse_council_road_item, item, "council road")
         except Exception as err:  # noqa: BLE001
             _LOGGER.debug("Error fetching council road conditions from %s: %s", base_url, err)
 
@@ -106,16 +126,15 @@ class QueenslandHazardProvider(BaseHazardProvider):
         try:
             bom_url = f"{base_url}/dashboard/bom"
             bom_data = await self.async_fetch_json(bom_url)
+            if isinstance(bom_data, dict):
+                fetched_ok += 1
             if bom_data:
                 self._payload_cache[bom_url] = bom_data
             if isinstance(bom_data, dict):
                 items = bom_data.get("item", [])
                 if isinstance(items, list):
                     for item in items:
-                        hazard = self._parse_council_bom_item(item)
-                        if hazard and hazard.id not in seen_ids:
-                            seen_ids.add(hazard.id)
-                            hazards.append(hazard)
+                        self._add_parsed(hazards, seen_ids, self._parse_council_bom_item, item, "council BoM")
         except Exception as err:  # noqa: BLE001
             _LOGGER.debug("Error fetching council weather warnings from %s: %s", base_url, err)
 
@@ -123,19 +142,18 @@ class QueenslandHazardProvider(BaseHazardProvider):
         try:
             bulletin_url = f"{base_url}/dashboard/imsBulletin"
             bulletin_data = await self.async_fetch_json(bulletin_url)
+            if isinstance(bulletin_data, dict):
+                fetched_ok += 1
             if bulletin_data:
                 self._payload_cache[bulletin_url] = bulletin_data
             if isinstance(bulletin_data, dict):
                 features = bulletin_data.get("features", [])
                 for feat in features:
-                    hazard = self._parse_council_bulletin_feature(feat)
-                    if hazard and hazard.id not in seen_ids:
-                        seen_ids.add(hazard.id)
-                        hazards.append(hazard)
+                    self._add_parsed(hazards, seen_ids, self._parse_council_bulletin_feature, feat, "council bulletin")
         except Exception as err:  # noqa: BLE001
             _LOGGER.debug("Error fetching council bulletins from %s: %s", base_url, err)
 
-        return hazards
+        return hazards, fetched_ok
 
     def _parse_qfd_feature(self, feature: dict[str, Any]) -> CanonicalHazard | None:
         """Parse feature from QFD bushfireAlert.json."""

@@ -16,7 +16,7 @@ from custom_components.ausnz_disaster_watch.models import (
     WeatherWarningItem,
 )
 
-from .base import BaseHazardProvider
+from .base import MALFORMED_ITEM_ERRORS, BaseHazardProvider, ProviderUnavailableError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -36,20 +36,19 @@ class NSWHazardProvider(BaseHazardProvider):
 
     async def async_fetch_hazards(self) -> list[CanonicalHazard]:
         """Fetch hazards from NSW RFS major incidents feed."""
+        data = await self.async_fetch_feed_json(NSW_RFS_MAJOR_INCIDENTS_URL, "NSW RFS")
+        if not isinstance(data, dict):
+            raise ProviderUnavailableError("NSW RFS returned an unexpected payload")
+
         hazards: list[CanonicalHazard] = []
-        try:
-            data = await self.async_fetch_json(NSW_RFS_MAJOR_INCIDENTS_URL)
-            if not data or not isinstance(data, dict):
-                return hazards
-
-            features = data.get("features", [])
-            for feature in features:
+        for feature in self.require_list(data, "features", "NSW RFS"):
+            try:
                 hazard = self._parse_nsw_feature(feature)
-                if hazard:
-                    hazards.append(hazard)
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.warning("Error fetching NSW RFS major incidents feed: %s", err)
-
+            except MALFORMED_ITEM_ERRORS as err:
+                _LOGGER.debug("Skipping malformed NSW RFS item: %s", err)
+                continue
+            if hazard:
+                hazards.append(hazard)
         return hazards
 
     def _parse_nsw_feature(self, feature: dict[str, Any]) -> CanonicalHazard | None:

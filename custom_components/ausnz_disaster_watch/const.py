@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import Final
 
 DOMAIN: Final = "ausnz_disaster_watch"
@@ -30,6 +31,8 @@ DEFAULT_OVERRIDE_EMERGENCY: Final = True
 DEFAULT_EXCLUDE_HAZARD_REDUCTION: Final = True
 DEFAULT_SCAN_INTERVAL: Final = 300  # 5 minutes in seconds
 THREAT_SCAN_INTERVAL: Final = 60  # 1 minute when active threat detected
+# How long a failed feed's last good hazards are kept before they are dropped (#16)
+LAST_GOOD_MAX_AGE: Final = timedelta(minutes=30)
 
 # State codes
 STATE_QLD: Final = "QLD"

@@ -3,15 +3,16 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import timedelta
+from datetime import datetime, timedelta
 import logging
 import math
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import dt as dt_util
 
-from .const import DEFAULT_SCAN_INTERVAL, DOMAIN, THREAT_SCAN_INTERVAL
+from .const import DEFAULT_SCAN_INTERVAL, DOMAIN, LAST_GOOD_MAX_AGE, THREAT_SCAN_INTERVAL
 from .models import (
     AirQualityStationData,
     CanonicalHazard,
@@ -28,6 +29,7 @@ from .models import (
     WeatherWarningItem,
 )
 from .providers import get_providers_for_config
+from .providers.base import ProviderUnavailableError
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
@@ -75,6 +77,10 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
             update_interval=timedelta(seconds=DEFAULT_SCAN_INTERVAL),
         )
         self.entry = entry
+        self._feed_healthy: dict[str, bool] = {}
+        self._last_good_hazards: dict[str, tuple[datetime, list[CanonicalHazard]]] = {}
+        self._feeds_ok: list[str] = []
+        self._feeds_failed: list[str] = []
         self._update_config_values()
 
         session = async_get_clientsession(hass)
@@ -100,23 +106,53 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         self.longitude: float = float(cfg.longitude or self.hass.config.longitude or 152.9818)
 
     async def _async_fetch_all_hazards(self) -> list[CanonicalHazard]:
-        """Fetch all hazards from active providers concurrently."""
+        """Fetch all hazards from active providers concurrently, tracking each feed's health (#16).
 
-        async def _fetch(provider: Any) -> list[CanonicalHazard]:
-            try:
-                return await provider.async_fetch_hazards()
-            except Exception as err:  # noqa: BLE001
-                _LOGGER.warning(
-                    "Error fetching data from provider %s: %s",
-                    provider.__class__.__name__,
-                    err,
-                )
-                return []
-
-        results = await asyncio.gather(*[_fetch(p) for p in self.providers])
+        A failed provider contributes its last good hazards so a transient outage does not
+        look like an all-clear. Health transitions are logged once (warning when a feed goes
+        down, info when it recovers). If every provider fails, UpdateFailed makes the entities
+        unavailable and, on first refresh, puts the entry into setup retry.
+        """
+        results = await asyncio.gather(
+            *(provider.async_fetch_hazards() for provider in self.providers),
+            return_exceptions=True,
+        )
         all_hazards: list[CanonicalHazard] = []
-        for batch in results:
-            all_hazards.extend(batch)
+        feeds_ok: list[str] = []
+        feeds_failed: list[str] = []
+        for provider, result in zip(self.providers, results, strict=True):
+            key = type(provider).__name__
+            if isinstance(result, BaseException):
+                if not isinstance(result, Exception):
+                    raise result  # e.g. CancelledError
+                feeds_failed.append(key)
+                if self._feed_healthy.get(key, True):
+                    _LOGGER.warning("Hazard feed %s is unavailable: %s", key, result)
+                else:
+                    _LOGGER.debug("Hazard feed %s still unavailable: %s", key, result)
+                if not isinstance(result, ProviderUnavailableError):
+                    _LOGGER.debug("Unexpected error from %s", key, exc_info=result)
+                self._feed_healthy[key] = False
+                # Bridge short outages with the last good data, but never indefinitely: a
+                # cancelled warning must not stay active through a long outage.
+                if (cached := self._last_good_hazards.get(key)) and dt_util.utcnow() - cached[0] <= LAST_GOOD_MAX_AGE:
+                    all_hazards.extend(cached[1])
+                continue
+            feeds_ok.append(key)
+            if self._feed_healthy.get(key) is False:
+                _LOGGER.info("Hazard feed %s is available again", key)
+            self._feed_healthy[key] = True
+            self._last_good_hazards[key] = (dt_util.utcnow(), result)
+            all_hazards.extend(result)
+
+        self._feeds_ok = feeds_ok
+        self._feeds_failed = feeds_failed
+        if self.providers and not feeds_ok:
+            raise UpdateFailed(
+                translation_domain=DOMAIN,
+                translation_key="feeds_unavailable",
+                translation_placeholders={"feeds": ", ".join(feeds_failed)},
+            )
         return all_hazards
 
     def _filter_and_process_hazards(
@@ -378,6 +414,8 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
             relief_facilities=aux["relief_facilities"],
             cameras=aux["cameras"],
             nearby_councils=aux["nearby_councils"],
+            feeds_ok=self._feeds_ok,
+            feeds_failed=self._feeds_failed,
         )
 
     @property

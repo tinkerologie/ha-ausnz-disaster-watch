@@ -33,7 +33,7 @@ from custom_components.ausnz_disaster_watch.providers import (
     WAHazardProvider,
     get_providers_for_config,
 )
-from custom_components.ausnz_disaster_watch.providers.base import stable_id
+from custom_components.ausnz_disaster_watch.providers.base import ProviderUnavailableError, stable_id
 from homeassistant.core import HomeAssistant
 
 
@@ -527,10 +527,10 @@ async def test_qld_provider_edge_cases(hass: HomeAssistant) -> None:
     provider = QueenslandHazardProvider(hass, session, config)
     assert provider.state_code == STATE_QLD
 
-    # Exception in fetch returns empty list
-    provider.async_fetch_json = AsyncMock(side_effect=RuntimeError("Feed error"))
-    hazards = await provider.async_fetch_hazards()
-    assert hazards == []
+    # QFD and every council endpoint unreachable: the provider reports itself unavailable (#16)
+    provider.async_fetch_json = AsyncMock(side_effect=aiohttp.ClientError("Feed error"))
+    with pytest.raises(ProviderUnavailableError):
+        await provider.async_fetch_hazards()
 
     # Test bulletin and BoM parsing
     bulletin_feat = {
@@ -570,8 +570,9 @@ async def test_nsw_provider_edge_cases(hass: HomeAssistant) -> None:
     provider = NSWHazardProvider(hass, session, {"state": STATE_NSW})
     assert provider.state_code == STATE_NSW
 
-    provider.async_fetch_json = AsyncMock(side_effect=RuntimeError("NSW feed failed"))
-    assert await provider.async_fetch_hazards() == []
+    provider.async_fetch_json = AsyncMock(side_effect=aiohttp.ClientError("NSW feed failed"))
+    with pytest.raises(ProviderUnavailableError):
+        await provider.async_fetch_hazards()
 
     # Feature without centroid
     assert provider._parse_nsw_feature({"geometry": {}, "properties": {}}) is None
@@ -596,8 +597,9 @@ async def test_vic_provider_edge_cases(hass: HomeAssistant) -> None:
     provider = VictoriaHazardProvider(hass, session, {"state": STATE_VIC})
     assert provider.state_code == STATE_VIC
 
-    provider.async_fetch_json = AsyncMock(side_effect=RuntimeError("Vic feed error"))
-    assert await provider.async_fetch_hazards() == []
+    provider.async_fetch_json = AsyncMock(side_effect=aiohttp.ClientError("Vic feed error"))
+    with pytest.raises(ProviderUnavailableError):
+        await provider.async_fetch_hazards()
 
     # Feature without centroid or ID
     assert provider._parse_vic_feature({"geometry": {}}) is None
@@ -654,7 +656,8 @@ async def test_bom_provider_edge_cases(hass: HomeAssistant) -> None:
             pass
 
     session.get = MagicMock(return_value=MockCM())
-    assert await provider.async_fetch_hazards() == []
+    with pytest.raises(ProviderUnavailableError):
+        await provider.async_fetch_hazards()
 
     # XML without channel
     mock_resp_bad_xml = AsyncMock()
@@ -669,7 +672,8 @@ async def test_bom_provider_edge_cases(hass: HomeAssistant) -> None:
             pass
 
     session.get = MagicMock(return_value=MockCM2())
-    assert await provider.async_fetch_hazards() == []
+    with pytest.raises(ProviderUnavailableError):
+        await provider.async_fetch_hazards()
 
     # Parse item cancellation and missing title
     item_cancel = ET.fromstring("<item><title>Cancellation Severe Weather Warning</title></item>")
@@ -741,12 +745,12 @@ async def test_base_provider_headers_and_status(hass: HomeAssistant) -> None:
 async def test_bom_provider_exception_and_fallbacks(hass: HomeAssistant) -> None:
     """Test BoM exception catching, advice fallback, and unknown centroid fallback."""
     session = MagicMock()
-    session.get.side_effect = RuntimeError("Fatal network error")
+    session.get.side_effect = aiohttp.ClientError("Fatal network error")
     provider = BoMHazardProvider(hass, session, {"state": "ALL"})
 
-    # Exception in fetch
-    hazards = await provider.async_fetch_hazards()
-    assert hazards == []
+    # Network failure: unavailable, not an all-clear (#16)
+    with pytest.raises(ProviderUnavailableError):
+        await provider.async_fetch_hazards()
 
     # Advice fallback for non-severe/flood/cyclone warning & unknown target_state centroid fallback
     item = ET.fromstring("<item><title>Marine Wind Warning</title><guid>AusBoM-UNK-999</guid></item>")
@@ -761,15 +765,20 @@ async def test_nsw_and_vic_empty_and_cap_none(hass: HomeAssistant) -> None:
     """Test NSW and VIC when feeds return empty or non-dict, and VIC cap is None."""
     session = AsyncMock()
 
-    # NSW empty
+    # NSW: a non-object payload is a broken feed, not an all-clear (#16)
     nsw_prov = NSWHazardProvider(hass, session, {"state": STATE_NSW})
     nsw_prov.async_fetch_json = AsyncMock(return_value=None)
+    with pytest.raises(ProviderUnavailableError):
+        await nsw_prov.async_fetch_hazards()
+    # ...while a valid feed with no features is a genuine all-clear
+    nsw_prov.async_fetch_json = AsyncMock(return_value={"type": "FeatureCollection", "features": []})
     assert await nsw_prov.async_fetch_hazards() == []
 
-    # VIC empty
+    # VIC: same contract
     vic_prov = VictoriaHazardProvider(hass, session, {"state": STATE_VIC})
     vic_prov.async_fetch_json = AsyncMock(return_value=[])
-    assert await vic_prov.async_fetch_hazards() == []
+    with pytest.raises(ProviderUnavailableError):
+        await vic_prov.async_fetch_hazards()
 
     # VIC cap is None
     feat_no_cap = {
@@ -1746,11 +1755,14 @@ async def test_nz_hazard_provider(hass: HomeAssistant) -> None:
     assert nema_info.warning_level == WarningLevel.INFORMATION
 
     # Test error handling and empty parsing in NZ
-    prov.async_fetch_json = AsyncMock(side_effect=RuntimeError("GeoNet API down"))
-    prov.async_fetch_text = AsyncMock(side_effect=RuntimeError("NEMA down"))
-    assert await prov.async_fetch_hazards() == []
-    assert prov._parse_nema_atom("") == []
-    assert prov._parse_nema_atom("<invalid") == []
+    prov.async_fetch_json = AsyncMock(side_effect=aiohttp.ClientError("GeoNet API down"))
+    prov.async_fetch_text = AsyncMock(side_effect=aiohttp.ClientError("NEMA down"))
+    with pytest.raises(ProviderUnavailableError):
+        await prov.async_fetch_hazards()
+    with pytest.raises(ProviderUnavailableError, match="empty response"):
+        prov._parse_nema_atom("")
+    with pytest.raises(ProviderUnavailableError):
+        prov._parse_nema_atom("<invalid")
 
     # 4. MetService Weather Warnings
     metservice_rss = """<?xml version="1.0" encoding="UTF-8"?>
@@ -1881,8 +1893,9 @@ async def test_wa_hazard_provider(hass: HomeAssistant) -> None:
     assert inc1.warning_level == WarningLevel.INFORMATION
 
     # Test error handling
-    prov.async_fetch_json = AsyncMock(side_effect=RuntimeError("WA API down"))
-    assert await prov.async_fetch_hazards() == []
+    prov.async_fetch_json = AsyncMock(side_effect=aiohttp.ClientError("WA API down"))
+    with pytest.raises(ProviderUnavailableError):
+        await prov.async_fetch_hazards()
 
     # Test Fire Danger Rating
     prov.async_fetch_json = AsyncMock(
@@ -1996,10 +2009,13 @@ async def test_sa_hazard_provider(hass: HomeAssistant) -> None:
     assert h4.warning_level == WarningLevel.INFORMATION
 
     # Test error handling & empty XML
-    prov.async_fetch_text = AsyncMock(side_effect=RuntimeError("SA CAP down"))
-    assert await prov.async_fetch_hazards() == []
-    assert prov._parse_cap_feed("") == []
-    assert prov._parse_cap_feed("<bad") == []
+    prov.async_fetch_text = AsyncMock(side_effect=aiohttp.ClientError("SA CAP down"))
+    with pytest.raises(ProviderUnavailableError):
+        await prov.async_fetch_hazards()
+    with pytest.raises(ProviderUnavailableError, match="empty response"):
+        prov._parse_cap_feed("")
+    with pytest.raises(ProviderUnavailableError):
+        prov._parse_cap_feed("<bad")
 
 
 async def test_tas_hazard_provider(hass: HomeAssistant) -> None:
@@ -2068,10 +2084,13 @@ async def test_tas_hazard_provider(hass: HomeAssistant) -> None:
     assert h4.warning_level == WarningLevel.INFORMATION
 
     # Error handling & empty XML
-    prov.async_fetch_text = AsyncMock(side_effect=RuntimeError("TasALERT down"))
-    assert await prov.async_fetch_hazards() == []
-    assert prov._parse_tasalert_feed("") == []
-    assert prov._parse_tasalert_feed("<bad") == []
+    prov.async_fetch_text = AsyncMock(side_effect=aiohttp.ClientError("TasALERT down"))
+    with pytest.raises(ProviderUnavailableError):
+        await prov.async_fetch_hazards()
+    with pytest.raises(ProviderUnavailableError, match="empty response"):
+        prov._parse_tasalert_feed("")
+    with pytest.raises(ProviderUnavailableError):
+        prov._parse_tasalert_feed("<bad")
 
 
 async def test_nt_hazard_provider(hass: HomeAssistant) -> None:
@@ -2176,8 +2195,9 @@ async def test_nt_hazard_provider(hass: HomeAssistant) -> None:
     assert len(hazards_list) == 1
 
     # Test error handling
-    prov.async_fetch_json = AsyncMock(side_effect=RuntimeError("NT PFES down"))
-    assert await prov.async_fetch_hazards() == []
+    prov.async_fetch_json = AsyncMock(side_effect=aiohttp.ClientError("NT PFES down"))
+    with pytest.raises(ProviderUnavailableError):
+        await prov.async_fetch_hazards()
 
 
 async def test_act_hazard_provider(hass: HomeAssistant) -> None:
@@ -2258,10 +2278,13 @@ async def test_act_hazard_provider(hass: HomeAssistant) -> None:
     assert h5.warning_level == WarningLevel.INFORMATION
 
     # Test error handling & empty XML
-    prov.async_fetch_text = AsyncMock(side_effect=RuntimeError("ACT ESA down"))
-    assert await prov.async_fetch_hazards() == []
-    assert prov._parse_act_feed("") == []
-    assert prov._parse_act_feed("<bad") == []
+    prov.async_fetch_text = AsyncMock(side_effect=aiohttp.ClientError("ACT ESA down"))
+    with pytest.raises(ProviderUnavailableError):
+        await prov.async_fetch_hazards()
+    with pytest.raises(ProviderUnavailableError, match="empty response"):
+        prov._parse_act_feed("")
+    with pytest.raises(ProviderUnavailableError):
+        prov._parse_act_feed("<bad")
 
 
 async def test_qld_provider_no_council_url(hass: HomeAssistant) -> None:
