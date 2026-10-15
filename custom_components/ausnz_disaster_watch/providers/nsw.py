@@ -122,6 +122,9 @@ class NSWHazardProvider(BaseHazardProvider):
 
         raw_level = desc_fields.get("ALERT LEVEL") or category
         warning_level = WarningLevel.from_str(raw_level)
+        if warning_level is WarningLevel.UNKNOWN:
+            # "Not Applicable" and "Planned Burn" incidents carry no warning: they are information
+            warning_level = WarningLevel.INFORMATION
 
         raw_type = desc_fields.get("TYPE") or "Bush Fire"
         hazard_type = HazardType.from_str(raw_type)

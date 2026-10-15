@@ -1309,3 +1309,21 @@ async def test_nt_ids_disambiguate_identical_features(hass: HomeAssistant) -> No
 
     # Exact duplicates fall back to an order suffix
     assert len(set(ids([a, a, a]))) == 3
+
+
+def test_nsw_incidents_without_a_warning_are_information(hass: HomeAssistant) -> None:
+    """RFS incidents whose ALERT LEVEL is "Not Applicable" are information, not "Unknown"."""
+    provider = NSWHazardProvider(hass, AsyncMock(), {"state": STATE_NSW})
+    feature = {
+        "type": "Feature",
+        "geometry": {"type": "Point", "coordinates": [150.8, -33.6]},
+        "properties": {
+            "title": "WINDSOR RD, GRANTHAM FARM",
+            "guid": "https://www.rfs.nsw.gov.au/fire-information/fires-near-me/681483",
+            "category": "Not Applicable",
+            "description": "ALERT LEVEL: Not Applicable <br />TYPE: Bush Fire <br />",
+        },
+    }
+    hazard = provider._parse_nsw_feature(nsw_entry(feature))
+    assert hazard is not None
+    assert hazard.warning_level is WarningLevel.INFORMATION
