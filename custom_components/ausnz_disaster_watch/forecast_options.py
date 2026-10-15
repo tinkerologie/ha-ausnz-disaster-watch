@@ -93,6 +93,7 @@ class ForecastOptionsFlow(OptionsFlowWithReload):
 
     def __init__(self) -> None:
         """Initialize flow state for adding a river point."""
+        super().__init__()
         self._pending: dict[str, Any] = {}
         self._suggestion: RiverForecast | None = None
         self._edit_id: str | None = None

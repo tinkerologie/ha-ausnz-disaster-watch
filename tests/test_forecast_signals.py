@@ -170,6 +170,11 @@ def test_thunderstorm_window() -> None:
     assert signal.max_cape is None
     assert signal.max_precipitation_probability is None
 
+    calm = fs.thunderstorm(_forecast(), range(24))
+    assert calm is not None
+    assert calm.level == "low"
+    assert calm.time is None  # no peak hour to report
+
 
 # --- Weather signals end to end ---
 

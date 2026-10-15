@@ -135,7 +135,7 @@ def thunderstorm(forecast: WeatherForecast, indices: Sequence[int]) -> Thunderst
         max_cape=max(capes) if capes else None,
         max_precipitation_probability=max(probs) if probs else None,
         thunderstorm_code=any(code[i] is not None and int(code[i] or 0) in THUNDERSTORM_CODES for i in indices),
-        time=best_time,
+        time=best_time if best_level else None,  # no peak hour when every hour is low
     )
 
 
