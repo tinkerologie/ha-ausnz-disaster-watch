@@ -2418,3 +2418,31 @@ async def test_wa_and_bom_id_fallbacks_are_stable(hass: HomeAssistant) -> None:
     second = bom._parse_item(item)
     assert first is not None and second is not None
     assert first.id == second.id == f"BOM_{stable_id('BOM', 'Severe Thunderstorm Warning for Wide Bay')}"
+
+
+async def test_nt_ids_disambiguate_identical_features(hass: HomeAssistant) -> None:
+    """Features sharing every identifying field still get distinct, reorder-stable IDs."""
+    provider = NTHazardProvider(hass, AsyncMock(), {"state": "NT"})
+
+    def feature(lon: float, lat: float, notified: str | None) -> dict:
+        props = {"_location": "Arnhem Hwy", "_eventtype": "Grass Fire", "Alert Level": "Advice"}
+        if notified:
+            props["_datenotified"] = notified
+        return {"type": "Feature", "geometry": {"type": "Point", "coordinates": [lon, lat]}, "properties": props}
+
+    def ids(features: list[dict]) -> list[str]:
+        return [h.id for h in provider._parse_nt_incidents({"incidents": {"features": features}})]
+
+    # Same notified time, type and location, different positions
+    a = feature(131.0, -12.5, "2026-10-15T10:00:00+09:30")
+    b = feature(131.2, -12.6, "2026-10-15T10:00:00+09:30")
+    assert len(set(ids([a, b]))) == 2
+    assert set(ids([a, b])) == set(ids([b, a]))
+
+    # No notified time and coordinates equal after rounding to 3 dp
+    c = feature(131.00001, -12.5, None)
+    d = feature(131.00002, -12.5, None)
+    assert len(set(ids([c, d]))) == 2
+
+    # Exact duplicates fall back to an order suffix
+    assert len(set(ids([a, a, a]))) == 3

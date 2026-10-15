@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import Counter
 import logging
 from typing import Any
 
@@ -120,4 +121,26 @@ class NTHazardProvider(BaseHazardProvider):
                 )
             )
 
-        return hazards
+        return self._disambiguate_ids(hazards)
+
+    @staticmethod
+    def _disambiguate_ids(hazards: list[CanonicalHazard]) -> list[CanonicalHazard]:
+        """Give features that share every identifying field distinct IDs.
+
+        Colliding features are separated by exact position, which does not depend on feed
+        order. Only exact duplicates fall back to an order suffix.
+        """
+        counts = Counter(h.id for h in hazards)
+        result: list[CanonicalHazard] = []
+        seen: set[str] = set()
+        for hazard in hazards:
+            item_id = hazard.id
+            if counts[item_id] > 1:
+                item_id = stable_id(item_id, round(hazard.latitude, 6), round(hazard.longitude, 6))
+            base_id, suffix = item_id, 2
+            while item_id in seen:
+                item_id = f"{base_id}_{suffix}"
+                suffix += 1
+            seen.add(item_id)
+            result.append(hazard if item_id == hazard.id else hazard.model_copy(update={"id": item_id}))
+        return result
