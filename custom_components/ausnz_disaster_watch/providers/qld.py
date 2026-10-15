@@ -126,7 +126,7 @@ class QueenslandHazardProvider(BaseHazardProvider):
         try:
             bom_url = f"{base_url}/dashboard/bom"
             bom_data = await self.async_fetch_json(bom_url)
-            if isinstance(bom_data, dict):
+            if isinstance(bom_data, dict) and isinstance(bom_data.get("item"), list):
                 fetched_ok += 1
             if bom_data:
                 self._payload_cache[bom_url] = bom_data
@@ -142,7 +142,7 @@ class QueenslandHazardProvider(BaseHazardProvider):
         try:
             bulletin_url = f"{base_url}/dashboard/imsBulletin"
             bulletin_data = await self.async_fetch_json(bulletin_url)
-            if isinstance(bulletin_data, dict):
+            if isinstance(bulletin_data, dict) and isinstance(bulletin_data.get("features"), list):
                 fetched_ok += 1
             if bulletin_data:
                 self._payload_cache[bulletin_url] = bulletin_data

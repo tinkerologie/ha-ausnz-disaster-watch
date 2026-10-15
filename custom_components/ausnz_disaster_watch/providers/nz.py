@@ -223,6 +223,7 @@ class NZHazardProvider(BaseHazardProvider):
             root = ET.fromstring(xml_text)
         except (ET.ParseError, ValueError) as err:
             raise ProviderUnavailableError(f"NEMA AlertHub returned invalid XML: {err}") from err
+        self.require_xml_root(root, "atom", "NEMA AlertHub")
         ns = {"atom": "http://www.w3.org/2005/Atom", "cap": "urn:oasis:names:tc:emergency:cap:1.2"}
 
         for entry in root.findall("atom:entry", ns):

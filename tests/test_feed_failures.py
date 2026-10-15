@@ -389,7 +389,53 @@ async def test_qld_counts_only_well_formed_council_responses(hass: HomeAssistant
     provider.async_fetch_json = AsyncMock(return_value="unexpected")
     _hazards, fetched_ok = await provider._fetch_council_hazards("https://disaster.example.qld.gov.au", set())
     assert fetched_ok == 0
+    # Objects without their collection do not count either
+    provider.async_fetch_json = AsyncMock(side_effect=[[], [], {}, {"item": None}])
+    _hazards, fetched_ok = await provider._fetch_council_hazards("https://disaster.example.qld.gov.au", set())
+    assert fetched_ok == 2
     # Right shapes (even if empty) count
-    provider.async_fetch_json = AsyncMock(side_effect=[[], [], {}, {}])
+    provider.async_fetch_json = AsyncMock(side_effect=[[], [], {"item": []}, {"features": []}])
     _hazards, fetched_ok = await provider._fetch_council_hazards("https://disaster.example.qld.gov.au", set())
     assert fetched_ok == 4
+
+
+@pytest.mark.parametrize(
+    ("provider_cls", "parse_name", "valid_empty"),
+    [
+        (ACTHazardProvider, "_parse_act_feed", "<rss><channel><title>ACT</title></channel></rss>"),
+        (TasmaniaHazardProvider, "_parse_tasalert_feed", "<rss><channel/></rss>"),
+        (SAHazardProvider, "_parse_cap_feed", '<feed xmlns="http://www.w3.org/2005/Atom"><title>SA</title></feed>'),
+        (NZHazardProvider, "_parse_nema_atom", '<feed xmlns="http://www.w3.org/2005/Atom"/>'),
+    ],
+)
+async def test_xml_feeds_reject_wrong_documents(
+    hass: HomeAssistant, provider_cls: type[BaseHazardProvider], parse_name: str, valid_empty: str
+) -> None:
+    """A well-formed error page is unavailable; a valid empty feed is a genuine all-clear."""
+    parse = getattr(provider_cls(hass, AsyncMock(), {"state": "QLD"}), parse_name)
+    assert parse(valid_empty) == []
+    for wrong in ("<html><body>Service unavailable</body></html>", "<rss><title>no channel</title></rss>"):
+        with pytest.raises(ProviderUnavailableError, match="unexpected document"):
+            parse(wrong)
+
+
+async def test_json_feeds_reject_missing_collections(hass: HomeAssistant) -> None:
+    """A missing required collection is a broken response; an explicit empty list is valid."""
+    with pytest.raises(ProviderUnavailableError, match="is not a list"):
+        BaseHazardProvider.require_list({}, "features", "x")
+    assert BaseHazardProvider.require_list({"features": []}, "features", "x") == []
+
+    nsw = NSWHazardProvider(hass, AsyncMock(), {"state": "NSW"})
+    nsw.async_fetch_json = AsyncMock(return_value={"error": "maintenance"})
+    with pytest.raises(ProviderUnavailableError):
+        await nsw.async_fetch_hazards()
+
+    nt = NTHazardProvider(hass, AsyncMock(), {"state": "NT"})
+    for payload in ({}, {"incidents": None}, {"incidents": "error"}):
+        nt.async_fetch_json = AsyncMock(return_value=payload)
+        with pytest.raises(ProviderUnavailableError, match="unexpected payload"):
+            await nt.async_fetch_hazards()
+    nt.async_fetch_json = AsyncMock(return_value={"incidents": {"type": "FeatureCollection", "features": []}})
+    assert await nt.async_fetch_hazards() == []
+    nt.async_fetch_json = AsyncMock(return_value={"features": []})
+    assert await nt.async_fetch_hazards() == []

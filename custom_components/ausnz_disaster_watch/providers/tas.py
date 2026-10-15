@@ -42,6 +42,7 @@ class TasmaniaHazardProvider(BaseHazardProvider):
             root = ET.fromstring(xml_text)
         except (ET.ParseError, ValueError) as err:
             raise ProviderUnavailableError(f"TasALERT returned invalid XML: {err}") from err
+        self.require_xml_root(root, "rss", "TasALERT")
         ns = {
             "georss": "http://www.georss.org/georss",
             "dc": "http://purl.org/dc/elements/1.1/",

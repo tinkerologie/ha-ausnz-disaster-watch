@@ -152,11 +152,29 @@ class BaseHazardProvider(ABC):
 
     @staticmethod
     def require_list(payload: dict[str, Any], field: str, label: str) -> list[Any]:
-        """Return ``payload[field]`` (default empty) if it is a list, else raise ProviderUnavailableError."""
-        value = payload.get(field, [])
+        """Return ``payload[field]`` if it is a list (an empty list is a valid feed).
+
+        A missing or non-list collection is a broken response, so it raises
+        ProviderUnavailableError instead of being read as "no hazards".
+        """
+        value = payload.get(field)
         if not isinstance(value, list):
             raise ProviderUnavailableError(f"{label} returned an unexpected payload ({field!r} is not a list)")
         return value
+
+    @staticmethod
+    def require_xml_root(root: Any, kind: str, label: str) -> None:
+        """Raise ProviderUnavailableError unless ``root`` is an RSS document with a channel or an Atom feed.
+
+        A well-formed XML error page parses fine but has no items; without this check it
+        would be read as a healthy feed with no hazards.
+        """
+        if kind == "rss":
+            ok = root.tag == "rss" and root.find("channel") is not None
+        else:
+            ok = root.tag == "{http://www.w3.org/2005/Atom}feed"
+        if not ok:
+            raise ProviderUnavailableError(f"{label} returned an unexpected document <{root.tag}>")
 
     @staticmethod
     def require_dict(payload: Any, label: str) -> dict[str, Any]:
