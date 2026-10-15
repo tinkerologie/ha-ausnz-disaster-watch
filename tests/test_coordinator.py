@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock
 
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.ausnz_disaster_watch.const import DEFAULT_SCAN_INTERVAL, THREAT_SCAN_INTERVAL
+from custom_components.ausnz_disaster_watch.const import DEFAULT_SCAN_INTERVAL, DOMAIN, THREAT_SCAN_INTERVAL
 from custom_components.ausnz_disaster_watch.coordinator import (
     AustralianDisasterWatchCoordinator,
     calculate_haversine_distance,
@@ -114,22 +114,34 @@ async def test_coordinator_normal_polling_when_no_threat(
     assert coordinator.update_interval == timedelta(seconds=DEFAULT_SCAN_INTERVAL)
 
 
-async def test_coordinator_options_update(
+async def test_coordinator_options_take_precedence(
     hass: HomeAssistant,
     mock_config_entry: MockConfigEntry,
 ) -> None:
-    """Test updating coordinator options dynamically."""
+    """Options override entry data when the coordinator is built (applied on reload)."""
     mock_config_entry.add_to_hass(hass)
+    hass.config_entries.async_update_entry(mock_config_entry, options={"radius": 100})
     coordinator = AustralianDisasterWatchCoordinator(hass, mock_config_entry)
-    assert coordinator.radius_km == 50.0
-
-    # Simulate options update to 100 km radius
-    hass.config_entries.async_update_entry(
-        mock_config_entry,
-        options={"radius": 100},
-    )
-    coordinator.update_options()
     assert coordinator.radius_km == 100.0
+    assert coordinator.config_entry is mock_config_entry
+
+
+async def test_coordinator_falls_back_to_home_location(hass: HomeAssistant) -> None:
+    """An entry without coordinates uses the Home Assistant home location (#5).
+
+    Before the fix the base class was initialised after reading config values, so
+    ``self.hass`` did not exist yet and this raised AttributeError.
+    """
+    hass.config.latitude = -33.8688
+    hass.config.longitude = 151.2093
+    entry = MockConfigEntry(domain=DOMAIN, data={"state": "NSW", "radius": 25})
+    entry.add_to_hass(hass)
+
+    coordinator = AustralianDisasterWatchCoordinator(hass, entry)
+
+    assert coordinator.latitude == -33.8688
+    assert coordinator.longitude == 151.2093
+    assert coordinator.state_code == "NSW"
 
 
 async def test_coordinator_provider_exception_handling(

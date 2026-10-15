@@ -4,18 +4,20 @@ from __future__ import annotations
 
 from typing import Any
 
-from homeassistant.components.binary_sensor import BinarySensorEntity
-from homeassistant.components.binary_sensor.const import BinarySensorDeviceClass
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.components.binary_sensor import (
+    # Re-exported by the package without __all__; core imports it the same way.
+    BinarySensorDeviceClass,  # pyright: ignore[reportPrivateImportUsage]
+    BinarySensorEntity,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from . import AusNZDisasterWatchConfigEntry
 from .const import (
     ATTR_HIGHEST_WARNING_LEVEL,
     ATTR_INCIDENT_COUNT,
     ATTR_NEAREST_INCIDENT_DISTANCE,
     ATTR_NEAREST_INCIDENT_TITLE,
-    DOMAIN,
 )
 from .coordinator import AustralianDisasterWatchCoordinator
 from .entity import AustralianDisasterWatchEntity
@@ -23,11 +25,11 @@ from .entity import AustralianDisasterWatchEntity
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: AusNZDisasterWatchConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Australian Disaster Watch binary sensors."""
-    coordinator: AustralianDisasterWatchCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = entry.runtime_data
 
     async_add_entities(
         [
@@ -48,7 +50,6 @@ class EmergencyWarningNearbyBinarySensor(AustralianDisasterWatchEntity, BinarySe
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize binary sensor."""
         super().__init__(coordinator, "emergency_warning_nearby")
-        self._attr_name = "Emergency Warning Nearby"
 
     @property
     def is_on(self) -> bool:
@@ -83,7 +84,6 @@ class ActiveHazardsNearbyBinarySensor(AustralianDisasterWatchEntity, BinarySenso
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize binary sensor."""
         super().__init__(coordinator, "active_hazards_nearby")
-        self._attr_name = "Active Hazards Nearby"
 
     @property
     def is_on(self) -> bool:
@@ -113,7 +113,6 @@ class PowerOutageActiveBinarySensor(AustralianDisasterWatchEntity, BinarySensorE
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize power outage binary sensor."""
         super().__init__(coordinator, "power_outage_active")
-        self._attr_name = "Power Outage Active"
 
     @property
     def is_on(self) -> bool:
@@ -144,7 +143,6 @@ class RoadClosureNearbyBinarySensor(AustralianDisasterWatchEntity, BinarySensorE
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize road closure binary sensor."""
         super().__init__(coordinator, "road_closure_nearby")
-        self._attr_name = "Road Closure Nearby"
 
     @property
     def is_on(self) -> bool:

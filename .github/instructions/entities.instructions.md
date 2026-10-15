@@ -45,9 +45,9 @@ applyTo: "custom_components/**/alarm_control_panel/**/*.py, custom_components/**
 **Pattern:** `async_setup_entry()` creates entities from descriptions
 
 - Import entity classes + DESCRIPTIONS from submodules
-- Generator: `async_add_entities(EntityClass(entry.runtime_data.coordinator, desc) for desc in DESCRIPTIONS)`
+- Generator: `async_add_entities(EntityClass(entry.runtime_data, desc) for desc in DESCRIPTIONS)`
 - Combine multiple entity types in one platform
-- Access coordinator: `entry.runtime_data.coordinator`
+- Access coordinator: `entry.runtime_data` (the coordinator itself; type the entry as `AusNZDisasterWatchConfigEntry`)
 
 ## Coordinator Data Access
 

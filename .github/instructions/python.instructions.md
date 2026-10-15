@@ -224,7 +224,7 @@ async def test_sensor_setup(hass, config_entry, coordinator):
 
 ## Common Patterns
 
-**Config entry data:** `entry_data: AusNZDisasterWatchData = hass.data[DOMAIN][entry.entry_id]`
+**Config entry data:** `coordinator = entry.runtime_data` with `entry: AusNZDisasterWatchConfigEntry` (typed alias `ConfigEntry[AustralianDisasterWatchCoordinator]` in `__init__.py`). Never use `hass.data[DOMAIN]` for per-entry state.
 
 **Device info:** Provided via base entity class (manufacturer, model, serial, config URL, firmware)
 

@@ -213,10 +213,9 @@ async def async_setup_service_action(hass: HomeAssistant) -> None:
             parameter_value,
         )
 
-        # Get coordinator or API client from hass.data
-        # For each config entry that this service action applies to:
-        for entry_id, entry_data in hass.data[DOMAIN].items():
-            coordinator = entry_data  # Or entry_data["coordinator"]
+        # For each loaded config entry that this service action applies to:
+        for entry in hass.config_entries.async_loaded_entries(DOMAIN):
+            coordinator = entry.runtime_data
 
             try:
                 # Perform the action action
