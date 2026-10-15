@@ -175,7 +175,6 @@ async def test_metservice_cap_colour_area_and_lifecycle(hass: HomeAssistant) -> 
         ("old", "Heavy Rain Warning (old)", "https://ms/old"),
         ("expired", "Wind Warning", "https://ms/expired"),
         ("noarea", "Thunderstorm Outlook", "https://ms/noarea"),
-        ("down", "Snow Warning", "https://ms/down"),
     )
     docs = {
         METSERVICE_ALERTS_URL: feed,
@@ -225,11 +224,20 @@ async def test_metservice_cap_colour_area_and_lifecycle(hass: HomeAssistant) -> 
         ("Thunderstorm Outlook", "Wellington Region", "https://ms/noarea")
     ]
 
-    # CAP documents are cached; the failed download is retried
+    # CAP documents are cached
     await provider.async_fetch_hazards()
-    urls = [call.args[0] for call in fetch.await_args_list]
-    assert urls.count("https://ms/red") == 1
-    assert urls.count("https://ms/down") == 2
+    assert [call.args[0] for call in fetch.await_args_list].count("https://ms/red") == 1
+
+    # A CAP document that cannot be downloaded makes the MetService poll incomplete: the source
+    # fails (instead of reporting fresh partial data) and the download is retried next poll
+    docs[METSERVICE_ALERTS_URL] = feed.replace(
+        "</channel>", "<item><title>Snow Warning</title><guid>down</guid><link>https://ms/down</link></item></channel>"
+    )
+    for _ in range(2):
+        with pytest.raises(ProviderUnavailableError, match="1 MetService CAP document"):
+            await provider._async_fetch_metservice()
+    assert [call.args[0] for call in fetch.await_args_list].count("https://ms/down") == 2
+    assert [w.title for w in await provider.async_fetch_weather_warnings()] == ["Thunderstorm Outlook"]
 
 
 async def test_metservice_warnings_outage_and_expiry(hass: HomeAssistant) -> None:
