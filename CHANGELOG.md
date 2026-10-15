@@ -6,6 +6,8 @@ The changelog uses date sections in `YYYY.MM.DD` format.
 
 ## [Unreleased]
 
+## [2026.10.16] - 2026-10-16
+
 ### Fixed
 
 - BoM warnings are no longer placed at the configured home location. The WMO feed is treated as a list of pointers to CAP documents (fetched once and cached), and only the newest message per BoM product counts. Cancelled, expired and non-`Actual` messages are dropped, and ACT matches NSW (`IDN`) products. A warning with CAP area geometry becomes a hazard located at its area, with distance measured to the area (0 when home is inside it). BoM CAP documents currently identify areas only by AMOC area codes, so such warnings appear in the weather-warnings sensor instead of as hazards. On the test instance this removed 57 statewide or expired warnings that were reported 0 km away (#10).
