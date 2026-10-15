@@ -21,7 +21,7 @@ Understanding the relationship between these components is essential:
 - Provides building blocks: `FlowHandler`, result types (`FORM`, `CREATE_ENTRY`, etc.), form schemas
 - Used for multiple purposes: config flows, options flows, repairs flows, subentry flows, even user login
 - Think of it as the **library/framework** that provides the UI interaction mechanics
-- Has **nothing to do** with `data.py` (runtime data) - confusing naming!
+- Has **nothing to do** with runtime data (`entry.runtime_data`) - confusing naming!
 
 **Config Flow** (Application Layer):
 
@@ -58,10 +58,10 @@ Understanding the relationship between these components is essential:
    - User fixes issues → shows forms → collects input → resolves problem
    - See `repairs.instructions.md` for Repair Flow patterns (different architecture)
 
-**Common confusion - Data Entry Flow vs. data.py:**
+**Common confusion - Data Entry Flow vs. runtime data:**
 
 - **Data Entry Flow** = UI system for **collecting data from users** (forms, wizards)
-- **`data.py`** = Type definitions for **runtime data** (`entry.runtime_data`)
+- **Runtime data** = `entry.runtime_data`, typed by the `AusNZDisasterWatchConfigEntry` alias in `__init__.py`
 - These are completely unrelated despite the similar names!
 
 **Why this matters:**
@@ -77,8 +77,8 @@ Understanding the relationship between these components is essential:
 2. User enters host/credentials → **Data Entry Flow** validates and collects input
 3. `ConfigEntry` created with data/options → stored in `.storage/core.config_entries`
 4. `async_setup_entry()` runs → creates runtime objects (client, coordinator)
-5. `entry.runtime_data = AusNZDisasterWatchData(...)` → stores runtime objects (from `data.py`)
-6. Integration operates using `entry.runtime_data.coordinator`, `entry.runtime_data.client`
+5. `entry.runtime_data = coordinator` → stores the coordinator for this entry
+6. Platforms and diagnostics read `entry.runtime_data`
 
 ## Data Entry Flow Fundamentals
 

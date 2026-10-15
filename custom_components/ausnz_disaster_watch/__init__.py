@@ -1,8 +1,6 @@
-"""The Australian Disaster Watch integration."""
+"""The Australia and New Zealand Disaster Watch integration."""
 
 from __future__ import annotations
-
-import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
@@ -14,8 +12,6 @@ from .const import DOMAIN
 from .coordinator import AustralianDisasterWatchCoordinator
 from .frontend import async_register_frontend
 
-_LOGGER = logging.getLogger(__name__)
-
 PLATFORMS: list[Platform] = [
     Platform.GEO_LOCATION,
     Platform.BINARY_SENSOR,
@@ -23,48 +19,33 @@ PLATFORMS: list[Platform] = [
     Platform.CAMERA,
 ]
 
-
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
+type AusNZDisasterWatchConfigEntry = ConfigEntry[AustralianDisasterWatchCoordinator]
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Set up the Australian Disaster Watch component."""
+    """Set up the Australia and New Zealand Disaster Watch component."""
     # Register dashboard frontend cards
     await async_register_frontend(hass)
     return True
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up Australian Disaster Watch from a config entry."""
-    coordinator = AustralianDisasterWatchCoordinator(hass, entry)
+async def async_setup_entry(hass: HomeAssistant, entry: AusNZDisasterWatchConfigEntry) -> bool:
+    """Set up Australia and New Zealand Disaster Watch from a config entry.
 
-    # Perform initial data fetch
+    Option and reconfigure changes are applied by a full reload, owned by the flows
+    themselves (OptionsFlowWithReload and async_update_reload_and_abort), so no update
+    listener is registered here.
+    """
+    coordinator = AustralianDisasterWatchCoordinator(hass, entry)
     await coordinator.async_config_entry_first_refresh()
 
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
-
-    # Forward setup to all entity platforms
+    entry.runtime_data = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-
-    # Reload on options update
-    entry.async_on_unload(entry.add_update_listener(async_update_listener))
-
     return True
 
 
-async def async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Handle options or config entry update without full reload."""
-    coordinator: AustralianDisasterWatchCoordinator = hass.data[DOMAIN][entry.entry_id]
-    coordinator.update_options()
-    await coordinator.async_refresh()
-
-
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: AusNZDisasterWatchConfigEntry) -> bool:
     """Unload a config entry."""
-    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-    if unload_ok:
-        hass.data[DOMAIN].pop(entry.entry_id)
-        if not hass.data[DOMAIN]:
-            hass.data.pop(DOMAIN)
-
-    return unload_ok
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)

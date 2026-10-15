@@ -5,11 +5,10 @@ from __future__ import annotations
 from typing import Any
 
 from homeassistant.components.diagnostics import async_redact_data
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from .const import CONF_LATITUDE, CONF_LONGITUDE, DOMAIN
-from .coordinator import AustralianDisasterWatchCoordinator
+from . import AusNZDisasterWatchConfigEntry
+from .const import CONF_LATITUDE, CONF_LONGITUDE
 
 TO_REDACT = {
     CONF_LATITUDE,
@@ -21,10 +20,10 @@ TO_REDACT = {
 
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: AusNZDisasterWatchConfigEntry,
 ) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
-    coordinator: AustralianDisasterWatchCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = entry.runtime_data
 
     hazards_data = [hazard.model_dump(mode="json") for hazard in coordinator.active_hazards]
 

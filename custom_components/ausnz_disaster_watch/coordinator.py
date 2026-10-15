@@ -62,19 +62,23 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
     config_entry: ConfigEntry
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
-        """Initialize coordinator."""
+        """Initialize coordinator.
+
+        The base class is initialised first so ``self.hass`` exists before the config
+        values (which may fall back to the Home Assistant home location) are read.
+        """
+        super().__init__(
+            hass,
+            _LOGGER,
+            config_entry=entry,
+            name=f"{DOMAIN}_{str(entry.data.get('state', 'QLD')).upper()}",
+            update_interval=timedelta(seconds=DEFAULT_SCAN_INTERVAL),
+        )
         self.entry = entry
         self._update_config_values()
 
         session = async_get_clientsession(hass)
         self.providers = get_providers_for_config(hass, session, self.combined_config)
-
-        super().__init__(
-            hass,
-            _LOGGER,
-            name=f"{DOMAIN}_{self.state_code}",
-            update_interval=timedelta(seconds=DEFAULT_SCAN_INTERVAL),
-        )
 
     def _update_config_values(self) -> None:
         """Update internal parameters from entry data and options using Pydantic."""
@@ -94,12 +98,6 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         # Latitude and Longitude (fallback to HA default home location)
         self.latitude: float = float(cfg.latitude or self.hass.config.latitude or -27.2657)
         self.longitude: float = float(cfg.longitude or self.hass.config.longitude or 152.9818)
-
-    def update_options(self) -> None:
-        """Handle options update without full integration reload."""
-        self._update_config_values()
-        session = async_get_clientsession(self.hass)
-        self.providers = get_providers_for_config(self.hass, session, self.combined_config)
 
     async def _async_fetch_all_hazards(self) -> list[CanonicalHazard]:
         """Fetch all hazards from active providers concurrently."""

@@ -10,12 +10,12 @@ import logging
 from typing import Any
 
 from homeassistant.components.geo_location import GeolocationEvent
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfLength
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from . import AusNZDisasterWatchConfigEntry
 from .const import DOMAIN
 from .coordinator import AustralianDisasterWatchCoordinator
 from .models import CanonicalHazard, HazardType
@@ -40,11 +40,11 @@ HAZARD_ICONS = {
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: AusNZDisasterWatchConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Australian Disaster Watch geolocation entities from a config entry."""
-    coordinator: AustralianDisasterWatchCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = entry.runtime_data
     registered_entities: dict[str, AustralianDisasterWatchGeolocationEvent] = {}
 
     @callback

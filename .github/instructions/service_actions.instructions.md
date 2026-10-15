@@ -24,7 +24,7 @@ applyTo: "custom_components/**/service_actions/**/*.py"
 
 - Call `await async_setup_services(hass)` from `async_setup()` in `__init__.py`
 - Implement handlers in `service_actions/__init__.py`
-- Handlers iterate over `hass.data[DOMAIN]` to access config entries
+- Handlers look up loaded entries with `hass.config_entries.async_loaded_entries(DOMAIN)` and read `entry.runtime_data`
 
 ## Service Schema
 

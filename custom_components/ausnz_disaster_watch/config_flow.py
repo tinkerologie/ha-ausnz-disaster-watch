@@ -7,7 +7,7 @@ from typing import Any
 
 import voluptuous as vol
 
-from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult, OptionsFlow
+from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult, OptionsFlow, OptionsFlowWithReload
 from homeassistant.core import callback
 from homeassistant.helpers.selector import (
     BooleanSelector,
@@ -391,7 +391,7 @@ class AustralianDisasterWatchConfigFlow(ConfigFlow, domain=DOMAIN):
         return AustralianDisasterWatchOptionsFlowHandler()
 
 
-class AustralianDisasterWatchOptionsFlowHandler(OptionsFlow):
+class AustralianDisasterWatchOptionsFlowHandler(OptionsFlowWithReload):
     """Handle options flow for Australia and New Zealand Disaster Watch."""
 
     async def async_step_init(
