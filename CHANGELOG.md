@@ -16,6 +16,7 @@ The changelog uses date sections in `YYYY.MM.DD` format.
 
 ### Changed
 
+- CI uploads test coverage to Codecov (`codecov.yml`: project coverage may not drop, patch coverage 100%) (#9).
 - New `script/check-imports` and CI job verify every module imports in a clean Home Assistant environment with only the declared requirements (#17).
 - README entity tables, card type and automation examples (modern `triggers`/`actions` syntax, real entity IDs) updated; AGENTS.md/GEMINI.md/Copilot instructions describe the real package layout and domain (#9).
 - Browser regression test steps removed from CI until the card suite rebuild adds Playwright tests (#43).
