@@ -42,6 +42,19 @@ STATE_ACT: Final = "ACT"
 STATE_NT: Final = "NT"
 STATE_NZ: Final = "NZ"
 
+# IANA time zone each agency publishes local timestamps in (#13)
+STATE_TIMEZONES: Final[dict[str, str]] = {
+    STATE_QLD: "Australia/Brisbane",
+    STATE_NSW: "Australia/Sydney",
+    STATE_ACT: "Australia/Sydney",
+    STATE_VIC: "Australia/Melbourne",
+    STATE_SA: "Australia/Adelaide",
+    STATE_WA: "Australia/Perth",
+    STATE_TAS: "Australia/Hobart",
+    STATE_NT: "Australia/Darwin",
+    STATE_NZ: "Pacific/Auckland",
+}
+
 SUPPORTED_STATES: Final = [
     STATE_QLD,
     STATE_NSW,

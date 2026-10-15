@@ -19,6 +19,8 @@ TAS_ALERT_FEED_URL = "https://alert.tas.gov.au/data/incidents-and-alerts.xml"
 class TasmaniaHazardProvider(BaseHazardProvider):
     """Provider for Tasmanian emergency incidents and warnings via TasALERT."""
 
+    local_tz = "Australia/Hobart"
+
     @property
     def state_code(self) -> str:
         """Return jurisdiction identifier."""

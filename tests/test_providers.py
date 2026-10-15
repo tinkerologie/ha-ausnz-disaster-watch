@@ -33,6 +33,7 @@ from custom_components.ausnz_disaster_watch.providers import (
     WAHazardProvider,
     get_providers_for_config,
 )
+from custom_components.ausnz_disaster_watch.providers.base import stable_id
 from homeassistant.core import HomeAssistant
 
 
@@ -428,38 +429,92 @@ def test_base_provider_centroid_edge_cases() -> None:
 
 
 def test_base_provider_parse_datetime_all_formats() -> None:
-    """Test parse_datetime across all supported date and timestamp formats."""
+    """parse_datetime returns aware UTC datetimes, interpreting naive values in the agency zone (#13)."""
     now_dt = datetime.now(UTC)
     assert BaseHazardProvider.parse_datetime(now_dt) == now_dt
 
-    naive_dt = datetime(2026, 10, 15, 10, 30)
-    assert BaseHazardProvider.parse_datetime(naive_dt).tzinfo == UTC
+    # Base provider zone is UTC; naive datetimes take it
+    assert BaseHazardProvider.parse_datetime(datetime(2026, 10, 15, 10, 30)) == datetime(
+        2026, 10, 15, 10, 30, tzinfo=UTC
+    )
 
-    # Timestamp seconds and ms
+    # Epoch seconds and milliseconds
     assert BaseHazardProvider.parse_datetime(1729000000).year == 2024
     assert BaseHazardProvider.parse_datetime(1729000000000).year == 2024
 
-    # Empty and non-string
-    assert BaseHazardProvider.parse_datetime(None).tzinfo == UTC
-    assert BaseHazardProvider.parse_datetime("").tzinfo == UTC
+    # Missing, blank, unsupported and unparsable values are None, never "now"
+    assert BaseHazardProvider.parse_datetime(None) is None
+    assert BaseHazardProvider.parse_datetime("") is None
+    assert BaseHazardProvider.parse_datetime(True) is None
+    assert BaseHazardProvider.parse_datetime("unparsable date string") is None
 
-    # ISO formats
-    assert BaseHazardProvider.parse_datetime("2026-10-15T12:00:00Z").year == 2026
-    assert BaseHazardProvider.parse_datetime("2026-10-15T12:00:00+10:00").year == 2026
+    # Explicit offsets are honoured
+    assert BaseHazardProvider.parse_datetime("2026-10-15T12:00:00Z") == datetime(2026, 10, 15, 12, tzinfo=UTC)
+    assert BaseHazardProvider.parse_datetime("2026-10-15T12:00:00+10:00") == datetime(2026, 10, 15, 2, tzinfo=UTC)
+    assert BaseHazardProvider.parse_datetime("Thu, 15 Oct 2026 01:27:00 GMT") == datetime(
+        2026, 10, 15, 1, 27, tzinfo=UTC
+    )
+    assert BaseHazardProvider.parse_datetime("Thu, 15 Oct 2026 01:27:00 -0000") == datetime(
+        2026, 10, 15, 1, 27, tzinfo=UTC
+    )
 
-    # RFC 2822
-    assert BaseHazardProvider.parse_datetime("Thu, 15 Oct 2026 01:27:00 GMT").year == 2026
+    # Agency formats (naive): interpreted in the requested agency zone
+    sydney = "Australia/Sydney"  # AEDT (UTC+11) in mid-October
+    expected = datetime(2026, 10, 15, 2, 30, tzinfo=UTC)
+    for value in (
+        "15/10/2026 01:30:00 PM",
+        "15/10/2026 13:30:00",
+        "15/10/2026 01:30 PM",
+        "15/10/2026 13:30",
+        "15 Oct 2026 13:30",
+        "2026-10-15 13:30:00",
+    ):
+        assert BaseHazardProvider.parse_datetime(value, sydney) == expected, value
 
-    # Australian agency formats
-    assert BaseHazardProvider.parse_datetime("15/10/2026 01:30:00 PM").year == 2026
-    assert BaseHazardProvider.parse_datetime("15/10/2026 13:30:00").year == 2026
-    assert BaseHazardProvider.parse_datetime("15/10/2026 01:30 PM").year == 2026
-    assert BaseHazardProvider.parse_datetime("15/10/2026 13:30").year == 2026
-    assert BaseHazardProvider.parse_datetime("15 Oct 2026 13:30").year == 2026
-    assert BaseHazardProvider.parse_datetime("2026-10-15 13:30:00").year == 2026
+    # Brisbane has no daylight saving (UTC+10)
+    assert BaseHazardProvider.parse_datetime("15 Oct 2026 13:30", "Australia/Brisbane") == datetime(
+        2026, 10, 15, 3, 30, tzinfo=UTC
+    )
 
-    # Fallback for unrecognized string
-    assert BaseHazardProvider.parse_datetime("unparsable date string").tzinfo == UTC
+    # A trailing zone abbreviation wins over the provider zone (ACT ESA style)
+    assert BaseHazardProvider.parse_datetime("2026-10-15 20:46 AEDT", "Australia/Perth") == datetime(
+        2026, 10, 15, 9, 46, tzinfo=UTC
+    )
+    assert BaseHazardProvider.parse_datetime("2026-07-15 20:46 aest") == datetime(2026, 7, 15, 10, 46, tzinfo=UTC)
+
+    # Unknown zone names fall back to UTC
+    assert BaseHazardProvider.parse_datetime("2026-10-15 13:30:00", "Mars/Olympus") == datetime(
+        2026, 10, 15, 13, 30, tzinfo=UTC
+    )
+
+
+def test_provider_local_timezones() -> None:
+    """Each provider interprets naive feed times in its agency's zone (#13)."""
+    expected = {
+        QueenslandHazardProvider: "Australia/Brisbane",
+        NSWHazardProvider: "Australia/Sydney",
+        ACTHazardProvider: "Australia/Sydney",
+        VictoriaHazardProvider: "Australia/Melbourne",
+        SAHazardProvider: "Australia/Adelaide",
+        WAHazardProvider: "Australia/Perth",
+        TasmaniaHazardProvider: "Australia/Hobart",
+        NTHazardProvider: "Australia/Darwin",
+        NZHazardProvider: "Pacific/Auckland",
+    }
+    for provider_cls, zone in expected.items():
+        assert provider_cls.local_tz == zone
+    # NSW RFS "UPDATED" value is Sydney local time, not UTC (was ~11 h in the future)
+    assert NSWHazardProvider.parse_datetime("15 Oct 2026 16:26") == datetime(2026, 10, 15, 5, 26, tzinfo=UTC)
+
+
+def test_stable_id_is_deterministic() -> None:
+    """stable_id does not depend on process hash seeds or list position (#7)."""
+    first = stable_id("nt", "2026-10-15T10:00:00+09:30", "Grass Fire", "Litchfield Park")
+    assert first == stable_id("nt", "2026-10-15T10:00:00+09:30", "Grass Fire", "Litchfield Park")
+    assert first.startswith("nt_")
+    assert len(first) == len("nt_") + 16
+    assert first != stable_id("nt", "2026-10-15T10:00:00+09:30", "Grass Fire", "Litchfield Park Rd")
+    assert stable_id("x", None, "a") == stable_id("x", "", "a")
 
 
 async def test_qld_provider_edge_cases(hass: HomeAssistant) -> None:
@@ -2242,3 +2297,124 @@ async def test_qld_provider_payload_cache(hass: HomeAssistant) -> None:
     assert closures == []
     assert warnings == []
     assert news == []
+
+
+async def test_act_incident_time_from_description(hass: HomeAssistant) -> None:
+    """ACT uses the "Updated:" line (incident time) rather than pubDate (feed build time) (#13)."""
+    provider = ACTHazardProvider(hass, AsyncMock(), {"state": "ACT"})
+    xml_text = """<?xml version="1.0"?>
+    <rss xmlns:georss="http://www.georss.org/georss"><channel>
+      <item>
+        <title>GRASS FIRE - Hume</title>
+        <guid>ACT-1001</guid>
+        <description>Status: Going&lt;br&gt;Updated: 2026-10-15 19:05 AEDT&lt;br&gt;Size: 1 ha</description>
+        <pubDate>2026-10-15 20:46 AEDT</pubDate>
+        <georss:point>-35.39 149.16</georss:point>
+      </item>
+      <item>
+        <title>GRASS FIRE - Tharwa</title>
+        <guid>ACT-1002</guid>
+        <description>Status: Going</description>
+        <pubDate>2026-10-15 20:46 AEDT</pubDate>
+        <georss:point>-35.51 149.07</georss:point>
+      </item>
+    </channel></rss>"""
+    hazards = {h.id: h for h in provider._parse_act_feed(xml_text)}
+    assert hazards["act_esa_ACT-1001"].updated_at == datetime(2026, 10, 15, 8, 5, tzinfo=UTC)
+    # No "Updated:" label: falls back to pubDate
+    assert hazards["act_esa_ACT-1002"].updated_at == datetime(2026, 10, 15, 9, 46, tzinfo=UTC)
+
+
+async def test_nt_ids_stable_across_feed_reordering(hass: HomeAssistant) -> None:
+    """NT hazard IDs do not depend on list position, and distinct incidents never collide (#7)."""
+    provider = NTHazardProvider(hass, AsyncMock(), {"state": "NT"})
+
+    def feature(location: str, event: str, notified: str) -> dict:
+        return {
+            "type": "Feature",
+            "geometry": {"type": "Point", "coordinates": [131.0, -12.5]},
+            "properties": {
+                "_location": location,
+                "_eventtype": event,
+                "_datenotified": notified,
+                "_status": "active",
+                "Alert Level": "Advice",
+            },
+        }
+
+    a = feature("Litchfield Park Road, Darwin River Dam area", "Grass Fire", "2026-10-15T10:00:00+09:30")
+    b = feature("Litchfield Park Road, Darwin River Dam north", "Grass Fire", "2026-10-15T10:00:00+09:30")
+    first = provider._parse_nt_incidents({"incidents": {"type": "FeatureCollection", "features": [a, b]}})
+    second = provider._parse_nt_incidents({"incidents": {"type": "FeatureCollection", "features": [b, a]}})
+
+    assert {h.id for h in first} == {h.id for h in second}
+    # Same notified time and first 20 characters of location used to collide
+    assert len({h.id for h in first}) == 2
+
+    # Features that only carry the alternate (non-underscore) keys still get distinct IDs
+    alt = [
+        {
+            "type": "Feature",
+            "geometry": {"type": "Point", "coordinates": [131.0, -12.5]},
+            "properties": {
+                "Location": loc,
+                "Fire Type": "Grass Fire",
+                "Notified": "15/10/2026 10:00",
+                "Alert Level": "Advice",
+            },
+        }
+        for loc in ("Humpty Doo", "Howard Springs")
+    ]
+    alt_ids = {
+        h.id for h in provider._parse_nt_incidents({"incidents": {"type": "FeatureCollection", "features": alt}})
+    }
+    assert len(alt_ids) == 2
+
+    # No notified time at all: same type and default location at different points stay distinct
+    bare = [
+        {
+            "type": "Feature",
+            "geometry": {"type": "Point", "coordinates": [lon, -12.5]},
+            "properties": {"_eventtype": "Grass Fire", "Alert Level": "Advice"},
+        }
+        for lon in (131.0, 131.4)
+    ]
+    bare_ids = {
+        h.id for h in provider._parse_nt_incidents({"incidents": {"type": "FeatureCollection", "features": bare}})
+    }
+    assert len(bare_ids) == 2
+
+
+async def test_wa_and_bom_id_fallbacks_are_stable(hass: HomeAssistant) -> None:
+    """Items without an upstream ID get a deterministic, distinct fallback (#7)."""
+    wa = WAHazardProvider(hass, AsyncMock(), {"state": "WA"})
+    payload = {
+        "warnings": [
+            {
+                "title": "Bushfire Advice - Gidgegannup",
+                "updatedAt": "2026-10-15T09:00:00+08:00",
+                "location": {"latitude": -31.79, "longitude": 116.2},
+            },
+            {
+                "title": "Bushfire Advice - Chidlow",
+                "updatedAt": "2026-10-15T09:00:00+08:00",
+                "location": {"latitude": -31.86, "longitude": 116.27},
+            },
+        ]
+    }
+    ids_first = [h.id for h in wa._parse_warnings(payload)]
+    ids_second = [h.id for h in wa._parse_warnings(payload)]
+    assert ids_first == ids_second
+    # An update to the warning (new updatedAt) keeps the same fallback ID
+    for warning in payload["warnings"]:
+        warning["updatedAt"] = "2026-10-15T11:30:00+08:00"
+    assert [h.id for h in wa._parse_warnings(payload)] == ids_first
+    assert len(set(ids_first)) == 2
+    assert all(i != "wa_warn_" for i in ids_first)
+
+    bom = BoMHazardProvider(hass, AsyncMock(), {"state": "QLD"})
+    item = ET.fromstring("<item><title>Severe Thunderstorm Warning for Wide Bay</title></item>")
+    first = bom._parse_item(item)
+    second = bom._parse_item(item)
+    assert first is not None and second is not None
+    assert first.id == second.id == f"BOM_{stable_id('BOM', 'Severe Thunderstorm Warning for Wide Bay')}"

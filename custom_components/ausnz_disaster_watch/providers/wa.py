@@ -8,7 +8,7 @@ from typing import Any
 from custom_components.ausnz_disaster_watch.const import STATE_WA
 from custom_components.ausnz_disaster_watch.models import CanonicalHazard, FireDangerRating, HazardType, WarningLevel
 
-from .base import BaseHazardProvider
+from .base import BaseHazardProvider, stable_id
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -19,6 +19,8 @@ WA_FDR_URL = "https://api.emergency.wa.gov.au/v1/fire-danger-ratings"
 
 class WAHazardProvider(BaseHazardProvider):
     """Provider for Western Australia DFES / Emergency WA incident and warning feeds."""
+
+    local_tz = "Australia/Perth"
 
     @property
     def state_code(self) -> str:
@@ -68,8 +70,13 @@ class WAHazardProvider(BaseHazardProvider):
         warnings = payload.get("warnings", [])
 
         for item in warnings:
-            item_id = str(item.get("id", ""))
             title = str(item.get("title") or item.get("name") or "Emergency Warning")
+            loc = item.get("location") or {}
+            # Fallback uses fields that do not change when the warning is updated (#7)
+            item_id = str(
+                item.get("id")
+                or stable_id("wa_warn", title, loc.get("value"), loc.get("latitude"), loc.get("longitude"))
+            )
             sub_type = str(item.get("entitySubType", "")).lower()
             warn_type = str(item.get("warning-type", "")).lower()
 
@@ -130,8 +137,19 @@ class WAHazardProvider(BaseHazardProvider):
         incidents = payload.get("incidents", [])
 
         for item in incidents:
-            item_id = str(item.get("id", ""))
             inc_type = str(item.get("incident-type", "Incident"))
+            inc_loc = item.get("location") or {}
+            item_id = str(
+                item.get("id")
+                or stable_id(
+                    "wa_inc",
+                    inc_type,
+                    item.get("name"),
+                    inc_loc.get("value"),
+                    inc_loc.get("latitude"),
+                    inc_loc.get("longitude"),
+                )
+            )
             status = str(item.get("incident-status", "Monitoring"))
             loc_data = item.get("location", {})
             lat = loc_data.get("latitude")

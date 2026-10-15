@@ -114,7 +114,9 @@ class CanonicalHazard(BaseModel):
     warning_level: WarningLevel = Field(description="Normalized Australian Warning System level")
     latitude: float = Field(ge=-90.0, le=90.0, description="Centroid latitude in degrees")
     longitude: float = Field(ge=-180.0, le=180.0, description="Centroid longitude in degrees")
-    updated_at: datetime = Field(description="Timezone-aware UTC timestamp of last update")
+    updated_at: datetime | None = Field(
+        default=None, description="Timezone-aware UTC timestamp of last update; None when the feed gives no usable time"
+    )
     location_name: str = Field(default="", description="Locality, suburb, or region name")
     distance_km: float | None = Field(
         default=None, ge=0.0, description="Haversine distance from center coordinates in km"
@@ -129,14 +131,16 @@ class CanonicalHazard(BaseModel):
 
     @field_validator("updated_at", mode="before")
     @classmethod
-    def ensure_utc_datetime(cls, v: Any) -> datetime:
-        """Ensure updated_at is a timezone-aware UTC datetime."""
+    def ensure_utc_datetime(cls, v: Any) -> datetime | None:
+        """Normalise updated_at to an aware UTC datetime; unknown times stay None (#13)."""
         if isinstance(v, str):
-            dt = datetime.fromisoformat(v)
-            return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
+            try:
+                v = datetime.fromisoformat(v)
+            except ValueError:
+                return None
         if isinstance(v, datetime):
-            return v if v.tzinfo else v.replace(tzinfo=UTC)
-        return datetime.now(tz=UTC)
+            return (v if v.tzinfo else v.replace(tzinfo=UTC)).astimezone(UTC)
+        return None
 
     @property
     def is_active_threat(self) -> bool:
@@ -158,10 +162,11 @@ class CanonicalHazard(BaseModel):
             "hazard_type": self.hazard_type.value,
             "warning_level": self.warning_level.value,
             "location_name": self.location_name,
-            "updated_at": self.updated_at.isoformat(),
             "is_hazard_reduction": self.is_hazard_reduction,
             "integration": "ausnz_disaster_watch",
         }
+        if self.updated_at is not None:
+            attrs["updated_at"] = self.updated_at.isoformat()
         if self.distance_km is not None:
             attrs["distance_km"] = round(self.distance_km, 2)
         if self.status:
