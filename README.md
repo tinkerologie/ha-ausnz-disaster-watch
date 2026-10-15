@@ -59,6 +59,7 @@ Renders interactive pins on the native Home Assistant Map for every active hazar
 | `…_active_hazards_nearby` | `on` when any active incident is within perimeter | `problem` |
 | `…_power_outage_active` | `on` when a power outage is reported nearby | `problem` |
 | `…_road_closure_nearby` | `on` when a road closure is reported nearby | `problem` |
+| `…_total_fire_ban` | `on` when a total fire ban is declared today for your fire weather district (Australia only; see [Fire danger and total fire bans](#fire-danger-and-total-fire-bans)) | `safety` |
 
 ### Sensors (`sensor`)
 | Entity (suffix) | Description | Unit |
@@ -68,7 +69,8 @@ Renders interactive pins on the native Home Assistant Map for every active hazar
 | `…_active_hazards_count` | Active incidents in the monitored perimeter | `hazards` |
 | `…_highest_warning_level` | Highest AWS level currently active (`Emergency Warning`, `Watch and Act`, `Advice`, `Information`, `All Clear`) | — |
 | `…_weather_warnings_count` | Active weather warnings | `warnings` |
-| `…_fire_danger_rating` | Fire danger rating for the district | — |
+| `…_fire_danger_rating` | Today's AFDRS fire danger rating for your fire weather district, with a 4-day `forecast` attribute | — |
+| `…_fire_season` | New Zealand only: fire season at your location (`open`, `restricted`, `prohibited`) with Section 52 prohibitions | — |
 | `…_power_outages_count` / `…_power_outages_customers_affected` | Power outages and customers affected | `outages` / `customers` |
 | `…_road_closures_count` | Road closures nearby | `closures` |
 | `…_relief_facilities_count` | Evacuation centres and sandbag stations nearby | `facilities` |
@@ -79,6 +81,29 @@ Entity IDs start with the device name, for example `binary_sensor.australia_and_
 
 ### Cameras (`camera`)
 Flood and traffic camera snapshots near the monitored location, where the jurisdiction provides them.
+
+### Fire danger and total fire bans
+
+Your location is matched to its Bureau of Meteorology fire weather district (bundled, simplified `IDM00007` boundaries, so border towns such as Albury and Wodonga or Queanbeyan and Canberra get their own district). The rating and 4-day outlook come from the Bureau's fire danger forecast for that state. Each forecast day is dated in the district's local time, so the sensor always shows today's rating, including in the evening after the next day's forecast is issued. Fire danger is polled at most every 30 minutes.
+
+`…_fire_danger_rating` attributes: `district_name`, `district_number` (BoM district code such as `NSW_FW008`), `date`, `fire_behaviour_index`, `total_fire_ban`, `forecast` (one entry per day: `date`, `rating`, `fire_behaviour_index`, `total_fire_ban`), `issued_at`, `source` and `total_fire_ban_source`. The state is unchanged: `No Rating`, `Moderate`, `High`, `Extreme` or `Catastrophic`.
+
+Total fire bans come from the agency that declares them:
+
+| District | Total fire ban source |
+| -------- | --------------------- |
+| NSW | NSW RFS 4-day fire danger feed (falls back to `fdrToban.xml`, today and tomorrow) |
+| ACT | ACT ESA fire danger feed (today and tomorrow) |
+| VIC | CFA total fire ban and fire danger forecast RSS |
+| SA | SA CFS fire danger and total fire ban feed |
+| WA | Emergency WA total fire bans, matched to your local government area (ABS boundaries) |
+| QLD, NT, TAS | No ban feed is read, so `…_total_fire_ban` is unknown. TasALERT's ban feed needs permission from TasALERT. |
+
+A ban the source does not publish, or a source that cannot be read, is unknown, never `off`.
+
+In New Zealand, `…_fire_season` reports the Fire and Emergency NZ fire season zone at your location. Its `section_52`, `section_52_comment` and `prohibited_activities` attributes show any Section 52 prohibition (for example fireworks) covering the location.
+
+Fire danger forecasts and district boundaries © Bureau of Meteorology. Total fire bans © NSW RFS, ACT ESA, CFA, SA CFS and DFES WA. LGA boundaries © Australian Bureau of Statistics (CC BY 4.0). NZ fire seasons © Fire and Emergency New Zealand.
 
 ---
 

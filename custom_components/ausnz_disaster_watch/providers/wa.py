@@ -8,7 +8,7 @@ from typing import Any
 import aiohttp
 
 from custom_components.ausnz_disaster_watch.const import STATE_WA
-from custom_components.ausnz_disaster_watch.fire_districts import resolve_district
+from custom_components.ausnz_disaster_watch.fire_districts import FIRE_DISTRICTS, resolve_district
 from custom_components.ausnz_disaster_watch.models import CanonicalHazard, FireDangerRating, HazardType, WarningLevel
 
 from .base import MALFORMED_ITEM_ERRORS, BaseHazardProvider, stable_id
@@ -18,7 +18,6 @@ _LOGGER = logging.getLogger(__name__)
 WA_INCIDENTS_URL = "https://api.emergency.wa.gov.au/v1/incidents"
 WA_WARNINGS_URL = "https://api.emergency.wa.gov.au/v1/warnings"
 WA_FDR_URL = "https://api.emergency.wa.gov.au/v1/fire-danger-ratings"
-WA_FIRE_DISTRICTS = "wa_fire_districts"
 
 
 class WAHazardProvider(BaseHazardProvider):
@@ -69,7 +68,7 @@ class WAHazardProvider(BaseHazardProvider):
         # The polygon test reads a file and scans thousands of edges, so it runs in an
         # executor, once per location
         if self._fdr_area is None or self._fdr_area[0] != (lat, lon):
-            area = await self.hass.async_add_executor_job(resolve_district, WA_FIRE_DISTRICTS, lat, lon)
+            area = await self.hass.async_add_executor_job(resolve_district, FIRE_DISTRICTS, lat, lon, "WA_")
             self._fdr_area = ((lat, lon), area)
         area = self._fdr_area[1]
         if area is None:

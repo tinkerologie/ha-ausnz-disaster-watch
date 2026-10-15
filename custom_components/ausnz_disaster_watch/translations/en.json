@@ -169,6 +169,9 @@
       },
       "river_flood_risk": {
         "name": "River flood risk {name}"
+      },
+      "total_fire_ban": {
+        "name": "Total Fire Ban"
       }
     },
     "sensor": {
@@ -198,6 +201,14 @@
       },
       "fire_danger_rating": {
         "name": "Fire Danger Rating"
+      },
+      "fire_season": {
+        "name": "Fire Season",
+        "state": {
+          "open": "Open",
+          "restricted": "Restricted",
+          "prohibited": "Prohibited"
+        }
       },
       "air_quality_rating": {
         "name": "Air Quality"

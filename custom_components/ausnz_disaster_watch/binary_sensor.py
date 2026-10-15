@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import Any
 
 from homeassistant.components.binary_sensor import (
@@ -18,10 +19,12 @@ from .const import (
     ATTR_INCIDENT_COUNT,
     ATTR_NEAREST_INCIDENT_DISTANCE,
     ATTR_NEAREST_INCIDENT_TITLE,
+    STATE_NZ,
 )
 from .coordinator import AustralianDisasterWatchCoordinator
 from .entity import AustralianDisasterWatchEntity
 from .forecast_entity import forecast_binary_sensors
+from .providers.fire_danger import local_today
 
 
 async def async_setup_entry(
@@ -32,15 +35,16 @@ async def async_setup_entry(
     """Set up Australian Disaster Watch binary sensors."""
     coordinator = entry.runtime_data
 
-    async_add_entities(
-        [
-            EmergencyWarningNearbyBinarySensor(coordinator),
-            ActiveHazardsNearbyBinarySensor(coordinator),
-            PowerOutageActiveBinarySensor(coordinator),
-            RoadClosureNearbyBinarySensor(coordinator),
-            *forecast_binary_sensors(coordinator),
-        ]
-    )
+    entities: list[BinarySensorEntity] = [
+        EmergencyWarningNearbyBinarySensor(coordinator),
+        ActiveHazardsNearbyBinarySensor(coordinator),
+        PowerOutageActiveBinarySensor(coordinator),
+        RoadClosureNearbyBinarySensor(coordinator),
+        *forecast_binary_sensors(coordinator),
+    ]
+    if coordinator.state_code != STATE_NZ:
+        entities.append(TotalFireBanBinarySensor(coordinator))
+    async_add_entities(entities)
 
 
 class EmergencyWarningNearbyBinarySensor(AustralianDisasterWatchEntity, BinarySensorEntity):
@@ -161,4 +165,54 @@ class RoadClosureNearbyBinarySensor(AustralianDisasterWatchEntity, BinarySensorE
         """Return closure counts."""
         return {
             "closures_count": len(self.coordinator.road_closures),
+        }
+
+
+class TotalFireBanBinarySensor(AustralianDisasterWatchEntity, BinarySensorEntity):
+    """Total fire ban declared today for the location's fire weather district (#28).
+
+    Unknown (not off) when the district's agency publishes no ban feed (QLD, NT, TAS) or
+    the feed could not be read: an unknown ban is never reported as "no ban".
+    """
+
+    _attr_device_class = BinarySensorDeviceClass.SAFETY
+    _attr_translation_key = "total_fire_ban"
+
+    def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
+        """Initialize total fire ban binary sensor."""
+        super().__init__(coordinator, "total_fire_ban")
+
+    @property
+    def is_on(self) -> bool | None:
+        """Return True if a total fire ban is declared for today."""
+        outlook = self.coordinator.fire_outlook
+        if outlook is None:
+            return None
+        today = outlook.day(local_today(outlook.time_zone))
+        return today.total_fire_ban if today else None
+
+    @property
+    def icon(self) -> str:
+        """Return icon depending on state."""
+        return "mdi:fire-alert" if self.is_on else "mdi:fire-off"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the district, tomorrow's ban and the ban outlook."""
+        outlook = self.coordinator.fire_outlook
+        if outlook is None:
+            return {}
+        today = local_today(outlook.time_zone)
+        tomorrow = outlook.day(today + timedelta(days=1))
+        return {
+            "date": today.isoformat(),
+            "district_name": outlook.district_name,
+            "district_number": outlook.district_number,
+            "tomorrow": tomorrow.total_fire_ban if tomorrow else None,
+            "forecast": [
+                {"date": day.date.isoformat(), "total_fire_ban": day.total_fire_ban}
+                for day in outlook.days
+                if day.date >= today
+            ],
+            "source": outlook.total_fire_ban_source,
         }
