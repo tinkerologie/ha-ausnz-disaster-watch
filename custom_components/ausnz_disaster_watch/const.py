@@ -153,6 +153,9 @@ PRESET_COUNCIL_DASHBOARDS: Final[dict[str, dict[str, str | float | None]]] = {
     },
 }
 
+# A home-zone entry gets the nearest preset council dashboard within this distance (#19)
+COUNCIL_AUTO_MATCH_KM: Final = 40
+
 # Entity Attributes
 ATTR_HAZARD_TYPE: Final = "hazard_type"
 ATTR_WARNING_LEVEL: Final = "warning_level"

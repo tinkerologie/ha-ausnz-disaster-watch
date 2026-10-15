@@ -54,6 +54,7 @@ from .const import (
     STATE_WA,
     SUPPORTED_STATES,
 )
+from .coordinator import nearest_council_dashboard
 from .models import DisasterWatchConfigModel
 
 _LOGGER = logging.getLogger(__name__)
@@ -202,6 +203,7 @@ class AustralianDisasterWatchConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Australian Disaster Watch."""
 
     VERSION = 1
+    MINOR_VERSION = 2
 
     def __init__(self) -> None:
         """Initialize config flow."""
@@ -229,20 +231,15 @@ class AustralianDisasterWatchConfigFlow(ConfigFlow, domain=DOMAIN):
             if user_input.get(CONF_LOCATION_MODE) == LOCATION_MODE_CUSTOM:
                 return await self.async_step_location()
 
-            # Otherwise, use Home Zone location
-            lat = self.hass.config.latitude or -27.2657
-            lon = self.hass.config.longitude or 152.9818
+            # Otherwise follow the Home Assistant home location. Coordinates are not stored:
+            # the coordinator reads the home location at every refresh (#19).
             state = user_input.get(CONF_STATE, default_state)
 
-            council_url: str | None = None
-            if state == STATE_QLD:
-                # Check if home coordinates are close to Moreton Bay or preset
-                council_url = str(PRESET_COUNCIL_DASHBOARDS["moreton_bay"]["url"])
+            # Nearest preset council dashboard near home, if any (changeable in the options)
+            council_url = nearest_council_dashboard(state, self.hass.config.latitude, self.hass.config.longitude)
 
             entry_data = {
                 **user_input,
-                CONF_LATITUDE: lat,
-                CONF_LONGITUDE: lon,
                 CONF_LOCATION_NAME: self.hass.config.location_name or "Home",
                 CONF_COUNCIL_DASHBOARD_URL: council_url,
             }
@@ -431,12 +428,17 @@ class AustralianDisasterWatchConfigFlow(ConfigFlow, domain=DOMAIN):
                 errors["base"] = "invalid_coordinates"
 
             if not errors and parsed_lat is not None and parsed_lon is not None:
+                # Reconfigure edits a fixed point, so the entry stops following the home zone
                 updates = {
                     **user_input,
                     CONF_LATITUDE: parsed_lat,
                     CONF_LONGITUDE: parsed_lon,
                     CONF_LOCATION_MODE: self._reconfigured_location_mode(entry, parsed_lat, parsed_lon),
                 }
+                if updates[CONF_LOCATION_MODE] == LOCATION_MODE_HOME:
+                    # Home-zone entries follow the Home Assistant home location; no stored point (#19)
+                    updates.pop(CONF_LATITUDE)
+                    updates.pop(CONF_LONGITUDE)
                 new_data = {**entry.data, **updates}
                 if not is_valid_config(new_data):
                     errors["base"] = "invalid_config"
@@ -461,6 +463,10 @@ class AustralianDisasterWatchConfigFlow(ConfigFlow, domain=DOMAIN):
                     )
 
         current = {**entry.data, **entry.options}
+        if current.get(CONF_LOCATION_MODE, LOCATION_MODE_HOME) == LOCATION_MODE_HOME:
+            # Home-zone entries monitor the current home location, not stored coordinates
+            current[CONF_LATITUDE] = self.hass.config.latitude
+            current[CONF_LONGITUDE] = self.hass.config.longitude
         state_options = [SelectOptionDict(value=s, label=s) for s in SUPPORTED_STATES]
 
         schema = vol.Schema(
@@ -507,18 +513,18 @@ class AustralianDisasterWatchConfigFlow(ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-    @staticmethod
-    def _reconfigured_location_mode(entry: ConfigEntry, lat: float, lon: float) -> str:
+    def _reconfigured_location_mode(self, entry: ConfigEntry, lat: float, lon: float) -> str:
         """Return the location mode after reconfigure.
 
-        A home-zone entry stays in home mode only while its coordinates are unchanged;
-        moving the location makes it a custom location with its own unique ID.
+        A home-zone entry stays in home mode only while the submitted coordinates are its
+        current location (the Home Assistant home location, or the coordinates stored by
+        older entries); moving the location makes it a custom location with its own unique ID.
         """
         mode = entry.data.get(CONF_LOCATION_MODE, LOCATION_MODE_HOME)
         if mode != LOCATION_MODE_HOME:
             return str(mode)
-        old_lat = entry.data.get(CONF_LATITUDE)
-        old_lon = entry.data.get(CONF_LONGITUDE)
+        old_lat = entry.data.get(CONF_LATITUDE, self.hass.config.latitude)
+        old_lon = entry.data.get(CONF_LONGITUDE, self.hass.config.longitude)
         if (
             old_lat is not None
             and old_lon is not None

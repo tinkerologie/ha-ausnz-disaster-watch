@@ -12,7 +12,15 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from .const import DEFAULT_SCAN_INTERVAL, DOMAIN, LAST_GOOD_MAX_AGE, THREAT_SCAN_INTERVAL
+from .const import (
+    COUNCIL_AUTO_MATCH_KM,
+    DEFAULT_SCAN_INTERVAL,
+    DOMAIN,
+    LAST_GOOD_MAX_AGE,
+    LOCATION_MODE_HOME,
+    PRESET_COUNCIL_DASHBOARDS,
+    THREAT_SCAN_INTERVAL,
+)
 from .models import (
     AirQualityStationData,
     CanonicalHazard,
@@ -29,7 +37,7 @@ from .models import (
     WeatherWarningItem,
 )
 from .providers import get_providers_for_config
-from .providers.base import ProviderUnavailableError
+from .providers.base import BaseHazardProvider, ProviderUnavailableError
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
@@ -75,6 +83,27 @@ def _unique_by_title(warnings: list[WeatherWarningItem]) -> list[WeatherWarningI
     return unique
 
 
+def nearest_council_dashboard(state: str, latitude: float | None, longitude: float | None) -> str | None:
+    """Return the URL of the nearest preset council dashboard in ``state`` within the match distance.
+
+    This is a geographic heuristic on each council's representative point, not a check
+    against council boundaries; the user can change or clear the URL in the options (#19).
+    """
+    if latitude is None or longitude is None:
+        return None
+    best: tuple[float, str] | None = None
+    for preset in PRESET_COUNCIL_DASHBOARDS.values():
+        url = preset.get("url")
+        if preset.get("state") != state or not isinstance(url, str):
+            continue
+        dist = calculate_haversine_distance(
+            latitude, longitude, float(preset["latitude"] or 0), float(preset["longitude"] or 0)
+        )
+        if dist <= COUNCIL_AUTO_MATCH_KM and (best is None or dist < best[0]):
+            best = (dist, url)
+    return best[1] if best else None
+
+
 class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinatorData]):
     """Coordinator to manage polling of emergency hazards with spatial filtering."""
 
@@ -104,6 +133,7 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         # Providers that measure distance to warning areas need the resolved home location
         provider_config = {**self.combined_config, "latitude": self.latitude, "longitude": self.longitude}
         self.providers = get_providers_for_config(hass, session, provider_config)
+        self._update_location()
 
     def _update_config_values(self) -> None:
         """Update internal parameters from entry data and options using Pydantic."""
@@ -119,10 +149,34 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         self.radius_km: float = float(cfg.radius)
         self.override_emergency: bool = cfg.override_emergency
         self.exclude_hazard_reduction: bool = cfg.exclude_hazard_reduction
+        self.location_mode: str = cfg.location_mode
+        self._stored_latitude = cfg.latitude
+        self._stored_longitude = cfg.longitude
+        self._resolve_location()
 
-        # Latitude and Longitude (fallback to HA default home location)
-        self.latitude: float = float(cfg.latitude or self.hass.config.latitude or -27.2657)
-        self.longitude: float = float(cfg.longitude or self.hass.config.longitude or 152.9818)
+    def _resolve_location(self) -> None:
+        """Set the monitored point.
+
+        Home-mode entries follow the Home Assistant home location, so a corrected home
+        location applies at the next refresh; their stored coordinates (from older
+        versions) are ignored. Other entries use their stored point (#19).
+        """
+        home = (self.hass.config.latitude, self.hass.config.longitude)
+        stored = (self._stored_latitude, self._stored_longitude)
+        candidates = (home, stored) if self.location_mode == LOCATION_MODE_HOME else (stored, home)
+        lat, lon = next(
+            ((la, lo) for la, lo in candidates if la is not None and lo is not None),
+            (-27.2657, 152.9818),
+        )
+        self.latitude: float = float(lat)
+        self.longitude: float = float(lon)
+
+    def _update_location(self) -> None:
+        """Resolve the monitored point and hand it to every provider."""
+        self._resolve_location()
+        for provider in self.providers:
+            if isinstance(provider, BaseHazardProvider):
+                provider.set_location(self.latitude, self.longitude)
 
     async def _async_fetch_all_hazards(self) -> list[CanonicalHazard]:
         """Fetch all hazards from active providers concurrently, tracking each feed's health (#16).
@@ -207,6 +261,14 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
                     has_active_threat = True
 
         return filtered_hazards, has_active_threat
+
+    def _near(self, item: DisasterCameraItem) -> bool:
+        """Return True if a camera is within the radius or has no location."""
+        if item.latitude is None or item.longitude is None:
+            return True
+        return (
+            calculate_haversine_distance(self.latitude, self.longitude, item.latitude, item.longitude) <= self.radius_km
+        )
 
     async def _collect_infrastructure(
         self,
@@ -343,7 +405,7 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
             try:
                 cam = await provider.async_fetch_cameras()
                 if isinstance(cam, list):
-                    cameras.extend([item for item in cam if isinstance(item, DisasterCameraItem)])
+                    cameras.extend([item for item in cam if isinstance(item, DisasterCameraItem) and self._near(item)])
             except Exception as err:  # noqa: BLE001
                 _LOGGER.debug("Error updating cameras from %s: %s", provider.__class__.__name__, err)
 
@@ -392,6 +454,14 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
                 except Exception as err:  # noqa: BLE001
                     _LOGGER.debug("Error updating fire danger from %s: %s", provider.__class__.__name__, err)
 
+        # One entity per camera ID: the first occurrence wins (#19)
+        unique_cameras: list[DisasterCameraItem] = []
+        camera_ids: set[str] = set()
+        for camera in cameras:
+            if camera.id not in camera_ids:
+                camera_ids.add(camera.id)
+                unique_cameras.append(camera)
+
         return {
             "power_outages": power_outages,
             "road_closures": road_closures,
@@ -401,12 +471,13 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
             "weather_stations": weather_stations,
             "air_quality_stations": air_quality_stations,
             "relief_facilities": relief_facilities,
-            "cameras": cameras,
+            "cameras": unique_cameras,
             "nearby_councils": nearby_councils,
         }
 
     async def _async_update_data(self) -> DisasterCoordinatorData:
         """Fetch all hazards and telemetry from active providers."""
+        self._update_location()
         all_hazards = await self._async_fetch_all_hazards()
         filtered_hazards, has_active_threat = self._filter_and_process_hazards(all_hazards)
         aux = await self._async_fetch_composite_feeds()
