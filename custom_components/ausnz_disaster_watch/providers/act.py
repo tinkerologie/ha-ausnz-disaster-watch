@@ -53,6 +53,7 @@ class ACTHazardProvider(BaseHazardProvider):
             root = ET.fromstring(xml_text)
         except (ET.ParseError, ValueError) as err:
             raise ProviderUnavailableError(f"ACT ESA returned invalid XML: {err}") from err
+        self.require_xml_root(root, "rss", "ACT ESA")
         ns = {"georss": "http://www.georss.org/georss"}
 
         for item in root.findall(".//item"):

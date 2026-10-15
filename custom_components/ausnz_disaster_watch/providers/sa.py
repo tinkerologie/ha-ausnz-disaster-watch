@@ -42,6 +42,7 @@ class SAHazardProvider(BaseHazardProvider):
             root = ET.fromstring(xml_text)
         except (ET.ParseError, ValueError) as err:
             raise ProviderUnavailableError(f"SA SAFECOM returned invalid XML: {err}") from err
+        self.require_xml_root(root, "atom", "SA SAFECOM")
         ns = {
             "atom": "http://www.w3.org/2005/Atom",
             "cap": "urn:oasis:names:tc:emergency:cap:1.2",

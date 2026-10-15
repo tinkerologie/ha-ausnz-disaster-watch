@@ -29,7 +29,9 @@ class NTHazardProvider(BaseHazardProvider):
     async def async_fetch_hazards(self) -> list[CanonicalHazard]:
         """Fetch active incidents and warnings from NT PFES."""
         data = await self.async_fetch_feed_json(NT_INCIDENTS_URL, "NT PFES")
-        if not isinstance(data, dict):
+        if not isinstance(data, dict) or not (
+            isinstance(data.get("incidents"), (dict, list)) or isinstance(data.get("features"), list)
+        ):
             raise ProviderUnavailableError("NT PFES returned an unexpected payload")
         return self._parse_nt_incidents(data)
 
