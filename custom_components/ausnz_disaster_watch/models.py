@@ -80,7 +80,7 @@ class HazardType(StrEnum):
             return cls.FLOOD
         if "cyclone" in val:
             return cls.CYCLONE
-        if "storm" in val or "thunder" in val or "rain" in val or "hail" in val or "wind" in val:
+        if any(word in val for word in ("storm", "thunder", "rain", "hail", "wind", "severe weather")):
             return cls.SEVERE_STORM
         if "volcan" in val or re.search(r"\bash(fall| fall| cloud| plume)?\b", val):
             return cls.VOLCANO

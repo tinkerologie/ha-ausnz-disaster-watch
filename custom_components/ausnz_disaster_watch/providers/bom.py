@@ -12,7 +12,6 @@ warnings without geometry are exposed as weather warnings, not as located hazard
 
 from __future__ import annotations
 
-import asyncio
 from datetime import UTC, datetime
 import logging
 import re
@@ -25,7 +24,7 @@ from custom_components.ausnz_disaster_watch.models import CanonicalHazard, Hazar
 from homeassistant.util import dt as dt_util
 
 from .base import MALFORMED_ITEM_ERRORS, BaseHazardProvider, ProviderUnavailableError, stable_id
-from .cap import CapAlert, area_distance_km, parse_cap, representative_point
+from .cap import CapAlert, CapDocumentCache, area_distance_km, representative_point
 
 if TYPE_CHECKING:
     from xml.etree.ElementTree import Element
@@ -34,7 +33,6 @@ _LOGGER = logging.getLogger(__name__)
 
 BOM_WMO_FEED_URL = "https://severeweather.wmo.int/v2/cap-alerts/au-bom-en/rss.xml"
 BOM_WARNINGS_PAGE = "https://www.bom.gov.au/australia/warnings"
-CAP_FETCH_CONCURRENCY = 4
 _EPOCH = datetime.min.replace(tzinfo=UTC)
 
 _PRODUCT_RE = re.compile(r"\bID[A-Z]\d{5}\b")
@@ -65,7 +63,7 @@ class BoMHazardProvider(BaseHazardProvider):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initialise the provider with a CAP document cache that persists across polls."""
         super().__init__(*args, **kwargs)
-        self._cap_cache: dict[str, CapAlert | None] = {}  # guid -> parsed alert (None = unusable)
+        self._cap_documents = CapDocumentCache("BoM CAP document")
         # Unlocated warnings from the last successful poll, with each alert's expiry
         self._weather_warnings: list[tuple[datetime | None, WeatherWarningItem]] = []
         self._weather_warnings_at: datetime | None = None
@@ -87,7 +85,7 @@ class BoMHazardProvider(BaseHazardProvider):
             raise ProviderUnavailableError("BoM CAP feed has no channel")
 
         items = channel.findall("item")
-        self._prune_cache({(item.findtext("guid") or "").strip() for item in items})
+        self._cap_documents.prune({(item.findtext("guid") or "").strip() for item in items})
         candidates = self._candidate_items_per_product(items)
         alerts = _newest_message_per_product(await self._async_load_alerts(candidates))
         now = dt_util.utcnow()
@@ -151,39 +149,14 @@ class BoMHazardProvider(BaseHazardProvider):
 
     async def _async_load_alerts(self, candidates: list[tuple[str, Element]]) -> list[tuple[str, Element, CapAlert]]:
         """Fetch (or reuse cached) CAP documents for each product's candidate items."""
-        semaphore = asyncio.Semaphore(CAP_FETCH_CONCURRENCY)
-        failed: list[str] = []
-
-        async def load(product_id: str, item: Element) -> tuple[str, Element, CapAlert] | None:
-            guid = (item.findtext("guid") or "").strip()
-            link = (item.findtext("link") or "").strip()
-            if guid not in self._cap_cache:
-                if not link:
-                    return None
-                async with semaphore:
-                    try:
-                        document = await self.async_fetch_feed_text(link, "BoM CAP document")
-                    except ProviderUnavailableError as err:
-                        # Not cached: retried on the next poll
-                        _LOGGER.debug("BoM CAP document %s unavailable: %s", link, err)
-                        failed.append(link)
-                        return None
-                self._cap_cache[guid] = parse_cap(document)
-            alert = self._cap_cache[guid]
-            return (product_id, item, alert) if alert is not None else None
-
-        results = await asyncio.gather(*(load(product_id, item) for product_id, item in candidates))
-        if failed:
-            # A missing document could be a product's newest message (an update or a cancellation),
-            # so this poll is incomplete; let the coordinator keep the last good data (#16).
-            raise ProviderUnavailableError(f"{len(failed)} BoM CAP document(s) unavailable")
-        return [result for result in results if result is not None]
-
-    def _prune_cache(self, live_guids: set[str]) -> None:
-        """Forget CAP documents whose RSS items have left the feed."""
-        for guid in list(self._cap_cache):
-            if guid not in live_guids:
-                del self._cap_cache[guid]
+        entries = [
+            ((product_id, item), (item.findtext("guid") or "").strip(), (item.findtext("link") or "").strip())
+            for product_id, item in candidates
+        ]
+        loaded = await self._cap_documents.async_load(
+            lambda url: self.async_fetch_feed_text(url, "BoM CAP document"), entries
+        )
+        return [(product_id, item, alert) for (product_id, item), alert in loaded]
 
     def _build_hazard(self, product_id: str, item: Element, alert: CapAlert) -> CanonicalHazard | None:
         """Return a located hazard, or None if the alert has no area geometry."""

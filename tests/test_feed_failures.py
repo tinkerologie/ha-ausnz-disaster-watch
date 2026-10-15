@@ -5,6 +5,7 @@ from datetime import UTC, datetime, timedelta
 import logging
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
+from xml.sax.saxutils import escape
 
 import aiohttp
 import pytest
@@ -143,11 +144,21 @@ async def test_nz_skips_malformed_items(hass: HomeAssistant) -> None:
     assert len(provider._parse_geonet_quakes(quakes)) == 1
     assert len(provider._parse_geonet_volcanoes(volcanoes)) == 1
 
-    nema = f"""<feed xmlns="http://www.w3.org/2005/Atom" xmlns:cap="urn:oasis:names:tc:emergency:cap:1.2">
-      <entry><id>good</id><title>Flood</title><cap:circle>-41.3,174.8 1</cap:circle></entry>
-      <entry><id>bad</id><title>Flood</title><cap:circle>{BAD_LAT},174.8 1</cap:circle></entry>
+    cap = (
+        '<alert xmlns="urn:oasis:names:tc:emergency:cap:1.2"><identifier>{id}</identifier>'
+        "<status>Actual</status><msgType>Alert</msgType><info><event>Flood</event>"
+        "<area><areaDesc>Wellington</areaDesc><circle>-41.3,174.8 1</circle></area></info></alert>"
+    )
+    nema = f"""<feed xmlns="http://www.w3.org/2005/Atom">
+      <entry><id>good</id><title>Flood</title><content>{escape(cap.format(id="good"))}</content></entry>
+      <entry><id>bad</id><title>Flood</title><content>{escape(cap.format(id="bad"))}</content></entry>
     </feed>"""
-    assert [h.id for h in provider._parse_nema_atom(nema)] == ["nz_nema_good"]
+    with patch.object(
+        NZHazardProvider,
+        "_located_hazard",
+        side_effect=[MagicMock(spec=CanonicalHazard, id="nz_nema_good"), KeyError("bad")],
+    ):
+        assert [h.id for h in provider._parse_nema_atom(nema)] == ["nz_nema_good"]
 
     # Quakes up, volcanoes payload malformed, NEMA down: partial result
     provider.async_fetch_json = AsyncMock(side_effect=[quakes, []])

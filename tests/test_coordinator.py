@@ -368,15 +368,17 @@ async def test_provider_area_distance_is_respected(
 
 
 def test_unique_weather_warnings_by_title() -> None:
-    """Exact repeats are listed once (order kept); same title for different areas stays separate."""
+    """Exact repeats are listed once (order kept); different areas or different links stay separate."""
     warnings = [
-        WeatherWarningItem(title="Flood Watch", locations="QLD: Southeast Coast"),
+        WeatherWarningItem(title="Flood Watch", locations="QLD: Southeast Coast", link="https://bom/1"),
         WeatherWarningItem(title="Severe Thunderstorm Warning", locations="QLD: Wide Bay"),
-        WeatherWarningItem(title="Flood Watch", locations="QLD: Southeast Coast", link="https://council"),
+        WeatherWarningItem(title="Flood Watch", locations="QLD: Southeast Coast", link="https://bom/1"),
+        WeatherWarningItem(title="Flood Watch", locations="QLD: Southeast Coast", link="https://bom/2"),
         WeatherWarningItem(title="Severe Thunderstorm Warning", locations="NSW: Northern Tablelands"),
     ]
-    assert [(w.title, w.locations) for w in _unique_by_title(warnings)] == [
-        ("Flood Watch", "QLD: Southeast Coast"),
-        ("Severe Thunderstorm Warning", "QLD: Wide Bay"),
-        ("Severe Thunderstorm Warning", "NSW: Northern Tablelands"),
+    assert [(w.title, w.locations, w.link) for w in _unique_by_title(warnings)] == [
+        ("Flood Watch", "QLD: Southeast Coast", "https://bom/1"),
+        ("Severe Thunderstorm Warning", "QLD: Wide Bay", None),
+        ("Flood Watch", "QLD: Southeast Coast", "https://bom/2"),
+        ("Severe Thunderstorm Warning", "NSW: Northern Tablelands", None),
     ]

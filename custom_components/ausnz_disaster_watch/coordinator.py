@@ -61,13 +61,14 @@ def calculate_haversine_distance(
 def _unique_by_title(warnings: list[WeatherWarningItem]) -> list[WeatherWarningItem]:
     """Drop repeated warnings, keeping order.
 
-    The key includes the affected locations: generic titles such as "Severe Thunderstorm
-    Warning" are reused by every state, so title alone would merge different warnings.
+    A warning is a repeat only if title, affected locations and link all match: generic
+    titles such as "Severe Thunderstorm Warning" are reused by every state, and two current
+    alerts with different links are different warnings.
     """
-    seen: set[tuple[str, str | None]] = set()
+    seen: set[tuple[str, str | None, str | None]] = set()
     unique: list[WeatherWarningItem] = []
     for warning in warnings:
-        key = (warning.title, warning.locations)
+        key = (warning.title, warning.locations, warning.link)
         if key not in seen:
             seen.add(key)
             unique.append(warning)

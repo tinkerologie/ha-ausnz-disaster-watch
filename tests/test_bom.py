@@ -194,7 +194,7 @@ async def test_state_selection_and_act(hass: HomeAssistant) -> None:
 
 
 async def test_cap_cache_and_fetch_failures(hass: HomeAssistant) -> None:
-    """CAP documents are fetched once; failures are retried next poll; unusable documents are cached."""
+    """CAP alerts are fetched once; failed downloads and non-CAP responses are retried next poll."""
     feed = rss(
         ("AusBoM-IDQ21033-1", "Severe Thunderstorm Warning", "https://cap/1", "Thu, 15 Oct 2026 09:00:00 +0000"),
         ("AusBoM-IDQ21034-1", "Severe Thunderstorm Warning", "https://cap/down", "Thu, 15 Oct 2026 09:00:00 +0000"),
@@ -204,22 +204,25 @@ async def test_cap_cache_and_fetch_failures(hass: HomeAssistant) -> None:
     docs = {BOM_WMO_FEED_URL: feed, "https://cap/1": cap("one", polygon=BRISBANE_POLY), "https://cap/junk": "<not cap"}
     provider, fetch = make_provider(hass, docs)
 
-    # A document that cannot be downloaded makes the poll incomplete, not an all-clear
+    # A document that cannot be downloaded, or is not CAP (an HTTP 200 error page), makes the
+    # poll incomplete, not an all-clear
     for _ in range(2):
-        with pytest.raises(ProviderUnavailableError, match="1 BoM CAP document"):
+        with pytest.raises(ProviderUnavailableError, match="2 BoM CAP document"):
             await provider.async_fetch_hazards()
     urls = [call.args[0] for call in fetch.await_args_list]
     assert urls.count("https://cap/1") == 1  # cached
-    assert urls.count("https://cap/junk") == 1  # unusable document cached as such
+    assert urls.count("https://cap/junk") == 2  # non-CAP response retried, never cached
     assert urls.count("https://cap/down") == 2  # network failure retried
 
+    # Once the endpoints recover, the warnings appear
     docs["https://cap/down"] = cap("down")
-    assert [h.id for h in await provider.async_fetch_hazards()] == ["BOM_IDQ21033"]
+    docs["https://cap/junk"] = cap("junk", polygon=BRISBANE_POLY)
+    assert sorted(h.id for h in await provider.async_fetch_hazards()) == ["BOM_IDQ21033", "BOM_IDQ21035"]
 
     # Items that leave the feed are forgotten
     docs[BOM_WMO_FEED_URL] = rss()
     await provider.async_fetch_hazards()
-    assert provider._cap_cache == {}
+    assert len(provider._cap_documents) == 0
 
 
 async def test_feed_level_failures(hass: HomeAssistant) -> None:

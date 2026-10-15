@@ -7,20 +7,27 @@ inside any shape, otherwise the distance to the nearest edge. No geometry depend
 
 from __future__ import annotations
 
+import asyncio
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import datetime
+import html
 from itertools import pairwise
+import logging
 import math
 from typing import TYPE_CHECKING
 
 import defusedxml.ElementTree as ET
 
-from .base import BaseHazardProvider
+from .base import BaseHazardProvider, ProviderUnavailableError
 
 if TYPE_CHECKING:
     from xml.etree.ElementTree import Element
 
+_LOGGER = logging.getLogger(__name__)
+
 CAP_NS = {"cap": "urn:oasis:names:tc:emergency:cap:1.2"}
+CAP_FETCH_CONCURRENCY = 4
 EARTH_RADIUS_KM = 6371.0088
 
 type LatLon = tuple[float, float]
@@ -53,11 +60,17 @@ class CapAlert:
     expires: datetime | None
     web: str
     areas: tuple[CapArea, ...]
+    description: str = ""
+    parameters: tuple[tuple[str, str], ...] = ()  # (valueName, value), e.g. ("ColourCode", "Orange")
 
     @property
     def has_geometry(self) -> bool:
         """Return True if any area has a polygon or circle."""
         return any(area.polygons or area.circles for area in self.areas)
+
+    def parameter(self, name: str) -> str:
+        """Return the first ``<parameter>`` value named ``name`` (case-insensitive), or ``""``."""
+        return next((value for key, value in self.parameters if key.lower() == name.lower()), "")
 
     @property
     def area_description(self) -> str:
@@ -99,11 +112,23 @@ def _parse_circle(text: str) -> tuple[float, float, float] | None:
 
 
 def parse_cap(xml_text: str) -> CapAlert | None:
-    """Parse a CAP 1.2 document; return None for malformed XML or a document without ``<alert>``."""
+    """Parse a CAP 1.2 document; return None for malformed XML or a document without ``<alert>``.
+
+    Text that is itself still entity-escaped (``&lt;alert ...``), as some Atom feeds embed
+    it, is unescaped first.
+    """
+    text = xml_text.strip()
+    if text.startswith("&lt;"):
+        text = html.unescape(text)
     try:
-        root = ET.fromstring(xml_text)
+        root = ET.fromstring(text)
     except (ET.ParseError, ValueError):
         return None
+    return cap_from_element(root)
+
+
+def cap_from_element(root: Element) -> CapAlert | None:
+    """Build a CapAlert from a parsed ``<alert>`` element or any element containing one."""
     alert = root if root.tag == f"{{{CAP_NS['cap']}}}alert" else root.find(".//cap:alert", CAP_NS)
     if alert is None:
         return None
@@ -151,7 +176,71 @@ def parse_cap(xml_text: str) -> CapAlert | None:
         expires=parse(_text(info, "cap:expires")),
         web=_text(info, "cap:web"),
         areas=tuple(areas),
+        description=_text(info, "cap:description"),
+        parameters=tuple(
+            (_text(param, "cap:valueName"), _text(param, "cap:value"))
+            for param in (info.findall("cap:parameter", CAP_NS) if info is not None else ())
+        ),
     )
+
+
+class CapDocumentCache:
+    """CAP documents referenced by a feed, fetched once each and kept while the feed lists them.
+
+    Feeds such as BoM's WMO RSS and MetService's RSS list pointers to CAP documents. Only
+    parsed alerts are cached. A document that fails to download, or downloads but is not CAP
+    (for example an HTTP 200 error page), is retried on the next poll.
+
+    If any document is missing the load raises ProviderUnavailableError: it could be the update
+    or cancellation that supersedes a cached one, so a partial set would be read as fresh data.
+    The coordinator then keeps the last good hazards (#16).
+    """
+
+    def __init__(self, label: str) -> None:
+        """Initialise an empty cache; ``label`` names the documents in log messages."""
+        self._label = label
+        self._documents: dict[str, CapAlert] = {}
+
+    def __len__(self) -> int:
+        """Return the number of cached alerts."""
+        return len(self._documents)
+
+    def prune(self, live_keys: set[str]) -> None:
+        """Forget documents whose feed entries have gone."""
+        for key in list(self._documents):
+            if key not in live_keys:
+                del self._documents[key]
+
+    async def async_load[T](
+        self, fetch: Callable[[str], Awaitable[str]], entries: list[tuple[T, str, str]]
+    ) -> list[tuple[T, CapAlert]]:
+        """Return ``(payload, alert)`` for each ``(payload, key, url)`` whose document is usable."""
+        semaphore = asyncio.Semaphore(CAP_FETCH_CONCURRENCY)
+        failed: list[str] = []
+
+        async def load(payload: T, key: str, url: str) -> tuple[T, CapAlert] | None:
+            if key not in self._documents:
+                if not url:
+                    return None
+                async with semaphore:
+                    try:
+                        document = await fetch(url)
+                    except ProviderUnavailableError as err:
+                        _LOGGER.debug("%s %s unavailable: %s", self._label, url, err)
+                        failed.append(url)
+                        return None
+                alert = parse_cap(document)
+                if alert is None:
+                    _LOGGER.debug("%s %s is not a CAP alert", self._label, url)
+                    failed.append(url)
+                    return None
+                self._documents[key] = alert
+            return (payload, self._documents[key])
+
+        results = await asyncio.gather(*(load(payload, key, url) for payload, key, url in entries))
+        if failed:
+            raise ProviderUnavailableError(f"{len(failed)} {self._label}(s) unavailable")
+        return [result for result in results if result is not None]
 
 
 def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
