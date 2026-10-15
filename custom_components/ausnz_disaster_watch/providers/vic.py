@@ -18,6 +18,8 @@ VIC_OSOM_URL = "https://emergency.vic.gov.au/public/osom-geojson.json"
 class VictoriaHazardProvider(BaseHazardProvider):
     """Provider for Emergency Management Victoria (EMV OSOM)."""
 
+    local_tz = "Australia/Melbourne"
+
     @property
     def state_code(self) -> str:
         """Return state code."""

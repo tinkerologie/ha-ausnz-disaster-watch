@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+from collections import Counter
 import logging
 from typing import Any
 
 from custom_components.ausnz_disaster_watch.const import STATE_NT
 from custom_components.ausnz_disaster_watch.models import CanonicalHazard, HazardType, WarningLevel
 
-from .base import BaseHazardProvider
+from .base import BaseHazardProvider, stable_id
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -17,6 +18,8 @@ NT_INCIDENTS_URL = "https://pfes.nt.gov.au/incidentmap/json/incidents.json"
 
 class NTHazardProvider(BaseHazardProvider):
     """Provider for Northern Territory Police, Fire and Emergency Services (PFES)."""
+
+    local_tz = "Australia/Darwin"
 
     @property
     def state_code(self) -> str:
@@ -53,7 +56,7 @@ class NTHazardProvider(BaseHazardProvider):
         if "features" in data and isinstance(data["features"], list):
             feature_list.extend(data["features"])
 
-        for idx, feat in enumerate(feature_list):
+        for feat in feature_list:
             if not isinstance(feat, dict):
                 continue
 
@@ -84,7 +87,15 @@ class NTHazardProvider(BaseHazardProvider):
             else:
                 level = WarningLevel.INFORMATION
 
-            item_id = f"nt_{props.get('_datenotified', idx)}_{location[:20].strip()}"
+            # Stable across polls and feed reordering (#7). The NT feed has no upstream incident
+            # ID, so use notified time + event type + full location. Coordinates are only a
+            # tie-breaker when the notified time is missing, because a fire's centroid moves.
+            notified = props.get("_datenotified") or props.get("Notified")
+            item_id = (
+                stable_id("nt", notified, event_type, location)
+                if notified
+                else stable_id("nt", event_type, location, round(lat, 3), round(lon, 3))
+            )
             title = f"{event_type} - {location}"
 
             hazards.append(
@@ -110,4 +121,26 @@ class NTHazardProvider(BaseHazardProvider):
                 )
             )
 
-        return hazards
+        return self._disambiguate_ids(hazards)
+
+    @staticmethod
+    def _disambiguate_ids(hazards: list[CanonicalHazard]) -> list[CanonicalHazard]:
+        """Give features that share every identifying field distinct IDs.
+
+        Colliding features are separated by exact position, which does not depend on feed
+        order. Only exact duplicates fall back to an order suffix.
+        """
+        counts = Counter(h.id for h in hazards)
+        result: list[CanonicalHazard] = []
+        seen: set[str] = set()
+        for hazard in hazards:
+            item_id = hazard.id
+            if counts[item_id] > 1:
+                item_id = stable_id(item_id, round(hazard.latitude, 6), round(hazard.longitude, 6))
+            base_id, suffix = item_id, 2
+            while item_id in seen:
+                item_id = f"{base_id}_{suffix}"
+                suffix += 1
+            seen.add(item_id)
+            result.append(hazard if item_id == hazard.id else hazard.model_copy(update={"id": item_id}))
+        return result

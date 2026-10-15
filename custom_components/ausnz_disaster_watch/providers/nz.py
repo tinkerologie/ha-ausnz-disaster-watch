@@ -11,7 +11,7 @@ import defusedxml.ElementTree as ET
 from custom_components.ausnz_disaster_watch.const import STATE_NZ
 from custom_components.ausnz_disaster_watch.models import CanonicalHazard, HazardType, WarningLevel, WeatherWarningItem
 
-from .base import BaseHazardProvider
+from .base import BaseHazardProvider, stable_id
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -24,6 +24,8 @@ METSERVICE_ALERTS_URL = "https://alerts.metservice.com/cap/rss"
 
 class NZHazardProvider(BaseHazardProvider):
     """Provider for New Zealand natural hazards and civil defence emergencies."""
+
+    local_tz = "Pacific/Auckland"
 
     @property
     def state_code(self) -> str:
@@ -272,7 +274,7 @@ class NZHazardProvider(BaseHazardProvider):
 
                 hazards.append(
                     CanonicalHazard(
-                        id=f"nz_nema_{entry_id or title}",
+                        id=f"nz_nema_{entry_id}" if entry_id else stable_id("nz_nema", title, area_desc),
                         source="NEMA New Zealand Civil Defence",
                         title=title or "Civil Defence Emergency Mobile Alert",
                         hazard_type=HazardType.from_str(title),

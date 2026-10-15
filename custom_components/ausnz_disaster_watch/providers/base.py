@@ -4,13 +4,17 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 import asyncio
-from datetime import UTC, datetime
+import contextlib
+from datetime import UTC, datetime, timedelta, timezone, tzinfo
 from email.utils import parsedate_to_datetime
+import hashlib
 import logging
-from typing import TYPE_CHECKING, Any
+import re
+from typing import TYPE_CHECKING, Any, ClassVar
 
 import aiohttp
 
+from custom_components.ausnz_disaster_watch.const import STATE_TIMEZONES
 from custom_components.ausnz_disaster_watch.models import (
     AirQualityStationData,
     CanonicalHazard,
@@ -23,11 +27,51 @@ from custom_components.ausnz_disaster_watch.models import (
     WeatherStationObservation,
     WeatherWarningItem,
 )
+from homeassistant.util import dt as dt_util
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
 _LOGGER = logging.getLogger(__name__)
+
+# Resolve agency time zones once at import. Home Assistant imports integration modules in
+# an executor, so the tz database file reads never happen inside the event loop.
+_ZONES: dict[str, tzinfo] = {
+    name: zone for name in {"UTC", *STATE_TIMEZONES.values()} if (zone := dt_util.get_time_zone(name)) is not None
+}
+
+# Fixed offsets for zone abbreviations agencies append to local timestamps (e.g. ACT ESA
+# "2026-10-15 20:46 AEDT").
+_TZ_ABBREVIATIONS: dict[str, timezone] = {
+    "AEST": timezone(timedelta(hours=10)),
+    "AEDT": timezone(timedelta(hours=11)),
+    "ACST": timezone(timedelta(hours=9, minutes=30)),
+    "ACDT": timezone(timedelta(hours=10, minutes=30)),
+    "AWST": timezone(timedelta(hours=8)),
+    "NZST": timezone(timedelta(hours=12)),
+    "NZDT": timezone(timedelta(hours=13)),
+}
+_TZ_ABBREVIATION_RE = re.compile(r"\s+(" + "|".join(_TZ_ABBREVIATIONS) + r")$", re.IGNORECASE)
+
+_LOCAL_FORMATS = (
+    "%d/%m/%Y %I:%M:%S %p",
+    "%d/%m/%Y %H:%M:%S",
+    "%d/%m/%Y %I:%M %p",
+    "%d/%m/%Y %H:%M",
+    "%d %b %Y %H:%M",
+    "%Y-%m-%d %H:%M:%S",
+)
+
+
+def stable_id(prefix: str, *parts: object) -> str:
+    """Return a deterministic identifier from stable upstream fields (#7).
+
+    Unlike ``hash()``, the digest is identical across processes and restarts, and it
+    does not depend on an item's position in the feed.
+    """
+    raw = "|".join("" if part is None else str(part) for part in parts)
+    return f"{prefix}_{hashlib.sha256(raw.encode()).hexdigest()[:16]}"
+
 
 DEFAULT_TIMEOUT = aiohttp.ClientTimeout(total=30)
 MAX_RETRIES = 3
@@ -36,6 +80,9 @@ INITIAL_BACKOFF = 1.0
 
 class BaseHazardProvider(ABC):
     """Abstract base provider for state and jurisdiction emergency feeds."""
+
+    # IANA zone the agency publishes naive local timestamps in (see const.STATE_TIMEZONES)
+    local_tz: ClassVar[str] = "UTC"
 
     def __init__(
         self,
@@ -270,54 +317,60 @@ class BaseHazardProvider(ABC):
         avg_lon = sum(p[1] for p in calc_points) / len(calc_points)
         return avg_lat, avg_lon
 
-    @staticmethod
-    def parse_datetime(val: Any) -> datetime:
-        """Convert various agency date/timestamp formats to timezone-aware UTC datetime."""
-        if isinstance(val, datetime):
-            return val if val.tzinfo else val.replace(tzinfo=UTC)
+    @classmethod
+    def parse_datetime(cls, val: Any, local_tz: str | None = None) -> datetime | None:
+        """Convert an agency timestamp to a timezone-aware UTC datetime, or None.
 
-        if isinstance(val, (int, float)):
-            # Check if timestamp is in milliseconds
+        Naive values are interpreted in the agency's local time zone (``local_tz`` or the
+        provider's ``local_tz``), not UTC: Australian and NZ feeds publish local times. A
+        trailing zone abbreviation (AEST, AEDT, ...) takes precedence. Ambiguous wall times
+        during the daylight-saving fall-back hour resolve with ``fold=0``.
+
+        Returns None when the value is missing or unparsable, so stale data is never
+        presented as freshly updated.
+        """
+        zone = _ZONES.get(local_tz or cls.local_tz) or UTC
+
+        if isinstance(val, datetime):
+            return dt_util.as_utc(val if val.tzinfo else val.replace(tzinfo=zone))
+
+        if isinstance(val, (int, float)) and not isinstance(val, bool):
+            # Epoch seconds or milliseconds
             if val > 1e11:
                 val /= 1000.0
             return datetime.fromtimestamp(val, tz=UTC)
 
         if not isinstance(val, str) or not val.strip():
-            return datetime.now(UTC)
+            return None
 
         str_val = val.strip()
+        if match := _TZ_ABBREVIATION_RE.search(str_val):
+            zone = _TZ_ABBREVIATIONS[match.group(1).upper()]
+            str_val = str_val[: match.start()].strip()
 
-        # Try ISO 8601
-        try:
-            # Handle trailing Z
-            iso_str = str_val.replace("Z", "+00:00")
-            dt = datetime.fromisoformat(iso_str)
-            return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
-        except ValueError:
-            pass
+        parsed: datetime | None = None
+        with contextlib.suppress(ValueError):
+            parsed = datetime.fromisoformat(str_val)
 
-        # Try RFC 2822 (e.g. "Thu, 15 Oct 2026 01:27:00 GMT")
-        try:
-            dt = parsedate_to_datetime(str_val)
-            return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
-        except (TypeError, ValueError):
-            pass
-
-        # Try specific Australian agency string formats
-        formats = [
-            "%d/%m/%Y %I:%M:%S %p",
-            "%d/%m/%Y %H:%M:%S",
-            "%d/%m/%Y %I:%M %p",
-            "%d/%m/%Y %H:%M",
-            "%d %b %Y %H:%M",
-            "%Y-%m-%d %H:%M:%S",
-        ]
-        for fmt in formats:
+        if parsed is None:
             try:
-                dt = datetime.strptime(str_val, fmt)
-                return dt.replace(tzinfo=UTC)
-            except ValueError:
-                continue
+                parsed = parsedate_to_datetime(str_val)
+                if parsed.tzinfo is None and str_val.endswith("-0000"):
+                    # RFC 2822 "-0000" means UTC with unknown local zone
+                    parsed = parsed.replace(tzinfo=UTC)
+            except (TypeError, ValueError):
+                parsed = None
 
-        # Fallback to now UTC
-        return datetime.now(UTC)
+        if parsed is None:
+            for fmt in _LOCAL_FORMATS:
+                try:
+                    parsed = datetime.strptime(str_val, fmt)
+                    break
+                except ValueError:
+                    continue
+
+        if parsed is None:
+            _LOGGER.debug("Unparsable timestamp from %s: %r", cls.__name__, val)
+            return None
+
+        return dt_util.as_utc(parsed if parsed.tzinfo else parsed.replace(tzinfo=zone))
