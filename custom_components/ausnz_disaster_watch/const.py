@@ -17,6 +17,8 @@ CONF_LATITUDE: Final = "latitude"
 CONF_LONGITUDE: Final = "longitude"
 CONF_LOCATION_NAME: Final = "location_name"
 CONF_COUNCIL_DASHBOARD_URL: Final = "council_dashboard_url"
+# Opt-in Geoscience Australia earthquakes for Australian entries (#23)
+CONF_INCLUDE_EARTHQUAKES: Final = "include_earthquakes"
 
 # Location modes
 LOCATION_MODE_HOME: Final = "home"
@@ -29,6 +31,7 @@ MIN_RADIUS: Final = 5  # km
 MAX_RADIUS: Final = 300  # km
 DEFAULT_OVERRIDE_EMERGENCY: Final = True
 DEFAULT_EXCLUDE_HAZARD_REDUCTION: Final = True
+DEFAULT_INCLUDE_EARTHQUAKES: Final = False
 DEFAULT_SCAN_INTERVAL: Final = 300  # 5 minutes in seconds
 THREAT_SCAN_INTERVAL: Final = 60  # 1 minute when active threat detected
 # How long a failed feed's last good hazards are kept before they are dropped (#16)

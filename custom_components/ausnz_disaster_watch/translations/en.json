@@ -56,6 +56,7 @@
         "menu_options": {
           "settings": "Monitoring settings",
           "forecasts": "Forecast signals and AI rain outlook",
+          "earthquakes": "Earthquakes (Geoscience Australia)",
           "add_river_point": "Add a river flood forecast point",
           "edit_river_point": "Edit a river point",
           "remove_river_point": "Remove river points"
@@ -132,6 +133,13 @@
         "title": "Remove river points",
         "data": {
           "point": "River points to remove"
+        }
+      },
+      "earthquakes": {
+        "title": "Earthquakes",
+        "description": "Optional earthquake hazards from Geoscience Australia (CC BY 4.0). Quakes of magnitude 3 or more from the last 48 hours within the monitoring radius are shown: M6 or more as Watch and Act, M4.5 or more as Advice, smaller ones as Information.",
+        "data": {
+          "include_earthquakes": "Include Geoscience Australia earthquakes"
         }
       }
     },
