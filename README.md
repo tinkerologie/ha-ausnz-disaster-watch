@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="branding/dark_logo@2x.png">
+    <img alt="Disaster Watch for Australia and New Zealand" src="branding/logo@2x.png" width="480">
+  </picture>
+</p>
+
 # Australia and New Zealand Disaster Watch for Home Assistant
 
 [![GitHub Release](https://img.shields.io/github/v/release/tinkerologie/ha-ausnz-disaster-watch?style=flat-square)](https://github.com/tinkerologie/ha-ausnz-disaster-watch/releases)
@@ -827,3 +834,7 @@ The full register, with every endpoint, terms evidence, rate limits and the deci
 ## License
 
 This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENSE) file for details.
+
+### Brand images
+
+`branding/icon.svg`, `branding/logo.svg` and `branding/dark_logo.svg` are the masters. Run `script/brand` after editing them: it renders the PNGs (icon 256/512 px, logos 128/256 px high, plus dark-mode logos) into `branding/` and copies them to `custom_components/ausnz_disaster_watch/brand/`, where Home Assistant loads a custom integration's icon and logo from. `tests/test_brand.py` fails if the two folders drift apart.
