@@ -430,6 +430,23 @@ Chips under the map hide or show the satellite layer and cyclone tracks. The att
 
 ---
 
+## Ask your voice assistant
+
+The integration gives Assist, and any LLM conversation agent that uses the Assist API (OpenAI, Anthropic, Google, Ollama and others), three read-only tools. You can then ask questions such as "Is there anything I need to worry about near home?", "What's the fire danger tomorrow?" or "Are any roads closed nearby?".
+
+| Tool | What it answers |
+| --- | --- |
+| `ausnz_disaster_watch__get_disaster_situation` | The highest warning level, active warnings and incidents nearest first (up to 10), weather warnings, fire danger today and tomorrow with the total fire ban, road closures and power outages |
+| `ausnz_disaster_watch__get_fire_danger` | The fire danger rating and total fire ban for `today`, `tomorrow`, `day3` or `day4` (the fire season in New Zealand) |
+| `ausnz_disaster_watch__list_hazards` | Warnings and incidents filtered by `category` (fire, flood, storm, earthquake, tsunami, road, power, other), `max_distance_km` and `min_level` (advice, watch_and_act, emergency_warning), up to 20 |
+
+- **Setup:** none. In your conversation agent's options, set **Control Home Assistant** to **Assist**. The tools are offered for a location only when at least one of its entities is exposed to Assist (**Settings > Voice assistants > Expose**), so your exposure choices apply. The MCP Server integration serves the same tools to MCP clients.
+- **Several locations:** with more than one location the assistant passes the location's name (the entry title). If it doesn't, the tool lists the locations so the assistant can ask you.
+- **Feed health:** every answer says whether each feed is `ok`, `stale` (its last fetch failed and its last good data stands in) or `failed`, with the time of its last good fetch. When a feed is not `ok`, the answer is marked incomplete, and the assistant is told to say so and never to call the situation all clear.
+- **What it is not:** the tools only read what the integration already fetched, so they cannot replace official warnings. Follow official advice, and call 000 (Australia) or 111 (New Zealand) in an emergency.
+
+---
+
 ## Automation Examples
 
 ### 1. High Priority Alert on Nearby Emergency Warning

@@ -763,6 +763,26 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         return attribution_for(self.data_sources)
 
     @property
+    def feed_health(self) -> dict[str, tuple[str, datetime | None]]:
+        """Return each hazard feed's status and the time of its last good fetch (#72).
+
+        ``ok``: the last fetch worked. ``stale``: it failed, but its last good hazards (at
+        most ``LAST_GOOD_MAX_AGE`` old) still stand in, or the whole update failed and the
+        data is the previous update's. ``failed``: it failed and nothing stands in.
+        """
+        now = dt_util.utcnow()
+        health: dict[str, tuple[str, datetime | None]] = {}
+        for key in [*self._feeds_ok, *self._feeds_failed]:
+            cached = self._last_good_hazards.get(key)
+            last = cached[0] if cached else None
+            if key in self._feeds_failed:
+                status = "stale" if last is not None and now - last <= LAST_GOOD_MAX_AGE else "failed"
+            else:
+                status = "ok" if self.last_update_success else "stale"
+            health[key] = (status, last)
+        return health
+
+    @property
     def active_hazards(self) -> list[CanonicalHazard]:
         """Return list of all active hazards currently in perimeter."""
         if not self.data:
