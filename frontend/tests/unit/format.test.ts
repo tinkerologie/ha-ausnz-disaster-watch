@@ -148,6 +148,17 @@ describe("tCount plurals", () => {
     expect(tCount(en, "status.hazards", 1)).toBe("1 hazards nearby");
   });
 
+  it("uses the plural rules of the language that supplied the template", () => {
+    // No French strings ship, so English templates are used with English rules:
+    // French would treat 0 as "one" and give "0 outage".
+    const fr = { language: "fr", locale: { language: "fr" } } as unknown as HomeAssistant;
+    expect(tCount(fr, "outages.count", 0)).toBe("0 outages");
+    expect(tCount(fr, "outages.count", 1)).toBe("1 outage");
+    const enAu = { language: "en-AU", locale: { language: "en-AU" } } as unknown as HomeAssistant;
+    expect(tCount(enAu, "outages.count", 1)).toBe("1 outage");
+    expect(t(fr, "outages.title")).toBe("Power outages");
+  });
+
   it("survives an invalid language tag", () => {
     const bad = { language: "not a tag!", locale: { language: "not a tag!" } } as unknown as HomeAssistant;
     expect(tCount(bad, "outages.count", 1)).toBe("1 outage");

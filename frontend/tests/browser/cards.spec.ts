@@ -371,3 +371,23 @@ test("map reframes when a replacement incident set is entirely out of view", asy
   });
   expect(inView).toBe(true);
 });
+
+test("a single transient basemap tile error does not switch to OpenStreetMap", async ({ page }) => {
+  await setup(page, { reducedMotion: true });
+  await page.unroute("**/api/map_tiles/**");
+  let failed = false;
+  await page.route("**/api/map_tiles/**", (route) => {
+    if (!failed) {
+      failed = true;
+      return route.fulfill({ status: 503, body: "" });
+    }
+    return route.fulfill({ body: PNG, contentType: "image/png" });
+  });
+  await page.route("https://tile.openstreetmap.org/**", (route) => route.fulfill({ body: PNG, contentType: "image/png" }));
+  const el = await mount(page, "ausnz-disaster-map-card", { device: QLD });
+  await expect.poll(() => failed).toBe(true);
+  await page.waitForTimeout(500);
+  const srcs = await el.locator(".basemap img").evaluateAll((imgs) => imgs.map((i) => (i as HTMLImageElement).src));
+  expect(srcs.length).toBeGreaterThan(0);
+  expect(srcs.every((src) => src.includes("/api/map_tiles/"))).toBe(true);
+});

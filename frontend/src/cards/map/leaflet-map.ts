@@ -120,6 +120,8 @@ export class IncidentMap {
     let refused = false;
     let lastRetry = 0;
     let errors = 0;
+    // Set when a refresh brought no new token: the next failed tile means the proxy is down.
+    let refreshDidNotHelp = false;
     const fallBack = () => {
       if (this.destroyed || this.basemap !== layer) return;
       this.unsubscribeToken?.();
@@ -127,17 +129,21 @@ export class IncidentMap {
       layer.remove();
       this.useOsmBasemap();
     };
-    layer.on("tileload", () => (errors = 0));
+    layer.on("tileload", () => {
+      errors = 0;
+      refreshDidNotHelp = false;
+    });
     layer.on("tileerror", () => {
       refused = true;
       errors += 1;
       // Tiles keep failing although a token was (re)tried: the proxy itself is down.
-      if (errors >= BASEMAP_ERROR_LIMIT) return fallBack();
+      if (refreshDidNotHelp || errors >= BASEMAP_ERROR_LIMIT) return fallBack();
       if (Date.now() - lastRetry < TOKEN_RETRY_THROTTLE_MS) return;
       lastRetry = Date.now();
       void refreshMapTilesToken().then(() => {
-        // No new token arrived (refresh failed or the token was fine) and no tile loaded since.
-        if (refused && errors > 0) fallBack();
+        // No new token arrived (refresh failed or the token was fine). A single transient
+        // error is not enough to give up: wait for a further failed tile.
+        if (refused) refreshDidNotHelp = true;
       });
     });
     this.unsubscribeToken = subscribeMapTilesToken((newToken) => {
