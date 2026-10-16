@@ -239,7 +239,7 @@ test("unrelated entity updates do not re-render (#33)", async ({ page }) => {
     await el.updateComplete;
     const unrelated = count;
     const fire = Object.keys(states).find((id) => id.includes("qld_dev_fire_danger_rating"))!;
-    el.hass = { ...el.hass, states: { ...states, [fire]: { ...states[fire], state: "Extreme" } } };
+    el.hass = { ...el.hass, states: { ...states, [fire]: { ...states[fire], state: "extreme" } } };
     await el.updateComplete;
     return { unrelated, related: count };
   });

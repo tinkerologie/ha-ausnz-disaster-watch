@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+import re
 from typing import Any
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
@@ -23,6 +25,7 @@ from .coordinator import AustralianDisasterWatchCoordinator
 from .dam_sensor import async_setup_dam_sensors
 from .entity import AustralianDisasterWatchEntity
 from .forecast_entity import forecast_sensors
+from .models import WarningLevel
 from .providers.fire_danger import NZ_SEASONS, local_today
 from .providers.heatwave import HEATWAVE_SEVERITIES
 from .providers.sources import attribution_for, national_feed_attribution
@@ -31,8 +34,35 @@ from .river_sensor import async_setup_river_sensors
 # Entities only read coordinator data; the coordinator does all fetching
 PARALLEL_UPDATES = 0
 
+_LOGGER = logging.getLogger(__name__)
+
 # Attribute lists are capped to keep state attributes small
 MAX_LISTED_ITEMS = 20
+
+# Highest warning level states (#21): one per known level, plus all_clear without hazards.
+# WarningLevel.UNKNOWN has none: the sensor is then unknown.
+ALL_CLEAR = "all_clear"
+WARNING_LEVEL_OPTIONS: dict[WarningLevel, str] = {
+    WarningLevel.INFORMATION: "information",
+    WarningLevel.ADVICE: "advice",
+    WarningLevel.WATCH_AND_ACT: "watch_and_act",
+    WarningLevel.EMERGENCY_WARNING: "emergency_warning",
+}
+WARNING_LEVEL_OPTIONS_WITH_CLEAR = (ALL_CLEAR, *WARNING_LEVEL_OPTIONS.values())
+
+# AFDRS ratings as fire danger rating states (#21), lowest first
+FIRE_DANGER_OPTIONS = ("no_rating", "moderate", "high", "extreme", "catastrophic")
+
+
+def fire_danger_option(rating: str | None) -> str | None:
+    """Return the state for an AFDRS display name (``No Rating`` -> ``no_rating``), or None if it is not one."""
+    if not rating:
+        return None
+    option = re.sub(r"[\s-]+", "_", rating.strip().lower())
+    if option in FIRE_DANGER_OPTIONS:
+        return option
+    _LOGGER.debug("Fire danger rating %r is not an AFDRS rating", rating)
+    return None
 
 
 def national_feed_enabled(coordinator: AustralianDisasterWatchCoordinator, option: str) -> bool:
@@ -138,6 +168,8 @@ class ActiveHazardsCountSensor(AustralianDisasterWatchEntity, SensorEntity):
 class HighestWarningLevelSensor(AustralianDisasterWatchEntity, SensorEntity):
     """Sensor reporting the highest Australian Warning System level in the perimeter."""
 
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = list(WARNING_LEVEL_OPTIONS_WITH_CLEAR)
     _attr_translation_key = "highest_warning_level"
 
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
@@ -145,23 +177,11 @@ class HighestWarningLevelSensor(AustralianDisasterWatchEntity, SensorEntity):
         super().__init__(coordinator, "highest_warning_level")
 
     @property
-    def native_value(self) -> str:
-        """Return highest warning level string."""
+    def native_value(self) -> str | None:
+        """Return ``all_clear`` without hazards, else the highest level; None (unknown) when it is unknown."""
         if not self.coordinator.active_hazards:
-            return "All Clear"
-        return self.coordinator.highest_warning_level.value
-
-    @property
-    def icon(self) -> str:
-        """Return dynamic icon based on highest warning level."""
-        lvl = self.coordinator.highest_warning_level
-        if lvl.value == "Emergency Warning":
-            return "mdi:alert-octagon"
-        if lvl.value == "Watch and Act":
-            return "mdi:alert"
-        if lvl.value == "Advice":
-            return "mdi:information"
-        return "mdi:shield-check"
+            return ALL_CLEAR
+        return WARNING_LEVEL_OPTIONS.get(self.coordinator.highest_warning_level)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -301,6 +321,8 @@ class WeatherWarningsCountSensor(AustralianDisasterWatchEntity, SensorEntity):
 class FireDangerRatingSensor(AustralianDisasterWatchEntity, SensorEntity):
     """Sensor reporting regional Australian Fire Danger Rating System (AFDRS) status."""
 
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = list(FIRE_DANGER_OPTIONS)
     _attr_translation_key = "fire_danger_rating"
 
     @property
@@ -314,19 +336,9 @@ class FireDangerRatingSensor(AustralianDisasterWatchEntity, SensorEntity):
 
     @property
     def native_value(self) -> str | None:
-        """Return current AFDRS rating string."""
+        """Return the AFDRS rating as an option (``extreme``); None when there is none or it is not AFDRS."""
         fd = self.coordinator.fire_danger
-        return fd.rating if fd else None
-
-    @property
-    def icon(self) -> str:
-        """Return dynamic icon based on fire danger level."""
-        val = str(self.native_value or "").lower()
-        if "catastrophic" in val or "extreme" in val:
-            return "mdi:fire-alert"
-        if "high" in val or "moderate" in val:
-            return "mdi:fire"
-        return "mdi:shield-check"
+        return fire_danger_option(fd.rating) if fd else None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

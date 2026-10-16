@@ -22,6 +22,7 @@ export const AFDRS_ICONS: Record<AfdrsRating, string> = {
   no_rating: "mdi:fire-off",
 };
 
+/** Parse an AFDRS rating: a display name (`Extreme`, as in forecast days) or a sensor state (`extreme`, #21). */
 export function parseAfdrs(value: unknown): AfdrsRating {
   if (typeof value !== "string") return "no_rating";
   const v = value.trim().toLowerCase();

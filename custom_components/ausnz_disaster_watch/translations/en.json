@@ -395,7 +395,14 @@
         "name": "Active Hazards Count"
       },
       "highest_warning_level": {
-        "name": "Highest Warning Level"
+        "name": "Highest Warning Level",
+        "state": {
+          "all_clear": "All Clear",
+          "information": "Information",
+          "advice": "Advice",
+          "watch_and_act": "Watch and Act",
+          "emergency_warning": "Emergency Warning"
+        }
       },
       "nearest_hazard_title": {
         "name": "Nearest Hazard Title"
@@ -413,7 +420,14 @@
         "name": "Weather Warnings Count"
       },
       "fire_danger_rating": {
-        "name": "Fire Danger Rating"
+        "name": "Fire Danger Rating",
+        "state": {
+          "no_rating": "No Rating",
+          "moderate": "Moderate",
+          "high": "High",
+          "extreme": "Extreme",
+          "catastrophic": "Catastrophic"
+        }
       },
       "fire_season": {
         "name": "Fire Season",

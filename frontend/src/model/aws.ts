@@ -18,10 +18,13 @@ const LEVELS: Record<AwsLevel, AwsPresentation> = {
   unknown: { level: "unknown", tone: "grey", icon: "mdi:help-circle-outline", rank: 0 },
 };
 
-/** Parse a warning level string the way the backend does (`WarningLevel.from_str`). */
+/**
+ * Parse a warning level the way the backend does (`WarningLevel.from_str`): a display name
+ * (`Watch and Act`, as in hazard attributes) or a sensor state (`watch_and_act`, #21).
+ */
 export function parseAwsLevel(value: unknown): AwsLevel {
   if (typeof value !== "string") return "unknown";
-  const v = value.trim().toLowerCase();
+  const v = value.trim().toLowerCase().replace(/_/g, " ");
   if (v.includes("emergency")) return "emergency";
   if (v.includes("watch and act") || v.includes("watch & act")) return "watch_and_act";
   if (v.includes("advice")) return "advice";
@@ -35,14 +38,16 @@ export function awsPresentation(value: unknown): AwsPresentation {
 
 /**
  * Headline status from the `highest_warning_level` sensor and the hazard count.
- * "All clear" is shown only when the sensor explicitly says so and no hazards are
- * counted; missing or unavailable data is never presented as all clear (#26).
+ * "All clear" is shown only when the sensor explicitly says so (`all_clear`) and no hazards
+ * are counted; missing or unavailable data is never presented as all clear (#26). An
+ * `unknown` sensor with hazards counted means hazards of unknown level, not missing data.
  */
 export type HeadlineStatus = AwsLevel | "all_clear" | "unavailable";
 
 export function headlineStatus(levelState: string | undefined, hazardCount: number | undefined): HeadlineStatus {
+  if (levelState === "unknown" && hazardCount !== undefined && hazardCount > 0) return "unknown";
   if (levelState === undefined || levelState === "unavailable" || levelState === "unknown") return "unavailable";
-  if (levelState.trim().toLowerCase() === "all clear") {
+  if (levelState.trim().toLowerCase().replace(/_/g, " ") === "all clear") {
     return hazardCount === undefined || hazardCount > 0 ? "unknown" : "all_clear";
   }
   return parseAwsLevel(levelState);

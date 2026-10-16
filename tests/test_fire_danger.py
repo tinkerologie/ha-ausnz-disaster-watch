@@ -738,7 +738,7 @@ async def test_au_entities_show_outlook_and_ban(
 
     rating = hass.states.get(_entity_id("sensor", "fire_danger_rating"))
     assert rating is not None
-    assert rating.state == "Extreme"
+    assert rating.state == "extreme"
     assert rating.attributes["day"] == "Today"
     assert rating.attributes["date"] == "2026-10-16"
     assert rating.attributes["fire_behaviour_index"] == 55
