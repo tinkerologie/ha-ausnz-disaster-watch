@@ -361,3 +361,8 @@ def test_storage_label() -> None:
     assert storage_label(_reading(CASCADE, volume=None, level=952.5), -33.7, 150.3) == (
         "Middle Cascade (0.0 km, 952.50 m)"
     )
+    # Volume data without a full supply volume, and no level reading
+    no_full = StorageSite(**{**WIVENHOE.as_dict(), "volume_ts": ("v",), "level_ts": (), "full_volume_ml": None})
+    assert storage_label(_reading(no_full, volume=12345.6, level=None), -27.3916, 152.6090) == (
+        "Wivenhoe (0.0 km, 12,346 ML)"
+    )

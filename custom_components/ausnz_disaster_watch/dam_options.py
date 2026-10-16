@@ -42,13 +42,16 @@ def offers_dam_storages(state: str) -> bool:
 
 
 def storage_label(reading: StorageReading, latitude: float, longitude: float) -> str:
-    """Return the options-flow label of a discovered storage: name, distance and fill."""
+    """Return the options-flow label of a discovered storage: name, distance and fill (or level, or volume)."""
     site = reading.site
     distance = haversine_km(latitude, longitude, site.latitude, site.longitude)
+    # A reading has at least a volume or a level; percent full needs the full supply volume too
     if (percent := reading.percent_full) is not None:
         value = f"{percent:.1f}% full"
-    else:
+    elif reading.level_m is not None:
         value = f"{reading.level_m:.2f} m"
+    else:
+        value = f"{reading.volume_ml or 0:,.0f} ML"
     return f"{site.name} ({distance:.1f} km, {value})"
 
 
