@@ -27,6 +27,12 @@ if TYPE_CHECKING:
 
 GDACS_ALERT_LEVELS = ("Orange", "Red")
 GDACS_REPORT_URL = "https://www.gdacs.org/report.aspx?eventtype={type}&eventid={id}"
+# Episode geometry (GeoJSON: tropical cyclone track, wind buffers and cone), fetched by the
+# map card in the browser (#71), never by the integration: about 300 kB per cyclone.
+GDACS_GEOMETRY_URL = (
+    "https://www.gdacs.org/gdacsapi/api/polygons/getgeometry?eventtype={type}&eventid={id}&episodeid={episode}"
+)
+XML_TAG_GDACS_EPISODE_ID = "gdacs:episodeid"
 
 # Region box: Australia, New Zealand and nearby seas. The NZ region crosses the
 # antimeridian (Kermadec Islands, Tonga), so longitudes down to -170 are included too.
@@ -44,6 +50,18 @@ def in_region(lat: float, lon: float) -> bool:
     )
 
 
+def episode_id(entry: GdacsFeedEntry) -> int | None:
+    """Return the entry's GDACS episode ID (``gdacs:episodeid``), or None."""
+    # aio-georss-gdacs has no accessor for the episode, so read the raw RSS item it wraps.
+    rss_entry = getattr(entry, "_rss_entry", None)
+    if rss_entry is None:
+        return None
+    value = rss_entry.get_additional_attribute(XML_TAG_GDACS_EPISODE_ID)
+    if not isinstance(value, str) or not value.strip().isdigit():
+        return None
+    return int(value)
+
+
 def regional_alert(entry: GdacsFeedEntry) -> RegionalAlertItem | None:
     """Return a regional alert for a current Orange/Red entry inside the region, else None."""
     if entry.is_current is not True or entry.alert_level not in GDACS_ALERT_LEVELS:
@@ -51,9 +69,12 @@ def regional_alert(entry: GdacsFeedEntry) -> RegionalAlertItem | None:
     coordinates = entry.coordinates
     if coordinates is None or not in_region(*coordinates):
         return None
-    url = None
+    url = geometry_url = None
+    episode = episode_id(entry)
     if entry.event_type_short and entry.event_id is not None:
         url = GDACS_REPORT_URL.format(type=entry.event_type_short, id=entry.event_id)
+        if episode is not None:
+            geometry_url = GDACS_GEOMETRY_URL.format(type=entry.event_type_short, id=entry.event_id, episode=episode)
     return RegionalAlertItem(
         id=f"gdacs_{entry.external_id}",
         title=entry.title or entry.event_name or "GDACS alert",
@@ -67,6 +88,10 @@ def regional_alert(entry: GdacsFeedEntry) -> RegionalAlertItem | None:
         to_date=entry.to_date,
         url=url,
         distance_km=round(entry.distance_to_home, 1),
+        event_type_code=entry.event_type_short,
+        event_id=entry.event_id,
+        episode_id=episode,
+        geometry_url=geometry_url,
     )
 
 

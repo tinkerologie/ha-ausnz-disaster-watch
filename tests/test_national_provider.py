@@ -369,6 +369,11 @@ async def test_gdacs_feed_from_fixture() -> None:
     assert alert.country == "Australia"
     assert alert.url == "https://www.gdacs.org/report.aspx?eventtype=WF&eventid=1032806"
     assert alert.distance_km is not None and alert.distance_km > 1000
+    # The map card draws the episode geometry (#71)
+    assert (alert.event_type_code, alert.event_id, alert.episode_id) == ("WF", 1032806, 2)
+    assert alert.geometry_url == (
+        "https://www.gdacs.org/gdacsapi/api/polygons/getgeometry?eventtype=WF&eventid=1032806&episodeid=2"
+    )
 
 
 @pytest.mark.parametrize("status", ["ERROR", "OK_NO_DATA"])
@@ -408,8 +413,12 @@ def test_gdacs_entry_filters() -> None:
             "from_date": None,
             "to_date": None,
             "distance_to_home": 1234.56,
+            "_rss_entry": None,
         }
         return MagicMock(**{**defaults, **kwargs})
+
+    def rss(episode: str | None) -> MagicMock:
+        return MagicMock(get_additional_attribute=MagicMock(return_value=episode))
 
     kermadec = gdacs.regional_alert(entry())
     assert kermadec is not None
@@ -420,6 +429,19 @@ def test_gdacs_entry_filters() -> None:
     assert gdacs.regional_alert(entry(coordinates=(10.0, 150.0))) is None
     assert gdacs.regional_alert(entry(coordinates=(-30.0, -100.0))) is None
     assert not gdacs.in_region(-60.0, 150.0)
+    # Episode geometry needs the event type, event ID and episode ID (#71)
+    assert (kermadec.episode_id, kermadec.geometry_url) == (None, None)
+    cyclone = gdacs.regional_alert(entry(event_type_short="TC", event_id=1001338, _rss_entry=rss("6")))
+    assert cyclone is not None
+    assert cyclone.geometry_url == (
+        "https://www.gdacs.org/gdacsapi/api/polygons/getgeometry?eventtype=TC&eventid=1001338&episodeid=6"
+    )
+    no_episode = gdacs.regional_alert(entry(event_type_short="TC", event_id=1, _rss_entry=rss("n/a")))
+    assert no_episode is not None
+    assert (no_episode.url is not None, no_episode.episode_id, no_episode.geometry_url) == (True, None, None)
+    no_event = gdacs.regional_alert(entry(_rss_entry=rss("6")))
+    assert no_event is not None
+    assert (no_event.episode_id, no_event.geometry_url) == (6, None)
 
 
 def test_options_constants_cover_every_hook() -> None:

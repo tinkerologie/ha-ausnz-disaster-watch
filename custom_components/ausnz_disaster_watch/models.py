@@ -577,6 +577,11 @@ class RegionalAlertItem(BaseModel):
     to_date: datetime | None = Field(default=None)
     url: str | None = Field(default=None)
     distance_km: float | None = Field(default=None, ge=0.0)
+    # GDACS identifiers and the episode geometry the map card draws (#71)
+    event_type_code: str | None = Field(default=None, description="GDACS event type code, e.g. 'TC'")
+    event_id: int | None = Field(default=None)
+    episode_id: int | None = Field(default=None)
+    geometry_url: str | None = Field(default=None)
 
 
 class ReliefFacilityItem(BaseModel):

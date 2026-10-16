@@ -1,21 +1,41 @@
 import { css, html, nothing, type PropertyValues, type TemplateResult } from "lit";
-import { deviceName, geoLocationsFor, incidentTitle } from "../ha/entities";
-import { formatDateTime, numberAttr, relativeTime, stringAttr } from "../ha/format";
-import { t } from "../localize/localize";
+import { KEY } from "../const";
+import { deviceName, entityIdFor, geoLocationsFor, incidentTitle } from "../ha/entities";
+import { formatDateTime, language, numberAttr, relativeTime, stringAttr } from "../ha/format";
+import { t, type TranslationKey } from "../localize/localize";
 import { awsPresentation } from "../model/aws";
 import { alert, header } from "../components/render";
 import type { BaseCardConfig, HomeAssistant, LovelaceConfigForm, LovelaceGridOptions } from "../types";
-import { assertBoolean, assertNumber, assertPositiveInt, baseSchema, computeHelper, computeLabel, DisasterCard, stubConfig } from "./base";
+import {
+  assertBoolean,
+  assertChoice,
+  assertNumber,
+  assertPositiveInt,
+  baseSchema,
+  computeHelper,
+  computeLabel,
+  DisasterCard,
+  stubConfig,
+} from "./base";
 import { LEVEL_LABELS } from "./incidents";
-import type { IncidentMap, MapViewOptions, RadarStatus } from "./map/leaflet-map";
+// Small, Leaflet-free helpers: the Leaflet chunk still loads lazily.
+import { cycloneRefs } from "./map/gdacs";
+import { defaultViirsDay, SATELLITE_LAYERS, type SatelliteOption, VIIRS_DAYS, type ViirsDay, viirsDate } from "./map/gibs";
+import type { IncidentMap, MapViewOptions } from "./map/leaflet-map";
+import { INITIAL_STATUS, type MapStatus } from "./map/status";
 
 export interface MapCardConfig extends BaseCardConfig {
   zoom?: number;
   radar?: boolean;
   radar_opacity?: number;
+  satellite_layer?: SatelliteOption;
+  show_cyclone_tracks?: boolean;
 }
 
 const DEFAULT_RADAR_OPACITY = 0.7;
+
+/** Card state that feeds the map (besides `hass`). */
+const MAP_INPUTS = ["_config", "_satelliteHidden", "_cyclonesHidden", "_viirsDay"] as const;
 
 type MapModule = typeof import("./map/leaflet-map");
 let mapModule: Promise<MapModule> | undefined;
@@ -25,8 +45,11 @@ const loadMapModule = () => (mapModule ??= import("./map/leaflet-map"));
 export class MapCard extends DisasterCard<MapCardConfig> {
   static override properties = {
     ...DisasterCard.properties,
-    _radar: { state: true },
+    _status: { state: true },
     _loadError: { state: true },
+    _satelliteHidden: { state: true },
+    _cyclonesHidden: { state: true },
+    _viirsDay: { state: true },
   };
 
   static override styles = [
@@ -165,11 +188,61 @@ export class MapCard extends DisasterCard<MapCardConfig> {
       .notice {
         padding: 0 var(--ha-space-4) var(--ha-space-4);
       }
+      .layers {
+        padding: var(--ha-space-2) var(--ha-space-4) 0;
+      }
+      .legend {
+        margin: 0;
+        padding: var(--ha-space-1) var(--ha-space-4) var(--ha-space-2);
+        color: var(--secondary-text-color);
+        font-size: var(--ha-font-size-s);
+      }
+      .map .satellite-frame {
+        transition: opacity var(--ha-animation-duration-slow) ease-in-out;
+      }
+      /* Loud fills at low opacity read on light, dark and satellite backgrounds alike. */
+      .map .cyclone {
+        stroke-opacity: 0.9;
+      }
+      .map .cyclone-cone {
+        fill: var(--ha-color-fill-neutral-loud-resting);
+        fill-opacity: 0.12;
+        stroke: var(--ha-color-border-neutral-normal);
+        stroke-dasharray: 4 4;
+      }
+      .map .cyclone-buffer-green {
+        fill: var(--ha-color-fill-warning-loud-resting);
+        fill-opacity: 0.15;
+        stroke: var(--ha-color-border-warning-normal);
+      }
+      .map .cyclone-buffer-orange {
+        fill: var(--ha-color-fill-warning-loud-resting);
+        fill-opacity: 0.3;
+        stroke: var(--ha-color-border-warning-loud);
+      }
+      .map .cyclone-buffer-red {
+        fill: var(--ha-color-fill-danger-loud-resting);
+        fill-opacity: 0.35;
+        stroke: var(--ha-color-border-danger-loud);
+      }
+      .map .cyclone-track,
+      .map .cyclone-track-forecast {
+        fill: none;
+        stroke: var(--ha-color-border-danger-loud);
+        stroke-opacity: 1;
+      }
+      .map .cyclone-track-forecast {
+        stroke-dasharray: 6 4;
+      }
     `,
   ];
 
-  protected declare _radar: RadarStatus;
+  protected declare _status: MapStatus;
   protected declare _loadError: boolean;
+  /** Layer chips: the configured satellite layer and cyclone tracks can be hidden on the map. */
+  protected declare _satelliteHidden: boolean;
+  protected declare _cyclonesHidden: boolean;
+  protected declare _viirsDay: ViirsDay;
   protected readonly titleKey = "map.title" as const;
   protected override readonly usesIncidents = true;
 
@@ -183,8 +256,11 @@ export class MapCard extends DisasterCard<MapCardConfig> {
 
   constructor() {
     super();
-    this._radar = { state: "off" };
+    this._status = INITIAL_STATUS;
     this._loadError = false;
+    this._satelliteHidden = false;
+    this._cyclonesHidden = false;
+    this._viirsDay = defaultViirsDay(Date.now());
   }
 
   static override validateConfig(config: MapCardConfig): void {
@@ -193,6 +269,8 @@ export class MapCard extends DisasterCard<MapCardConfig> {
     assertPositiveInt(c, "zoom", 1, 18);
     assertBoolean(c, "radar");
     assertNumber(c, "radar_opacity", 0.1, 1);
+    assertChoice(c, "satellite_layer", SATELLITE_LAYERS);
+    assertBoolean(c, "show_cyclone_tracks");
   }
 
   static getConfigForm(): LovelaceConfigForm {
@@ -202,6 +280,17 @@ export class MapCard extends DisasterCard<MapCardConfig> {
         { name: "zoom", selector: { number: { min: 1, max: 18, mode: "box" } } },
         { name: "radar", default: true, selector: { boolean: {} } },
         { name: "radar_opacity", selector: { number: { min: 0.1, max: 1, step: 0.05, mode: "slider" } } },
+        {
+          name: "satellite_layer",
+          default: "none",
+          selector: {
+            select: {
+              mode: "dropdown",
+              options: SATELLITE_LAYERS.map((value) => ({ value, label: t(undefined, layerLabelKey(value)) })),
+            },
+          },
+        },
+        { name: "show_cyclone_tracks", default: false, selector: { boolean: {} } },
       ],
       computeLabel,
       computeHelper,
@@ -224,7 +313,15 @@ export class MapCard extends DisasterCard<MapCardConfig> {
   private readonly trackedHomeId = "zone.home";
 
   override trackedEntityIds(hass: HomeAssistant): string[] {
-    return [...super.trackedEntityIds(hass), this.trackedHomeId];
+    const ids = [...super.trackedEntityIds(hass), this.trackedHomeId];
+    const alerts = this._config?.show_cyclone_tracks ? this.alertsEntityId(hass) : undefined;
+    if (alerts) ids.push(alerts);
+    return ids;
+  }
+
+  /** The entry's Regional Disaster Alerts sensor, which lists current cyclones and their geometry URL. */
+  private alertsEntityId(hass: HomeAssistant): string | undefined {
+    return entityIdFor(hass, this.deviceId, KEY.regionalDisasterAlerts);
   }
 
   override connectedCallback(): void {
@@ -252,7 +349,9 @@ export class MapCard extends DisasterCard<MapCardConfig> {
     if (this._map && this.renderRoot.querySelector(".map") !== this._container) this.teardown();
     if (!this._map) void this.ensureMap();
     // Only map inputs: radar frame ticks re-render the card twice a second.
-    else if (changed.has("hass") || changed.has("_config" as keyof MapCard)) this._map.update(this.viewOptions());
+    else if (changed.has("hass") || MAP_INPUTS.some((k) => changed.has(k as keyof MapCard))) {
+      this._map.update(this.viewOptions());
+    }
   }
 
   private viewOptions(): MapViewOptions {
@@ -283,6 +382,8 @@ export class MapCard extends DisasterCard<MapCardConfig> {
         : Number.isFinite(hass.config?.latitude) && Number.isFinite(hass.config?.longitude)
           ? { latitude: hass.config.latitude, longitude: hass.config.longitude, label: t(hass, "map.home") }
           : undefined;
+    const satellite = this._config?.satellite_layer ?? "none";
+    const alertsId = this._config?.show_cyclone_tracks && !this._cyclonesHidden ? this.alertsEntityId(hass) : undefined;
     return {
       incidents,
       home,
@@ -290,6 +391,9 @@ export class MapCard extends DisasterCard<MapCardConfig> {
       zoom: this._config?.zoom,
       radar: this._config?.radar !== false,
       radarOpacity: this._config?.radar_opacity ?? DEFAULT_RADAR_OPACITY,
+      satellite: this._satelliteHidden ? "none" : satellite,
+      viirsDay: this._viirsDay,
+      cyclones: alertsId ? cycloneRefs(hass.states[alertsId]?.attributes.alerts) : [],
     };
   }
 
@@ -313,7 +417,7 @@ export class MapCard extends DisasterCard<MapCardConfig> {
       this._map = new module.IncidentMap(
         container,
         this.hass.connection,
-        (status) => (this._radar = status),
+        (status) => (this._status = status),
         (entityId) => this.moreInfo(entityId),
         this._reducedMotion,
       );
@@ -334,39 +438,116 @@ export class MapCard extends DisasterCard<MapCardConfig> {
   }
 
   private togglePlay(): void {
-    const playing = !this._radar.playing;
+    const playing = !this._status.frame?.playing;
     this._map?.setPlaying(playing);
   }
 
   private renderRadarBar(hass: HomeAssistant): TemplateResult | typeof nothing {
-    const radar = this._radar;
-    if (radar.state !== "ok" || radar.frameTime === undefined) return nothing;
-    const time = formatDateTime(hass, radar.frameTime, { timeStyle: "short" });
-    const ago = relativeTime(hass, radar.frameTime);
-    const playing = !!radar.playing;
+    const frame = this._status.frame;
+    if (!frame) return nothing;
+    const time = formatDateTime(hass, frame.time, { timeStyle: "short" });
+    const ago = relativeTime(hass, frame.time);
+    const playing = frame.playing;
+    const radar = frame.source === "radar";
+    const label = radar
+      ? t(hass, playing ? "map.pause" : "map.play")
+      : t(hass, playing ? "map.pause_satellite" : "map.play_satellite");
+    const text = t(hass, radar ? "map.radar_at" : "map.satellite_at", { time: time ?? "" });
     return html`<div class="radar-bar">
-      <ha-icon-button .label=${t(hass, playing ? "map.pause" : "map.play")} aria-pressed=${playing ? "true" : "false"} @click=${this.togglePlay}>
+      <ha-icon-button .label=${label} aria-pressed=${playing ? "true" : "false"} @click=${this.togglePlay}>
         <ha-icon .icon=${playing ? "mdi:pause" : "mdi:play"}></ha-icon>
       </ha-icon-button>
-      <span class="time" aria-live=${playing ? "off" : "polite"}>${t(hass, "map.radar_at", { time: time ?? "" })}${ago ? ` · ${ago}` : ""}</span>
+      <span class="time" aria-live=${playing ? "off" : "polite"}>${text}${ago ? ` · ${ago}` : ""}</span>
       <span class="frames" aria-hidden="true">
-        ${Array.from({ length: radar.frameCount ?? 0 }, (_, i) => html`<span class=${i === radar.frameIndex ? "current" : ""}></span>`)}
+        ${Array.from({ length: frame.count }, (_, i) => html`<span class=${i === frame.index ? "current" : ""}></span>`)}
       </span>
     </div>`;
   }
 
-  protected renderBody(hass: HomeAssistant, _config: MapCardConfig): TemplateResult {
+  /** Chips to show or hide the configured satellite layer and cyclone tracks, and the VIIRS day. */
+  private renderLayerChips(hass: HomeAssistant, config: MapCardConfig): TemplateResult | typeof nothing {
+    const satellite = config.satellite_layer ?? "none";
+    if (satellite === "none" && !config.show_cyclone_tracks) return nothing;
+    const viirs = satellite === "viirs_truecolor" && !this._satelliteHidden;
+    // VIIRS images are per UTC day, so the chips show UTC dates.
+    const dateFormat = new Intl.DateTimeFormat(language(hass), { day: "numeric", month: "short", timeZone: "UTC" });
+    const now = Date.now();
+    const dayChip = (day: ViirsDay) => {
+      const date = dateFormat.format(Date.parse(viirsDate(now, day)));
+      return html`<ha-filter-chip
+        no-leading-icon
+        .selected=${this._viirsDay === day}
+        .label=${date}
+        title=${`${t(hass, "map.viirs_days")}: ${date}`}
+        @click=${(ev: Event) => {
+          ev.preventDefault();
+          this._viirsDay = day;
+        }}
+      ></ha-filter-chip>`;
+    };
+    return html`<div class="layers">
+      <ha-chip-set aria-label=${t(hass, "map.layers")}>
+        ${
+          satellite !== "none"
+            ? html`<ha-filter-chip
+                .selected=${!this._satelliteHidden}
+                .label=${t(hass, layerLabelKey(satellite))}
+                @click=${(ev: Event) => {
+                  ev.preventDefault();
+                  this._satelliteHidden = !this._satelliteHidden;
+                }}
+              >
+                <ha-icon slot="icon" icon="mdi:satellite-variant"></ha-icon>
+              </ha-filter-chip>`
+            : nothing
+        }
+        ${viirs ? VIIRS_DAYS.map(dayChip) : nothing}
+        ${
+          config.show_cyclone_tracks
+            ? html`<ha-filter-chip
+                .selected=${!this._cyclonesHidden}
+                .label=${t(hass, "map.cyclones")}
+                @click=${(ev: Event) => {
+                  ev.preventDefault();
+                  this._cyclonesHidden = !this._cyclonesHidden;
+                }}
+              >
+                <ha-icon slot="icon" icon="mdi:weather-hurricane"></ha-icon>
+              </ha-filter-chip>`
+            : nothing
+        }
+      </ha-chip-set>
+    </div>`;
+  }
+
+  private renderNotices(hass: HomeAssistant): TemplateResult[] {
+    const status = this._status;
+    const notice = (key: TranslationKey) => html`<div class="notice">${alert("info", t(hass, key))}</div>`;
+    const notices: TemplateResult[] = [];
+    if (status.radar === "unavailable") notices.push(notice("map.radar_unavailable"));
+    if (status.satellite === "unavailable") notices.push(notice("map.satellite_unavailable"));
+    if (status.cyclones === "unavailable") notices.push(notice("map.cyclones_unavailable"));
+    return notices;
+  }
+
+  protected renderBody(hass: HomeAssistant, config: MapCardConfig): TemplateResult {
     const name = deviceName(hass, this.deviceId) ?? hass.config?.location_name ?? "";
     return html`${header({ title: this.cardTitle(), icon: "mdi:map-marker-radius" })}
       <div class="map-wrap">
         <div class="map" role="region" aria-label=${t(hass, "map.label", { name })}></div>
       </div>
+      ${this.renderLayerChips(hass, config)}
       ${this.renderRadarBar(hass)}
       ${
-        this._radar.state === "unavailable"
-          ? html`<div class="notice">${alert("info", t(hass, "map.radar_unavailable"))}</div>`
+        this._status.cyclones === "ok" && this._status.cycloneCount > 0
+          ? html`<p class="legend">${t(hass, "map.cyclone_legend")}</p>`
           : nothing
       }
+      ${this.renderNotices(hass)}
       ${this._loadError ? html`<div class="notice">${alert("error", t(hass, "state.unavailable"))}</div>` : nothing}`;
   }
+}
+
+function layerLabelKey(layer: SatelliteOption): TranslationKey {
+  return layer === "none" ? "editor.satellite_layer.none" : (`map.layer.${layer}` as TranslationKey);
 }

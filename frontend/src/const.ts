@@ -21,6 +21,7 @@ export const KEY = {
   airQualityRating: "air_quality_rating",
   primaryWeatherObservation: "primary_weather_observation",
   reliefFacilitiesCount: "relief_facilities_count",
+  regionalDisasterAlerts: "regional_disaster_alerts",
 } as const;
 
 export type EntityKey = (typeof KEY)[keyof typeof KEY];

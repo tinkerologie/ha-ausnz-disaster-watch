@@ -194,6 +194,8 @@ const LABELS: Record<string, TranslationKey> = {
   zoom: "editor.zoom",
   radar: "editor.radar",
   radar_opacity: "editor.radar_opacity",
+  satellite_layer: "editor.satellite_layer",
+  show_cyclone_tracks: "editor.show_cyclone_tracks",
   cards: "editor.cards",
 };
 
@@ -206,6 +208,8 @@ const HELPERS: Record<string, TranslationKey> = {
   refresh_interval: "editor.refresh_interval_helper",
   zoom: "editor.zoom_helper",
   radar: "editor.radar_helper",
+  satellite_layer: "editor.satellite_layer_helper",
+  show_cyclone_tracks: "editor.show_cyclone_tracks_helper",
   cards: "editor.cards_helper",
 };
 
@@ -238,6 +242,14 @@ export function assertNumber(config: Record<string, unknown>, name: string, min:
 export function assertBoolean(config: Record<string, unknown>, name: string): void {
   const value = config[name];
   if (value !== undefined && typeof value !== "boolean") throw new Error(`'${name}' must be true or false`);
+}
+
+export function assertChoice(config: Record<string, unknown>, name: string, allowed: readonly string[]): void {
+  const value = config[name];
+  if (value === undefined || value === null) return;
+  if (typeof value !== "string" || !allowed.includes(value)) {
+    throw new Error(`'${name}' must be one of: ${allowed.join(", ")}`);
+  }
 }
 
 export function assertList(config: Record<string, unknown>, name: string, allowed: readonly string[]): void {

@@ -251,6 +251,13 @@
       "platform": "ausnz_disaster_watch",
       "translation_key": "relief_facilities_count",
       "name": "Relief Facilities Count"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_qld_dev_regional_disaster_alerts": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_regional_disaster_alerts",
+      "device_id": "device-qld",
+      "platform": "ausnz_disaster_watch",
+      "translation_key": "regional_disaster_alerts",
+      "name": "Regional Disaster Alerts"
     }
   },
   "devices": {
@@ -1504,6 +1511,18 @@
         "icon": "mdi:cctv",
         "friendly_name": "Australia and New Zealand Disaster Watch (QLD - Dev) Bruce Highway - Caboolture",
         "supported_features": 0
+      },
+      "last_changed": "2026-10-16T00:00:00+00:00",
+      "last_updated": "2026-10-16T00:00:00+00:00"
+    },
+    "sensor.australia_and_new_zealand_disaster_watch_qld_dev_regional_disaster_alerts": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_regional_disaster_alerts",
+      "state": "0",
+      "attributes": {
+        "alerts": [],
+        "unit_of_measurement": "alerts",
+        "friendly_name": "QLD dev Regional Disaster Alerts",
+        "icon": "mdi:earth"
       },
       "last_changed": "2026-10-16T00:00:00+00:00",
       "last_updated": "2026-10-16T00:00:00+00:00"
