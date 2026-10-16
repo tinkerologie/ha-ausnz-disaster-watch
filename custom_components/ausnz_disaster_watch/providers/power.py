@@ -7,9 +7,10 @@ coordinator keeps them apart from the hazard providers, so an outage feed never 
 a working hazard feed.
 
 A source returns only outages that are in effect now: an unplanned outage until it is
-restored, and a planned outage between its start and its end. The coordinator drops
-planned outages unless the entry includes them, and drops council dashboard copies of a
-distributor's outages while that distributor's own feed works.
+restored, and a planned outage between its start and its end. The coordinator combines
+them with the council dashboard outages, then drops planned outages (unless the entry
+includes them) and duplicate incidents, filters by radius and sorts nearest first. A feed
+that fails keeps its last good outages for a while, like the hazard feeds.
 
 Sources ask the server for outages within the radius where the feed supports it (ArcGIS
 ``distance``, Opendatasoft ``within_distance``). Feeds without a spatial query are skipped
@@ -142,13 +143,18 @@ class PowerOutageSource(BaseHazardProvider):
 
     @property
     def latitude(self) -> float:
-        """Return the monitored latitude."""
-        return float(self.config.get("latitude") or 0.0)
+        """Return the monitored latitude (only read once ``has_location`` is True)."""
+        return float(self.config["latitude"])
 
     @property
     def longitude(self) -> float:
-        """Return the monitored longitude."""
-        return float(self.config.get("longitude") or 0.0)
+        """Return the monitored longitude (only read once ``has_location`` is True)."""
+        return float(self.config["longitude"])
+
+    @property
+    def has_location(self) -> bool:
+        """Return True once the monitored point is known (never query around 0, 0)."""
+        return self.config.get("latitude") is not None and self.config.get("longitude") is not None
 
     @property
     def radius_km(self) -> float:
@@ -184,9 +190,9 @@ class PowerOutageSource(BaseHazardProvider):
         """Return the distributor's current outages near the monitored point.
 
         Raises ProviderUnavailableError when the feed cannot be fetched or decoded, so the
-        coordinator can fall back to the council dashboard copy of the outages.
+        coordinator can tell a failed feed from "no outages" and keep the last good list.
         """
-        if not self.reaches_service_area():
+        if not self.has_location or not self.reaches_service_area():
             return []
         now = time.monotonic()
         if self._cache is not None and now - self._cache[0] < self.min_interval:

@@ -419,6 +419,9 @@ async def test_source_basics(hass: HomeAssistant) -> None:
     assert source.located(lat=-95.0, lon=150.0) == (None, None, None)
     assert source.located({"type": "Point", "coordinates": [1]}) == (None, None, None)
     assert PowerOutageSource.time_text(None) is None
+    # Without a monitored point nothing is fetched (no query around 0, 0)
+    assert not source.has_location
+    assert await source.async_fetch_power_outages() == []
 
 
 def test_geojson_rings() -> None:
@@ -594,3 +597,38 @@ async def test_options_power_outage_page(hass: HomeAssistant, state: str, fields
     with patch("custom_components.ausnz_disaster_watch.async_setup_entry", return_value=True):
         await hass.config_entries.options.async_configure(result["flow_id"], dict.fromkeys(fields, True))
     assert entry.options == {"radius": 30, **dict.fromkeys(fields, True)}
+
+
+async def test_coordinator_keeps_last_good_outages(
+    hass: HomeAssistant, freezer: FrozenDateTimeFactory, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A failed feed keeps its last good outages for a while; transitions are logged once."""
+    coordinator = AustralianDisasterWatchCoordinator(hass, _entry(hass))
+    coordinator.providers = [_provider([])]
+    source = _source("Endeavour Energy", [_direct("near", 3.0)])
+    coordinator.power_sources = [source]  # type: ignore[list-item]
+    await coordinator.async_refresh()
+    assert [o.id for o in coordinator.power_outages] == ["near"]
+
+    source.async_fetch_power_outages.side_effect = ProviderUnavailableError("down")
+    await coordinator.async_refresh()
+    assert [o.id for o in coordinator.power_outages] == ["near"]
+    assert caplog.text.count("is unavailable") == 1
+    await coordinator.async_refresh()
+    assert caplog.text.count("is unavailable") == 1  # repeated failures are not warned again
+
+    freezer.tick(31 * 60)
+    await coordinator.async_refresh()
+    assert coordinator.power_outages == []
+
+    source.async_fetch_power_outages.side_effect = None
+    await coordinator.async_refresh()
+    assert [o.id for o in coordinator.power_outages] == ["near"]
+    assert "is available again" in caplog.text
+
+    # A moved monitored point drops the last good outages (their distances are stale)
+    coordinator._last_good_outages["x"] = (coordinator._last_good_outages["AsyncMock"][0], [])
+    hass.config.latitude = -33.0
+    coordinator.location_mode = "home"
+    coordinator._update_location()
+    assert coordinator._last_good_outages == {}

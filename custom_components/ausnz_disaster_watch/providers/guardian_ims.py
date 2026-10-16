@@ -238,8 +238,7 @@ class GuardianDashboard:
     async def power_outages(self) -> list[PowerOutageItem]:
         """Return Ergon and Energex outages; each network is only on the dashboards it serves.
 
-        The items carry the distributor name, so the coordinator can drop them while the
-        distributor's own feed works (#36).
+        Each item names its distributor (#36).
         """
         outages: list[PowerOutageItem] = []
         ergon = await self.fetch("ergonOutages")

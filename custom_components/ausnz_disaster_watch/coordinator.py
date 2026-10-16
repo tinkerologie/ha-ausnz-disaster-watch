@@ -169,6 +169,9 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         self._last_good_hazards: dict[str, tuple[datetime, list[CanonicalHazard]]] = {}
         self._feeds_ok: list[str] = []
         self._feeds_failed: list[str] = []
+        # Distributor outage feeds: health and last good outages, like the hazard feeds (#36)
+        self._power_feed_healthy: dict[str, bool] = {}
+        self._last_good_outages: dict[str, tuple[datetime, list[PowerOutageItem]]] = {}
         # Opt-in Open-Meteo forecast coordinators, set up by async_setup_entry (#38, #39, #40)
         self.forecasts = ForecastCoordinators()
         # Polls the river gauges chosen in the options flow; None when none are selected (#31)
@@ -243,6 +246,7 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         self._resolve_location()
         if previous not in {(None, None), (self.latitude, self.longitude)}:
             self._last_good_hazards.clear()
+            self._last_good_outages.clear()
         for provider in [*self.providers, *self.road_providers, *self.power_sources, self.fire_service]:
             if isinstance(provider, BaseHazardProvider):
                 provider.set_location(self.latitude, self.longitude)
@@ -525,24 +529,43 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         await asyncio.gather(_fetch_cam(), _fetch_councils())
 
     async def _collect_distributor_outages(self, power_outages: list[PowerOutageItem]) -> None:
-        """Fetch every distributor feed; a failing feed only loses its own outages (#36)."""
+        """Fetch every distributor feed (#36).
+
+        Like the hazard feeds, a failed feed keeps its last good outages for up to
+        LAST_GOOD_MAX_AGE, so a short feed outage does not look like power coming back, and
+        health transitions are logged once.
+        """
         results = await asyncio.gather(
             *(source.async_fetch_power_outages() for source in self.power_sources),
             return_exceptions=True,
         )
         for source, result in zip(self.power_sources, results, strict=True):
+            key = type(source).__name__
             if isinstance(result, BaseException):
                 if not isinstance(result, Exception):
                     raise result  # e.g. CancelledError
-                _LOGGER.debug("Power outage feed %s is unavailable: %s", source.distributor, result)
+                if self._power_feed_healthy.get(key, True):
+                    _LOGGER.warning("Power outage feed %s is unavailable: %s", source.distributor, result)
+                else:
+                    _LOGGER.debug("Power outage feed %s still unavailable: %s", source.distributor, result)
+                self._power_feed_healthy[key] = False
+                cached = self._last_good_outages.get(key)
+                if cached and dt_util.utcnow() - cached[0] <= LAST_GOOD_MAX_AGE:
+                    power_outages.extend(cached[1])
                 continue
-            power_outages.extend(item for item in result if isinstance(item, PowerOutageItem))
+            if self._power_feed_healthy.get(key) is False:
+                _LOGGER.info("Power outage feed %s is available again", source.distributor)
+            self._power_feed_healthy[key] = True
+            items = [item for item in result if isinstance(item, PowerOutageItem)]
+            self._last_good_outages[key] = (dt_util.utcnow(), items)
+            power_outages.extend(items)
 
     def _process_power_outages(self, outages: list[PowerOutageItem]) -> list[PowerOutageItem]:
         """Drop planned and duplicate outages, filter by radius and sort nearest first (#36).
 
-        Council dashboards re-serve Energex and Ergon outages, which have no distributor feed
-        here (Energy Queensland's terms require a written agreement), so nothing overlaps.
+        Council dashboard outages (Energex and Ergon) and distributor feed outages come from
+        different networks (Energy Queensland's own feeds are not used: its terms require a
+        written agreement), so the two never describe the same outage.
         """
         seen: set[tuple[str | None, str]] = set()
         kept: list[PowerOutageItem] = []
