@@ -26,8 +26,7 @@ from .const import (
 from .coordinator import AustralianDisasterWatchCoordinator
 from .entity import AustralianDisasterWatchEntity
 from .forecast_entity import forecast_binary_sensors
-from .models import CALL_TO_ACTION_MAX_LENGTH
-from .models import RoadEventCategory
+from .models import CALL_TO_ACTION_MAX_LENGTH, RoadEventCategory
 from .providers.fire_danger import local_today
 from .providers.sources import attribution_for, national_feed_attribution
 from .river_binary_sensor import async_setup_river_alert_sensors
