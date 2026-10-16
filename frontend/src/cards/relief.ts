@@ -6,7 +6,7 @@ import { t, type TranslationKey } from "../localize/localize";
 import { alert, badge, empty, header, list, row } from "../components/render";
 import { councilLinks, type CouncilLink } from "../model/councils";
 import type { BaseCardConfig, HomeAssistant, LovelaceConfigForm } from "../types";
-import { assertBoolean, baseSchema, computeHelper, computeLabel, DisasterCard, stubConfig } from "./base";
+import { areaSchema, assertBoolean, baseSchema, computeHelper, computeLabel, DisasterCard, stubConfig } from "./base";
 
 interface FacilityItem {
   id?: string;
@@ -16,6 +16,7 @@ interface FacilityItem {
   address?: string;
   status?: string;
   distance_km?: number | null;
+  in_council_area?: boolean | null;
 }
 
 export interface ReliefCardConfig extends BaseCardConfig {
@@ -55,6 +56,7 @@ function councilRows(hass: HomeAssistant, councils: CouncilLink[]): TemplateResu
  */
 export class ReliefCard extends DisasterCard<ReliefCardConfig> {
   protected readonly titleKey = "relief.title" as const;
+  static override readonly defaultArea = "council" as const;
 
   protected override entityKeys() {
     return [KEY.reliefFacilitiesCount, KEY.highestWarningLevel, KEY.weatherWarningsCount];
@@ -67,7 +69,11 @@ export class ReliefCard extends DisasterCard<ReliefCardConfig> {
 
   static getConfigForm(): LovelaceConfigForm {
     return {
-      schema: [...baseSchema(), { name: "show_nearby_councils", selector: { boolean: {} } }],
+      schema: [
+        ...baseSchema(),
+        areaSchema(this.defaultArea),
+        { name: "show_nearby_councils", selector: { boolean: {} } },
+      ],
       computeLabel,
       computeHelper,
       assertConfig: (c) => this.validateConfig(c),
@@ -86,9 +92,11 @@ export class ReliefCard extends DisasterCard<ReliefCardConfig> {
     const stateObj = stateFor(hass, this.deviceId, KEY.reliefFacilitiesCount);
     const levelState = stateFor(hass, this.deviceId, KEY.highestWarningLevel);
     const warningsState = stateFor(hass, this.deviceId, KEY.weatherWarningsCount);
+    const area = this.areaFilter(hass);
     const head = header({
       title: this.cardTitle(),
       icon: "mdi:home-heart",
+      subtitle: area.council?.name,
       detailsLabel: t(hass, "action.details"),
       onDetails: stateObj ? () => this.moreInfo(stateObj.entity_id) : undefined,
     });
@@ -97,7 +105,9 @@ export class ReliefCard extends DisasterCard<ReliefCardConfig> {
           ${alert("warning", t(hass, stateObj ? "state.unavailable" : "state.entity_missing"))}
         </div>`;
     }
-    const facilities = listAttr<FacilityItem>(stateObj!.attributes.facilities).sort(
+    const facilities = listAttr<FacilityItem>(stateObj!.attributes.facilities)
+      .filter((f) => area.keep(f.in_council_area))
+      .sort(
       (a, b) => (numberAttr(a.distance_km) ?? Infinity) - (numberAttr(b.distance_km) ?? Infinity),
     );
     const councils = councilLinks(
@@ -108,6 +118,7 @@ export class ReliefCard extends DisasterCard<ReliefCardConfig> {
 
     return html`${head}
       <div class="content">
+        ${this.areaHint(hass, area)}
         ${facilities.length === 0 ? empty("mdi:home-search-outline", t(hass, "relief.empty")) : nothing}
         ${GROUPS.map(({ key, icon }) => {
           const items = facilities.filter((f) => groupOf(f.facility_type) === key);

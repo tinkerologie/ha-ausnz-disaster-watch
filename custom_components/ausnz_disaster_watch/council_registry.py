@@ -40,6 +40,7 @@ class CouncilDashboard(TypedDict):
     radius_km: float
     platform: str  # "guardian", "brisbane_arcgis" or "sunshine_hub"
     certificate_ok: bool  # False: incomplete TLS chain, Home Assistant cannot connect
+    lga_code: str | None  # ABS ASGS 2021 LGA code, to name a council area (#94)
 
 
 def _load() -> dict[str, CouncilDashboard]:
@@ -55,6 +56,7 @@ def _load() -> dict[str, CouncilDashboard]:
             radius_km=float(council["radius_km"]),
             platform=council["platform"],
             certificate_ok=bool(council["certificate_ok"]),
+            lga_code=council.get("lga_code"),
         )
         for council in councils
     }

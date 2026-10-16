@@ -1,13 +1,14 @@
 import { css, html, nothing, type TemplateResult } from "lit";
 import { styleMap } from "lit/directives/style-map.js";
 import { KEY, type EntityKey } from "../const";
-import { stateFor } from "../ha/entities";
+import { geoLocationsFor, incidentDistance, incidentTitle, stateFor } from "../ha/entities";
 import { formatDistance, isUnavailable, numberAttr, stringAttr } from "../ha/format";
 import { t, type TranslationKey } from "../localize/localize";
+import { summariseIncidents } from "../model/area";
 import { headlinePresentation, headlineStatus, type HeadlineStatus } from "../model/aws";
 import { toneColor } from "../model/tone";
 import type { BaseCardConfig, HomeAssistant, LovelaceConfigForm, LovelaceGridOptions } from "../types";
-import { baseSchema, computeHelper, computeLabel, DisasterCard, stubConfig } from "./base";
+import { areaSchema, baseSchema, computeHelper, computeLabel, DisasterCard, stubConfig } from "./base";
 
 const ALERT_KEYS = [
   { key: KEY.emergencyWarningNearby, icon: "mdi:alert-octagon", label: "status.chip.emergency_warning_nearby" },
@@ -76,6 +77,10 @@ export class StatusCard extends DisasterCard {
   ];
 
   protected readonly titleKey = "card.status.name" as const;
+  // Radius by default: a hazard just over the council border still matters (#94)
+  static override readonly defaultArea = "radius" as const;
+  // Filtered to the council, the headline is worked out from the incidents
+  protected override readonly usesIncidents = true;
 
   protected override entityKeys() {
     return [
@@ -88,7 +93,12 @@ export class StatusCard extends DisasterCard {
   }
 
   static getConfigForm(): LovelaceConfigForm {
-    return { schema: baseSchema(), computeLabel, computeHelper, assertConfig: (c) => this.validateConfig(c) };
+    return {
+      schema: [...baseSchema(), areaSchema(this.defaultArea)],
+      computeLabel,
+      computeHelper,
+      assertConfig: (c) => this.validateConfig(c),
+    };
   }
 
   static getStubConfig(hass: HomeAssistant) {
@@ -106,27 +116,49 @@ export class StatusCard extends DisasterCard {
   protected renderBody(hass: HomeAssistant, _config: BaseCardConfig): TemplateResult {
     const device = this.deviceId;
     const levelState = stateFor(hass, device, KEY.highestWarningLevel);
+    const area = this.areaFilter(hass);
+    // Filtered to the council (#94): the headline of the incidents in it, while the sensor is available
+    // (an `unknown` level, from incidents without a known level, still counts the council's incidents)
+    const council =
+      area.council && levelState && levelState.state !== "unavailable"
+        ? summariseIncidents(
+            geoLocationsFor(hass, this.entryId)
+              .filter((s) => area.keep(s.attributes.in_council_area))
+              .map((s) => ({ level: s.attributes.warning_level, distanceKm: incidentDistance(s), title: incidentTitle(s) })),
+          )
+        : undefined;
     const countState = stateFor(hass, device, KEY.activeHazardsCount);
-    const count = isUnavailable(countState) ? undefined : numberAttr(countState?.state);
-    const status = headlineStatus(levelState?.state, count);
+    const count = council ? council.count : isUnavailable(countState) ? undefined : numberAttr(countState?.state);
+    const status = headlineStatus(council ? council.level : levelState?.state, count);
     const presentation = headlinePresentation(status);
     // The sensor's own translated state name when the headline is that state (#21)
     const label =
-      levelState && hass.formatEntityState && SENSOR_STATUSES.has(status)
+      !council && levelState && hass.formatEntityState && SENSOR_STATUSES.has(status)
         ? hass.formatEntityState(levelState)
         : t(hass, STATUS_LABELS[status]);
 
     const distanceState = stateFor(hass, device, KEY.nearestHazardDistance);
     const titleState = stateFor(hass, device, KEY.nearestHazardTitle);
-    const nearestKm = isUnavailable(distanceState) ? undefined : numberAttr(distanceState?.state);
-    const nearestTitle =
-      stringAttr(distanceState?.attributes.title) ??
-      (isUnavailable(titleState) || titleState?.state === "None" ? undefined : stringAttr(titleState?.state));
+    const nearestKm = council
+      ? council.nearestKm
+      : isUnavailable(distanceState)
+        ? undefined
+        : numberAttr(distanceState?.state);
+    const nearestTitle = council
+      ? council.nearestTitle
+      : (stringAttr(distanceState?.attributes.title) ??
+        (isUnavailable(titleState) || titleState?.state === "None" ? undefined : stringAttr(titleState?.state)));
 
     let summary = "";
     if (status !== "unavailable" && count !== undefined) {
-      summary =
-        count === 0
+      const name = area.council?.name ?? "";
+      summary = council
+        ? count === 0
+          ? t(hass, "status.no_hazards_council", { name })
+          : count === 1
+            ? t(hass, "status.hazard_council", { name })
+            : t(hass, "status.hazards_council", { count, name })
+        : count === 0
           ? t(hass, "status.no_hazards")
           : count === 1
             ? t(hass, "status.hazard")
@@ -143,6 +175,7 @@ export class StatusCard extends DisasterCard {
     );
 
     return html`<div class="content status">
+      ${this.areaHint(hass, area)}
       <button
         class="plain hero"
         aria-label=${`${label}. ${summary}${nearest ? `, ${nearest}` : ""}. ${t(hass, "action.details")}`}

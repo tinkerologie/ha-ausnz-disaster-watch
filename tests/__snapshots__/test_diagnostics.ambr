@@ -8,6 +8,7 @@
       'expires': '2026-10-15T13:00:00Z',
       'hazard_type': 'Bushfire',
       'id': 'QLD_QFD_WARN_201',
+      'in_council_area': None,
       'inside_area': False,
       'is_hazard_reduction': False,
       'latitude': '**REDACTED**',

@@ -4,7 +4,7 @@ import { isUnavailable, stringAttr } from "../ha/format";
 import { t } from "../localize/localize";
 import { empty, header } from "../components/render";
 import type { BaseCardConfig, HomeAssistant, LovelaceConfigForm } from "../types";
-import { assertPositiveInt, baseSchema, computeHelper, computeLabel, DisasterCard, stubConfig } from "./base";
+import { areaSchema, assertPositiveInt, baseSchema, computeHelper, computeLabel, DisasterCard, stubConfig } from "./base";
 
 export interface CamerasCardConfig extends BaseCardConfig {
   refresh_interval?: number;
@@ -87,6 +87,7 @@ export class CamerasCard extends DisasterCard<CamerasCardConfig> {
   protected declare _signed: Record<string, string>;
   private readonly _signing = new Set<string>();
   protected readonly titleKey = "cameras.title" as const;
+  static override readonly defaultArea = "council" as const;
   private _timer?: ReturnType<typeof setInterval>;
   private _observer?: IntersectionObserver;
   private _visible = false;
@@ -112,6 +113,7 @@ export class CamerasCard extends DisasterCard<CamerasCardConfig> {
     return {
       schema: [
         ...baseSchema(),
+        areaSchema(this.defaultArea),
         {
           name: "refresh_interval",
           selector: {
@@ -191,7 +193,7 @@ export class CamerasCard extends DisasterCard<CamerasCardConfig> {
   private signMissing(): void {
     const hass = this.hass;
     if (!hass) return;
-    for (const id of cameraIdsFor(hass, this.deviceId)) {
+    for (const id of this.cameraIds(hass)) {
       const s = hass.states[id];
       if (!s || isUnavailable(s) || stringAttr(s.attributes.entity_picture)) continue;
       const key = `${id}@${this._tick}`;
@@ -207,6 +209,12 @@ export class CamerasCard extends DisasterCard<CamerasCardConfig> {
     }
   }
 
+  /** The entry's cameras the card shows: those in the council area unless asked for the radius (#94). */
+  private cameraIds(hass: HomeAssistant): string[] {
+    const area = this.areaFilter(hass);
+    return cameraIdsFor(hass, this.deviceId).filter((id) => area.keep(hass.states[id]?.attributes.in_council_area));
+  }
+
   private prune(): Record<string, string> {
     return Object.fromEntries(Object.entries(this._signed).filter(([k]) => k.endsWith(`@${this._tick}`)));
   }
@@ -217,9 +225,16 @@ export class CamerasCard extends DisasterCard<CamerasCardConfig> {
   }
 
   protected renderBody(hass: HomeAssistant, _config: CamerasCardConfig): TemplateResult {
-    const ids = cameraIdsFor(hass, this.deviceId);
-    return html`${header({ title: this.cardTitle(), icon: "mdi:cctv", count: ids.length ? String(ids.length) : undefined })}
+    const ids = this.cameraIds(hass);
+    const area = this.areaFilter(hass);
+    return html`${header({
+        title: this.cardTitle(),
+        icon: "mdi:cctv",
+        count: ids.length ? String(ids.length) : undefined,
+        subtitle: area.council?.name,
+      })}
       <div class="content">
+        ${this.areaHint(hass, area)}
         ${
           ids.length
             ? html`<div class="grid" role="list">

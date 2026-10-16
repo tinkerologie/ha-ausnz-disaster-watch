@@ -6,7 +6,7 @@ import { t } from "../localize/localize";
 import { roadStatusIcon, roadStatusTone } from "../model/ratings";
 import { alert, badge, empty, header, list, row, showAll } from "../components/render";
 import type { HomeAssistant, LovelaceConfigForm } from "../types";
-import { assertPositiveInt, baseSchema, computeHelper, computeLabel, DisasterCard, stubConfig } from "./base";
+import { areaSchema, assertPositiveInt, baseSchema, computeHelper, computeLabel, DisasterCard, stubConfig } from "./base";
 import type { ListCardConfig } from "./outages";
 
 interface ClosureItem {
@@ -18,6 +18,7 @@ interface ClosureItem {
   advice?: string | null;
   updated_at?: string | null;
   distance_km?: number | null;
+  in_council_area?: boolean | null;
 }
 
 const DEFAULT_MAX_ITEMS = 8;
@@ -27,6 +28,7 @@ export class RoadsCard extends DisasterCard<ListCardConfig> {
   static override properties = { ...DisasterCard.properties, _expanded: { state: true } };
   protected declare _expanded: boolean;
   protected readonly titleKey = "roads.title" as const;
+  static override readonly defaultArea = "council" as const;
 
   constructor() {
     super();
@@ -44,7 +46,11 @@ export class RoadsCard extends DisasterCard<ListCardConfig> {
 
   static getConfigForm(): LovelaceConfigForm {
     return {
-      schema: [...baseSchema(), { name: "max_items", selector: { number: { min: 1, max: 100, mode: "box" } } }],
+      schema: [
+        ...baseSchema(),
+        areaSchema(this.defaultArea),
+        { name: "max_items", selector: { number: { min: 1, max: 100, mode: "box" } } },
+      ],
       computeLabel,
       computeHelper,
       assertConfig: (c) => this.validateConfig(c),
@@ -58,11 +64,17 @@ export class RoadsCard extends DisasterCard<ListCardConfig> {
   protected renderBody(hass: HomeAssistant, config: ListCardConfig): TemplateResult {
     const stateObj = stateFor(hass, this.deviceId, KEY.roadClosuresCount);
     const unavailable = isUnavailable(stateObj);
-    const closures = unavailable ? [] : listAttr<ClosureItem>(stateObj!.attributes.closures);
-    const count = unavailable ? undefined : (numberAttr(stateObj!.state) ?? closures.length);
+    const area = this.areaFilter(hass);
+    const closures = unavailable
+      ? []
+      : listAttr<ClosureItem>(stateObj!.attributes.closures).filter((c) => area.keep(c.in_council_area));
+    // The state counts the radius; the council count is an attribute (#94)
+    const total = area.council ? numberAttr(stateObj?.attributes.council_area_count) : numberAttr(stateObj?.state);
+    const count = unavailable ? undefined : (total ?? closures.length);
     const head = header({
       title: this.cardTitle(),
       icon: "mdi:traffic-cone",
+      subtitle: area.council?.name,
       count: count ? String(count) : undefined,
       detailsLabel: t(hass, "action.details"),
       onDetails: stateObj ? () => this.moreInfo(stateObj.entity_id) : undefined,
@@ -80,6 +92,7 @@ export class RoadsCard extends DisasterCard<ListCardConfig> {
 
     return html`${head}
       <div class="content">
+        ${this.areaHint(hass, area)}
         ${
           sorted.length
             ? list(

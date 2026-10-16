@@ -219,6 +219,8 @@ class AustralianDisasterWatchCamera(Camera, AustralianDisasterWatchEntity):
         if item.latitude is not None and item.longitude is not None:
             attrs["latitude"] = item.latitude
             attrs["longitude"] = item.longitude
+        if item.in_council_area is not None:
+            attrs["in_council_area"] = item.in_council_area
         return attrs
 
 

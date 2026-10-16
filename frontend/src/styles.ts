@@ -42,8 +42,21 @@ export const cardStyles = css`
     color: var(--secondary-text-color);
     flex: none;
   }
-  .header .title {
+  .header .heading {
     flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .header .subtitle {
+    color: var(--secondary-text-color);
+    font-size: var(--ha-font-size-s);
+    line-height: var(--ha-line-height-condensed);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .header .title {
     min-width: 0;
     margin: 0;
     font-family: var(--ha-font-family-heading);
