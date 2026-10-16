@@ -403,6 +403,8 @@ async def test_qld_warning_area_layers(hass: HomeAssistant) -> None:
     assert qps_hazard.responsible_agency == "Queensland Police Service"
     assert qps_hazard.hazard_type is HazardType.OTHER
     assert qps_hazard.web_url is None
+    assert qps_hazard.attribution == "Queensland Police Service"
+    assert qfd.attribution == "State of Queensland (Queensland Fire and Emergency Services)"
     # No editor fields were asked for
     for call in provider.async_fetch_json.call_args_list:
         assert "created_user" not in call.args[0]
@@ -465,6 +467,7 @@ async def test_sa_ses_warning_areas(hass: HomeAssistant) -> None:
     assert storm.hazard_type is HazardType.SEVERE_STORM
     assert storm.inside_area is None and storm.area is not None
     assert storm.call_to_action == "Prepare your property"
+    assert storm.attribution == "SA State Emergency Service"
     assert storm.web_url == "https://data.eso.sa.gov.au/prod/ses/sam/789_Severe_Thunderstorm.html"
     assert storm.expires == datetime.fromtimestamp((issued + 5 * 3600 * 1000) / 1000, tz=UTC)
     dam = by_title["Advice - Severe Thunderstorm"]

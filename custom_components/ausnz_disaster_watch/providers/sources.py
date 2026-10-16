@@ -60,6 +60,22 @@ _SOURCES = (
         status=LicenceStatus.RESTRICTED,
     ),
     DataSource(
+        key="qfd_warning_areas",
+        owner="Queensland Fire Department (QFES OCS warnings, Public Safety Business Agency ArcGIS)",
+        attribution="State of Queensland (Queensland Fire and Emergency Services)",
+        licence="No licence published; the ArcGIS item has a disclaimer and this credit only",
+        terms_url="https://www.arcgis.com/home/item.html?id=7da8fbcdd23541c4ab0464a685e2b3de",
+        status=LicenceStatus.UNVERIFIED,
+    ),
+    DataSource(
+        key="qps_warning_areas",
+        owner="Queensland Police Service",
+        attribution="Queensland Police Service",
+        licence="No licence published for the ArcGIS layer",
+        terms_url="https://www.arcgis.com/home/item.html?id=a858cd92be2d48479ae5a30d8cfce10c",
+        status=LicenceStatus.UNVERIFIED,
+    ),
+    DataSource(
         key="nsw_rfs",
         owner="NSW Rural Fire Service",
         attribution=(
@@ -96,6 +112,14 @@ _SOURCES = (
         licence="CFS incident feeds are CC BY-NC-ND 4.0; no terms found for cap-au.xml itself",
         terms_url="https://data.sa.gov.au/data/dataset/south-australian-country-fire-service-current-incidents-rss-feed",
         status=LicenceStatus.RESTRICTED,
+    ),
+    DataSource(
+        key="sa_ses_warnings",
+        owner="SA State Emergency Service",
+        attribution="SA State Emergency Service",
+        licence='ArcGIS item licence "Public Use"; no licence terms published',
+        terms_url="https://ses.geohub.sa.gov.au/portal/home/item.html?id=0bc5049da77b4035b67f8ade3f20a034",
+        status=LicenceStatus.UNVERIFIED,
     ),
     DataSource(
         key="act_esa",
@@ -241,11 +265,11 @@ DATA_SOURCES: dict[str, DataSource] = {source.key: source for source in _SOURCES
 
 # Provider class name -> register keys of the sources it reads
 PROVIDER_SOURCES: dict[str, tuple[str, ...]] = {
-    "QueenslandHazardProvider": ("qfd_incidents", "guardian_ims"),
+    "QueenslandHazardProvider": ("qfd_incidents", "qfd_warning_areas", "qps_warning_areas", "guardian_ims"),
     "NSWHazardProvider": ("nsw_rfs", "guardian_ims"),
     "VictoriaHazardProvider": ("vic_emergency",),
     "WAHazardProvider": ("wa_emergency",),
-    "SAHazardProvider": ("sa_eso_cap",),
+    "SAHazardProvider": ("sa_eso_cap", "sa_ses_warnings"),
     "ACTHazardProvider": ("act_esa",),
     "TasmaniaHazardProvider": ("tasalert",),
     "NTHazardProvider": ("nt_fire_incidents",),

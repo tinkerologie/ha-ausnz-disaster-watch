@@ -26,6 +26,7 @@ from custom_components.ausnz_disaster_watch.models import (
 from .base import MALFORMED_ITEM_ERRORS, BaseHazardProvider, ProviderUnavailableError, as_dict, as_float
 from .geometry import area_point, rings_from_geojson, simplify_area
 from .guardian_ims import GuardianDashboard, normalise_dashboard_url
+from .sources import DATA_SOURCES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -68,6 +69,7 @@ class _WarningAreaLayer:
     agency: str
     default_type: HazardType
     web_url: str | None
+    source_key: str  # data source register key, for the hazard's attribution
 
 
 # QFD bushfire warnings (Public Safety Business Agency); the S3 feed has no polygons
@@ -87,6 +89,7 @@ _QFD_WARNING_AREAS = _WarningAreaLayer(
     agency="Queensland Fire Department",
     default_type=HazardType.BUSHFIRE,
     web_url=QFD_WEB_URL,
+    source_key="qfd_warning_areas",
 )
 # QPS and council severe weather, flood and cyclone warnings. The matching point layer is
 # never read: it exposes editor email addresses
@@ -101,6 +104,7 @@ _QPS_WARNING_AREAS = _WarningAreaLayer(
     agency="Queensland Police Service",
     default_type=HazardType.OTHER,
     web_url=None,
+    source_key="qps_warning_areas",
 )
 
 
@@ -204,6 +208,7 @@ class QueenslandHazardProvider(BaseHazardProvider):
             web_url=layer.web_url,
             area=area,
             call_to_action=str(props.get("CallToAction") or "").strip() or None,
+            attribution=DATA_SOURCES[layer.source_key].attribution,
             raw_properties={"unique_id": unique_id, "incident_number": props.get("MasterIncidentNum")},
         )
 

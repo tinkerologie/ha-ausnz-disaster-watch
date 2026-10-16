@@ -18,6 +18,7 @@ from custom_components.ausnz_disaster_watch.models import CanonicalHazard, Hazar
 from .base import MALFORMED_ITEM_ERRORS, BaseHazardProvider, ProviderUnavailableError, as_dict, as_float, stable_id
 from .cap import cap_from_element
 from .geometry import area_point, rings_from_cap_areas, rings_from_geojson, simplify_area
+from .sources import DATA_SOURCES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -140,6 +141,7 @@ class SAHazardProvider(BaseHazardProvider):
             web_url=link or SA_SES_WEB_URL,
             area=area,
             call_to_action=str(props.get("calltoaction") or "").strip() or None,
+            attribution=DATA_SOURCES["sa_ses_warnings"].attribution,
             raw_properties={
                 "risk": risk or None,
                 "category": props.get("category"),

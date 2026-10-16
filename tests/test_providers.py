@@ -981,8 +981,6 @@ async def test_act_incident_time_from_description(hass: HomeAssistant) -> None:
     assert hazards["act_esa_ACT-1002"].updated_at == datetime(2026, 10, 15, 9, 46, tzinfo=UTC)
 
 
-
-
 def test_nsw_incidents_without_a_warning_are_information(hass: HomeAssistant) -> None:
     """RFS incidents whose ALERT LEVEL is "Not Applicable" are information, not "Unknown"."""
     provider = NSWHazardProvider(hass, AsyncMock(), {"state": STATE_NSW})

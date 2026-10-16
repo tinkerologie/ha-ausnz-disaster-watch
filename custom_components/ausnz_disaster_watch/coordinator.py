@@ -42,8 +42,8 @@ from .models import (
 from .providers import get_providers_for_config
 from .providers.base import BaseHazardProvider, ProviderUnavailableError
 from .providers.fire_danger import FireDangerService, local_today
-from .providers.sources import DataSource, attribution_for, sources_for_provider
 from .providers.geometry import area_distance
+from .providers.sources import DataSource, attribution_for, sources_for_provider
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
