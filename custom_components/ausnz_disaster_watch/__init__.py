@@ -96,14 +96,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: AusNZDisasterWatchConfig
     coordinator.forecasts = await async_setup_forecasts(hass, entry, (coordinator.latitude, coordinator.longitude))
 
     # River gauges are optional extras: a gauge outage must not block setup, so the first
-    # refresh does not raise and the gauge sensors start unavailable instead (#31).
+    # refresh runs after setup and the gauge sensors start unavailable instead (#31, #75).
     if sites := sites_from_options(entry.options.get(CONF_RIVER_GAUGES)):
         coordinator.river_coordinator = RiverGaugeCoordinator(hass, entry, sites)
-        await coordinator.river_coordinator.async_refresh()
+        entry.async_create_background_task(
+            hass, coordinator.river_coordinator.async_refresh(), "river gauges first refresh"
+        )
     # Dam storages likewise never block setup
     if storages := storages_from_options(entry.options.get(CONF_DAM_STORAGES)):
         coordinator.dam_coordinator = DamStorageCoordinator(hass, entry, storages)
-        await coordinator.dam_coordinator.async_refresh()
+        entry.async_create_background_task(
+            hass, coordinator.dam_coordinator.async_refresh(), "dam storages first refresh"
+        )
 
     entry.runtime_data = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

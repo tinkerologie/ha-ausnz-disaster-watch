@@ -8,7 +8,6 @@ which change a few times a day, are not fetched every few minutes. Each poll is 
 from __future__ import annotations
 
 from abc import abstractmethod
-import asyncio
 from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -277,10 +276,11 @@ class ForecastCoordinators:
 async def async_setup_forecasts(
     hass: HomeAssistant, entry: ConfigEntry, location: tuple[float, float]
 ) -> ForecastCoordinators:
-    """Create and refresh the enabled forecast coordinators; nothing is fetched for a disabled one.
+    """Create the enabled forecast coordinators and start their first refresh; nothing is fetched for a disabled one.
 
-    The first refresh does not raise: an Open-Meteo outage leaves the forecast entities
-    unavailable but never blocks entry setup.
+    The first refresh runs as an entry background task (which Home Assistant startup does not
+    wait for), so a slow or failing Open-Meteo request never
+    holds up entry setup (#75); the forecast entities are unavailable until it completes.
     """
     config = {**entry.data, **entry.options}
     client = OpenMeteoClient(async_get_clientsession(hass))
@@ -291,7 +291,8 @@ async def async_setup_forecasts(
         forecasts.river = RiverForecastCoordinator(hass, entry, client, points)
     if config.get(CONF_AI_ENSEMBLE, False):
         forecasts.ensemble = EnsembleOutlookCoordinator(hass, entry, client, location)
-    await asyncio.gather(*(coordinator.async_refresh() for coordinator in forecasts))
+    for coordinator in forecasts:
+        entry.async_create_background_task(hass, coordinator.async_refresh(), f"{coordinator.name} first refresh")
     async_remove_stale_forecast_entities(hass, entry, forecasts)
     return forecasts
 
