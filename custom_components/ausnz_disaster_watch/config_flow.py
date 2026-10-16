@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import dataclass
 import logging
 from typing import Any, Final
 
@@ -663,6 +664,16 @@ def gauge_label(reading: GaugeReading, latitude: float, longitude: float) -> str
     return f"{site.name} ({distance:.1f} km, {reading.level_m:.2f} m)"
 
 
+@dataclass(frozen=True, slots=True)
+class GaugeSearch:
+    """The result of a gauge search, kept on the flow while the form is open."""
+
+    readings: list[GaugeReading]
+    error: str | None
+    latitude: float
+    longitude: float
+
+
 def gauge_field_names(sites: list[GaugeSite]) -> list[str]:
     """Return one form field name per gauge for the alert-level form.
 
@@ -748,6 +759,9 @@ class AustralianDisasterWatchOptionsFlowHandler(
         self._discovered: dict[str, GaugeSite] = {}
         # Gauges ticked on the river gauge form, waiting for their alert levels
         self._chosen: list[GaugeSite] = []
+        # The gauge search, run as a progress task and kept while the flow is open
+        self._river_search: GaugeSearch | None = None
+        self._river_search_task: asyncio.Task[GaugeSearch] | None = None
 
     async def async_step_init(
         self,
@@ -840,32 +854,13 @@ class AustralianDisasterWatchOptionsFlowHandler(
                 return self._save({CONF_RIVER_GAUGES: []})
             return await self.async_step_river_alert_levels()
 
-        config = {**self.config_entry.data, **self.config_entry.options}
-        # Same point as the coordinator: home-mode entries follow the home location (#19)
-        home = (self.hass.config.latitude, self.hass.config.longitude)
-        stored = (config.get(CONF_LATITUDE), config.get(CONF_LONGITUDE))
-        candidates = (home, stored) if config.get(CONF_LOCATION_MODE) == LOCATION_MODE_HOME else (stored, home)
-        latitude, longitude = next((float(la), float(lo)) for la, lo in candidates if la is not None and lo is not None)
-        errors: dict[str, str] = {}
+        if (search := self._river_search) is None:
+            return await self.async_step_river_gauges_search()
+        errors = {"base": search.error} if search.error else {}
         labels = {site.key: f"{site.name} (selected)" for site in selected}
-        try:
-            # Bound the wait: one hanging council server must not hold the form for minutes
-            async with asyncio.timeout(RIVER_DISCOVERY_TIMEOUT.total_seconds()):
-                discovered = await async_discover_gauges(
-                    async_get_clientsession(self.hass),
-                    state=str(config.get(CONF_STATE, STATE_QLD)),
-                    latitude=latitude,
-                    longitude=longitude,
-                    radius_km=float(config.get(CONF_RADIUS, DEFAULT_RADIUS)),
-                    now=dt_util.utcnow(),
-                )
-        except (RiverSourceError, TimeoutError) as err:
-            _LOGGER.debug("River gauge discovery failed: %r", err)
-            errors["base"] = "rivers_unavailable"
-            discovered = []
-        self._discovered = {reading.site.key: reading.site for reading in discovered}
-        for reading in discovered:
-            labels[reading.site.key] = gauge_label(reading, latitude, longitude)
+        self._discovered = {reading.site.key: reading.site for reading in search.readings}
+        for reading in search.readings:
+            labels[reading.site.key] = gauge_label(reading, search.latitude, search.longitude)
         if not labels and not errors:
             errors["base"] = "no_river_gauges"
 
@@ -885,6 +880,52 @@ class AustralianDisasterWatchOptionsFlowHandler(
             data_schema=schema,  # type: ignore[arg-type]
             errors=errors,
         )
+
+    async def async_step_river_gauges_search(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> ConfigFlowResult:
+        """Search for gauges in a progress task (up to a minute), then show the gauge form."""
+        if self._river_search_task is None:
+            self._river_search_task = self.hass.async_create_task(self._async_search_gauges(), eager_start=False)
+        if not self._river_search_task.done():
+            return self.async_show_progress(
+                step_id="river_gauges_search",
+                progress_action="river_gauges_search",
+                progress_task=self._river_search_task,
+            )
+        try:
+            self._river_search = self._river_search_task.result()
+        except Exception:
+            # A bug in the search must end in an error on the form, not an endless spinner
+            _LOGGER.exception("River gauge search failed")
+            self._river_search = GaugeSearch([], "rivers_unavailable", 0.0, 0.0)
+        self._river_search_task = None
+        return self.async_show_progress_done(next_step_id="river_gauges")
+
+    async def _async_search_gauges(self) -> GaugeSearch:
+        """Find gauges near the location with a current level; never raises for an outage."""
+        config = {**self.config_entry.data, **self.config_entry.options}
+        # Same point as the coordinator: home-mode entries follow the home location (#19)
+        home = (self.hass.config.latitude, self.hass.config.longitude)
+        stored = (config.get(CONF_LATITUDE), config.get(CONF_LONGITUDE))
+        candidates = (home, stored) if config.get(CONF_LOCATION_MODE) == LOCATION_MODE_HOME else (stored, home)
+        latitude, longitude = next((float(la), float(lo)) for la, lo in candidates if la is not None and lo is not None)
+        try:
+            # Bound the wait: one hanging council server must not hold the search for minutes
+            async with asyncio.timeout(RIVER_DISCOVERY_TIMEOUT.total_seconds()):
+                discovered = await async_discover_gauges(
+                    async_get_clientsession(self.hass),
+                    state=str(config.get(CONF_STATE, STATE_QLD)),
+                    latitude=latitude,
+                    longitude=longitude,
+                    radius_km=float(config.get(CONF_RADIUS, DEFAULT_RADIUS)),
+                    now=dt_util.utcnow(),
+                )
+        except (RiverSourceError, TimeoutError) as err:
+            _LOGGER.debug("River gauge discovery failed: %r", err)
+            return GaugeSearch([], "rivers_unavailable", latitude, longitude)
+        return GaugeSearch(discovered, None, latitude, longitude)
 
     async def async_step_river_alert_levels(
         self,

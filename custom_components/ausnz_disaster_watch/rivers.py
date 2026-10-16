@@ -69,6 +69,9 @@ _HEADERS: Final = {"User-Agent": "HomeAssistant-AusNZDisasterWatch/1.0"}
 _KISTERS_BAD_QUALITY: Final = 150
 # Hydstra error 126: "No data within specified period" (a valid, empty answer).
 _KISTERS_NO_DATA: Final = 126
+# Hydstra error 125: "No data for specified variable in file" (none of the sites has it,
+# e.g. spillway discharge at the Sydney dams); also a valid, empty answer.
+_KISTERS_NO_VARIABLE: Final = 125
 _NZST: Final = timezone(timedelta(hours=12))
 _HILLTOP_UNITS: Final[dict[str, float]] = {"mm": 0.001, "cm": 0.01, "m": 1.0}
 # Hilltop "Stage" also covers groundwater: bores named by map sheet (R27/1171, BQ32/0022)
@@ -304,7 +307,7 @@ async def _async_kisters_call(
     if not isinstance(payload, dict):
         raise RiverSourceError(f"{server.host} returned an unexpected payload")
     error = payload.get("error_num", 0)
-    if error == _KISTERS_NO_DATA:
+    if error in (_KISTERS_NO_DATA, _KISTERS_NO_VARIABLE):
         return {}
     if error:
         raise RiverSourceError(f"{server.host} {function} error {error}: {payload.get('error_msg')}")
@@ -312,6 +315,10 @@ async def _async_kisters_call(
     if not isinstance(result, dict):
         raise RiverSourceError(f"{server.host} {function} returned no result")
     return result
+
+
+# Public name for the dam storage operator feeds, which read the same WaterNSW service
+async_kisters_call = _async_kisters_call
 
 
 def _kisters_time(value: Any, offset: timezone) -> datetime:

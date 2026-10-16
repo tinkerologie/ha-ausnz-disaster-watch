@@ -887,7 +887,12 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         entry-wide attribution. River gauges likewise: each gauge entity credits its own
         service, and the services of the selected gauges are listed here (#21).
         """
-        extra = sources_for_feature("dam_storages") if self.dam_coordinator is not None else ()
+        extra: list[DataSource] = []
+        if self.dam_coordinator is not None:
+            extra.extend(sources_for_feature("dam_storages"))
+            # Operator feeds (WaterNSW, Hydro Tasmania) matched to the selected storages
+            for operator in dict.fromkeys(site.operator for site in self.dam_coordinator.sites if site.operator):
+                extra.extend(sources_for_feature(operator))
         rivers = (
             sources_for_river_gauges(site.source for site in self.river_coordinator.sites)
             if self.river_coordinator is not None

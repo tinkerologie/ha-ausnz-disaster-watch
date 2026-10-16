@@ -1,0 +1,369 @@
+{
+ "error_num": 0,
+ "return": {
+  "traces": [
+   {
+    "error_num": 0,
+    "compressed": "0",
+    "site_details": {
+     "timezone": "10.0",
+     "short_name": "TOONUMBAR DAM",
+     "latitude_decode": " 28\u00b037'06.7\"S",
+     "longitude": "152.793580946",
+     "name": "IRONPOT CREEK AT TOONUMBAR DAM-STORAGE GAUGE",
+     "longitude_decode": " 28\u00b037'06.7\"W",
+     "latitude": "-28.618520942",
+     "org_name": "WaterNSW"
+    },
+    "quality_codes": {
+     "140": "RATINGS - Current rating - may be subject to change."
+    },
+    "trace": [
+     {
+      "v": "11158",
+      "t": 20261016121500,
+      "q": 140,
+      "d": 1
+     },
+     {
+      "v": "11158",
+      "t": 20261016123000,
+      "q": 140,
+      "d": 1
+     },
+     {
+      "v": "11158",
+      "t": 20261016124500,
+      "q": 140,
+      "d": 1
+     },
+     {
+      "v": "11159",
+      "t": 20261016130000,
+      "q": 140,
+      "d": 1
+     },
+     {
+      "v": "11159",
+      "t": 20261016131500,
+      "q": 140,
+      "d": 1
+     },
+     {
+      "v": "11158",
+      "t": 20261016133000,
+      "q": 140,
+      "d": 1
+     }
+    ],
+    "varfrom_details": {
+     "short_name": "Res. Level AHD",
+     "precision": "0.001000",
+     "subdesc": "",
+     "variable": "130.00",
+     "units": "Metres",
+     "name": "Reservoir Water Level AHD"
+    },
+    "site": "203042",
+    "varto_details": {
+     "short_name": "Volume    (ML)",
+     "precision": "0.001000",
+     "subdesc": "",
+     "variable": "136.00",
+     "units": "Megalitres",
+     "name": "Reservoir Volume in Storage"
+    }
+   },
+   {
+    "error_num": 0,
+    "compressed": "0",
+    "site_details": {
+     "timezone": "10.0",
+     "short_name": "WARRAGAMBA DAM WALL",
+     "latitude_decode": " 33\u00b053'00.7\"S",
+     "longitude": "150.595843000",
+     "name": "WARRAGAMBA RIVER AT WARRAGAMBA DAM WALL",
+     "longitude_decode": " 33\u00b053'00.7\"W",
+     "latitude": "-33.883541000",
+     "org_name": "WaterNSW"
+    },
+    "quality_codes": {
+     "151": "Pre Aug 2004 QC - Data Not Available"
+    },
+    "trace": [
+     {
+      "v": "0",
+      "t": 20261016104500,
+      "q": 151,
+      "d": 1
+     },
+     {
+      "v": "0",
+      "t": 20261016110000,
+      "q": 151,
+      "d": 1
+     },
+     {
+      "v": "0",
+      "t": 20261016111500,
+      "q": 151,
+      "d": 1
+     },
+     {
+      "v": "0",
+      "t": 20261016113000,
+      "q": 151,
+      "d": 1
+     },
+     {
+      "v": "0",
+      "t": 20261016114500,
+      "q": 151,
+      "d": 1
+     },
+     {
+      "v": "0",
+      "t": 20261016120000,
+      "q": 151,
+      "d": 1
+     }
+    ],
+    "varfrom_details": {
+     "short_name": "Res. Level AHD",
+     "precision": "0.001000",
+     "subdesc": "",
+     "variable": "130.00",
+     "units": "Metres",
+     "name": "Reservoir Water Level AHD"
+    },
+    "site": "212242",
+    "varto_details": {
+     "short_name": "Volume    (ML)",
+     "precision": "0.001000",
+     "subdesc": "",
+     "variable": "136.00",
+     "units": "Megalitres",
+     "name": "Reservoir Volume in Storage"
+    }
+   },
+   {
+    "error_num": 0,
+    "compressed": "0",
+    "site_details": {
+     "timezone": "10.0",
+     "short_name": "Warragamba(Hideaway)",
+     "latitude_decode": " 33\u00b053'28.0\"S",
+     "longitude": "150.591111110",
+     "name": "WARRAGAMBA RIVER AT WARRAGAMBA DAM U/S (Hideaway Bay)",
+     "longitude_decode": " 33\u00b053'28.0\"W",
+     "latitude": "-33.891111110",
+     "org_name": "WaterNSW"
+    },
+    "quality_codes": {
+     "125": "Telemetry data that has passed Gross Error checks"
+    },
+    "trace": [
+     {
+      "v": "1925092",
+      "t": 20261016111500,
+      "q": 125,
+      "d": 1
+     },
+     {
+      "v": "1925303",
+      "t": 20261016113000,
+      "q": 125,
+      "d": 1
+     },
+     {
+      "v": "1924740",
+      "t": 20261016114500,
+      "q": 125,
+      "d": 1
+     },
+     {
+      "v": "1924740",
+      "t": 20261016120000,
+      "q": 125,
+      "d": 1
+     },
+     {
+      "v": "1925162",
+      "t": 20261016121500,
+      "q": 125,
+      "d": 1
+     },
+     {
+      "v": "1925233",
+      "t": 20261016123000,
+      "q": 125,
+      "d": 1
+     }
+    ],
+    "varfrom_details": {
+     "short_name": "Res. Level AHD",
+     "precision": "0.001000",
+     "subdesc": "",
+     "variable": "130.00",
+     "units": "Metres",
+     "name": "Reservoir Water Level AHD"
+    },
+    "site": "212243",
+    "varto_details": {
+     "short_name": "Volume    (ML)",
+     "precision": "0.001000",
+     "subdesc": "",
+     "variable": "136.00",
+     "units": "Megalitres",
+     "name": "Reservoir Volume in Storage"
+    }
+   },
+   {
+    "error_num": 0,
+    "compressed": "0",
+    "site_details": {
+     "timezone": "10.0",
+     "short_name": "HUME DAM STORAGE",
+     "latitude_decode": " 36\u00b005'18.6\"S",
+     "longitude": "147.053900000",
+     "name": "MURRAY RIVER AT HUME DAM - STORAGE GAUGE NO.2",
+     "longitude_decode": " 36\u00b005'18.6\"W",
+     "latitude": "-36.088500000",
+     "org_name": "WaterNSW"
+    },
+    "quality_codes": {
+     "125": "Telemetry data that has passed Gross Error checks",
+     "59": "Auto QC - Spike - data not replaced"
+    },
+    "trace": [
+     {
+      "v": "2631490",
+      "t": 20261016121001,
+      "q": 125,
+      "d": 1
+     },
+     {
+      "v": "2631122",
+      "t": 20261016121501,
+      "q": 125,
+      "d": 1
+     },
+     {
+      "v": "2630938",
+      "t": 20261016122001,
+      "q": 125,
+      "d": 1
+     },
+     {
+      "v": "2631122",
+      "t": 20261016122501,
+      "q": 125,
+      "d": 1
+     },
+     {
+      "v": "2631306",
+      "t": 20261016123001,
+      "q": 125,
+      "d": 1
+     },
+     {
+      "v": "2630938",
+      "t": 20261016123501,
+      "q": 125,
+      "d": 1
+     }
+    ],
+    "varfrom_details": {
+     "short_name": "Res. Level AHD",
+     "precision": "0.001000",
+     "subdesc": "",
+     "variable": "130.00",
+     "units": "Metres",
+     "name": "Reservoir Water Level AHD"
+    },
+    "site": "401027",
+    "varto_details": {
+     "short_name": "Volume    (ML)",
+     "precision": "0.001000",
+     "subdesc": "",
+     "variable": "136.00",
+     "units": "Megalitres",
+     "name": "Reservoir Volume in Storage"
+    }
+   },
+   {
+    "error_num": 0,
+    "compressed": "0",
+    "site_details": {
+     "timezone": "10.0",
+     "short_name": "CASCADE CK DAM NO.1",
+     "latitude_decode": " 33\u00b041'20.0\"S",
+     "longitude": "150.303611520",
+     "name": "CASCADE CREEK AT CASCADE CREEK DAM No 1 (MIDDLE)",
+     "longitude_decode": " 33\u00b041'20.0\"W",
+     "latitude": "-33.688889120",
+     "org_name": "WaterNSW"
+    },
+    "quality_codes": {
+     "125": "Telemetry data that has passed Gross Error checks",
+     "59": "Auto QC - Spike - data not replaced"
+    },
+    "trace": [
+     {
+      "v": "167",
+      "t": 20261016111500,
+      "q": 125,
+      "d": 1
+     },
+     {
+      "v": "168",
+      "t": 20261016113000,
+      "q": 125,
+      "d": 1
+     },
+     {
+      "v": "167",
+      "t": 20261016114500,
+      "q": 125,
+      "d": 1
+     },
+     {
+      "v": "168",
+      "t": 20261016120000,
+      "q": 125,
+      "d": 1
+     },
+     {
+      "v": "168",
+      "t": 20261016121500,
+      "q": 125,
+      "d": 1
+     },
+     {
+      "v": "168",
+      "t": 20261016123000,
+      "q": 125,
+      "d": 1
+     }
+    ],
+    "varfrom_details": {
+     "short_name": "Res. Level AHD",
+     "precision": "0.001000",
+     "subdesc": "",
+     "variable": "130.00",
+     "units": "Metres",
+     "name": "Reservoir Water Level AHD"
+    },
+    "site": "212281",
+    "varto_details": {
+     "short_name": "Volume    (ML)",
+     "precision": "0.001000",
+     "subdesc": "",
+     "variable": "136.00",
+     "units": "Megalitres",
+     "name": "Reservoir Volume in Storage"
+    }
+   }
+  ]
+ }
+}

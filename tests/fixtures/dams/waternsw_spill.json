@@ -1,0 +1,121 @@
+{
+ "error_num": 0,
+ "return": {
+  "traces": [
+   {
+    "error_num": 0,
+    "compressed": "0",
+    "site_details": {
+     "timezone": "10.0",
+     "short_name": "TOONUMBAR DAM",
+     "latitude_decode": " 28\u00b037'06.7\"S",
+     "longitude": "152.793580946",
+     "name": "IRONPOT CREEK AT TOONUMBAR DAM-STORAGE GAUGE",
+     "longitude_decode": " 28\u00b037'06.7\"W",
+     "latitude": "-28.618520942",
+     "org_name": "WaterNSW"
+    },
+    "quality_codes": {
+     "255": "Data Unavailable",
+     "130": "Not quality coded - subject to change"
+    },
+    "trace": [
+     {
+      "v": "15.0",
+      "t": 20261013090000,
+      "q": 130
+     },
+     {
+      "v": "15.0",
+      "t": 20261014090000,
+      "q": 130
+     },
+     {
+      "v": "32.0",
+      "t": 20261015090000,
+      "q": 130
+     },
+     {
+      "v": "0.0",
+      "t": 20261016090000,
+      "q": 255
+     }
+    ],
+    "varfrom_details": {
+     "short_name": "Spillway 24h ML",
+     "precision": "0.100000",
+     "subdesc": "",
+     "variable": "453.00",
+     "units": "Megalitres",
+     "name": "Spillway Discharge 24 hour Total"
+    },
+    "site": "203042",
+    "varto_details": {
+     "short_name": "Spillway 24h ML",
+     "precision": "0.100000",
+     "subdesc": "",
+     "variable": "453.00",
+     "units": "Megalitres",
+     "name": "Spillway Discharge 24 hour Total"
+    }
+   },
+   {
+    "error_num": 0,
+    "compressed": "0",
+    "site_details": {
+     "timezone": "10.0",
+     "short_name": "HUME DAM STORAGE",
+     "latitude_decode": " 36\u00b005'18.6\"S",
+     "longitude": "147.053900000",
+     "name": "MURRAY RIVER AT HUME DAM - STORAGE GAUGE NO.2",
+     "longitude_decode": " 36\u00b005'18.6\"W",
+     "latitude": "-36.088500000",
+     "org_name": "WaterNSW"
+    },
+    "quality_codes": {
+     "255": "Data Unavailable",
+     "130": "Not quality coded - subject to change"
+    },
+    "trace": [
+     {
+      "v": "0.0",
+      "t": 20261013090000,
+      "q": 130
+     },
+     {
+      "v": "0.0",
+      "t": 20261014090000,
+      "q": 130
+     },
+     {
+      "v": "0.0",
+      "t": 20261015090000,
+      "q": 130
+     },
+     {
+      "v": "0.0",
+      "t": 20261016090000,
+      "q": 255
+     }
+    ],
+    "varfrom_details": {
+     "short_name": "Spillway 24h ML",
+     "precision": "0.100000",
+     "subdesc": "",
+     "variable": "453.00",
+     "units": "Megalitres",
+     "name": "Spillway Discharge 24 hour Total"
+    },
+    "site": "401027",
+    "varto_details": {
+     "short_name": "Spillway 24h ML",
+     "precision": "0.100000",
+     "subdesc": "",
+     "variable": "453.00",
+     "units": "Megalitres",
+     "name": "Spillway Discharge 24 hour Total"
+    }
+   }
+  ]
+ }
+}
