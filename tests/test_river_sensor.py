@@ -22,6 +22,8 @@ from custom_components.ausnz_disaster_watch.const import (
     LOCATION_MODE_HOME,
     STATE_VIC,
 )
+from custom_components.ausnz_disaster_watch.diagnostics import async_get_config_entry_diagnostics
+from custom_components.ausnz_disaster_watch.providers.sources import sources_for_river_gauges
 from custom_components.ausnz_disaster_watch.river_coordinator import RiverGaugeCoordinator
 from custom_components.ausnz_disaster_watch.rivers import RIVER_SCAN_INTERVAL, GaugeReading, GaugeSite, RiverSourceError
 from homeassistant.components.sensor import SensorDeviceClass
@@ -435,3 +437,39 @@ async def test_alert_level_empty_string_clears(
         done = await flow.async_step_river_alert_levels({SAVAGES.name: ""})
     assert done["type"] is FlowResultType.CREATE_ENTRY
     assert done["data"][CONF_RIVER_GAUGES] == [SAVAGES.as_dict()]
+
+
+async def test_diagnostics_list_the_gauge_sources(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    mock_providers: AsyncMock,
+    mock_fetch: AsyncMock,
+) -> None:
+    """With gauges selected, diagnostics list each gauge service once; the entry attribution does not change (#21)."""
+    mock_fetch.return_value = ({}, set())
+    mock_config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+    diagnostics = await async_get_config_entry_diagnostics(hass, mock_config_entry)
+    assert not [s for s in diagnostics["coordinator"]["data_sources"] if s["key"].startswith("river_")]
+    attribution = mock_config_entry.runtime_data.attribution
+
+    nsw = GaugeSite("nsw", "212200", "Nepean River at Penrith", -33.75, 150.68)
+    hass.config_entries.async_update_entry(
+        mock_config_entry, options={CONF_RIVER_GAUGES: [s.as_dict() for s in (SAVAGES, DRAPERS, nsw)]}
+    )
+    assert await hass.config_entries.async_reload(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+    diagnostics = await async_get_config_entry_diagnostics(hass, mock_config_entry)
+    keys = [s["key"] for s in diagnostics["coordinator"]["data_sources"] if s["key"].startswith("river_")]
+    assert keys == ["river_qld_wmip", "river_waternsw"]
+    assert mock_config_entry.runtime_data.attribution == attribution
+
+
+def test_river_gauge_sources() -> None:
+    """Gauge services map to their register entries, once each; unknown services are skipped (#21)."""
+    keys = [
+        source.key
+        for source in sources_for_river_gauges(["hilltop_gw", "qld", "hilltop_hbrc", "hilltop_trc", "nsw", "qld", "x"])
+    ]
+    assert keys == ["river_nz_hilltop", "river_qld_wmip", "river_hbrc_hilltop", "river_waternsw"]

@@ -53,7 +53,13 @@ from .providers.fire_danger import FireDangerService, local_today
 from .providers.geometry import area_distance
 from .providers.power import PowerOutageSource
 from .providers.roads import get_road_providers_for_config, merge_road_items
-from .providers.sources import DataSource, attribution_for, sources_for_feature, sources_for_provider
+from .providers.sources import (
+    DataSource,
+    attribution_for,
+    sources_for_feature,
+    sources_for_provider,
+    sources_for_river_gauges,
+)
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
@@ -878,10 +884,16 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
 
         Dam storages are polled by their own coordinator and each storage entity credits its
         data owner, so their source is listed here (for diagnostics) but kept out of the
-        entry-wide attribution.
+        entry-wide attribution. River gauges likewise: each gauge entity credits its own
+        service, and the services of the selected gauges are listed here (#21).
         """
         extra = sources_for_feature("dam_storages") if self.dam_coordinator is not None else ()
-        return list(dict.fromkeys([*self.data_sources, *extra]))
+        rivers = (
+            sources_for_river_gauges(site.source for site in self.river_coordinator.sites)
+            if self.river_coordinator is not None
+            else ()
+        )
+        return list(dict.fromkeys([*self.data_sources, *extra, *rivers]))
 
     @property
     def attribution(self) -> str | None:
