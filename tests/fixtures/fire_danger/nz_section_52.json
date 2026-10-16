@@ -1,71 +1,71 @@
 {
- "objectIdFieldName": "OBJECTID",
- "uniqueIdField": {
-  "name": "OBJECTID",
-  "isSystemMaintained": true
- },
- "globalIdFieldName": "GlobalID",
- "geometryType": "esriGeometryPolygon",
- "spatialReference": {
-  "wkid": 2193,
-  "latestWkid": 2193
- },
- "features": [
-  {
-   "attributes": {
-    "OBJECTID": 1888,
-    "Section52": 1,
-    "Comment": "All private use of fireworks within the Thames-Coromandel Council boundaries, and islands off the mainland are now prohibited.",
-    "FENZDistrictName": "Waikato",
-    "FENZRegionName": "Nga Tai ki te Puku",
-    "AncillaryComment": null,
-    "Bonfire": 1,
-    "Campfire": 1,
-    "Cultural_Cooking_Fire": 1,
-    "Pizza_Ovens": 1,
-    "Fire_Pits": 1,
-    "Gas_BBQ": 1,
-    "Charcoal_BBQ": 1,
-    "Incinerators": 1,
-    "Fire_Land_Management": 1,
-    "Hot_Works": 1,
-    "Machinery": 1,
-    "Vehicles": 1,
-    "Fireworks": 0,
-    "StatusStartTime": null,
-    "StatusEndTime": null,
-    "ZoneName": "Hauturu Island",
-    "GlobalID": "01c44fb6-7c55-4da4-911e-50a26b1a595e",
-    "EditDate": 1767743836126
-   }
+  "objectIdFieldName": "OBJECTID",
+  "uniqueIdField": {
+    "name": "OBJECTID",
+    "isSystemMaintained": true
   },
-  {
-   "attributes": {
-    "OBJECTID": 2478,
-    "Section52": 1,
-    "Comment": "All private use of fireworks within the Thames-Coromandel Council boundaries, and islands off the mainland are now prohibited.",
-    "FENZDistrictName": "Waikato",
-    "FENZRegionName": "Nga Tai ki te Puku",
-    "AncillaryComment": null,
-    "Bonfire": 1,
-    "Campfire": 1,
-    "Cultural_Cooking_Fire": 1,
-    "Pizza_Ovens": 1,
-    "Fire_Pits": 1,
-    "Gas_BBQ": 1,
-    "Charcoal_BBQ": 1,
-    "Incinerators": 1,
-    "Fire_Land_Management": 1,
-    "Hot_Works": 1,
-    "Machinery": 1,
-    "Vehicles": 1,
-    "Fireworks": 0,
-    "StatusStartTime": null,
-    "StatusEndTime": null,
-    "ZoneName": "Maukaha Rocks",
-    "GlobalID": "b0c8a656-091a-4256-b701-dffb05ea5ec6",
-    "EditDate": 1767743836126
-   }
-  }
- ]
+  "globalIdFieldName": "GlobalID",
+  "geometryType": "esriGeometryPolygon",
+  "spatialReference": {
+    "wkid": 2193,
+    "latestWkid": 2193
+  },
+  "features": [
+    {
+      "attributes": {
+        "OBJECTID": 1888,
+        "Section52": 1,
+        "Comment": "All private use of fireworks within the Thames-Coromandel Council boundaries, and islands off the mainland are now prohibited.",
+        "FENZDistrictName": "Waikato",
+        "FENZRegionName": "Nga Tai ki te Puku",
+        "AncillaryComment": null,
+        "Bonfire": 1,
+        "Campfire": 1,
+        "Cultural_Cooking_Fire": 1,
+        "Pizza_Ovens": 1,
+        "Fire_Pits": 1,
+        "Gas_BBQ": 1,
+        "Charcoal_BBQ": 1,
+        "Incinerators": 1,
+        "Fire_Land_Management": 1,
+        "Hot_Works": 1,
+        "Machinery": 1,
+        "Vehicles": 1,
+        "Fireworks": 0,
+        "StatusStartTime": null,
+        "StatusEndTime": null,
+        "ZoneName": "Hauturu Island",
+        "GlobalID": "01c44fb6-7c55-4da4-911e-50a26b1a595e",
+        "EditDate": 1767743836126
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 2478,
+        "Section52": 1,
+        "Comment": "All private use of fireworks within the Thames-Coromandel Council boundaries, and islands off the mainland are now prohibited.",
+        "FENZDistrictName": "Waikato",
+        "FENZRegionName": "Nga Tai ki te Puku",
+        "AncillaryComment": null,
+        "Bonfire": 1,
+        "Campfire": 1,
+        "Cultural_Cooking_Fire": 1,
+        "Pizza_Ovens": 1,
+        "Fire_Pits": 1,
+        "Gas_BBQ": 1,
+        "Charcoal_BBQ": 1,
+        "Incinerators": 1,
+        "Fire_Land_Management": 1,
+        "Hot_Works": 1,
+        "Machinery": 1,
+        "Vehicles": 1,
+        "Fireworks": 0,
+        "StatusStartTime": null,
+        "StatusEndTime": null,
+        "ZoneName": "Maukaha Rocks",
+        "GlobalID": "b0c8a656-091a-4256-b701-dffb05ea5ec6",
+        "EditDate": 1767743836126
+      }
+    }
+  ]
 }
