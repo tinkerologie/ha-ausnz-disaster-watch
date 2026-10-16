@@ -30,7 +30,7 @@ jobs:
     name: PR Governance
     if: "!endsWith(github.event.pull_request.user.login, '[bot]')"
 
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.RUNNER_LABELS || '"ubuntu-latest"') }}
     outputs:
       errors: ${{ steps.governance.outputs.errors }}
       skipped: ${{ steps.governance.outputs.skipped }}
