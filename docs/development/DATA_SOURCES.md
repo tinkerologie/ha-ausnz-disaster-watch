@@ -270,7 +270,7 @@ Not used. Do not add them without permission.
   - AusNet (`outagetrackerservice.ausnetservices.com.au`): terms ban access "using any robot, spider, scraper or other automated means"; `outagetracker.com.au` robots.txt disallows `/api/*`.
   - Evoenergy (`/api/sitecore/Outage/ExportOutages`, CSV without locations): "only for private purposes".
   - Horizon Power (no feed found, Cloudflare) and Power and Water (no routine feed; "your own private use").
-  - Vector (API key required), Orion (robots.txt disallows `/outages-and-support/outages`), Aurora Energy (HTML only; no reproduction without permission), WEL Networks (third-party POST API; no public or commercial use).
+  - Vector (API key required), Orion (robots.txt disallows `/outages-and-support/outages`), Aurora Energy (HTML only; no reproduction without permission), the Waikato distributor (third-party POST API; no public or commercial use).
 
 ## Sources in open pull requests
 

@@ -169,7 +169,7 @@ In New Zealand, `…_fire_season` reports the Fire and Emergency NZ fire season 
 Fire danger forecasts and district boundaries © Bureau of Meteorology. Total fire bans © NSW RFS, ACT ESA, CFA, SA CFS and DFES WA. LGA boundaries © Australian Bureau of Statistics (CC BY 4.0). NZ fire seasons © Fire and Emergency New Zealand.
 ### Power outages
 
-Outages come from the electricity distributors' own outage feeds and, in Queensland and NSW, from the council disaster dashboard (Energex and Ergon outages). Only outages in effect now count: planned work that has not started, and finished or cancelled outages, are left out. Planned outages are excluded unless **Include Planned Power Outages** is on in the options.
+Outages come from the electricity distributors' own outage feeds and, in Queensland and NSW, from the council disaster dashboard (Energex and Ergon outages). Only outages in effect now count: planned work that has not started, and finished or cancelled outages, are left out. Planned outages are excluded unless **Include planned power outages** is on in the **Power outages** options page.
 
 | Distributor | Area | Feed | Terms | Default |
 | ----------- | ---- | ---- | ----- | ------- |
@@ -181,7 +181,7 @@ Outages come from the electricity distributors' own outage feeds and, in Queensl
 | Powerco | Taranaki, Whanganui, Manawatū, Wairarapa, Tauranga, Coromandel | Outage map ArcGIS service, queried within the radius | [No public or commercial use](https://www.powerco.co.nz/terms-of-use) | Extra feeds |
 | Unison | Hawke's Bay, Taupō, Rotorua | Outage map JSON (about 2.6 MB, fetched at most every 15 minutes) | No terms published | Extra feeds |
 
-Feeds marked "Extra feeds" are used only when **Extra Power Outage Feeds** is on in the options. Feeds without a radius query are only downloaded when the radius reaches the distributor's network, and no feed is fetched more often than every 5 minutes.
+Feeds marked "Extra feeds" are used only when **Extra power outage feeds** is on in the **Power outages** options page. Feeds without a radius query are only downloaded when the radius reaches the distributor's network, and no feed is fetched more often than every 5 minutes.
 
 `…_power_outages_count` lists up to 25 outages, nearest first, each with `distributor`, `id`, `planned`, `status`, `start_time`, `restore_time` and `distance_km` (to the outage area's edge where the feed has polygons; 0 when home is inside it). It also has `est_restore`, `nearest_outage_distance_km` and `nearest_outage_distributor` for the nearest outage, and `data_sources` with each feed's distributor, licence and attribution. Endeavour Energy data: "Contains information from Endeavour Energy Open Data, made available under the Open Database Licence (ODbL) v1.0". Outages are only kept in your own Home Assistant; the integration does not publish them.
 
