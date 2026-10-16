@@ -1,9 +1,10 @@
 """New Zealand provider (#11): NEMA CAP-in-Atom alerts, MetService CAP warnings, GeoNet levels."""
 
+import asyncio
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import Any
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from xml.sax.saxutils import escape
 
 import aiohttp
@@ -14,8 +15,8 @@ from custom_components.ausnz_disaster_watch.models import HazardType, WarningLev
 from custom_components.ausnz_disaster_watch.providers.base import ProviderUnavailableError
 from custom_components.ausnz_disaster_watch.providers.geonet import GEONET_QUAKE_URL, GEONET_VOLCANO_URL
 from custom_components.ausnz_disaster_watch.providers.nz import (
-    _METSERVICE_LAST,
     METSERVICE_ALERTS_URL,
+    METSERVICE_SHARED_KEY,
     METSERVICE_WEB_URL,
     NEMA_ALERTHUB_URL,
     NEMA_WEB_URL,
@@ -261,7 +262,18 @@ async def test_metservice_cap_colour_area_and_lifecycle(hass: HomeAssistant, mak
     with patch(nz_now, return_value=NOW + timedelta(minutes=3)):
         await other._async_fetch_metservice()
     assert METSERVICE_ALERTS_URL not in [call.args[0] for call in other_fetch.await_args_list]
-    _METSERVICE_LAST.clear()
+
+    # Concurrent refreshes of two entries after the interval fetch the feed once
+    with patch(nz_now, return_value=NOW + timedelta(minutes=10)):
+        before = [call.args[0] for call in fetch.await_args_list + other_fetch.await_args_list].count(
+            METSERVICE_ALERTS_URL
+        )
+        await asyncio.gather(provider._async_fetch_metservice(), other._async_fetch_metservice())
+        after = [call.args[0] for call in fetch.await_args_list + other_fetch.await_args_list].count(
+            METSERVICE_ALERTS_URL
+        )
+    assert after == before + 1
+    hass.data.pop(METSERVICE_SHARED_KEY, None)
 
     # A CAP document that cannot be downloaded makes the MetService poll incomplete: the source
     # fails (instead of reporting fresh partial data) and the download is retried next poll
@@ -416,3 +428,11 @@ async def test_all_sources_down(hass: HomeAssistant, make_provider: MakeProvider
         provider._parse_nema_atom("  ")
     with pytest.raises(ProviderUnavailableError, match="invalid XML"):
         provider._parse_nema_atom("<feed")
+
+
+def test_metservice_shared_state_without_real_hass() -> None:
+    """Without Home Assistant data (unit-test doubles) the poll state is kept per provider."""
+    provider = NZHazardProvider(MagicMock(), MagicMock(), {"state": STATE_NZ})
+    state = provider._metservice_shared()
+    assert state is provider._metservice_shared()
+    assert state.last is None

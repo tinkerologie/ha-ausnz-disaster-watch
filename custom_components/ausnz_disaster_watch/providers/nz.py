@@ -13,6 +13,8 @@ come from NZTA's Traffic Application Server (``nzta.py``).
 
 from __future__ import annotations
 
+import asyncio
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 import logging
 from typing import TYPE_CHECKING, Any
@@ -54,9 +56,18 @@ NEMA_ALERTHUB_URL = "https://alerthub.civildefence.govt.nz/atom/pwp"
 NEMA_WEB_URL = "https://www.civildefence.govt.nz"
 # MetService CAP Code of Practice: poll no more often than every two minutes (#62)
 METSERVICE_MIN_POLL_INTERVAL = timedelta(minutes=2)
-# Last MetService fetch per feed URL, shared by every NZ entry and surviving entry reloads,
-# so a reload or a second NZ entry does not poll the national feed again within the interval
-_METSERVICE_LAST: dict[str, tuple[datetime, list[tuple[Element, CapAlert]]]] = {}
+# hass.data key of the MetService poll state shared by every NZ entry (survives entry reloads)
+METSERVICE_SHARED_KEY = "ausnz_disaster_watch_metservice"
+
+
+@dataclass(slots=True)
+class MetServiceShared:
+    """The last MetService fetch and the lock that serialises fetches across NZ entries (#62)."""
+
+    lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+    last: tuple[datetime, list[tuple[Element, CapAlert]]] | None = None
+
+
 METSERVICE_ALERTS_URL = "https://alerts.metservice.com/cap/rss"
 METSERVICE_WEB_URL = "https://www.metservice.com/warnings/home"
 
@@ -369,9 +380,27 @@ class NZHazardProvider(BaseHazardProvider):
         minutes; the coordinator polls every minute during a threat, so a result younger than
         METSERVICE_MIN_POLL_INTERVAL is reused (the alerts are re-evaluated for expiry) (#62).
         """
-        now = dt_util.utcnow()
-        if (last := _METSERVICE_LAST.get(METSERVICE_ALERTS_URL)) and now - last[0] < METSERVICE_MIN_POLL_INTERVAL:
-            return last[1]
+        shared = self._metservice_shared()
+        async with shared.lock:
+            # Re-checked under the lock, so concurrent refreshes of several entries fetch once
+            now = dt_util.utcnow()
+            if shared.last is not None and now - shared.last[0] < METSERVICE_MIN_POLL_INTERVAL:
+                return shared.last[1]
+            alerts = await self._async_fetch_metservice_now()
+            shared.last = (now, alerts)
+            return alerts
+
+    def _metservice_shared(self) -> MetServiceShared:
+        """Return the integration-wide MetService poll state (per-provider without a real hass)."""
+        data = getattr(self.hass, "data", None)
+        if isinstance(data, dict):
+            return data.setdefault(METSERVICE_SHARED_KEY, MetServiceShared())
+        if not hasattr(self, "_metservice_local"):
+            self._metservice_local = MetServiceShared()
+        return self._metservice_local
+
+    async def _async_fetch_metservice_now(self) -> list[tuple[Element, CapAlert]]:
+        """Fetch the MetService RSS and its CAP documents."""
         rss_text = await self.async_fetch_feed_text(METSERVICE_ALERTS_URL, "MetService")
         try:
             root = ET.fromstring(rss_text)
@@ -383,11 +412,9 @@ class NZHazardProvider(BaseHazardProvider):
             (item, (item.findtext("guid") or "").strip(), (item.findtext("link") or "").strip()) for item in items
         ]
         self._metservice_documents.prune({key for _, key, _ in entries})
-        alerts = await self._metservice_documents.async_load(
+        return await self._metservice_documents.async_load(
             lambda url: self.async_fetch_feed_text(url, "MetService CAP document"), entries
         )
-        _METSERVICE_LAST[METSERVICE_ALERTS_URL] = (now, alerts)
-        return alerts
 
     def _parse_metservice(self, alerts: list[tuple[Element, CapAlert]]) -> list[CanonicalHazard]:
         """Turn current MetService alerts into hazards (with area) or weather warnings (without)."""
