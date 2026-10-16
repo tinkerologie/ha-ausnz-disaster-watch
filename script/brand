@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# script/brand: render the brand artwork in branding/ and copy it to the integration.
+#
+# branding/*.svg are the masters. This renders the PNGs Home Assistant's brands proxy
+# expects (icon 256/512 px, logo 128/256 px high, plus dark-mode logos) into branding/,
+# then copies them to custom_components/ausnz_disaster_watch/brand/, which is where
+# Home Assistant loads a custom integration's icon and logo from.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+BRAND=custom_components/ausnz_disaster_watch/brand
+render() { (cd frontend && node scripts/render-brand.mjs "../branding/$1" "../branding/$2" "$3"); }
+
+render icon.svg icon.png 256
+render icon.svg icon@2x.png 512
+render logo.svg logo.png 128
+render logo.svg logo@2x.png 256
+render dark_logo.svg dark_logo.png 128
+render dark_logo.svg dark_logo@2x.png 256
+
+mkdir -p "$BRAND"
+rm -f "$BRAND"/*.png
+cp branding/*.png "$BRAND"/
+echo "Brand images rendered to branding/ and copied to $BRAND/"

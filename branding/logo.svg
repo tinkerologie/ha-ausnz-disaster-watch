@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 256" width="1000" height="256">
+  <!-- Australia and New Zealand Disaster Watch: master logo (generated from icon.svg; rendered by script/brand). -->
+  <g transform="translate(-33.64 -10.61) scale(0.5536)">
+
+  <defs>
+    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFA24A"/>
+      <stop offset="1" stop-color="#E23A1E"/>
+    </linearGradient>
+    <linearGradient id="field" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1B4472"/>
+      <stop offset="1" stop-color="#091831"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.14"/>
+      <stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="dome" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFB766"/>
+      <stop offset="1" stop-color="#F04A1C"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#FF9A3C" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#FF9A3C" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#06101F" flood-opacity="0.3"/>
+    </filter>
+    <clipPath id="inside">
+      <path d="M256 72 L414 127 C414 262 366 358 256 436 C146 358 98 262 98 127 Z"/>
+    </clipPath>
+
+    <path id="star" d="M0 -1 L0.2245 -0.309 L0.951 -0.309 L0.3633 0.118 L0.5878 0.809 L0 0.382 L-0.5878 0.809 L-0.3633 0.118 L-0.951 -0.309 L-0.2245 -0.309 Z"/>
+  </defs>
+
+
+  <path d="M256 36 L444 102 C444 268 386 382 256 474 C126 382 68 268 68 102 Z" fill="url(#rim)" filter="url(#shadow)"/>
+  <path d="M256 72 L414 127 C414 262 366 358 256 436 C146 358 98 262 98 127 Z" fill="url(#field)"/>
+
+  <g clip-path="url(#inside)">
+    <circle cx="256" cy="214" r="120" fill="url(#glow)"/>
+
+
+    <g fill="none" stroke-linecap="round">
+      <path d="M194 168 A 70 70 0 0 0 194 260" stroke="#FFC48A" stroke-width="13"/>
+      <path d="M318 168 A 70 70 0 0 1 318 260" stroke="#FFC48A" stroke-width="13"/>
+      <path d="M162 146 A 104 104 0 0 0 162 282" stroke="#FF9A3C" stroke-width="12" opacity="0.85"/>
+      <path d="M350 146 A 104 104 0 0 1 350 282" stroke="#FF9A3C" stroke-width="12" opacity="0.85"/>
+    </g>
+
+
+    <path d="M220 246 L220 214 A 36 36 0 0 1 292 214 L292 246 Z" fill="url(#dome)"/>
+    <path d="M238 212 A 20 20 0 0 1 254 194" fill="none" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" opacity="0.9"/>
+    <rect x="204" y="246" width="104" height="20" rx="7" fill="#FFFFFF"/>
+
+
+    <g fill="#FFFFFF">
+      <use href="#star" transform="translate(258 300) scale(13)"/>
+      <use href="#star" transform="translate(256 384) scale(15)"/>
+      <use href="#star" transform="translate(220 334) scale(12)"/>
+      <use href="#star" transform="translate(292 326) scale(10.5)"/>
+      <use href="#star" transform="translate(278 352) scale(6)"/>
+    </g>
+  </g>
+
+
+  <path d="M256 72 L414 127 C414 170 409 205 398 238 L114 238 C103 205 98 170 98 127 Z" fill="url(#sheen)"/>
+  </g>
+  <g font-family="'Avenir Next', 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif">
+    <text x="262" y="138" font-size="104" font-weight="700" letter-spacing="-1.5" fill="#10294A">Disaster Watch</text>
+    <text x="266" y="196" font-size="35" font-weight="600" letter-spacing="7" fill="#E2541E">AUSTRALIA · NEW ZEALAND</text>
+  </g>
+</svg>
