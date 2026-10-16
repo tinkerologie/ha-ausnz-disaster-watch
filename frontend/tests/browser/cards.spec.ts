@@ -662,6 +662,8 @@ test("GDACS outage shows a notice (#71)", async ({ page }) => {
   const states = { [ALERTS_ID]: { ...alerts, attributes: { ...alerts.attributes, alerts: [{ title: "TC", geometry_url: GEOMETRY_URL }] } } };
   const el = await mount(page, "ausnz-disaster-map-card", { device: QLD, show_cyclone_tracks: true }, { states });
   await expect(el.getByText("Cyclone tracks are unavailable right now.")).toBeVisible();
+});
+
 
 test("an incident with a camera within 5 km offers it next to the incident (#70)", async ({ page }) => {
   const { errors } = await setup(page);
