@@ -213,6 +213,7 @@ async def test_edit_and_remove_river_points(hass: HomeAssistant, mock_config_ent
         "earthquakes",
         "national_feeds",
         "cameras",
+        "emergency_broadcaster",
         "add_river_point",
         "edit_river_point",
         "remove_river_point",

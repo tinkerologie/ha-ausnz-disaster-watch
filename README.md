@@ -280,6 +280,19 @@ The **Road closures** options page has:
 
 ---
 
+## Emergency broadcaster radio
+
+In Australia, ABC Local Radio is the official emergency broadcaster: warnings tell you to "listen to ABC Local Radio", and local stations switch to emergency coverage. In New Zealand, RNZ is a lifeline broadcaster. Radio often keeps working when power or mobile networks are under strain.
+
+Turn it on in **Options > Emergency broadcaster radio**. It is off by default. Choose **Nearest station**, or pick a station yourself: the nearest station is matched by its studio location, which is not always the station that covers your town.
+
+- **Sensor** `sensor.<device>_emergency_broadcaster` (disabled by default; enable it in the entity settings): the station name, with `stream_url`, `media_content_id`, `region`, `network`, `station_page`, `selection` (`nearest` or `chosen`) and `distance_km`. It stays available when the hazard feeds are down.
+- **Media browser:** **Media > Australia and New Zealand Disaster Watch** lists the emergency broadcaster of each location. `media-source://ausnz_disaster_watch/emergency_broadcaster/<entry_id>` always plays the location's current station, so automations keep working if you move house or change the station. See [automation example 4](#4-play-the-emergency-broadcaster-on-an-emergency-warning).
+- **Stations:** all 52 ABC Local Radio regions and RNZ National, as HTTPS HLS streams. The table is bundled (`data/emergency_broadcasters.json`, built by `script/update-broadcasters` from the public-domain [Radio Browser](https://www.radio-browser.info/) directory and checked against the ABC and RNZ station pages), so nothing is looked up at runtime. Your media player streams directly from the ABC or RNZ for your personal listening; the integration does not proxy or record audio.
+- **Not included:** AM/FM frequencies for battery radios (no open machine-readable source yet).
+
+---
+
 ## Forecast Signals (model-derived, not official)
 
 Three optional features use [Open-Meteo](https://open-meteo.com/) model forecasts. **All are off by default** and fetch nothing until you turn them on. They are separate from agency warnings: they are plain sensors with `official: false`, never `geo_location` hazards, never counted in the hazard sensors, and never mapped to Australian Warning System levels or to the official fire danger rating. **They do not replace BoM, MetService or emergency service warnings.**
@@ -430,6 +443,23 @@ Chips under the map hide or show the satellite layer and cyclone tracks. The att
 
 ---
 
+## Ask your voice assistant
+
+The integration gives Assist, and any LLM conversation agent that uses the Assist API (OpenAI, Anthropic, Google, Ollama and others), three read-only tools. You can then ask questions such as "Is there anything I need to worry about near home?", "What's the fire danger tomorrow?" or "Are any roads closed nearby?".
+
+| Tool | What it answers |
+| --- | --- |
+| `ausnz_disaster_watch__get_disaster_situation` | The highest warning level, active warnings and incidents nearest first (up to 10), weather warnings, fire danger today and tomorrow with the total fire ban, road closures and power outages |
+| `ausnz_disaster_watch__get_fire_danger` | The fire danger rating and total fire ban for `today`, `tomorrow`, `day3` or `day4` (the fire season in New Zealand) |
+| `ausnz_disaster_watch__list_hazards` | Warnings and incidents filtered by `category` (fire, flood, storm, earthquake, tsunami, road, power, other), `max_distance_km` and `min_level` (advice, watch_and_act, emergency_warning), up to 20 |
+
+- **Setup:** none. In your conversation agent's options, set **Control Home Assistant** to **Assist**. The tools are offered for a location only when at least one of its entities is exposed to Assist (**Settings > Voice assistants > Expose**), so your exposure choices apply. The MCP Server integration serves the same tools to MCP clients.
+- **Several locations:** with more than one location the assistant passes the location's name (the entry title). If it doesn't, the tool lists the locations so the assistant can ask you.
+- **Feed health:** every answer says whether each feed is `ok`, `stale` (its last fetch failed and its last good data stands in) or `failed`, with the time of its last good fetch. When a feed is not `ok`, the answer is marked incomplete, and the assistant is told to say so and never to call the situation all clear.
+- **What it is not:** the tools only read what the integration already fetched, so they cannot replace official warnings. Follow official advice, and call 000 (Australia) or 111 (New Zealand) in an emergency.
+
+---
+
 ## Automation Examples
 
 ### 1. High Priority Alert on Nearby Emergency Warning
@@ -484,6 +514,99 @@ actions:
       message: >-
         {{ trigger.to_state.name }}
         ({{ trigger.to_state.attributes.agency }})
+```
+
+### 4. Play the Emergency Broadcaster on an Emergency Warning
+
+Turn on the [emergency broadcaster](#emergency-broadcaster-radio) first. Replace `ENTRY_ID` with the entry's ID (the `media_content_id` attribute of the emergency broadcaster sensor shows the full ID).
+
+```yaml
+alias: "Emergency Warning: Play the Emergency Broadcaster"
+triggers:
+  - trigger: state
+    entity_id: binary_sensor.australia_and_new_zealand_disaster_watch_qld_home_emergency_warning_nearby
+    to: "on"
+actions:
+  - action: tts.speak
+    target:
+      entity_id: tts.home_assistant_cloud
+    data:
+      media_player_entity_id: media_player.kitchen
+      message: "Emergency warning nearby. Playing ABC emergency radio. Follow official advice."
+  # Let the announcement finish (at most 30 seconds) before the radio starts on the same player
+  - delay: "00:00:02"
+  - wait_template: "{{ not is_state('media_player.kitchen', 'playing') }}"
+    timeout: "00:00:30"
+    continue_on_timeout: true
+  - action: media_player.play_media
+    target:
+      entity_id: media_player.kitchen
+    data:
+      media:
+        media_content_id: media-source://ausnz_disaster_watch/emergency_broadcaster/ENTRY_ID
+        media_content_type: music
+```
+
+As a blueprint (save as `blueprints/automation/ausnz_disaster_watch/emergency_broadcaster.yaml`; enable the emergency broadcaster sensor first, it is disabled by default):
+
+```yaml
+blueprint:
+  name: Play the emergency broadcaster on a nearby warning
+  description: Announce a nearby Emergency Warning or Watch and Act, then play the local ABC Local Radio (RNZ in New Zealand) station.
+  domain: automation
+  input:
+    warning_sensor:
+      name: Emergency warning nearby sensor
+      selector:
+        entity:
+          filter:
+            integration: ausnz_disaster_watch
+            domain: binary_sensor
+    broadcaster_sensor:
+      name: Emergency broadcaster sensor
+      selector:
+        entity:
+          filter:
+            integration: ausnz_disaster_watch
+            domain: sensor
+    speaker:
+      name: Media player
+      selector:
+        entity:
+          filter:
+            domain: media_player
+    tts_engine:
+      name: Text-to-speech engine
+      selector:
+        entity:
+          filter:
+            domain: tts
+triggers:
+  - trigger: state
+    entity_id: !input warning_sensor
+    to: "on"
+variables:
+  broadcaster_sensor: !input broadcaster_sensor
+  speaker: !input speaker
+actions:
+  - action: tts.speak
+    target:
+      entity_id: !input tts_engine
+    data:
+      media_player_entity_id: !input speaker
+      message: "Emergency warning nearby. Playing {{ states(broadcaster_sensor) }}. Follow official advice."
+  # Let the announcement finish (at most 30 seconds) before the radio starts on the same player
+  - delay: "00:00:02"
+  - wait_template: "{{ not is_state(speaker, 'playing') }}"
+    timeout: "00:00:30"
+    continue_on_timeout: true
+  - action: media_player.play_media
+    target:
+      entity_id: !input speaker
+    data:
+      media:
+        media_content_id: "{{ state_attr(broadcaster_sensor, 'media_content_id') }}"
+        media_content_type: music
 ```
 
 ---
