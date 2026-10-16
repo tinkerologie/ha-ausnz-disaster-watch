@@ -8,6 +8,7 @@ Versions follow Home Assistant's scheme, `YEAR.MONTH.PATCH` (for example `2026.1
 
 ### Fixed
 
+- New Zealand entries no longer poll MetService more often than its CAP Code of Practice allows: during a threat the coordinator polls every minute, but a MetService result younger than two minutes is reused (its alerts are still re-checked for expiry) (#62).
 - Queensland home-zone entries no longer always poll the Moreton Bay dashboard: a new entry gets the nearest preset council dashboard within 40 km of home (a geographic heuristic, not council boundaries), or none. Existing home-zone entries that still have the automatic Moreton Bay URL are migrated the same way (config entry version 1.2); a URL set in the options is kept and can be changed or cleared there (#19).
 - Home-zone entries follow the Home Assistant home location: coordinates are no longer copied into the entry, and the coordinator (and the providers) use the current home location at every refresh. Reconfiguring an entry with coordinates turns it into a fixed-location entry (#19).
 - Camera entities follow the data: cameras that appear are added and cameras that disappear are removed (their registry entries are kept, so a returning camera keeps its entity ID), and cameras outside the radius or listed twice are dropped. The four hard-coded Brisbane camera entities are removed from the entity registry by the 1.2 migration (#19).

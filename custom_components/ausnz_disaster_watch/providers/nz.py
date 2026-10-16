@@ -13,6 +13,8 @@ come from NZTA's Traffic Application Server (``nzta.py``).
 
 from __future__ import annotations
 
+import asyncio
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 import logging
 from typing import TYPE_CHECKING, Any
@@ -52,6 +54,20 @@ QUAKE_MAX_AGE = timedelta(hours=48)
 QUAKE_SHALLOW_KM = 70.0
 NEMA_ALERTHUB_URL = "https://alerthub.civildefence.govt.nz/atom/pwp"
 NEMA_WEB_URL = "https://www.civildefence.govt.nz"
+# MetService CAP Code of Practice: poll no more often than every two minutes (#62)
+METSERVICE_MIN_POLL_INTERVAL = timedelta(minutes=2)
+# hass.data key of the MetService poll state shared by every NZ entry (survives entry reloads)
+METSERVICE_SHARED_KEY = "ausnz_disaster_watch_metservice"
+
+
+@dataclass(slots=True)
+class MetServiceShared:
+    """The last MetService fetch and the lock that serialises fetches across NZ entries (#62)."""
+
+    lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+    last: tuple[datetime, list[tuple[Element, CapAlert]]] | None = None
+
+
 METSERVICE_ALERTS_URL = "https://alerts.metservice.com/cap/rss"
 METSERVICE_WEB_URL = "https://www.metservice.com/warnings/home"
 
@@ -92,6 +108,8 @@ class NZHazardProvider(BaseHazardProvider):
         self._geonet_cap: dict[str, CapAlert] = {}
         self._geonet_cap_at: datetime | None = None
         self._metservice_documents = CapDocumentCache("MetService CAP document")
+        # Used only when the provider runs without Home Assistant data (unit-test doubles)
+        self._metservice_local: MetServiceShared | None = None
         # Unlocated MetService warnings from the last successful poll, with each alert's expiry
         self._weather_warnings: list[tuple[datetime | None, WeatherWarningItem]] = []
         self._weather_warnings_at: datetime | None = None
@@ -358,7 +376,33 @@ class NZHazardProvider(BaseHazardProvider):
         return hazards
 
     async def _async_fetch_metservice(self) -> list[tuple[Element, CapAlert]]:
-        """Fetch MetService's RSS and the CAP document each item points at (cached by guid)."""
+        """Fetch MetService's RSS and the CAP document each item points at (cached by guid).
+
+        MetService's CAP Code of Practice asks consumers not to poll more often than every two
+        minutes; the coordinator polls every minute during a threat, so a result younger than
+        METSERVICE_MIN_POLL_INTERVAL is reused (the alerts are re-evaluated for expiry) (#62).
+        """
+        shared = self._metservice_shared()
+        async with shared.lock:
+            # Re-checked under the lock, so concurrent refreshes of several entries fetch once
+            now = dt_util.utcnow()
+            if shared.last is not None and now - shared.last[0] < METSERVICE_MIN_POLL_INTERVAL:
+                return shared.last[1]
+            alerts = await self._async_fetch_metservice_now()
+            shared.last = (now, alerts)
+            return alerts
+
+    def _metservice_shared(self) -> MetServiceShared:
+        """Return the integration-wide MetService poll state (per-provider without a real hass)."""
+        data = getattr(self.hass, "data", None)
+        if isinstance(data, dict):
+            return data.setdefault(METSERVICE_SHARED_KEY, MetServiceShared())
+        if self._metservice_local is None:
+            self._metservice_local = MetServiceShared()
+        return self._metservice_local
+
+    async def _async_fetch_metservice_now(self) -> list[tuple[Element, CapAlert]]:
+        """Fetch the MetService RSS and its CAP documents."""
         rss_text = await self.async_fetch_feed_text(METSERVICE_ALERTS_URL, "MetService")
         try:
             root = ET.fromstring(rss_text)
