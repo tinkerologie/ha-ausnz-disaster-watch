@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Generator
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -212,7 +213,13 @@ async def _open_gauge_picker(hass: HomeAssistant, entry: MockConfigEntry) -> dic
     result = await hass.config_entries.options.async_init(entry.entry_id)
     assert result["type"] is FlowResultType.MENU
     assert "river_gauges" in result["menu_options"]
-    return await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "river_gauges"})
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "river_gauges"})
+    # The search runs as a progress task; when it finishes the flow moves on to the form
+    assert result["type"] is FlowResultType.SHOW_PROGRESS
+    assert result["step_id"] == "river_gauges_search"
+    assert result["progress_action"] == "river_gauges_search"
+    await hass.async_block_till_done()
+    return await hass.config_entries.options.async_configure(result["flow_id"])
 
 
 async def test_options_flow_picks_gauges(
@@ -473,3 +480,57 @@ def test_river_gauge_sources() -> None:
         for source in sources_for_river_gauges(["hilltop_gw", "qld", "hilltop_hbrc", "hilltop_trc", "nsw", "qld", "x"])
     ]
     assert keys == ["river_nz_hilltop", "river_qld_wmip", "river_hbrc_hilltop", "river_waternsw"]
+
+
+async def test_gauge_search_progress(hass: HomeAssistant, mock_config_entry: MockConfigEntry) -> None:
+    """The gauge search shows progress while it runs, searches once, and keeps its result."""
+    mock_config_entry.add_to_hass(hass)
+    release = asyncio.Event()
+
+    async def slow_discovery(*args: Any, **kwargs: Any) -> list[GaugeReading]:
+        await release.wait()
+        return [_reading(SAVAGES)]
+
+    with patch(
+        "custom_components.ausnz_disaster_watch.config_flow.async_discover_gauges", side_effect=slow_discovery
+    ) as discover:
+        result = await hass.config_entries.options.async_init(mock_config_entry.entry_id)
+        flow_id = result["flow_id"]
+        result = await hass.config_entries.options.async_configure(flow_id, {"next_step_id": "river_gauges"})
+        assert result["type"] is FlowResultType.SHOW_PROGRESS
+        result = await hass.config_entries.options.async_configure(flow_id)
+        assert result["type"] is FlowResultType.SHOW_PROGRESS
+        release.set()
+        await hass.async_block_till_done()
+        result = await hass.config_entries.options.async_configure(flow_id)
+        assert result["type"] is FlowResultType.FORM
+        result = await hass.config_entries.options.async_configure(flow_id)
+        assert result["step_id"] == "river_gauges"
+    assert discover.call_count == 1
+
+
+async def test_gauge_search_times_out(hass: HomeAssistant, mock_config_entry: MockConfigEntry) -> None:
+    """A search that runs past RIVER_DISCOVERY_TIMEOUT ends with the unavailable error."""
+    mock_config_entry.add_to_hass(hass)
+
+    async def hang(*args: Any, **kwargs: Any) -> list[GaugeReading]:
+        await asyncio.sleep(3600)
+        return []
+
+    with (
+        patch("custom_components.ausnz_disaster_watch.config_flow.RIVER_DISCOVERY_TIMEOUT", timedelta(seconds=0.01)),
+        patch("custom_components.ausnz_disaster_watch.config_flow.async_discover_gauges", side_effect=hang),
+    ):
+        result = await _open_gauge_picker(hass, mock_config_entry)
+    assert result["errors"] == {"base": "rivers_unavailable"}
+
+
+async def test_gauge_search_task_crash(hass: HomeAssistant, mock_config_entry: MockConfigEntry) -> None:
+    """An unexpected error in the search ends in the unavailable error, not an endless spinner."""
+    mock_config_entry.add_to_hass(hass)
+    with patch(
+        "custom_components.ausnz_disaster_watch.config_flow.async_discover_gauges", side_effect=RuntimeError("bug")
+    ):
+        result = await _open_gauge_picker(hass, mock_config_entry)
+    assert result["step_id"] == "river_gauges"
+    assert result["errors"] == {"base": "rivers_unavailable"}

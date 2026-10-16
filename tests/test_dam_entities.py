@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Generator
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -272,7 +273,13 @@ async def _open_picker(hass: HomeAssistant, entry: MockConfigEntry) -> dict[str,
     result = await hass.config_entries.options.async_init(entry.entry_id)
     assert result["type"] is FlowResultType.MENU
     assert "dam_storages" in result["menu_options"]
-    return await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "dam_storages"})
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "dam_storages"})
+    # The search runs as a progress task; when it finishes the flow moves on to the form
+    assert result["type"] is FlowResultType.SHOW_PROGRESS
+    assert result["step_id"] == "dam_storages_search"
+    assert result["progress_action"] == "dam_storages_search"
+    await hass.async_block_till_done()
+    return await hass.config_entries.options.async_configure(result["flow_id"])
 
 
 async def test_options_flow_picks_storages(
@@ -580,3 +587,67 @@ async def test_options_flow_resave_adds_operator(
             result["flow_id"], user_input={CONF_DAM_STORAGES: [TOONUMBAR.key]}
         )
     assert mock_config_entry.options[CONF_DAM_STORAGES] == [TOONUMBAR.as_dict()]
+
+
+async def test_storage_search_progress(hass: HomeAssistant, mock_config_entry: MockConfigEntry) -> None:
+    """The search shows progress while it runs, searches once, and keeps its result for the form."""
+    mock_config_entry.add_to_hass(hass)
+    release = asyncio.Event()
+
+    async def slow_discovery(*args: Any, **kwargs: Any) -> list[StorageReading]:
+        await release.wait()
+        return [_reading(WIVENHOE)]
+
+    with patch(
+        "custom_components.ausnz_disaster_watch.dam_options.async_discover_storages", side_effect=slow_discovery
+    ) as discover:
+        result = await hass.config_entries.options.async_init(mock_config_entry.entry_id)
+        flow_id = result["flow_id"]
+        result = await hass.config_entries.options.async_configure(flow_id, {"next_step_id": "dam_storages"})
+        assert result["type"] is FlowResultType.SHOW_PROGRESS
+        # Still running: the same search keeps showing progress
+        result = await hass.config_entries.options.async_configure(flow_id)
+        assert result["type"] is FlowResultType.SHOW_PROGRESS
+        release.set()
+        await hass.async_block_till_done()
+        result = await hass.config_entries.options.async_configure(flow_id)
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "dam_storages"
+        # Showing the form again reuses the search
+        result = await hass.config_entries.options.async_configure(flow_id)
+        assert result["type"] is FlowResultType.FORM
+    assert discover.call_count == 1
+    options = result["data_schema"].schema[CONF_DAM_STORAGES].config["options"]
+    assert [option["value"] for option in options] == [WIVENHOE.key]
+
+
+async def test_storage_search_times_out(hass: HomeAssistant, mock_config_entry: MockConfigEntry) -> None:
+    """A search that runs past DAM_DISCOVERY_TIMEOUT ends with the unavailable error."""
+    mock_config_entry.add_to_hass(hass)
+
+    async def hang(*args: Any, **kwargs: Any) -> list[StorageReading]:
+        await asyncio.sleep(3600)
+        return []
+
+    with (
+        patch("custom_components.ausnz_disaster_watch.dam_options.DAM_DISCOVERY_TIMEOUT", timedelta(seconds=0.01)),
+        patch("custom_components.ausnz_disaster_watch.dam_options.async_discover_storages", side_effect=hang),
+    ):
+        result = await _open_picker(hass, mock_config_entry)
+    assert result["errors"] == {"base": "dams_unavailable"}
+
+
+async def test_storage_search_task_crash(hass: HomeAssistant, mock_config_entry: MockConfigEntry) -> None:
+    """An unexpected error in the search ends in the unavailable error, not an endless spinner."""
+    mock_config_entry.add_to_hass(hass)
+    with patch(
+        "custom_components.ausnz_disaster_watch.dam_options.async_discover_storages",
+        side_effect=RuntimeError("bug"),
+    ):
+        result = await hass.config_entries.options.async_init(mock_config_entry.entry_id)
+        result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "dam_storages"})
+        assert result["type"] is FlowResultType.SHOW_PROGRESS
+        await hass.async_block_till_done()
+        result = await hass.config_entries.options.async_configure(result["flow_id"])
+    assert result["step_id"] == "dam_storages"
+    assert result["errors"] == {"base": "dams_unavailable"}
