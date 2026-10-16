@@ -202,6 +202,52 @@ async def test_slow_fire_outlook_does_not_block(hass: HomeAssistant, mock_config
     await hass.async_block_till_done(wait_background_tasks=True)
 
 
+async def test_obsolete_call_does_not_clear_current_watcher(hass: HomeAssistant) -> None:
+    """A call from before a location change finishing late neither refreshes nor unwatches the new call."""
+    entry = MockConfigEntry(
+        domain="ausnz_disaster_watch",
+        data={"state": "QLD", "location_mode": "home", "radius": 50},
+        unique_id="ausnz_disaster_watch_qld_home",
+    )
+    entry.add_to_hass(hass)
+    hass.config.latitude, hass.config.longitude = -27.47, 153.03
+    calls: list[asyncio.Event] = []
+    outcomes: list[list[AirQualityStationData] | Exception] = [RuntimeError("old point"), [STATION]]
+
+    async def per_call_feed() -> list[AirQualityStationData]:
+        release = asyncio.Event()
+        calls.append(release)
+        outcome = outcomes[len(calls) - 1]
+        await release.wait()
+        if isinstance(outcome, Exception):
+            raise outcome
+        return outcome
+
+    provider = AsyncMock()
+    provider.async_fetch_hazards.return_value = []
+    provider.async_fetch_air_quality = per_call_feed
+    with patch(PROVIDERS, return_value=[provider]):
+        coordinator = AustralianDisasterWatchCoordinator(hass, entry)
+    with patch.object(coordinator, "async_request_refresh") as refresh:
+        await coordinator._async_update_data()  # old call times out and is watched
+        old_task = next(iter(coordinator._optional_watched.values()))
+        hass.config.latitude, hass.config.longitude = -33.87, 151.21
+        await coordinator._async_update_data()  # new call for the new point times out and is watched
+        assert len(calls) == 2
+        new_task = next(iter(coordinator._optional_watched.values()))
+
+        calls[0].set()  # the obsolete call fails late
+        await asyncio.wait({old_task})
+        await hass.async_block_till_done()
+        refresh.assert_not_called()
+        assert new_task in coordinator._optional_watched.values()
+
+        calls[1].set()  # the current call answers late: one refresh fills the entities in
+        await hass.async_block_till_done(wait_background_tasks=True)
+        refresh.assert_called_once()
+        assert not coordinator._optional_watched
+
+
 async def test_location_change_drops_optional_results(hass: HomeAssistant) -> None:
     """After the home location moves, a slow feed's result for the old point is not used."""
     entry = MockConfigEntry(

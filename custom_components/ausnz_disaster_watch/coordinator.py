@@ -186,7 +186,8 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         self._optional_tasks: dict[tuple[object, str], asyncio.Task[Any]] = {}
         self._optional_last_good: dict[tuple[object, str], tuple[datetime, Any]] = {}
         self._optional_timed_out: set[tuple[object, str]] = set()
-        self._optional_watched: set[tuple[object, str]] = set()
+        # The timed-out call each feed has a late-completion callback on
+        self._optional_watched: dict[tuple[object, str], asyncio.Task[Any]] = {}
         self._update_config_values()
 
         session = async_get_clientsession(hass)
@@ -261,6 +262,7 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
             self._optional_last_good.clear()
             self._optional_tasks.clear()
             self._optional_timed_out.clear()
+            self._optional_watched.clear()
         for provider in [*self.providers, *self.road_providers, *self.power_sources, self.fire_service]:
             if isinstance(provider, BaseHazardProvider):
                 provider.set_location(self.latitude, self.longitude)
@@ -293,8 +295,8 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
             if log_timeout and key not in self._optional_timed_out:
                 _LOGGER.warning("Optional feed %s did not answer within %s s; using its last result", name, timeout)
             self._optional_timed_out.add(key)
-            if key not in self._optional_watched:
-                self._optional_watched.add(key)
+            if self._optional_watched.get(key) is not task:
+                self._optional_watched[key] = task
                 task.add_done_callback(lambda done: self._optional_finished_late(key, done))
             if (cached := self._fresh_optional_result(key)) is not None:
                 return cached[1]
@@ -312,9 +314,17 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
 
     @callback
     def _optional_finished_late(self, key: tuple[object, str], task: asyncio.Task[Any]) -> None:
-        """Refresh once a timed-out feed without a usable result finishes, so its entities fill in."""
-        self._optional_watched.discard(key)
-        if task.cancelled() or task.exception() is not None or self._fresh_optional_result(key) is not None:
+        """Refresh once a timed-out feed without a usable result finishes, so its entities fill in.
+
+        A call that is no longer the feed's current one (for example after a location change)
+        is obsolete: its error is still consumed, but it neither clears the current call's
+        watcher nor requests a refresh.
+        """
+        failed = task.cancelled() or task.exception() is not None
+        if self._optional_watched.get(key) is not task:
+            return
+        del self._optional_watched[key]
+        if failed or self._fresh_optional_result(key) is not None:
             return
         self.config_entry.async_create_background_task(
             self.hass, self.async_request_refresh(), f"{DOMAIN} refresh after {type(key[0]).__name__}.{key[1]}"
