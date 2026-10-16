@@ -64,6 +64,8 @@ const LAST_FRAME_HOLD_MS = 1500;
 const RADAR_POLL_MS = 5 * 60 * 1000;
 const RADAR_ERROR_LIMIT = 8;
 const TOKEN_RETRY_THROTTLE_MS = 30000;
+/** Failed basemap tiles in a row (no tile loaded in between) before falling back to OSM. */
+const BASEMAP_ERROR_LIMIT = 6;
 
 function escapeHtml(text: string): string {
   return text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -110,19 +112,33 @@ export class IncidentMap {
   private async initBasemap(): Promise<void> {
     const token = await ensureMapTilesToken(this.connection).catch(() => undefined);
     if (this.destroyed) return;
-    const options = { attribution: OSM_ATTRIBUTION, maxZoom: 18, maxNativeZoom: 19, className: "basemap" };
     if (!token) {
-      this.basemap = L.tileLayer(OSM_TILES_URL, options).addTo(this.map);
+      this.useOsmBasemap();
       return;
     }
-    const layer = L.tileLayer(MAP_TILES_URL, { ...options, token } as L.TileLayerOptions).addTo(this.map);
+    const layer = L.tileLayer(MAP_TILES_URL, { ...this.basemapOptions(), token } as L.TileLayerOptions).addTo(this.map);
     let refused = false;
     let lastRetry = 0;
+    let errors = 0;
+    const fallBack = () => {
+      if (this.destroyed || this.basemap !== layer) return;
+      this.unsubscribeToken?.();
+      this.unsubscribeToken = undefined;
+      layer.remove();
+      this.useOsmBasemap();
+    };
+    layer.on("tileload", () => (errors = 0));
     layer.on("tileerror", () => {
       refused = true;
+      errors += 1;
+      // Tiles keep failing although a token was (re)tried: the proxy itself is down.
+      if (errors >= BASEMAP_ERROR_LIMIT) return fallBack();
       if (Date.now() - lastRetry < TOKEN_RETRY_THROTTLE_MS) return;
       lastRetry = Date.now();
-      void refreshMapTilesToken();
+      void refreshMapTilesToken().then(() => {
+        // No new token arrived (refresh failed or the token was fine) and no tile loaded since.
+        if (refused && errors > 0) fallBack();
+      });
     });
     this.unsubscribeToken = subscribeMapTilesToken((newToken) => {
       (layer.options as L.TileLayerOptions & { token?: string }).token = newToken;
@@ -134,13 +150,28 @@ export class IncidentMap {
     this.basemap = layer;
   }
 
+  private basemapOptions(): L.TileLayerOptions {
+    return { attribution: OSM_ATTRIBUTION, maxZoom: 18, maxNativeZoom: 19, className: "basemap" };
+  }
+
+  private useOsmBasemap(): void {
+    this.basemap = L.tileLayer(OSM_TILES_URL, this.basemapOptions()).addTo(this.map);
+  }
+
   update(options: MapViewOptions): void {
     const previous = this.options;
     this.options = options;
     this.container.classList.toggle("dark", options.darkMode);
     const key = options.incidents.map((i) => i.id).join("|");
     // Give the map a view first: Leaflet only creates marker elements on a loaded map.
-    if (!this.fitted || previous?.zoom !== options.zoom || (!previous?.incidents.length && key !== this.lastIncidentKey)) {
+    const changed = key !== this.lastIncidentKey;
+    if (
+      !this.fitted ||
+      previous?.zoom !== options.zoom ||
+      (changed && !previous?.incidents.length) ||
+      // A replacement set entirely outside the view: reframe; otherwise keep the user's view.
+      (changed && options.incidents.length > 0 && !this.anyInView(options.incidents))
+    ) {
       this.fitView(options);
     }
     this.lastIncidentKey = key;
@@ -158,6 +189,11 @@ export class IncidentMap {
     } else if (options.radarOpacity !== previous?.radarOpacity) {
       this.showFrame(this.frameIndex);
     }
+  }
+
+  private anyInView(incidents: MapIncident[]): boolean {
+    const bounds = this.map.getBounds();
+    return incidents.some((i) => bounds.contains([i.latitude, i.longitude]));
   }
 
   private fitView(options: MapViewOptions): void {

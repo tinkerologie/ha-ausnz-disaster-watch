@@ -13,7 +13,7 @@ import {
   stringAttr,
   timeZone,
 } from "../../src/ha/format";
-import { t } from "../../src/localize/localize";
+import { t, tCount } from "../../src/localize/localize";
 import type { HassEntity, HomeAssistant } from "../../src/types";
 
 const hass = (extra: Partial<HomeAssistant> = {}) =>
@@ -126,5 +126,31 @@ describe("localize", () => {
     expect(t(hass({ locale: { language: "en-GB" } }), "status.all_clear")).toBe("All clear");
     expect(t(hass({ locale: { language: "xx" } }), "status.all_clear")).toBe("All clear");
     expect(t(undefined, "action.show_all", {})).toBe("Show all {count}");
+  });
+});
+
+describe("tCount plurals", () => {
+  const en = { language: "en", locale: { language: "en" } } as unknown as HomeAssistant;
+
+  it("uses the singular key for one", () => {
+    expect(tCount(en, "outages.count", 1)).toBe("1 outage");
+    expect(tCount(en, "outages.customers", 1)).toBe("1 customer");
+    expect(tCount(en, "outages.customers_affected", 1)).toBe("1 customer affected");
+  });
+
+  it("uses the plural key otherwise, with the formatted number", () => {
+    expect(tCount(en, "outages.count", 0)).toBe("0 outages");
+    expect(tCount(en, "outages.count", 2)).toBe("2 outages");
+    expect(tCount(en, "outages.customers", 1240, "1,240")).toBe("1,240 customers");
+  });
+
+  it("falls back to the plain key when there is no singular key", () => {
+    expect(tCount(en, "status.hazards", 1)).toBe("1 hazards nearby");
+  });
+
+  it("survives an invalid language tag", () => {
+    const bad = { language: "not a tag!", locale: { language: "not a tag!" } } as unknown as HomeAssistant;
+    expect(tCount(bad, "outages.count", 1)).toBe("1 outage");
+    expect(tCount(bad, "outages.count", 3)).toBe("3 outages");
   });
 });

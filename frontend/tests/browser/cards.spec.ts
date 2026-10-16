@@ -297,7 +297,8 @@ test("outage customers come from their own sensor and are never shown as 0 when 
   const noAttr = { ...c, attributes: { ...c.attributes, customers_affected: undefined } };
 
   const fromSensor = await mount(page, "ausnz-disaster-outages-card", { device: QLD }, { states: { [count]: noAttr } });
-  await expect(fromSensor.getByText("1 outages · 124 customers affected")).toBeVisible();
+  await expect(fromSensor.getByText("1 outage · 124 customers affected")).toBeVisible();
+  await expect(fromSensor.getByText("1 outages")).toHaveCount(0);
 
   const missing = await mount(
     page,
@@ -305,7 +306,7 @@ test("outage customers come from their own sensor and are never shown as 0 when 
     { device: QLD },
     { states: { [count]: noAttr, [customers]: { ...fixture.states[customers], state: "unavailable" } } },
   );
-  await expect(missing.getByText("1 outages", { exact: true })).toBeVisible();
+  await expect(missing.getByText("1 outage", { exact: true })).toBeVisible();
   await expect(missing.getByText(/0 customers affected/)).toHaveCount(0);
 });
 
@@ -323,4 +324,50 @@ test("radar bar stays when the frame list is unchanged while paused (#41)", asyn
   });
   await expect(play).toBeVisible();
   await expect(play).toHaveAttribute("aria-pressed", "false");
+});
+
+test("basemap falls back to OpenStreetMap when map_tiles keeps failing after a token refresh", async ({ page }) => {
+  await setup(page, { reducedMotion: true });
+  await page.unroute("**/api/map_tiles/**");
+  await page.route("**/api/map_tiles/**", (route) => route.fulfill({ status: 503, body: "" }));
+  await page.route("https://tile.openstreetmap.org/**", (route) => route.fulfill({ body: PNG, contentType: "image/png" }));
+  const el = await mount(page, "ausnz-disaster-map-card", { device: QLD });
+  await expect
+    .poll(async () =>
+      el.locator(".basemap img").evaluateAll((imgs) => imgs.map((i) => (i as HTMLImageElement).src)),
+    )
+    .toEqual(expect.arrayContaining([expect.stringContaining("https://tile.openstreetmap.org/")]));
+  const srcs = await el.locator(".basemap img").evaluateAll((imgs) => imgs.map((i) => (i as HTMLImageElement).src));
+  expect(srcs.some((src) => src.includes("/api/map_tiles/"))).toBe(false);
+});
+
+test("map reframes when a replacement incident set is entirely out of view", async ({ page }) => {
+  await setup(page, { reducedMotion: true });
+  const el = await mount(page, "ausnz-disaster-map-card", { device: QLD });
+  await expect(el.locator("path.incident").first()).toBeVisible();
+  const inView = await el.evaluate(async (card) => {
+    const c = card as unknown as {
+      hass: { states: Record<string, { entity_id: string; attributes: Record<string, unknown> }> };
+      updateComplete: Promise<unknown>;
+      _map: { map: { getBounds: () => { contains: (p: [number, number]) => boolean } } };
+    };
+    const states = { ...c.hass.states };
+    const template = Object.values(states).find(
+      (s) => s.entity_id.startsWith("geo_location.") && s.attributes.entry_id === "entry-qld",
+    )!;
+    for (const id of Object.keys(states)) {
+      if (id.startsWith("geo_location.") && states[id]!.attributes.entry_id === "entry-qld") delete states[id];
+    }
+    // A new incident in Perth, far outside the Brisbane view.
+    states["geo_location.perth_fire"] = {
+      ...template,
+      entity_id: "geo_location.perth_fire",
+      attributes: { ...template.attributes, latitude: -31.95, longitude: 115.86, title: "Perth fire" },
+    };
+    c.hass = { ...c.hass, states };
+    await c.updateComplete;
+    await new Promise((r) => setTimeout(r, 100));
+    return c._map.map.getBounds().contains([-31.95, 115.86]);
+  });
+  expect(inView).toBe(true);
 });

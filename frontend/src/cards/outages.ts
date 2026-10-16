@@ -2,7 +2,7 @@ import { html, nothing, type TemplateResult } from "lit";
 import { KEY } from "../const";
 import { stateFor } from "../ha/entities";
 import { formatDateTime, formatNumber, isUnavailable, listAttr, numberAttr, stringAttr } from "../ha/format";
-import { t } from "../localize/localize";
+import { t, tCount } from "../localize/localize";
 import { customersAffected } from "../model/outages";
 import { alert, empty, header, list, row, showAll } from "../components/render";
 import type { BaseCardConfig, HomeAssistant, LovelaceConfigForm } from "../types";
@@ -82,14 +82,14 @@ export class OutagesCard extends DisasterCard<ListCardConfig> {
           count === 0
             ? empty("mdi:transmission-tower", t(hass, "outages.empty"))
             : html`<span class="secondary"
-                  >${
+                  >${[
+                    tCount(hass, "outages.count", count, formatNumber(hass, count)),
                     customers === undefined
-                      ? t(hass, "outages.summary_count", { count: formatNumber(hass, count) })
-                      : t(hass, "outages.summary", {
-                          count: formatNumber(hass, count),
-                          customers: formatNumber(hass, customers),
-                        })
-                  }</span
+                      ? undefined
+                      : tCount(hass, "outages.customers_affected", customers, formatNumber(hass, customers)),
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}</span
                 >
                 ${list(
                   shown.map((o) => {
@@ -108,7 +108,7 @@ export class OutagesCard extends DisasterCard<ListCardConfig> {
                       trailing:
                         affected !== undefined
                           ? html`<span class="secondary"
-                              >${t(hass, "outages.customers", { count: formatNumber(hass, affected) })}</span
+                              >${tCount(hass, "outages.customers", affected, formatNumber(hass, affected))}</span
                             >`
                           : undefined,
                     });
