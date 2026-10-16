@@ -638,7 +638,9 @@ def clean_road_options(options: dict[str, Any], user_input: dict[str, Any]) -> d
     The key lives only in the options, so removing it there means "no key".
     """
     cleaned = {**options, **user_input}
-    if not str(user_input.get(CONF_VIC_API_KEY) or "").strip():
+    if key := str(user_input.get(CONF_VIC_API_KEY) or "").strip():
+        cleaned[CONF_VIC_API_KEY] = key
+    else:
         cleaned.pop(CONF_VIC_API_KEY, None)
     return cleaned
 

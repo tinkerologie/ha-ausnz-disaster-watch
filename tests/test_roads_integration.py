@@ -392,7 +392,7 @@ async def test_options_flow_road_step(hass: HomeAssistant) -> None:
             result["flow_id"], user_input={CONF_INCLUDE_ROADWORKS: True, CONF_VIC_API_KEY: " new "}
         )
     assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
-    assert entry.options == {"override_emergency": False, CONF_INCLUDE_ROADWORKS: True, CONF_VIC_API_KEY: " new "}
+    assert entry.options == {"override_emergency": False, CONF_INCLUDE_ROADWORKS: True, CONF_VIC_API_KEY: "new"}
 
     # Clearing the field (omitted or blank) removes the stored key
     for cleared in ({CONF_INCLUDE_ROADWORKS: False}, {CONF_INCLUDE_ROADWORKS: False, CONF_VIC_API_KEY: "  "}):
