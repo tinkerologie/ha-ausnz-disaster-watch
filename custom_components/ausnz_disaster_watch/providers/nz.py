@@ -52,6 +52,8 @@ QUAKE_MAX_AGE = timedelta(hours=48)
 QUAKE_SHALLOW_KM = 70.0
 NEMA_ALERTHUB_URL = "https://alerthub.civildefence.govt.nz/atom/pwp"
 NEMA_WEB_URL = "https://www.civildefence.govt.nz"
+# MetService CAP Code of Practice: poll no more often than every two minutes (#62)
+METSERVICE_MIN_POLL_INTERVAL = timedelta(minutes=2)
 METSERVICE_ALERTS_URL = "https://alerts.metservice.com/cap/rss"
 METSERVICE_WEB_URL = "https://www.metservice.com/warnings/home"
 
@@ -92,6 +94,8 @@ class NZHazardProvider(BaseHazardProvider):
         self._geonet_cap: dict[str, CapAlert] = {}
         self._geonet_cap_at: datetime | None = None
         self._metservice_documents = CapDocumentCache("MetService CAP document")
+        # Last MetService fetch, reused when polled again within METSERVICE_MIN_POLL_INTERVAL
+        self._metservice_last: tuple[datetime, list[tuple[Element, CapAlert]]] | None = None
         # Unlocated MetService warnings from the last successful poll, with each alert's expiry
         self._weather_warnings: list[tuple[datetime | None, WeatherWarningItem]] = []
         self._weather_warnings_at: datetime | None = None
@@ -358,7 +362,15 @@ class NZHazardProvider(BaseHazardProvider):
         return hazards
 
     async def _async_fetch_metservice(self) -> list[tuple[Element, CapAlert]]:
-        """Fetch MetService's RSS and the CAP document each item points at (cached by guid)."""
+        """Fetch MetService's RSS and the CAP document each item points at (cached by guid).
+
+        MetService's CAP Code of Practice asks consumers not to poll more often than every two
+        minutes; the coordinator polls every minute during a threat, so a result younger than
+        METSERVICE_MIN_POLL_INTERVAL is reused (the alerts are re-evaluated for expiry) (#62).
+        """
+        now = dt_util.utcnow()
+        if self._metservice_last is not None and now - self._metservice_last[0] < METSERVICE_MIN_POLL_INTERVAL:
+            return self._metservice_last[1]
         rss_text = await self.async_fetch_feed_text(METSERVICE_ALERTS_URL, "MetService")
         try:
             root = ET.fromstring(rss_text)
@@ -370,9 +382,11 @@ class NZHazardProvider(BaseHazardProvider):
             (item, (item.findtext("guid") or "").strip(), (item.findtext("link") or "").strip()) for item in items
         ]
         self._metservice_documents.prune({key for _, key, _ in entries})
-        return await self._metservice_documents.async_load(
+        alerts = await self._metservice_documents.async_load(
             lambda url: self.async_fetch_feed_text(url, "MetService CAP document"), entries
         )
+        self._metservice_last = (now, alerts)
+        return alerts
 
     def _parse_metservice(self, alerts: list[tuple[Element, CapAlert]]) -> list[CanonicalHazard]:
         """Turn current MetService alerts into hazards (with area) or weather warnings (without)."""

@@ -243,9 +243,18 @@ async def test_metservice_cap_colour_area_and_lifecycle(hass: HomeAssistant, mak
         ("Thunderstorm Outlook", "Wellington Region", "https://ms/noarea")
     ]
 
-    # CAP documents are cached
-    await provider.async_fetch_hazards()
+    # Polled again within two minutes: MetService is not asked again (CAP Code of Practice, #62)
+    rss_calls = [call.args[0] for call in fetch.await_args_list].count(METSERVICE_ALERTS_URL)
+    assert {h.id for h in await provider.async_fetch_hazards()} == set(hazards)
+    assert [call.args[0] for call in fetch.await_args_list].count(METSERVICE_ALERTS_URL) == rss_calls
+
+    # Two minutes later the feed is fetched again; CAP documents are cached
+    nz_now = "custom_components.ausnz_disaster_watch.providers.nz.dt_util.utcnow"
+    with patch(nz_now, return_value=NOW + timedelta(minutes=2)):
+        await provider.async_fetch_hazards()
+    assert [call.args[0] for call in fetch.await_args_list].count(METSERVICE_ALERTS_URL) == rss_calls + 1
     assert [call.args[0] for call in fetch.await_args_list].count("https://ms/red") == 1
+    provider._metservice_last = None
 
     # A CAP document that cannot be downloaded makes the MetService poll incomplete: the source
     # fails (instead of reporting fresh partial data) and the download is retried next poll
