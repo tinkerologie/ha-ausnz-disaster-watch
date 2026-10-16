@@ -923,8 +923,8 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         """Look up the council area when the location changed (#94); a failure only skips the tags."""
         try:
             await self._async_optional(self.council_area_service, "async_update")
-        except OptionalFeedTimeoutError as err:
-            _LOGGER.debug("Council area not resolved yet: %s", err)
+        except Exception as err:  # noqa: BLE001 - best effort: it must never fail the hazard refresh
+            _LOGGER.debug("Council area not resolved: %s", err)
 
     @property
     def council_area(self) -> CouncilArea | None:

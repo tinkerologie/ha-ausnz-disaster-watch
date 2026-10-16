@@ -248,6 +248,13 @@ async def test_service_ignores_unreadable_store(hass: HomeAssistant, hass_storag
         await broken.async_update()
     broken.async_fetch_feed_json.assert_awaited_once()
 
+    # A failed write keeps the area for this run
+    with patch("homeassistant.helpers.storage.Store.async_save", AsyncMock(side_effect=OSError("read-only"))):
+        unwritable = _service(hass, _payload())
+        unwritable._restored = True
+        await unwritable.async_update()
+    assert unwritable.area is not None
+
     # A stored boundary that cannot be read is looked up again
     hass_storage[key] = {
         "version": 1,
@@ -331,6 +338,7 @@ async def test_coordinator_council_area(hass: HomeAssistant, mock_config_entry: 
     assert outages.extra_state_attributes["council_area_customers_affected"] is None
     assert level.extra_state_attributes["council_area"] is None
 
-    # A lookup that outlives its timeout only skips the tags
-    with patch.object(coordinator, "_async_optional", AsyncMock(side_effect=OptionalFeedTimeoutError("slow"))):
-        await coordinator._async_update_council_area()
+    # A lookup that outlives its timeout, or fails in any other way, only skips the tags
+    for error in (OptionalFeedTimeoutError("slow"), OSError("disk full")):
+        with patch.object(coordinator, "_async_optional", AsyncMock(side_effect=error)):
+            await coordinator._async_update_council_area()

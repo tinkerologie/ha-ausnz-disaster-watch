@@ -245,7 +245,12 @@ class CouncilAreaService(BaseHazardProvider):
             self.area, self._resolved = area, location
 
     async def _async_persist(self, location: tuple[float, float]) -> None:
-        if self._store is not None:
+        """Keep the area for the next restart; a failed write only means one more lookup then."""
+        if self._store is None:
+            return
+        try:
             await self._store.async_save(
                 {"location": list(location), "area": self.area.to_dict() if self.area else None}
             )
+        except Exception as err:  # noqa: BLE001 - the area is still used until the restart
+            _LOGGER.debug("Could not store the council area: %s", err)
