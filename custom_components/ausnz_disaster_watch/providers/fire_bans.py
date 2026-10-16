@@ -1,8 +1,10 @@
-"""Total fire ban parsers for each Australian fire agency's public feed (#28).
+"""Total fire ban and fire danger rating parsers for each Australian fire agency's feed (#28, #89).
 
-Each parser returns ``{local date: banned}`` for one BoM fire weather district. A parser
-raises ProviderUnavailableError when the document is not the expected feed, so a broken
-response is never read as "no ban". Days a feed does not cover are simply absent.
+Each ban parser returns ``{local date: banned}`` and each rating parser ``{local date: raw
+rating text}`` for one BoM fire weather district. The ratings fill days the BoM forecast
+does not cover (its afternoon issue starts tomorrow, #89). A parser raises
+ProviderUnavailableError when the document is not the expected feed, so a broken response
+is never read as "no ban". Days a feed does not cover are simply absent.
 
 Sources (all verified live on 2026-10-16):
 
@@ -11,7 +13,8 @@ Sources (all verified live on 2026-10-16):
 - ACT: ESA ``firedangerrating.xml`` (same shape as ``fdrToban.xml``, region 8).
 - VIC: CFA ``tfbfdrforecast_rss.xml`` (one dated item per day, a line per CFA district).
 - SA: CFS ``fireDangerRating.xml`` (dated forecast periods per district).
-- WA: Emergency WA ``total-fire-bans`` (bans per local government area).
+- WA: Emergency WA ``total-fire-bans`` (bans per local government area) and
+  ``fire-danger-ratings`` (4 days per BoM district, by day offset from the issue time).
 """
 
 from __future__ import annotations
@@ -33,6 +36,7 @@ ACT_ESA_FDR_URL = "https://www.esa.act.gov.au/feeds/firedangerrating.xml"
 VIC_CFA_TFB_URL = "https://www.cfa.vic.gov.au/cfa/rssfeed/tfbfdrforecast_rss.xml"
 SA_CFS_FDR_URL = "https://data.eso.sa.gov.au/prod/cfs/criimson/fireDangerRating.xml"
 WA_TFB_URL = "https://api.emergency.wa.gov.au/v1/total-fire-bans"
+WA_FDR_URL = "https://api.emergency.wa.gov.au/v1/fire-danger-ratings"
 
 # v2 day suffixes in order, starting today (NSW local date)
 _NSW_DAY_KEYS = ("Today", "Tomorrow", "Day3", "Day4")
@@ -67,6 +71,16 @@ def parse_nsw_rfs_v2(payload: Any, aac: str, today: date) -> dict[date, bool | N
     feed over does not shift every day by one. ``today`` (the NSW local date) is used only
     when that field is missing or unreadable.
     """
+    return {day: parse_ban_flag(value) for day, value in _nsw_v2_days(payload, aac, today, "toban").items()}
+
+
+def parse_nsw_rfs_v2_ratings(payload: Any, aac: str, today: date) -> dict[date, str | None]:
+    """Return the NSW RFS 4-day ratings (``MODERATE``, ``NONE``), dated like the bans."""
+    return {day: _text(value) for day, value in _nsw_v2_days(payload, aac, today, "rating").items()}
+
+
+def _nsw_v2_days(payload: Any, aac: str, today: date, prefix: str) -> dict[date, Any]:
+    """Return ``{date: raw value}`` of the district's ``{prefix}Today`` .. ``{prefix}Day4`` fields."""
     areas = payload.get("fireWeatherAreaRatings") if isinstance(payload, dict) else None
     if not isinstance(areas, list):
         raise ProviderUnavailableError("NSW RFS fire danger feed returned an unexpected payload")
@@ -75,11 +89,14 @@ def parse_nsw_rfs_v2(payload: Any, aac: str, today: date) -> dict[date, bool | N
     for area in areas:
         if not isinstance(area, dict) or str(area.get("areaId", "")).strip() != str(number):
             continue
-        return {
-            today + timedelta(days=offset): parse_ban_flag(area.get(f"toban{key}"))
-            for offset, key in enumerate(_NSW_DAY_KEYS)
-        }
+        return {today + timedelta(days=offset): area.get(f"{prefix}{key}") for offset, key in enumerate(_NSW_DAY_KEYS)}
     return {}
+
+
+def _text(value: Any) -> str | None:
+    """Return stripped text, or None for a missing or blank value."""
+    text = str(value).strip() if value is not None else ""
+    return text or None
 
 
 def _iso_local_date(value: Any, fallback: date) -> date:
@@ -109,6 +126,16 @@ def parse_fdr_toban_xml(root: Element, aac: str, today: date, tz: Any) -> dict[d
 
     ``RegionNumber`` equals the BoM district number (the ACT is region 8).
     """
+    return {day: parse_ban_flag(value) for day, value in _toban_days(root, aac, today, tz, "FireBan").items()}
+
+
+def parse_fdr_toban_ratings(root: Element, aac: str, today: date, tz: Any) -> dict[date, str | None]:
+    """Return today's and tomorrow's ratings (``DangerLevelToday``/``Tomorrow``) from the same XML."""
+    return {day: _text(value) for day, value in _toban_days(root, aac, today, tz, "DangerLevel").items()}
+
+
+def _toban_days(root: Element, aac: str, today: date, tz: Any, prefix: str) -> dict[date, str | None]:
+    """Return ``{date: text}`` of the district's ``{prefix}Today`` and ``{prefix}Tomorrow``."""
     container = root if root.tag == "FireDangerMap" else root.find("channel/FireDangerMap")
     if container is None:
         raise ProviderUnavailableError(f"Fire ban feed returned an unexpected document <{root.tag}>")
@@ -118,8 +145,8 @@ def parse_fdr_toban_xml(root: Element, aac: str, today: date, tz: Any) -> dict[d
         if (district.findtext("RegionNumber") or "").strip() != str(number):
             continue
         return {
-            today: parse_ban_flag(district.findtext("FireBanToday")),
-            today + timedelta(days=1): parse_ban_flag(district.findtext("FireBanTomorrow")),
+            today: district.findtext(f"{prefix}Today"),
+            today + timedelta(days=1): district.findtext(f"{prefix}Tomorrow"),
         }
     return {}
 
@@ -209,3 +236,72 @@ def parse_wa_total_fire_bans(payload: Any, lga: str, days: list[date]) -> dict[d
         if day in result:
             result[day] = True
     return result
+
+
+def parse_vic_cfa_ratings(root: Element, district_name: str) -> dict[date, str | None]:
+    """Return the CFA ratings: the ``Central: MODERATE`` lines after "Fire Danger Ratings"."""
+    if root.tag != "rss" or root.find("channel") is None:
+        raise ProviderUnavailableError(f"CFA fire danger feed returned an unexpected document <{root.tag}>")
+    wanted = normalise_name(district_name)
+    ratings: dict[date, str | None] = {}
+    for item in root.iterfind("channel/item"):
+        try:
+            day = datetime.strptime((item.findtext("title") or "").strip(), "%A, %d %B %Y").date()
+        except ValueError:
+            continue
+        description = html.unescape(item.findtext("description") or "")
+        parts = re.split(r"fire danger ratings", description, maxsplit=1, flags=re.IGNORECASE)
+        for line in re.split(r"<br\s*/?>|</?p>", parts[1] if len(parts) > 1 else "", flags=re.IGNORECASE):
+            match = _CFA_LINE_RE.match(line)
+            if match and normalise_name(match.group(1)) == wanted:
+                ratings[day] = _text(match.group(2))
+                break
+    return ratings
+
+
+def parse_sa_cfs_ratings(root: Element, district_name: str) -> dict[date, str | None]:
+    """Return the SA CFS ratings (``<text type="fire_danger">``), the first rated period per date."""
+    if root.tag != "product" or root.find("forecast") is None:
+        raise ProviderUnavailableError(f"SA CFS fire danger feed returned an unexpected document <{root.tag}>")
+    wanted = normalise_name(district_name)
+    ratings: dict[date, str | None] = {}
+    for area in root.iterfind("forecast/area"):
+        if area.get("type") != "fire-district" or normalise_name(area.get("description") or "") != wanted:
+            continue
+        for period in area.iterfind("forecast-period"):
+            try:
+                day = datetime.fromisoformat(period.get("start-time-local") or "").date()
+            except ValueError:
+                continue
+            if ratings.get(day) is None:
+                ratings[day] = _text(period.findtext("text[@type='fire_danger']"))
+        break
+    return ratings
+
+
+def parse_wa_fdr_ratings(payload: Any, aac: str, tz: Any) -> dict[date, str | None]:
+    """Return the Emergency WA ratings for a BoM district (``area``).
+
+    ``forecasts`` is keyed by day offset ("0" .. "3") from the district's ``issueDateTime``,
+    taken as a Perth calendar date.
+    """
+    items = payload.get("fireDangerRatings") if isinstance(payload, dict) else None
+    if not isinstance(items, list):
+        raise ProviderUnavailableError("Emergency WA fire danger ratings returned an unexpected payload")
+    for item in items:
+        if not isinstance(item, dict) or item.get("area") != aac:
+            continue
+        try:
+            issued = datetime.fromisoformat(str(item.get("issueDateTime")))
+        except ValueError:
+            return {}
+        if issued.tzinfo is None:
+            return {}
+        base = issued.astimezone(tz).date()
+        forecasts = item.get("forecasts")
+        ratings: dict[date, str | None] = {}
+        for key, forecast in forecasts.items() if isinstance(forecasts, dict) else []:
+            if str(key).isdigit() and isinstance(forecast, dict):
+                ratings[base + timedelta(days=int(key))] = _text(forecast.get("fireDanger"))
+        return ratings
+    return {}
