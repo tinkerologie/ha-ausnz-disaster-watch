@@ -12,6 +12,7 @@ import hashlib
 import logging
 import re
 from typing import TYPE_CHECKING, Any, ClassVar
+from urllib.parse import urlencode
 
 import aiohttp
 
@@ -88,10 +89,21 @@ def stable_id(prefix: str, *parts: object) -> str:
     return f"{prefix}_{hashlib.sha256(raw.encode()).hexdigest()[:16]}"
 
 
+def as_float(value: Any) -> float | None:
+    """Return value as a float, or None if it is missing or not numeric (e.g. a config coordinate)."""
+    try:
+        return float(value) if value is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
 def as_dict(value: Any) -> dict[str, Any]:
     """Return value if it is a JSON object, else an empty dict (for optional nested objects)."""
     return value if isinstance(value, dict) else {}
 
+
+# ArcGIS feature queries: pages fetched at most, so a runaway layer cannot loop forever
+ARCGIS_MAX_PAGES = 5
 
 DEFAULT_TIMEOUT = aiohttp.ClientTimeout(total=30)
 MAX_RETRIES = 3
@@ -219,6 +231,40 @@ class BaseHazardProvider(ABC):
             return await self.async_fetch_json(url, headers=headers)
         except (aiohttp.ClientError, TimeoutError, ValueError) as err:
             raise ProviderUnavailableError(f"{label} unavailable: {err}") from err
+
+    async def async_fetch_arcgis_features(
+        self, layer_url: str, where: str, out_fields: tuple[str, ...], label: str
+    ) -> list[dict[str, Any]]:
+        """Query an ArcGIS FeatureServer layer as WGS84 GeoJSON and return its features.
+
+        ``out_fields`` is an explicit allowlist (never ``*``), so editor fields such as
+        ``created_user`` (email addresses) are never downloaded. Pages are followed while the
+        server reports ``exceededTransferLimit``, up to ARCGIS_MAX_PAGES. An ArcGIS error
+        object (HTTP 200 with ``{"error": ...}``) raises ProviderUnavailableError.
+        """
+        features: list[dict[str, Any]] = []
+        for page in range(ARCGIS_MAX_PAGES):
+            query = urlencode(
+                {
+                    "where": where,
+                    "outFields": ",".join(out_fields),
+                    "outSR": "4326",
+                    "returnGeometry": "true",
+                    "resultOffset": str(len(features)),
+                    "f": "geojson",
+                }
+            )
+            payload = self.require_dict(await self.async_fetch_feed_json(f"{layer_url}/query?{query}", label), label)
+            batch = self.require_list(payload, "features", label)
+            features.extend(item for item in batch if isinstance(item, dict))
+            more = payload.get("exceededTransferLimit") or as_dict(payload.get("properties")).get(
+                "exceededTransferLimit"
+            )
+            if not more or not batch:
+                break
+            if page == ARCGIS_MAX_PAGES - 1:
+                _LOGGER.debug("%s has more than %s pages; the rest are skipped", label, ARCGIS_MAX_PAGES)
+        return features
 
     async def async_fetch_power_outages(self) -> list[PowerOutageItem]:
         """Fetch active power outages for jurisdiction/council."""

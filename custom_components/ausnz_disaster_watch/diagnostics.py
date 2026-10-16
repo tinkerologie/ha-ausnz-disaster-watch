@@ -15,6 +15,9 @@ TO_REDACT = {
     CONF_LONGITUDE,
     "latitude",
     "longitude",
+    # ArcGIS editor fields hold email addresses (#30)
+    "created_user",
+    "last_edited_user",
 }
 
 
@@ -47,6 +50,8 @@ async def async_get_config_entry_diagnostics(
             "active_hazards_count": len(coordinator.active_hazards),
             "highest_warning_level": coordinator.highest_warning_level.value,
             "has_emergency_warning_nearby": coordinator.has_emergency_warning_nearby,
+            "inside_warning_area": coordinator.is_inside_warning_area,
+            "hazards_with_area": sum(1 for h in coordinator.active_hazards if h.area),
         },
         "hazards": async_redact_data(hazards_data, TO_REDACT),
     }

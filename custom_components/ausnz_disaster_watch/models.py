@@ -10,6 +10,17 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+# Longest call to action written to state attributes
+CALL_TO_ACTION_MAX_LENGTH = 255
+# Upstream editor fields (ArcGIS ``created_user``/``last_edited_user`` hold email addresses)
+_PERSONAL_KEYS = frozenset({"created_user", "last_edited_user", "creator", "editor"})
+
+
+def _is_personal_key(key: str) -> bool:
+    """Return True for raw property keys that may identify a person (never copied to attributes)."""
+    lowered = key.lower()
+    return lowered in _PERSONAL_KEYS or "email" in lowered
+
 
 class WarningLevel(StrEnum):
     """Australian Warning System (AWS) warning levels."""
@@ -132,11 +143,25 @@ class CanonicalHazard(BaseModel):
     attribution: str | None = Field(
         default=None, description="Data source attribution; the coordinator fills it from the provider (#34)"
     )
+    area: tuple[tuple[tuple[float, float], ...], ...] | None = Field(
+        default=None,
+        exclude=True,
+        repr=False,
+        description=(
+            "Simplified warning or incident area: outer rings of (lat, lon) points (#30). "
+            "Never written to state attributes or diagnostics."
+        ),
+    )
+    inside_area: bool | None = Field(
+        default=None, description="True if the monitored point is inside ``area``; None without an area"
+    )
+    expires: datetime | None = Field(default=None, description="Timezone-aware UTC time the warning expires")
+    call_to_action: str | None = Field(default=None, description="Australian Warning System call to action")
 
-    @field_validator("updated_at", mode="before")
+    @field_validator("updated_at", "expires", mode="before")
     @classmethod
     def ensure_utc_datetime(cls, v: Any) -> datetime | None:
-        """Normalise updated_at to an aware UTC datetime; unknown times stay None (#13)."""
+        """Normalise a timestamp to an aware UTC datetime; unknown times stay None (#13)."""
         if isinstance(v, str):
             try:
                 v = datetime.fromisoformat(v)
@@ -153,6 +178,11 @@ class CanonicalHazard(BaseModel):
             WarningLevel.EMERGENCY_WARNING,
             WarningLevel.WATCH_AND_ACT,
         )
+
+    @property
+    def is_inside_warning(self) -> bool:
+        """Return True if the monitored point is inside the area of an Advice or higher warning (#30)."""
+        return self.inside_area is True and self.warning_level.severity_rank >= WarningLevel.ADVICE.severity_rank
 
     def to_safe_attributes(self) -> dict[str, Any]:
         """Return lean scalar metadata dictionary for Home Assistant state attributes.
@@ -179,10 +209,16 @@ class CanonicalHazard(BaseModel):
             attrs["responsible_agency"] = self.responsible_agency
         if self.web_url:
             attrs["web_url"] = self.web_url
+        if self.inside_area is not None:
+            attrs["inside_area"] = self.inside_area
+        if self.expires is not None:
+            attrs["expires"] = self.expires.isoformat()
+        if self.call_to_action:
+            attrs["call_to_action"] = self.call_to_action[:CALL_TO_ACTION_MAX_LENGTH]
 
         # Selectively copy small safe primitive properties from raw_properties
         for k, v in self.raw_properties.items():
-            if k in attrs:
+            if k in attrs or _is_personal_key(k):
                 continue
             if isinstance(v, (str, int, float, bool)) and len(str(v)) < 120:
                 attrs[f"prop_{k}"] = v

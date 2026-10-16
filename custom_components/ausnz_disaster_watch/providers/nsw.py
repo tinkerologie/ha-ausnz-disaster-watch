@@ -33,6 +33,7 @@ from custom_components.ausnz_disaster_watch.models import (
 
 from .base import MALFORMED_ITEM_ERRORS, BaseHazardProvider
 from .geojson_feed import CheckedEntryMixin, CheckedFeedMixin, async_feed_entries
+from .geometry import rings_from_geojson, simplify_area
 from .guardian_ims import GuardianDashboard, normalise_dashboard_url
 
 _LOGGER = logging.getLogger(__name__)
@@ -157,6 +158,8 @@ class NSWHazardProvider(BaseHazardProvider):
             status=status,
             responsible_agency=agency,
             web_url=props.get("link") or "https://www.rfs.nsw.gov.au/fire-information/fires-near-me",
+            # The fire ground polygons RFS publishes with the point (#30)
+            area=simplify_area(rings_from_geojson(entry.raw_geometry)),
             raw_properties=props,
         )
 

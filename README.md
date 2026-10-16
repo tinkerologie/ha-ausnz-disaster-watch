@@ -29,6 +29,11 @@ Directly integrates official emergency feeds—including the **Queensland Fire D
   - Configurable proximity radius slider (5 km to 300 km).
   - **Statewide Emergency Warning Override**: Automatically bypasses radius filters if any Level 3 Emergency Warning is active anywhere across your state.
   - **Exclude Hazard Reduction**: Drop planned/controlled burns to prevent false alarms.
+- **Warning Areas**:
+  - Where an agency publishes a warning's area (QFD and QPS warning polygons, SA SES warnings, SA CFS CAP areas, Emergency WA warnings, TasALERT, NSW RFS fire grounds, BoM, NEMA and MetService CAP areas), `distance_km` is the distance to the nearest edge of the area, 0 when the monitored location is inside it, instead of the distance to a single point.
+  - `binary_sensor.…_inside_warning_area` and the `inside_warning_area` attribute of the highest warning level sensor tell you when you are inside a warning area. Each hazard has an `inside_area` attribute. Warnings published only as a point never count.
+  - Polygons are simplified (about 50 m, at most 400 vertices per hazard) and kept in memory only: they never appear in state attributes or diagnostics. A point in a hole of a polygon counts as inside.
+  - Not covered: NSW SES (its only feed, HazardWatch, allows personal non-commercial use only), VicEmergency polygons (EMV terms need written permission), ACT (its polygon feed has burnt areas only).
 - **Dynamic Map Pins (`geo_location`)**:
   - Active incidents are displayed directly on the native Home Assistant Map.
   - Dynamic lifecycle: new incidents appear instantly, and cleared incidents are automatically removed without leaving orphaned unavailable entities.
@@ -56,6 +61,7 @@ Renders interactive pins on the native Home Assistant Map for every active hazar
 | Entity (suffix) | Description | Device Class |
 | ------ | ----------- | ------------ |
 | `…_emergency_warning_nearby` | `on` when any Emergency Warning (Level 3) or Watch and Act (Level 2) is active in perimeter | `safety` |
+| `…_inside_warning_area` | `on` when the monitored location is inside the published area of an Advice, Watch and Act or Emergency Warning. Attributes: `warning_count`, `warning_level`, `warning_title`, `call_to_action` of the most severe one | `safety` |
 | `…_active_hazards_nearby` | `on` when any active incident is within perimeter | `problem` |
 | `…_power_outage_active` | `on` when a power outage is reported nearby | `problem` |
 | `…_road_closure_nearby` | `on` when a road closure is reported nearby | `problem` |

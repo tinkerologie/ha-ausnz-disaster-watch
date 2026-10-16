@@ -152,6 +152,9 @@
       "emergency_warning_nearby": {
         "name": "Emergency Warning Nearby"
       },
+      "inside_warning_area": {
+        "name": "Inside Warning Area"
+      },
       "active_hazards_nearby": {
         "name": "Active Hazards Nearby"
       },
