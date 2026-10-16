@@ -1,7 +1,9 @@
 """New Zealand provider (#11): NEMA CAP-in-Atom alerts, MetService CAP warnings, GeoNet levels."""
 
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock, patch
+from typing import Any
+from unittest.mock import AsyncMock, patch
 from xml.sax.saxutils import escape
 
 import aiohttp
@@ -10,9 +12,8 @@ import pytest
 from custom_components.ausnz_disaster_watch.const import STATE_NZ
 from custom_components.ausnz_disaster_watch.models import HazardType, WarningLevel
 from custom_components.ausnz_disaster_watch.providers.base import ProviderUnavailableError
+from custom_components.ausnz_disaster_watch.providers.geonet import GEONET_QUAKE_URL, GEONET_VOLCANO_URL
 from custom_components.ausnz_disaster_watch.providers.nz import (
-    GEONET_QUAKE_URL,
-    GEONET_VOLCANO_URL,
     METSERVICE_ALERTS_URL,
     METSERVICE_WEB_URL,
     NEMA_ALERTHUB_URL,
@@ -21,6 +22,12 @@ from custom_components.ausnz_disaster_watch.providers.nz import (
     _quake_level,
 )
 from homeassistant.core import HomeAssistant
+
+
+def feature_collection(*features: dict[str, Any]) -> dict[str, Any]:
+    """Return a GeoJSON FeatureCollection."""
+    return {"type": "FeatureCollection", "features": list(features)}
+
 
 NOW = datetime(2026, 10, 15, 20, 0, tzinfo=UTC)
 HOME = {"latitude": -41.29, "longitude": 174.78}  # Wellington
@@ -80,12 +87,24 @@ def rss(*items: tuple[str, str, str]) -> str:
     return f"<rss version='2.0'><channel><title>MetService</title>{body}</channel></rss>"
 
 
-def make_provider(
-    hass: HomeAssistant, texts: dict[str, str], json: dict[str, object] | None = None
+type MakeProvider = Callable[..., tuple[NZHazardProvider, AsyncMock]]
+
+
+@pytest.fixture
+def make_provider(feed_routes: Any) -> MakeProvider:
+    """Return a factory for providers with routed fetches."""
+    return lambda hass, texts, json=None: _make_provider(hass, feed_routes, texts, json)
+
+
+def _make_provider(
+    hass: HomeAssistant, feed_routes: Any, texts: dict[str, str], json: dict[str, object] | None = None
 ) -> tuple[NZHazardProvider, AsyncMock]:
-    """Provider whose fetches are routed to ``texts``/``json`` (missing URL -> network error)."""
-    provider = NZHazardProvider(hass, MagicMock(), {"state": STATE_NZ, **HOME})
-    json_docs = {GEONET_QUAKE_URL: {"features": []}, GEONET_VOLCANO_URL: {"features": []}, **(json or {})}
+    """Provider whose fetches are routed to ``texts``/``json`` (missing URL -> network error).
+
+    GeoNet JSON goes through the feed libraries via a fake session; other JSON through the base fetcher.
+    """
+    json_docs = {GEONET_QUAKE_URL: feature_collection(), GEONET_VOLCANO_URL: feature_collection(), **(json or {})}
+    provider = NZHazardProvider(hass, feed_routes(json_docs), {"state": STATE_NZ, **HOME})
 
     async def fetch_text(url: str, headers: dict[str, str] | None = None) -> str:
         if url not in texts:
@@ -109,7 +128,7 @@ def fixed_now():
         yield
 
 
-async def test_nema_alerts_are_read_from_escaped_cap_content(hass: HomeAssistant) -> None:
+async def test_nema_alerts_are_read_from_escaped_cap_content(hass: HomeAssistant, make_provider: MakeProvider) -> None:
     """NEMA CAP alerts embedded as escaped XML are parsed, located in their area and levelled."""
     feed = atom(
         (
@@ -144,7 +163,7 @@ async def test_nema_alerts_are_read_from_escaped_cap_content(hass: HomeAssistant
     assert hazards["nz_nema_NEMA-4"].warning_level is WarningLevel.ADVICE
 
 
-async def test_nema_inline_cap_and_entries_without_alerts(hass: HomeAssistant) -> None:
+async def test_nema_inline_cap_and_entries_without_alerts(hass: HomeAssistant, make_provider: MakeProvider) -> None:
     """Inline (unescaped) CAP content, double-escaped content and entries without CAP are handled."""
     inline = cap("INLINE", polygon=WELLINGTON_POLY).split("?>", 1)[1]
     feed = f"""<feed xmlns="http://www.w3.org/2005/Atom">
@@ -165,7 +184,7 @@ async def test_nema_inline_cap_and_entries_without_alerts(hass: HomeAssistant) -
     assert ids[1] != "nz_nema_"
 
 
-async def test_metservice_cap_colour_area_and_lifecycle(hass: HomeAssistant) -> None:
+async def test_metservice_cap_colour_area_and_lifecycle(hass: HomeAssistant, make_provider: MakeProvider) -> None:
     """MetService warnings take level from ColourCode, location from the CAP area, and skip stale messages."""
     feed = rss(
         ("red", "Heavy Rain Warning", "https://ms/red"),
@@ -240,7 +259,7 @@ async def test_metservice_cap_colour_area_and_lifecycle(hass: HomeAssistant) -> 
     assert [w.title for w in await provider.async_fetch_weather_warnings()] == ["Thunderstorm Outlook"]
 
 
-async def test_metservice_warnings_outage_and_expiry(hass: HomeAssistant) -> None:
+async def test_metservice_warnings_outage_and_expiry(hass: HomeAssistant, make_provider: MakeProvider) -> None:
     """Weather warnings outlive a short outage, minus expired ones, and are dropped after LAST_GOOD_MAX_AGE."""
     docs = {
         METSERVICE_ALERTS_URL: rss(("a", "Outlook A", "https://ms/a"), ("b", "Outlook B", "https://ms/b")),
@@ -261,7 +280,7 @@ async def test_metservice_warnings_outage_and_expiry(hass: HomeAssistant) -> Non
         assert await provider.async_fetch_weather_warnings() == []
 
 
-async def test_metservice_feed_failures_and_malformed_alerts(hass: HomeAssistant) -> None:
+async def test_metservice_feed_failures_and_malformed_alerts(hass: HomeAssistant, make_provider: MakeProvider) -> None:
     """Invalid MetService XML fails only that source; a malformed alert is skipped."""
     for body in ("<rss><channel>", "<html/>"):
         provider, _ = make_provider(hass, {METSERVICE_ALERTS_URL: body})
@@ -278,7 +297,7 @@ async def test_metservice_feed_failures_and_malformed_alerts(hass: HomeAssistant
         assert await provider.async_fetch_hazards() == []
 
 
-async def test_hazards_without_configured_location(hass: HomeAssistant) -> None:
+async def test_hazards_without_configured_location(hass: HomeAssistant, make_provider: MakeProvider) -> None:
     """Without a usable home location the distance is left to the coordinator."""
     docs = {
         METSERVICE_ALERTS_URL: rss(("a", "A", "https://ms/a")),
@@ -292,7 +311,7 @@ async def test_hazards_without_configured_location(hass: HomeAssistant) -> None:
     assert hazard.location_name == "Wellington Region"
 
 
-async def test_geonet_quakes_and_volcanoes(hass: HomeAssistant) -> None:
+async def test_geonet_quakes_and_volcanoes(hass: HomeAssistant, make_provider: MakeProvider) -> None:
     """Quake level follows felt intensity; volcanoes carry no fake timestamp; stale and deleted quakes drop."""
     recent = (datetime.now(UTC) - timedelta(hours=1)).isoformat()
     old = (datetime.now(UTC) - timedelta(days=3)).isoformat()
@@ -302,38 +321,38 @@ async def test_geonet_quakes_and_volcanoes(hass: HomeAssistant) -> None:
         if mmi is not None:
             props["mmi"] = mmi
         props["locality"] = "10 km east of Wellington"
-        return {"geometry": {"type": "Point", "coordinates": [174.9, -41.3]}, "properties": props}
+        return {"type": "Feature", "geometry": {"type": "Point", "coordinates": [174.9, -41.3]}, "properties": props}
 
-    quakes = {
-        "features": [
-            quake("strong", 6.2, 7, 12),
-            quake("deep", 5.66, 4, 268),  # was Watch and Act; MMI 4 is Advice
-            quake("deleted", 6.0, 7, 10, quality="deleted"),
-            quake("old", 6.0, 7, 10, time=old),
-            {"geometry": {}, "properties": {"publicID": "nogeo", "time": recent}},
-        ]
-    }
-    volcanoes = {
-        "features": [
-            {
-                "geometry": {"type": "Point", "coordinates": [175.56, -39.28]},
-                "properties": {"volcanoID": "ruapehu", "volcanoTitle": "Ruapehu", "level": 2, "acc": "Yellow"},
-            },
-            {"geometry": {}, "properties": {"volcanoID": "nogeo", "level": 1}},
-            {
-                "geometry": {"type": "Point", "coordinates": [177.18, -37.52]},
-                "properties": {"volcanoID": "whiteisland", "level": 3},
-            },
-            {
-                "geometry": {"type": "Point", "coordinates": [176.1, -38.8]},
-                "properties": {"volcanoID": "taupo", "level": 1},
-            },
-            {
-                "geometry": {"type": "Point", "coordinates": [174.8, -36.9]},
-                "properties": {"volcanoID": "auckland", "level": 0},
-            },
-        ]
-    }
+    quakes = feature_collection(
+        quake("strong", 6.2, 7, 12),
+        quake("deep", 5.66, 4, 268),  # was Watch and Act; MMI 4 is Advice
+        quake("deleted", 6.0, 7, 10, quality="deleted"),
+        quake("old", 6.0, 7, 10, time=old),
+        {"type": "Feature", "geometry": {}, "properties": {"publicID": "nogeo", "time": recent}},
+    )
+    volcanoes = feature_collection(
+        {
+            "type": "Feature",
+            "geometry": {"type": "Point", "coordinates": [175.56, -39.28]},
+            "properties": {"volcanoID": "ruapehu", "volcanoTitle": "Ruapehu", "level": 2, "acc": "Yellow"},
+        },
+        {"type": "Feature", "geometry": {}, "properties": {"volcanoID": "nogeo", "level": 1}},
+        {
+            "type": "Feature",
+            "geometry": {"type": "Point", "coordinates": [177.18, -37.52]},
+            "properties": {"volcanoID": "whiteisland", "level": 3},
+        },
+        {
+            "type": "Feature",
+            "geometry": {"type": "Point", "coordinates": [176.1, -38.8]},
+            "properties": {"volcanoID": "taupo", "level": 1},
+        },
+        {
+            "type": "Feature",
+            "geometry": {"type": "Point", "coordinates": [174.8, -36.9]},
+            "properties": {"volcanoID": "auckland", "level": 0},
+        },
+    )
     provider, _ = make_provider(hass, {}, json={GEONET_QUAKE_URL: quakes, GEONET_VOLCANO_URL: volcanoes})
     hazards = {h.id: h for h in await provider.async_fetch_hazards()}
 
@@ -372,11 +391,10 @@ def test_quake_level(magnitude: float, mmi: int, depth: float | None, expected: 
     assert _quake_level(magnitude, mmi, depth) is expected
 
 
-async def test_all_sources_down(hass: HomeAssistant) -> None:
+async def test_all_sources_down(hass: HomeAssistant, make_provider: MakeProvider) -> None:
     """The provider is unavailable only when every NZ source fails."""
-    provider, _ = make_provider(hass, {})
-    provider.async_fetch_json = AsyncMock(side_effect=aiohttp.ClientError("down"))
-    with pytest.raises(ProviderUnavailableError):
+    provider, _ = make_provider(hass, {}, json={GEONET_QUAKE_URL: 503, GEONET_VOLCANO_URL: {"error": "maintenance"}})
+    with pytest.raises(ProviderUnavailableError, match="GeoNet quakes unavailable.*GeoNet volcanoes returned"):
         await provider.async_fetch_hazards()
     with pytest.raises(ProviderUnavailableError, match="empty response"):
         provider._parse_nema_atom("  ")

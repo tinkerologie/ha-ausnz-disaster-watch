@@ -26,8 +26,16 @@ from custom_components.ausnz_disaster_watch.providers import (
     WAHazardProvider,
 )
 from custom_components.ausnz_disaster_watch.providers.base import BaseHazardProvider, ProviderUnavailableError
+from custom_components.ausnz_disaster_watch.providers.geonet import GEONET_QUAKE_URL, GEONET_VOLCANO_URL
+from custom_components.ausnz_disaster_watch.providers.nsw import NSW_RFS_MAJOR_INCIDENTS_URL
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import UpdateFailed
+
+
+def feature_collection(*features: dict[str, Any]) -> dict[str, Any]:
+    """Return a GeoJSON FeatureCollection."""
+    return {"type": "FeatureCollection", "features": list(features)}
+
 
 GOOD_LAT, BAD_LAT = -27.5, 999.0  # 999 fails CanonicalHazard validation -> malformed item
 
@@ -82,13 +90,19 @@ async def test_nt_skips_malformed_item(hass: HomeAssistant) -> None:
 
 
 @pytest.mark.parametrize("provider_cls", [NSWHazardProvider, VictoriaHazardProvider])
-async def test_nsw_vic_skip_malformed_feature(hass: HomeAssistant, provider_cls: type[BaseHazardProvider]) -> None:
+async def test_nsw_vic_skip_malformed_feature(
+    hass: HomeAssistant, provider_cls: type[BaseHazardProvider], feed_routes: Any
+) -> None:
     """A feature whose parser raises is skipped; good features are kept."""
-    provider = provider_cls(hass, AsyncMock(), {"state": "NSW"})
+    feature = {"type": "Feature", "geometry": _point(-33.0, 151.0), "properties": {}}
+    session = feed_routes({NSW_RFS_MAJOR_INCIDENTS_URL: feature_collection(feature, feature)})
+    provider = provider_cls(hass, session, {"state": "NSW"})
     good = MagicMock(spec=CanonicalHazard)
     parse_name = "_parse_nsw_feature" if provider_cls is NSWHazardProvider else "_parse_vic_feature"
     setattr(provider, parse_name, MagicMock(side_effect=[ValueError("bad"), good]))
-    provider.async_fetch_json = AsyncMock(return_value={"features": [{}, {}]})
+    if provider_cls is VictoriaHazardProvider:
+        # VIC fetches through the base fetcher; NSW through the library feed on the routed session
+        provider.async_fetch_json = AsyncMock(return_value={"features": [{}, {}]})
     assert await provider.async_fetch_hazards() == [good]
 
 
@@ -120,27 +134,33 @@ async def test_wa_partial_and_malformed(hass: HomeAssistant) -> None:
         await provider.async_fetch_hazards()
 
 
-async def test_nz_skips_malformed_items(hass: HomeAssistant) -> None:
+async def test_nz_skips_malformed_items(hass: HomeAssistant, feed_routes: Any) -> None:
     """Bad GeoNet quake/volcano records and NEMA entries are skipped individually."""
-    provider = NZHazardProvider(hass, AsyncMock(), {"state": "NZ"})
     now = datetime.now(UTC).isoformat()
-    quakes = {
-        "features": [
-            {
-                "geometry": _point(-41.3, 174.8),
-                "properties": {"publicID": "q1", "time": now, "magnitude": 4.1, "mmi": 4},
-            },
-            {"geometry": _point(-41.3, 174.8), "properties": {"publicID": "q2", "time": now, "magnitude": "abc"}},
-        ]
-    }
-    volcanoes = {
-        "features": [
-            {"geometry": _point(-39.3, 175.6), "properties": {"volcanoID": "ruapehu", "level": 1}},
-            {"geometry": _point(-39.3, 175.6), "properties": {"volcanoID": "taupo", "level": "high"}},
-        ]
-    }
-    assert len(provider._parse_geonet_quakes(quakes)) == 1
-    assert len(provider._parse_geonet_volcanoes(volcanoes)) == 1
+    quakes = feature_collection(
+        {
+            "type": "Feature",
+            "geometry": _point(-41.3, 174.8),
+            "properties": {"publicID": "q1", "time": now, "magnitude": 4.1, "mmi": 4},
+        },
+        {
+            "type": "Feature",
+            "geometry": _point(-41.3, 174.8),
+            "properties": {"publicID": "q2", "time": now, "magnitude": "abc"},
+        },
+        # Broken geometry skips only this record, not the feed
+        {"type": "Feature", "geometry": {"type": "Point", "coordinates": []}, "properties": {"publicID": "q3"}},
+    )
+    volcanoes = feature_collection(
+        {"type": "Feature", "geometry": _point(-39.3, 175.6), "properties": {"volcanoID": "ruapehu", "level": 1}},
+        {"type": "Feature", "geometry": _point(-39.3, 175.6), "properties": {"volcanoID": "taupo", "level": "high"}},
+    )
+    session = feed_routes({GEONET_QUAKE_URL: quakes, GEONET_VOLCANO_URL: volcanoes})
+    provider = NZHazardProvider(hass, session, {"state": "NZ"})
+    _, quake_entries = await provider._quake_feed.update()
+    _, volcano_entries = await provider._volcano_feed.update()
+    assert len(provider._parse_geonet_quakes((quake_entries or [], {}))) == 1
+    assert len(provider._parse_geonet_volcanoes(volcano_entries or [])) == 1
 
     cap = (
         '<alert xmlns="urn:oasis:names:tc:emergency:cap:1.2"><identifier>{id}</identifier>'
@@ -159,7 +179,7 @@ async def test_nz_skips_malformed_items(hass: HomeAssistant) -> None:
         assert [h.id for h in provider._parse_nema_atom(nema)] == ["nz_nema_good"]
 
     # Quakes up, volcanoes payload malformed, NEMA down: partial result
-    provider.async_fetch_json = AsyncMock(side_effect=[quakes, []])
+    feed_routes.routes[GEONET_VOLCANO_URL] = []
     provider.async_fetch_text = AsyncMock(side_effect=aiohttp.ClientError("down"))
     assert len(await provider.async_fetch_hazards()) == 1
 
@@ -330,15 +350,15 @@ async def test_last_good_hazards_expire(
         assert await coordinator._async_fetch_all_hazards() == []
 
 
-async def test_non_list_collections_are_unavailable(hass: HomeAssistant) -> None:
+async def test_non_list_collections_are_unavailable(hass: HomeAssistant, feed_routes: Any) -> None:
     """features/warnings: null is a broken source; other sources are still fetched."""
     assert BaseHazardProvider.require_list({"features": [1]}, "features", "x") == [1]
     with pytest.raises(ProviderUnavailableError, match="is not a list"):
         BaseHazardProvider.require_list({"features": None}, "features", "x")
 
-    nsw = NSWHazardProvider(hass, AsyncMock(), {"state": "NSW"})
-    nsw.async_fetch_json = AsyncMock(return_value={"features": None})
-    with pytest.raises(ProviderUnavailableError):
+    nsw_feed = {"type": "FeatureCollection", "features": None}
+    nsw = NSWHazardProvider(hass, feed_routes({NSW_RFS_MAJOR_INCIDENTS_URL: nsw_feed}), {"state": "NSW"})
+    with pytest.raises(ProviderUnavailableError, match="NSW RFS returned a malformed payload"):
         await nsw.async_fetch_hazards()
 
     qld = QueenslandHazardProvider(hass, AsyncMock(), {"state": "QLD"})
@@ -387,15 +407,15 @@ async def test_xml_feeds_reject_wrong_documents(
             parse(wrong)
 
 
-async def test_json_feeds_reject_missing_collections(hass: HomeAssistant) -> None:
+async def test_json_feeds_reject_missing_collections(hass: HomeAssistant, feed_routes: Any) -> None:
     """A missing required collection is a broken response; an explicit empty list is valid."""
     with pytest.raises(ProviderUnavailableError, match="is not a list"):
         BaseHazardProvider.require_list({}, "features", "x")
     assert BaseHazardProvider.require_list({"features": []}, "features", "x") == []
 
-    nsw = NSWHazardProvider(hass, AsyncMock(), {"state": "NSW"})
-    nsw.async_fetch_json = AsyncMock(return_value={"error": "maintenance"})
-    with pytest.raises(ProviderUnavailableError):
+    nsw_error = feed_routes({NSW_RFS_MAJOR_INCIDENTS_URL: {"error": "maintenance"}})
+    nsw = NSWHazardProvider(hass, nsw_error, {"state": "NSW"})
+    with pytest.raises(ProviderUnavailableError, match="NSW RFS returned an unexpected payload"):
         await nsw.async_fetch_hazards()
 
     nt = NTHazardProvider(hass, AsyncMock(), {"state": "NT"})
