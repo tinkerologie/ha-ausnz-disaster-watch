@@ -79,6 +79,15 @@ class ProviderUnavailableError(Exception):
     """A provider could not fetch or decode its feed (as opposed to a valid, empty feed) (#16)."""
 
 
+class PartialFeedError(ProviderUnavailableError):
+    """Some sources of a feed failed; ``items`` holds what the others returned (#92)."""
+
+    def __init__(self, message: str, items: list[Any]) -> None:
+        """Keep the items of the sources that answered."""
+        super().__init__(message)
+        self.items = items
+
+
 # Errors that mean "this one upstream record is malformed": skip the record, keep the feed.
 # A model's ModelValidationError is a ValueError subclass.
 MALFORMED_ITEM_ERRORS: tuple[type[Exception], ...] = (ValueError, TypeError, KeyError, AttributeError, IndexError)

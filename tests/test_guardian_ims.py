@@ -13,6 +13,7 @@ import aiohttp
 import pytest
 
 from custom_components.ausnz_disaster_watch.providers import QueenslandHazardProvider
+from custom_components.ausnz_disaster_watch.providers.base import ProviderUnavailableError
 from custom_components.ausnz_disaster_watch.providers.guardian_ims import (
     GuardianDashboard,
     _bounded,
@@ -585,3 +586,12 @@ async def test_cameras(hass: HomeAssistant) -> None:
     # IDs are deterministic and do not depend on list position (#7)
     again, _ = _dashboard(hass, {"getCameras": {"features": [camera(745, "https://cameras.example/x.jpg")]}})
     assert (await again.cameras())[0].id == second.id
+
+
+async def test_cameras_outage_is_reported(hass: HomeAssistant) -> None:
+    """A failed getCameras request raises, so the cameras are not taken as delisted (#92); a missing endpoint has none."""
+    dashboard, _ = _dashboard(hass, {"getCameras": _http_error(500)})
+    with pytest.raises(ProviderUnavailableError):
+        await dashboard.cameras()
+    missing, _ = _dashboard(hass, {"getCameras": _http_error(404)})
+    assert await missing.cameras() == []

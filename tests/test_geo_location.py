@@ -163,7 +163,7 @@ async def test_geolocation_setup_cleans_stale_registry_entries(
     other_platform = entity_registry.async_get_or_create(
         "sensor",
         DOMAIN,
-        f"{mock_config_entry.entry_id}_keep_me",
+        f"{mock_config_entry.entry_id}_active_hazards_count",
         config_entry=mock_config_entry,
     )
 

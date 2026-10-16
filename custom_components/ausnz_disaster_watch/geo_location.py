@@ -22,6 +22,8 @@ from homeassistant.util import slugify
 from . import AusNZDisasterWatchConfigEntry
 from .const import DOMAIN, NEAREST_CAMERA_KM
 from .coordinator import AustralianDisasterWatchCoordinator, calculate_haversine_distance
+from .entity import camera_unique_id
+from .entity_lifecycle import async_remove_registry_entries, snapshot_is_complete
 from .models import CanonicalHazard
 
 _LOGGER = logging.getLogger(__name__)
@@ -70,15 +72,6 @@ def current_hazards(coordinator: AustralianDisasterWatchCoordinator) -> dict[str
     return {}
 
 
-def snapshot_is_complete(coordinator: AustralianDisasterWatchCoordinator) -> bool:
-    """Return True if the last refresh heard from every feed.
-
-    While a feed is down its hazards may be missing from the data, so an absent hazard
-    does not prove the incident has ended.
-    """
-    return coordinator.last_update_success and not getattr(coordinator.data, "feeds_failed", None)
-
-
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: AusNZDisasterWatchConfigEntry,
@@ -87,20 +80,22 @@ async def async_setup_entry(
     """Set up Australian Disaster Watch geolocation entities from a config entry."""
     coordinator = entry.runtime_data
     registered_entities: dict[str, AustralianDisasterWatchGeolocationEvent] = {}
-
-    # Events are transient: registry entries left behind by hazards that ended while Home
-    # Assistant was stopped would otherwise come back as "unavailable" entities.
-    active_unique_ids = {f"{entry.entry_id}_{hazard_id}" for hazard_id in current_hazards(coordinator)}
     entity_registry = er.async_get(hass)
-    if snapshot_is_complete(coordinator):
-        for registry_entry in er.async_entries_for_config_entry(entity_registry, entry.entry_id):
-            if registry_entry.domain == GEO_LOCATION_DOMAIN and registry_entry.unique_id not in active_unique_ids:
-                entity_registry.async_remove(registry_entry.entity_id)
+    registry_cleaned = False
 
     @callback
     def _sync_entities() -> None:
         """Dynamically add new incidents and remove expired ones on coordinator update."""
+        nonlocal registry_cleaned
         current_data = current_hazards(coordinator)
+
+        # Events are transient: registry entries left behind by hazards that ended while Home
+        # Assistant was stopped would otherwise come back as "unavailable" entities. Cleaned
+        # once per setup, after the first refresh that heard from every feed (#92).
+        if not registry_cleaned and snapshot_is_complete(coordinator):
+            registry_cleaned = True
+            keep = {f"{entry.entry_id}_{hazard_id}" for hazard_id in {*current_data, *registered_entities}}
+            async_remove_registry_entries(hass, entry.entry_id, (GEO_LOCATION_DOMAIN,), keep)
 
         new_entities: list[AustralianDisasterWatchGeolocationEvent] = []
 
@@ -231,7 +226,7 @@ class AustralianDisasterWatchGeolocationEvent(CoordinatorEntity[AustralianDisast
                 best = (distance, camera.id, camera.name)
         if best is None or self.hass is None:
             return None
-        unique_id = f"{self.coordinator.config_entry.entry_id}_camera_{best[1]}"
+        unique_id = camera_unique_id(self.coordinator.config_entry.entry_id, best[1])
         entity_id = er.async_get(self.hass).async_get_entity_id("camera", DOMAIN, unique_id)
         if entity_id is None:
             return None

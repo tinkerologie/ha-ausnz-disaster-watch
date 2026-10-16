@@ -197,6 +197,8 @@ The options set the **camera radius** (default 25 km, and cameras must also be i
 
 Only real images are shown: if a camera host answers with an error page instead of a picture, the camera keeps its last good image. Live Traffic NSW cameras are not available: their image server refuses requests that do not come from a web browser, and the integration does not pretend to be one.
 
+A camera that leaves the feed (delisted, out of the radius or past the maximum) is removed, including its entity registry entry; if it comes back it is re-created with the same entity ID. While a camera source is down its cameras are kept, unavailable, and are only removed once the source answers again without them.
+
 When a camera entity is within 5 km of an incident, the incident's map pin (`geo_location`) gets a `nearest_camera` attribute (`entity_id`, `name`, `distance_km`), and the incidents card shows a camera button next to the incident.
 
 ### Fire danger and total fire bans
@@ -734,6 +736,16 @@ The integration polls public feeds; nothing is pushed to it.
 | Camera images | When a dashboard or the camera view asks for a frame |
 
 When a feed fails, its last good data stands in for up to 30 minutes, so a short outage does not look like an all-clear; after that its incidents are dropped. A feed going down and coming back is logged once each. When every hazard feed fails, the hazard entities become unavailable until a feed answers again. Download the [diagnostics](#troubleshooting) to see each hazard feed's status and its last successful fetch.
+
+### Entity lifecycle
+
+Entities never linger as `unavailable` after the thing they describe has gone:
+
+- **Incidents and cameras** come and go with the feeds. An ended incident or a camera that leaves the feed is removed with its entity registry entry, including ones that went while Home Assistant was stopped. Nothing is removed while the feed it came from is down.
+- **Option-dependent entities** (river gauges, dam storages, forecast features, national feeds, tsunami warnings, the emergency broadcaster) are created only while turned on or selected, and are removed when you turn them off or deselect them. The fire season sensor exists only for New Zealand entries and the total fire ban sensor only for Australian ones; reconfiguring between them swaps the two.
+- **At every setup**, after the first refresh that hears from every hazard feed, registry entries of the entry that the current configuration no longer creates (for example from an older release) are removed, and so are devices of the entry left without entities.
+
+Customisations (name, icon, area) of a removed entity are lost with it. Each entry has one service device, which holds all its entities.
 
 ## Known limitations
 

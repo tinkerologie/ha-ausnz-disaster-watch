@@ -2,8 +2,11 @@
 
 Provides live snapshots of flood cameras and traffic webcams from council and road networks.
 Camera entities follow the coordinator data: cameras that appear are added and cameras that
-disappear are removed (their registry entries are kept, so a camera that comes back keeps
-its entity ID and customisations) (#19).
+disappear are removed with their registry entries (#19, #92), as are registry entries left by
+cameras that went while Home Assistant was stopped or whose ID changed. A camera is taken as
+gone only after a refresh that heard from every camera source; while one is down, its cameras
+stay, unavailable. A camera that comes back is re-created, with the same entity ID: it is
+derived from the camera's name.
 
 A fetched frame is kept only if its bytes are an image (JPEG, PNG, GIF or WebP magic
 bytes), whatever the Content-Type says: some hosts label JPEGs ``binary/octet-stream`` and
@@ -19,14 +22,17 @@ from typing import Any
 from aiohttp import ClientResponse, ClientTimeout
 
 from homeassistant.components.camera import Camera
+from homeassistant.components.camera.const import DOMAIN as CAMERA_DOMAIN
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import AusNZDisasterWatchConfigEntry
 from .const import DOMAIN
 from .coordinator import AustralianDisasterWatchCoordinator
-from .entity import AustralianDisasterWatchEntity
+from .entity import AustralianDisasterWatchEntity, camera_unique_id
+from .entity_lifecycle import async_remove_registry_entries, cameras_complete
 from .models import DisasterCameraItem
 from .providers.sources import DATA_SOURCES
 
@@ -74,14 +80,18 @@ async def async_setup_entry(
 ) -> None:
     """Set up camera entities and keep them in step with the coordinator's cameras."""
     coordinator = entry.runtime_data
+    registry = er.async_get(hass)
     tracked: dict[str, AustralianDisasterWatchCamera] = {}
     removing: set[str] = set()
+    registry_cleaned = False
 
     async def _async_remove(camera_id: str, entity: AustralianDisasterWatchCamera) -> None:
         # Keep the ID tracked until the old entity is gone: re-adding a camera whose old
         # entity still exists would be rejected as a unique-ID collision.
         try:
-            await entity.async_remove()
+            if entity.entity_id and registry.async_get(entity.entity_id) is not None:
+                registry.async_remove(entity.entity_id)
+            await entity.async_remove(force_remove=True)
         finally:
             tracked.pop(camera_id, None)
             removing.discard(camera_id)
@@ -89,8 +99,18 @@ async def async_setup_entry(
 
     @callback
     def _sync_entities() -> None:
+        nonlocal registry_cleaned
         current = {camera.id for camera in coordinator.cameras}
-        for camera_id in set(tracked) - current - removing:
+        complete = cameras_complete(coordinator)
+        if complete and not registry_cleaned:
+            # Once per setup, after the first complete refresh: entries of cameras that went
+            # while Home Assistant was stopped, or whose ID changed, would otherwise come back
+            # as "unavailable" entities.
+            registry_cleaned = True
+            keep = {camera_unique_id(entry.entry_id, camera_id) for camera_id in current | set(tracked)}
+            async_remove_registry_entries(hass, entry.entry_id, (CAMERA_DOMAIN,), keep)
+        gone = set(tracked) - current - removing if complete else set()
+        for camera_id in gone:
             entity = tracked[camera_id]
             if entity.hass is None:
                 tracked.pop(camera_id)

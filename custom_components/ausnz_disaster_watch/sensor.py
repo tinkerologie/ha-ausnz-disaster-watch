@@ -7,7 +7,7 @@ import re
 from typing import Any
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
-from homeassistant.const import UV_INDEX, UnitOfLength, UnitOfTemperature
+from homeassistant.const import UV_INDEX, Platform, UnitOfLength, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -24,6 +24,7 @@ from .const import (
 from .coordinator import AustralianDisasterWatchCoordinator
 from .dam_sensor import async_setup_dam_sensors
 from .entity import AustralianDisasterWatchEntity
+from .entity_lifecycle import tracks_entities
 from .forecast_entity import forecast_sensors
 from .models import WarningLevel, to_dict, to_json_dict
 from .providers.fire_danger import NZ_SEASONS, local_today
@@ -72,6 +73,7 @@ def national_feed_enabled(coordinator: AustralianDisasterWatchCoordinator, optio
     return bool(coordinator.combined_config.get(option, False))
 
 
+@tracks_entities(Platform.SENSOR)
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: AusNZDisasterWatchConfigEntry,

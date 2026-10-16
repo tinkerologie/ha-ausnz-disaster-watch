@@ -884,6 +884,7 @@ class DisasterCoordinatorData(_Model):
     air_quality_stations: list[AirQualityStationData] = field(default_factory=list)
     relief_facilities: list[ReliefFacilityItem] = field(default_factory=list)
     cameras: list[DisasterCameraItem] = field(default_factory=list)
+    cameras_failed: list[str] = field(default_factory=list)  # Providers whose camera source failed this update (#92)
     nearby_councils: list[dict[str, str]] = field(default_factory=list)
     feeds_ok: list[str] = field(default_factory=list)  # Hazard providers that fetched successfully
     feeds_failed: list[str] = field(default_factory=list)  # Hazard providers that failed this update

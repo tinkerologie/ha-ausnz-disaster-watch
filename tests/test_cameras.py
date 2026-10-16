@@ -38,7 +38,7 @@ from custom_components.ausnz_disaster_watch.providers import (
     QueenslandHazardProvider,
     get_providers_for_config,
 )
-from custom_components.ausnz_disaster_watch.providers.base import ProviderUnavailableError
+from custom_components.ausnz_disaster_watch.providers.base import PartialFeedError, ProviderUnavailableError
 from custom_components.ausnz_disaster_watch.providers.cameras import (
     NZTA_CAMERAS_URL,
     QLDTRAFFIC_FLOOD_CAMERAS_URL,
@@ -304,7 +304,10 @@ async def test_catalogue_cached_for_six_hours(
     assert await provider.async_fetch_cameras() == first  # stale but recent: kept
     assert aioclient_mock.call_count == 1
     freezer.tick(timedelta(hours=23))
-    assert await provider.async_fetch_cameras() == []  # too old: gone, not "still there"
+    # Too old: gone, not "still there"; reported as an outage, so its cameras are not taken as delisted (#92)
+    with pytest.raises(PartialFeedError) as err:
+        await provider.async_fetch_cameras()
+    assert err.value.items == []
 
 
 # --- coordinator, entities and nearest camera ---------------------------------------------
