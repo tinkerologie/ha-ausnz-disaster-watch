@@ -53,13 +53,21 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          open_pr="$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number // empty')"
           if git diff --quiet -- "$REGISTRY"; then
             echo "Council registry unchanged"
+            if [ -n "$open_pr" ]; then
+              # An earlier refresh proposed a change the latest run no longer finds
+              git fetch --no-tags origin "$BRANCH"
+              if ! git diff --quiet FETCH_HEAD -- "$REGISTRY"; then
+                gh pr close "$open_pr" --delete-branch \
+                  --comment "Closed by the council registry refresh: the latest run matches \`main\`, so this change is no longer proposed."
+              fi
+            fi
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          open_pr="$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number // empty')"
           if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null; then
             if [ -z "$open_pr" ]; then
               echo "::error::$BRANCH exists without an open pull request; delete the branch so the refresh can recreate it"
