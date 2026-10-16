@@ -98,6 +98,14 @@ jobs:
           restore-keys: |
             ha-venv-${{ runner.os }}-${{ runner.environment }}-py314-ha${{ steps.ha_version.outputs.HA_VERSION }}-
 
+      - name: Install build tools (self-hosted runner)
+        # GitHub-hosted images include these; some Home Assistant test dependencies
+        # (for example dtlssocket) are compiled from source and need them.
+        if: runner.environment == 'self-hosted'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends autoconf automake libtool build-essential pkg-config
+
       - name: Install dependencies
         run: script/setup/bootstrap
 
