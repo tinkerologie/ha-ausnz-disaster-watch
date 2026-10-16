@@ -130,6 +130,14 @@ _SOURCES = (
         status=LicenceStatus.OPEN,
     ),
     DataSource(
+        key="nzta_roads",
+        owner="NZ Transport Agency Waka Kotahi",
+        attribution="NZ Transport Agency Waka Kotahi",
+        licence="No licence published (data.govt.nz: No License Provided)",
+        terms_url="https://www.nzta.govt.nz/about-us/about-this-site/copyright/",
+        status=LicenceStatus.UNVERIFIED,
+    ),
+    DataSource(
         key="nema_cap",
         owner="National Emergency Management Agency (New Zealand)",
         attribution="National Emergency Management Agency (NZ), CC BY 4.0",
@@ -167,7 +175,7 @@ PROVIDER_SOURCES: dict[str, tuple[str, ...]] = {
     "ACTHazardProvider": ("act_esa",),
     "TasmaniaHazardProvider": ("tasalert",),
     "NTHazardProvider": ("nt_fire_incidents",),
-    "NZHazardProvider": ("geonet", "nema_cap", "metservice_cap"),
+    "NZHazardProvider": ("geonet", "nema_cap", "metservice_cap", "nzta_roads"),
     "BoMHazardProvider": ("bom_wmo",),
 }
 
