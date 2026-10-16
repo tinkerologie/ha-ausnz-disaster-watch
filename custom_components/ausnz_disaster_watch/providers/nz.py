@@ -108,6 +108,8 @@ class NZHazardProvider(BaseHazardProvider):
         self._geonet_cap: dict[str, CapAlert] = {}
         self._geonet_cap_at: datetime | None = None
         self._metservice_documents = CapDocumentCache("MetService CAP document")
+        # Used only when the provider runs without Home Assistant data (unit-test doubles)
+        self._metservice_local: MetServiceShared | None = None
         # Unlocated MetService warnings from the last successful poll, with each alert's expiry
         self._weather_warnings: list[tuple[datetime | None, WeatherWarningItem]] = []
         self._weather_warnings_at: datetime | None = None
@@ -395,7 +397,7 @@ class NZHazardProvider(BaseHazardProvider):
         data = getattr(self.hass, "data", None)
         if isinstance(data, dict):
             return data.setdefault(METSERVICE_SHARED_KEY, MetServiceShared())
-        if not hasattr(self, "_metservice_local"):
+        if self._metservice_local is None:
             self._metservice_local = MetServiceShared()
         return self._metservice_local
 
