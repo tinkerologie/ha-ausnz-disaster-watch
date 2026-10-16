@@ -66,8 +66,11 @@ class GAEarthquakeProvider(BaseHazardProvider):
         for feature in self.require_list(payload, "features", "GA earthquakes"):
             try:
                 props: dict[str, Any] = feature["properties"]
-                # Rows GA does not display (display_flag "N") are placeholders without an event ID
-                if props.get("display_flag") != "Y" or not props.get("event_id"):
+                # Rows GA does not display (display_flag "N") are placeholders without an event ID.
+                # A missing flag means the format changed: count the row as malformed, not hidden.
+                if (flag := props.get("display_flag")) is None:
+                    raise KeyError("display_flag")
+                if flag != "Y" or not props.get("event_id"):
                     continue
                 hazard = self._parse_feature(props)
             except MALFORMED_ITEM_ERRORS as err:
