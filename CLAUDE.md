@@ -59,7 +59,7 @@ Data flows **providers → coordinator → entities**. Entities never fetch data
 - **`coordinator.py`**: calls all providers concurrently with `asyncio.gather`. A provider that fails is logged and returns nothing; it never fails the whole update.
   - Applies spatial filtering using a haversine distance from the configured location (home zone or a custom lat/lon). An Emergency Warning anywhere in the state passes the radius filter when `override_emergency` is on, and planned burns are dropped when `exclude_hazard_reduction` is on.
   - Returns a `DisasterCoordinatorData`. The polling interval switches between 300 s and 60 s (`THREAT_SCAN_INTERVAL`) depending on whether there is an active threat nearby.
-  - Config is read from `entry.data` merged with `entry.options` (options win) and validated with `DisasterWatchConfigModel`. An options change calls `update_options()` and refreshes in place; it does not reload the config entry.
+  - Config is read from `entry.data` merged with `entry.options` (options win) and validated with `DisasterWatchConfigModel`. Saving an options step reloads the config entry (the options flows subclass `OptionsFlowWithReload`; reconfigure uses `async_update_reload_and_abort`).
 - **Entities** (`sensor`, `binary_sensor`, `geo_location`, `camera`):
   - Entities inherit `AusNZDisasterWatchEntity`, which sets the unique ID to `{entry_id}_{entity_key}` and puts every entity on one service device per entry. The exception is `geo_location.py`, which subclasses `CoordinatorEntity` directly and adds and removes map pins as hazards come and go.
   - Keep state attributes well under HA's 16 KB recorder limit. Store centroids and scalar fields, never full geometry.
