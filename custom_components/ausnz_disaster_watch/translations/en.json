@@ -56,6 +56,7 @@
         "menu_options": {
           "settings": "Monitoring settings",
           "forecasts": "Forecast signals and AI rain outlook",
+          "national_feeds": "National and regional feeds (optional)",
           "add_river_point": "Add a river flood forecast point",
           "edit_river_point": "Edit a river point",
           "remove_river_point": "Remove river points"
@@ -133,6 +134,26 @@
         "data": {
           "point": "River points to remove"
         }
+      },
+      "national_feeds": {
+        "title": "National and regional feeds (optional)",
+        "description": "Extra feeds, off by default. Each adds its own entity. Satellite hotspots are detections of heat, not fire warnings. Regional (GDACS) alerts are context and never count as local warnings.",
+        "data": {
+          "enable_tsunami": "Tsunami warnings",
+          "enable_satellite_hotspots": "Satellite hotspots nearby",
+          "enable_heatwave": "Heatwave warnings",
+          "enable_uv": "UV index",
+          "enable_state_air_quality": "State air quality stations",
+          "enable_regional_alerts": "Regional disaster alerts (GDACS)"
+        },
+        "data_description": {
+          "enable_tsunami": "Australia: Joint Australian Tsunami Warning Centre products from the Bureau of Meteorology. New Zealand: Pacific Tsunami Warning Center guidance (official NZ warnings come from NEMA).",
+          "enable_satellite_hotspots": "Digital Earth Australia hotspots from the last 24 hours within the monitoring radius. Not for safety-of-life decisions.",
+          "enable_heatwave": "Bureau of Meteorology heatwave warnings for your state.",
+          "enable_uv": "ARPANSA UV index at the nearest monitoring station, with the Bureau of Meteorology sun protection forecast.",
+          "enable_state_air_quality": "Nearest stations from your state environment agency, ordered by distance.",
+          "enable_regional_alerts": "Current GDACS Orange and Red alerts around Australia and New Zealand. Indicative only."
+        }
       }
     },
     "error": {
@@ -172,6 +193,9 @@
       },
       "total_fire_ban": {
         "name": "Total Fire Ban"
+      },
+      "tsunami_warning": {
+        "name": "Tsunami Warning"
       }
     },
     "sensor": {
@@ -248,6 +272,24 @@
       },
       "ai_rain_outlook": {
         "name": "Experimental AI rain outlook"
+      },
+      "satellite_hotspots_nearby": {
+        "name": "Satellite Hotspots Nearby"
+      },
+      "heatwave_severity": {
+        "name": "Heatwave Severity",
+        "state": {
+          "none": "None",
+          "low_intensity": "Low intensity",
+          "severe": "Severe",
+          "extreme": "Extreme"
+        }
+      },
+      "uv_index": {
+        "name": "UV Index"
+      },
+      "regional_disaster_alerts": {
+        "name": "Regional Disaster Alerts"
       }
     }
   },

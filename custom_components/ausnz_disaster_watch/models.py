@@ -355,7 +355,111 @@ class AirQualityStationData(BaseModel):
     no2_rating: str | None = Field(default=None, description="Nitrogen dioxide rating")
     o3_measurement: str | None = Field(default=None, description="Ozone reading")
     o3_rating: str | None = Field(default=None, description="Ozone rating")
-    overall_rating: str = Field(default="Good", description="Overall station air quality rating")
+    overall_rating: str | None = Field(
+        default="Good", description="Overall station air quality rating; None when no reading is available"
+    )
+    latitude: float | None = Field(default=None, ge=-90.0, le=90.0)
+    longitude: float | None = Field(default=None, ge=-180.0, le=180.0)
+    distance_km: float | None = Field(default=None, ge=0.0)
+    observed_at: datetime | None = Field(default=None, description="Time of the reading")
+    source: str | None = Field(default=None, description="Agency that published the reading")
+
+
+class SatelliteHotspotItem(BaseModel):
+    """A satellite-detected heat source (DEA Hotspots). Informational: not a fire or a warning."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    id: str = Field(description="Upstream hotspot identifier")
+    latitude: float = Field(ge=-90.0, le=90.0)
+    longitude: float = Field(ge=-180.0, le=180.0)
+    confidence: float | None = Field(default=None, description="Detection confidence (0-100)")
+    power: float | None = Field(default=None, description="Fire radiative power in MW, when reported")
+    temp_kelvin: float | None = Field(default=None)
+    hours_since_hotspot: float | None = Field(default=None, ge=0.0)
+    observed_at: datetime | None = Field(default=None)
+    satellite: str | None = Field(default=None)
+    distance_km: float | None = Field(default=None, ge=0.0)
+
+
+class SatelliteHotspots(BaseModel):
+    """Hotspots within the monitoring radius, plus how the query was limited."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    items: list[SatelliteHotspotItem] = Field(default_factory=list)
+    min_confidence: float = Field(description="Hotspots below this confidence were excluded")
+    truncated: bool = Field(default=False, description="The upstream query hit its feature limit")
+
+
+class TsunamiStatus(BaseModel):
+    """Tsunami threat for the configured jurisdiction (JATWC for Australia, PTWC guidance for NZ)."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    active: bool = Field(description="A current tsunami watch or warning applies")
+    threat_level: str | None = Field(default=None, description="no_threat, watch, marine or land")
+    headline: str | None = Field(default=None)
+    issued: datetime | None = Field(default=None)
+    expires: datetime | None = Field(default=None)
+    products: list[str] = Field(default_factory=list, description="Products present in the last check")
+    source: str = Field(description="Issuing centre")
+    checked_at: datetime | None = Field(default=None)
+
+
+class HeatwaveArea(BaseModel):
+    """One district in a BoM heatwave warning."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    name: str
+    severity: str
+
+
+class HeatwaveStatus(BaseModel):
+    """Highest current BoM heatwave warning severity in the configured state."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    severity: str = Field(description="none, low_intensity, severe or extreme")
+    areas: list[HeatwaveArea] = Field(default_factory=list)
+    headline: str | None = Field(default=None)
+    issued: datetime | None = Field(default=None)
+    expires: datetime | None = Field(default=None)
+    product_id: str = Field(description="BoM product checked")
+
+
+class UVObservation(BaseModel):
+    """Latest ARPANSA UV index at the nearest monitoring station, with the BoM sun protection forecast."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    station_id: str
+    station_name: str
+    index: float = Field(ge=0.0)
+    observed_at: datetime | None = Field(default=None)
+    distance_km: float | None = Field(default=None, ge=0.0)
+    forecast: str | None = Field(default=None, description="BoM UV alert text for today")
+    forecast_max_index: int | None = Field(default=None)
+
+
+class RegionalAlertItem(BaseModel):
+    """GDACS Orange or Red alert in the Australia/New Zealand region (context only, not a local warning)."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    id: str
+    title: str
+    event_type: str | None = Field(default=None)
+    alert_level: str
+    severity: str | None = Field(default=None)
+    country: str | None = Field(default=None)
+    latitude: float = Field(ge=-90.0, le=90.0)
+    longitude: float = Field(ge=-180.0, le=180.0)
+    from_date: datetime | None = Field(default=None)
+    to_date: datetime | None = Field(default=None)
+    url: str | None = Field(default=None)
+    distance_km: float | None = Field(default=None, ge=0.0)
 
 
 class ReliefFacilityItem(BaseModel):
@@ -407,6 +511,13 @@ class DisasterCoordinatorData(BaseModel):
     nearby_councils: list[dict[str, str]] = Field(default_factory=list)
     feeds_ok: list[str] = Field(default_factory=list, description="Hazard providers that fetched successfully")
     feeds_failed: list[str] = Field(default_factory=list, description="Hazard providers that failed this update")
+    # Opt-in national feeds (#37). None means "not enabled or could not be determined"; they
+    # never enter ``hazards``, so they do not change counts, warning levels or polling.
+    satellite_hotspots: SatelliteHotspots | None = Field(default=None)
+    tsunami: TsunamiStatus | None = Field(default=None)
+    heatwave: HeatwaveStatus | None = Field(default=None)
+    uv: UVObservation | None = Field(default=None)
+    regional_alerts: list[RegionalAlertItem] | None = Field(default=None)
 
     def __len__(self) -> int:
         """Return count of active hazards."""

@@ -5,17 +5,35 @@ from __future__ import annotations
 from typing import Any
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
-from homeassistant.const import UnitOfLength, UnitOfTemperature
+from homeassistant.const import UV_INDEX, UnitOfLength, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import AusNZDisasterWatchConfigEntry
-from .const import STATE_NZ
+from .const import (
+    AU_ONLY_FEED_OPTIONS,
+    CONF_ENABLE_HEATWAVE,
+    CONF_ENABLE_REGIONAL_ALERTS,
+    CONF_ENABLE_SATELLITE_HOTSPOTS,
+    CONF_ENABLE_UV,
+    STATE_NZ,
+)
 from .coordinator import AustralianDisasterWatchCoordinator
 from .entity import AustralianDisasterWatchEntity
 from .forecast_entity import forecast_sensors
 from .providers.fire_danger import NZ_SEASONS, local_today
-from .providers.sources import attribution_for
+from .providers.heatwave import HEATWAVE_SEVERITIES
+from .providers.sources import attribution_for, national_feed_attribution
+
+# Attribute lists are capped to keep state attributes small
+MAX_LISTED_ITEMS = 20
+
+
+def national_feed_enabled(coordinator: AustralianDisasterWatchCoordinator, option: str) -> bool:
+    """Return True if an opt-in national feed is enabled (AU-only feeds never for New Zealand)."""
+    if option in AU_ONLY_FEED_OPTIONS and coordinator.state_code == STATE_NZ:
+        return False
+    return bool(coordinator.combined_config.get(option, False))
 
 
 async def async_setup_entry(
@@ -43,6 +61,15 @@ async def async_setup_entry(
     ]
     if coordinator.state_code == STATE_NZ:
         entities.append(FireSeasonSensor(coordinator))
+    # Opt-in national feeds (#37): entities exist only while their feed is enabled
+    if national_feed_enabled(coordinator, CONF_ENABLE_SATELLITE_HOTSPOTS):
+        entities.append(SatelliteHotspotsSensor(coordinator))
+    if national_feed_enabled(coordinator, CONF_ENABLE_HEATWAVE):
+        entities.append(HeatwaveSeveritySensor(coordinator))
+    if national_feed_enabled(coordinator, CONF_ENABLE_UV):
+        entities.append(UVIndexSensor(coordinator))
+    if national_feed_enabled(coordinator, CONF_ENABLE_REGIONAL_ALERTS):
+        entities.append(RegionalDisasterAlertsSensor(coordinator))
     async_add_entities(entities)
 
 
@@ -390,7 +417,10 @@ class AirQualityIndexSensor(AustralianDisasterWatchEntity, SensorEntity):
             "pm10": first.pm10_measurement,
             "no2": first.no2_measurement,
             "o3": first.o3_measurement,
-            "stations": [s.model_dump() for s in stations[:10]],
+            "distance_km": first.distance_km,
+            "observed_at": first.observed_at.isoformat() if first.observed_at else None,
+            "source": first.source,
+            "stations": [s.model_dump(mode="json") for s in stations[:10]],
         }
 
 
@@ -459,3 +489,159 @@ class ReliefFacilitiesCountSensor(AustralianDisasterWatchEntity, SensorEntity):
         return {
             "facilities": [f.model_dump() for f in facilities[:25]],
         }
+
+
+class SatelliteHotspotsSensor(AustralianDisasterWatchEntity, SensorEntity):
+    """Count of satellite hotspots within the radius (informational: hotspots are not warnings)."""
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = "hotspots"
+    _attr_translation_key = "satellite_hotspots_nearby"
+    _attr_icon = "mdi:satellite-variant"
+
+    def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
+        """Initialize satellite hotspots sensor."""
+        super().__init__(coordinator, "satellite_hotspots_nearby")
+        # Credit only the sources behind this feed (#34)
+        self._attr_attribution = national_feed_attribution(CONF_ENABLE_SATELLITE_HOTSPOTS)
+
+    @property
+    def available(self) -> bool:
+        """Return False while the feed is undetermined."""
+        return super().available and self.coordinator.satellite_hotspots is not None
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the number of hotspots within the radius."""
+        hotspots = self.coordinator.satellite_hotspots
+        return len(hotspots.items) if hotspots is not None else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return nearest distance, confidence and the nearest hotspots."""
+        hotspots = self.coordinator.satellite_hotspots
+        if hotspots is None:
+            return {}
+        items = hotspots.items
+        confidences = [i.confidence for i in items if i.confidence is not None]
+        return {
+            "nearest_distance_km": items[0].distance_km if items else None,
+            "max_confidence": max(confidences, default=None),
+            "min_confidence_filter": hotspots.min_confidence,
+            "truncated": hotspots.truncated,
+            "hotspots": [i.model_dump(mode="json") for i in items[:MAX_LISTED_ITEMS]],
+        }
+
+
+class HeatwaveSeveritySensor(AustralianDisasterWatchEntity, SensorEntity):
+    """Highest current BoM heatwave warning severity in the configured state."""
+
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = list(HEATWAVE_SEVERITIES)
+    _attr_translation_key = "heatwave_severity"
+    _attr_icon = "mdi:thermometer-alert"
+
+    def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
+        """Initialize heatwave severity sensor."""
+        super().__init__(coordinator, "heatwave_severity")
+        # Credit only the sources behind this feed (#34)
+        self._attr_attribution = national_feed_attribution(CONF_ENABLE_HEATWAVE)
+
+    @property
+    def available(self) -> bool:
+        """Return False while the feed is undetermined."""
+        return super().available and self.coordinator.heatwave is not None
+
+    @property
+    def native_value(self) -> str | None:
+        """Return none, low_intensity, severe or extreme."""
+        heatwave = self.coordinator.heatwave
+        return heatwave.severity if heatwave is not None else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the warning headline, expiry and each district's severity."""
+        heatwave = self.coordinator.heatwave
+        if heatwave is None:
+            return {}
+        return {
+            "headline": heatwave.headline,
+            "issued": heatwave.issued.isoformat() if heatwave.issued else None,
+            "expires": heatwave.expires.isoformat() if heatwave.expires else None,
+            "areas": [area.model_dump() for area in heatwave.areas],
+            "product_id": heatwave.product_id,
+        }
+
+
+class UVIndexSensor(AustralianDisasterWatchEntity, SensorEntity):
+    """UV index at the nearest ARPANSA monitoring station."""
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = UV_INDEX
+    _attr_translation_key = "uv_index"
+    _attr_icon = "mdi:sun-wireless"
+
+    def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
+        """Initialize UV index sensor."""
+        super().__init__(coordinator, "uv_index")
+        # Credit only the sources behind this feed (#34)
+        self._attr_attribution = national_feed_attribution(CONF_ENABLE_UV)
+
+    @property
+    def available(self) -> bool:
+        """Return False while the feed is undetermined."""
+        return super().available and self.coordinator.uv is not None
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the latest UV index."""
+        uv = self.coordinator.uv
+        return uv.index if uv is not None else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the station, observation time and BoM sun protection forecast."""
+        uv = self.coordinator.uv
+        if uv is None:
+            return {}
+        return {
+            "station_name": uv.station_name,
+            "distance_km": uv.distance_km,
+            "observed_at": uv.observed_at.isoformat() if uv.observed_at else None,
+            "forecast": uv.forecast,
+            "forecast_max_index": uv.forecast_max_index,
+        }
+
+
+class RegionalDisasterAlertsSensor(AustralianDisasterWatchEntity, SensorEntity):
+    """Count of current GDACS Orange/Red alerts in the region (context, not local warnings)."""
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = "alerts"
+    _attr_translation_key = "regional_disaster_alerts"
+    _attr_icon = "mdi:earth"
+
+    def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
+        """Initialize regional alerts sensor."""
+        super().__init__(coordinator, "regional_disaster_alerts")
+        # Credit only the sources behind this feed (#34)
+        self._attr_attribution = national_feed_attribution(CONF_ENABLE_REGIONAL_ALERTS)
+
+    @property
+    def available(self) -> bool:
+        """Return False while the feed is undetermined."""
+        return super().available and self.coordinator.regional_alerts is not None
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the number of regional alerts."""
+        alerts = self.coordinator.regional_alerts
+        return len(alerts) if alerts is not None else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the alerts, nearest first."""
+        alerts = self.coordinator.regional_alerts
+        if alerts is None:
+            return {}
+        return {"alerts": [a.model_dump(mode="json") for a in alerts[:MAX_LISTED_ITEMS]]}

@@ -209,6 +209,7 @@ async def test_edit_and_remove_river_points(hass: HomeAssistant, mock_config_ent
     assert result["menu_options"] == [
         "settings",
         "forecasts",
+        "national_feeds",
         "add_river_point",
         "edit_river_point",
         "remove_river_point",

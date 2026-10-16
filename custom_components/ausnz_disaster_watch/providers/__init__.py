@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 import aiohttp
 
 from custom_components.ausnz_disaster_watch.const import (
+    NATIONAL_FEED_OPTIONS,
     STATE_ACT,
     STATE_NSW,
     STATE_NT,
@@ -21,6 +22,7 @@ from custom_components.ausnz_disaster_watch.const import (
 from .act import ACTHazardProvider
 from .base import BaseHazardProvider
 from .bom import BoMHazardProvider
+from .national import NationalHazardProvider
 from .nsw import NSWHazardProvider
 from .nt import NTHazardProvider
 from .nz import NZHazardProvider
@@ -66,6 +68,10 @@ def get_providers_for_config(
     if state != STATE_NZ:
         providers.append(BoMHazardProvider(hass, session, config))
 
+    # Opt-in national and regional feeds (#37)
+    if any(config.get(option) for option in NATIONAL_FEED_OPTIONS):
+        providers.append(NationalHazardProvider(hass, session, config))
+
     return providers
 
 
@@ -76,6 +82,7 @@ __all__ = [
     "NSWHazardProvider",
     "NTHazardProvider",
     "NZHazardProvider",
+    "NationalHazardProvider",
     "QueenslandHazardProvider",
     "SAHazardProvider",
     "TasmaniaHazardProvider",

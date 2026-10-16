@@ -1,0 +1,434 @@
+[
+ {
+  "Site_Id": 39,
+  "Parameter": {
+   "ParameterCode": "PM2.5",
+   "ParameterDescription": "PM2.5",
+   "Units": "µg/m³",
+   "UnitsDescription": "microgram per cubic meter",
+   "Category": "Averages",
+   "SubCategory": "Hourly",
+   "Frequency": "Hourly average"
+  },
+  "Date": "2026-10-16",
+  "Hour": 6,
+  "HourDescription": "5 am - 6 am",
+  "Value": 10.19,
+  "AirQualityCategory": "GOOD",
+  "DeterminingPollutant": null
+ },
+ {
+  "Site_Id": 39,
+  "Parameter": {
+   "ParameterCode": "PM2.5",
+   "ParameterDescription": "PM2.5",
+   "Units": "µg/m³",
+   "UnitsDescription": "microgram per cubic meter",
+   "Category": "Averages",
+   "SubCategory": "Hourly",
+   "Frequency": "Hourly average"
+  },
+  "Date": "2026-10-16",
+  "Hour": 7,
+  "HourDescription": "6 am - 7 am",
+  "Value": 6.664,
+  "AirQualityCategory": "GOOD",
+  "DeterminingPollutant": null
+ },
+ {
+  "Site_Id": 39,
+  "Parameter": {
+   "ParameterCode": "PM2.5",
+   "ParameterDescription": "PM2.5",
+   "Units": "µg/m³",
+   "UnitsDescription": "microgram per cubic meter",
+   "Category": "Averages",
+   "SubCategory": "Hourly",
+   "Frequency": "Hourly average"
+  },
+  "Date": "2026-10-16",
+  "Hour": 8,
+  "HourDescription": "7 am - 8 am",
+  "Value": 5.946,
+  "AirQualityCategory": "GOOD",
+  "DeterminingPollutant": null
+ },
+ {
+  "Site_Id": 39,
+  "Parameter": {
+   "ParameterCode": "PM2.5",
+   "ParameterDescription": "PM2.5",
+   "Units": "µg/m³",
+   "UnitsDescription": "microgram per cubic meter",
+   "Category": "Averages",
+   "SubCategory": "Hourly",
+   "Frequency": "Hourly average"
+  },
+  "Date": "2026-10-16",
+  "Hour": 24,
+  "HourDescription": "11 pm - 12 am",
+  "Value": null,
+  "AirQualityCategory": null,
+  "DeterminingPollutant": null
+ },
+ {
+  "Site_Id": 39,
+  "Parameter": {
+   "ParameterCode": "PM10",
+   "ParameterDescription": "PM10",
+   "Units": "µg/m³",
+   "UnitsDescription": "microgram per cubic meter",
+   "Category": "Averages",
+   "SubCategory": "Hourly",
+   "Frequency": "Hourly average"
+  },
+  "Date": "2026-10-16",
+  "Hour": 6,
+  "HourDescription": "5 am - 6 am",
+  "Value": 10.565,
+  "AirQualityCategory": "GOOD",
+  "DeterminingPollutant": null
+ },
+ {
+  "Site_Id": 39,
+  "Parameter": {
+   "ParameterCode": "PM10",
+   "ParameterDescription": "PM10",
+   "Units": "µg/m³",
+   "UnitsDescription": "microgram per cubic meter",
+   "Category": "Averages",
+   "SubCategory": "Hourly",
+   "Frequency": "Hourly average"
+  },
+  "Date": "2026-10-16",
+  "Hour": 7,
+  "HourDescription": "6 am - 7 am",
+  "Value": 15.388,
+  "AirQualityCategory": "GOOD",
+  "DeterminingPollutant": null
+ },
+ {
+  "Site_Id": 39,
+  "Parameter": {
+   "ParameterCode": "PM10",
+   "ParameterDescription": "PM10",
+   "Units": "µg/m³",
+   "UnitsDescription": "microgram per cubic meter",
+   "Category": "Averages",
+   "SubCategory": "Hourly",
+   "Frequency": "Hourly average"
+  },
+  "Date": "2026-10-16",
+  "Hour": 8,
+  "HourDescription": "7 am - 8 am",
+  "Value": 11.79,
+  "AirQualityCategory": "GOOD",
+  "DeterminingPollutant": null
+ },
+ {
+  "Site_Id": 39,
+  "Parameter": {
+   "ParameterCode": "PM10",
+   "ParameterDescription": "PM10",
+   "Units": "µg/m³",
+   "UnitsDescription": "microgram per cubic meter",
+   "Category": "Averages",
+   "SubCategory": "Hourly",
+   "Frequency": "Hourly average"
+  },
+  "Date": "2026-10-16",
+  "Hour": 24,
+  "HourDescription": "11 pm - 12 am",
+  "Value": null,
+  "AirQualityCategory": null,
+  "DeterminingPollutant": null
+ },
+ {
+  "Site_Id": 39,
+  "Parameter": {
+   "ParameterCode": "NO2",
+   "ParameterDescription": "Nitrogen Dioxide",
+   "Units": "pphm",
+   "UnitsDescription": "parts per hundred million",
+   "Category": "Averages",
+   "SubCategory": "Hourly",
+   "Frequency": "Hourly average"
+  },
+  "Date": "2026-10-16",
+  "Hour": 6,
+  "HourDescription": "5 am - 6 am",
+  "Value": 0.825945,
+  "AirQualityCategory": "GOOD",
+  "DeterminingPollutant": null
+ },
+ {
+  "Site_Id": 39,
+  "Parameter": {
+   "ParameterCode": "NO2",
+   "ParameterDescription": "Nitrogen Dioxide",
+   "Units": "pphm",
+   "UnitsDescription": "parts per hundred million",
+   "Category": "Averages",
+   "SubCategory": "Hourly",
+   "Frequency": "Hourly average"
+  },
+  "Date": "2026-10-16",
+  "Hour": 7,
+  "HourDescription": "6 am - 7 am",
+  "Value": 1.522729,
+  "AirQualityCategory": "GOOD",
+  "DeterminingPollutant": null
+ },
+ {
+  "Site_Id": 39,
+  "Parameter": {
+   "ParameterCode": "NO2",
+   "ParameterDescription": "Nitrogen Dioxide",
+   "Units": "pphm",
+   "UnitsDescription": "parts per hundred million",
+   "Category": "Averages",
+   "SubCategory": "Hourly",
+   "Frequency": "Hourly average"
+  },
+  "Date": "2026-10-16",
+  "Hour": 8,
+  "HourDescription": "7 am - 8 am",
+  "Value": 1.824314,
+  "AirQualityCategory": "GOOD",
+  "DeterminingPollutant": null
+ },
+ {
+  "Site_Id": 39,
+  "Parameter": {
+   "ParameterCode": "NO2",
+   "ParameterDescription": "Nitrogen Dioxide",
+   "Units": "pphm",
+   "UnitsDescription": "parts per hundred million",
+   "Category": "Averages",
+   "SubCategory": "Hourly",
+   "Frequency": "Hourly average"
+  },
+  "Date": "2026-10-16",
+  "Hour": 24,
+  "HourDescription": "11 pm - 12 am",
+  "Value": null,
+  "AirQualityCategory": null,
+  "DeterminingPollutant": null
+ },
+ {
+  "Site_Id": 33,
+  "Parameter": {
+   "ParameterCode": "PM2.5",
+   "ParameterDescription": "PM2.5",
+   "Units": "µg/m³",
+   "UnitsDescription": "microgram per cubic meter",
+   "Category": "Averages",
+   "SubCategory": "Hourly",
+   "Frequency": "Hourly average"
+  },
+  "Date": "2026-10-16",
+  "Hour": 6,
+  "HourDescription": "5 am - 6 am",
+  "Value": 2.371,
+  "AirQualityCategory": "GOOD",
+  "DeterminingPollutant": null
+ },
+ {
+  "Site_Id": 33,
+  "Parameter": {
+   "ParameterCode": "PM2.5",
+   "ParameterDescription": "PM2.5",
+   "Units": "µg/m³",
+   "UnitsDescription": "microgram per cubic meter",
+   "Category": "Averages",
+   "SubCategory": "Hourly",
+   "Frequency": "Hourly average"
+  },
+  "Date": "2026-10-16",
+  "Hour": 7,
+  "HourDescription": "6 am - 7 am",
+  "Value": 7.381,
+  "AirQualityCategory": "GOOD",
+  "DeterminingPollutant": null
+ },
+ {
+  "Site_Id": 33,
+  "Parameter": {
+   "ParameterCode": "PM2.5",
+   "ParameterDescription": "PM2.5",
+   "Units": "µg/m³",
+   "UnitsDescription": "microgram per cubic meter",
+   "Category": "Averages",
+   "SubCategory": "Hourly",
+   "Frequency": "Hourly average"
+  },
+  "Date": "2026-10-16",
+  "Hour": 8,
+  "HourDescription": "7 am - 8 am",
+  "Value": 6.467,
+  "AirQualityCategory": "GOOD",
+  "DeterminingPollutant": null
+ },
+ {
+  "Site_Id": 33,
+  "Parameter": {
+   "ParameterCode": "PM2.5",
+   "ParameterDescription": "PM2.5",
+   "Units": "µg/m³",
+   "UnitsDescription": "microgram per cubic meter",
+   "Category": "Averages",
+   "SubCategory": "Hourly",
+   "Frequency": "Hourly average"
+  },
+  "Date": "2026-10-16",
+  "Hour": 24,
+  "HourDescription": "11 pm - 12 am",
+  "Value": null,
+  "AirQualityCategory": null,
+  "DeterminingPollutant": null
+ },
+ {
+  "Site_Id": 33,
+  "Parameter": {
+   "ParameterCode": "PM10",
+   "ParameterDescription": "PM10",
+   "Units": "µg/m³",
+   "UnitsDescription": "microgram per cubic meter",
+   "Category": "Averages",
+   "SubCategory": "Hourly",
+   "Frequency": "Hourly average"
+  },
+  "Date": "2026-10-16",
+  "Hour": 6,
+  "HourDescription": "5 am - 6 am",
+  "Value": 10.133,
+  "AirQualityCategory": "GOOD",
+  "DeterminingPollutant": null
+ },
+ {
+  "Site_Id": 33,
+  "Parameter": {
+   "ParameterCode": "PM10",
+   "ParameterDescription": "PM10",
+   "Units": "µg/m³",
+   "UnitsDescription": "microgram per cubic meter",
+   "Category": "Averages",
+   "SubCategory": "Hourly",
+   "Frequency": "Hourly average"
+  },
+  "Date": "2026-10-16",
+  "Hour": 7,
+  "HourDescription": "6 am - 7 am",
+  "Value": 14.563,
+  "AirQualityCategory": "GOOD",
+  "DeterminingPollutant": null
+ },
+ {
+  "Site_Id": 33,
+  "Parameter": {
+   "ParameterCode": "PM10",
+   "ParameterDescription": "PM10",
+   "Units": "µg/m³",
+   "UnitsDescription": "microgram per cubic meter",
+   "Category": "Averages",
+   "SubCategory": "Hourly",
+   "Frequency": "Hourly average"
+  },
+  "Date": "2026-10-16",
+  "Hour": 8,
+  "HourDescription": "7 am - 8 am",
+  "Value": 12.768,
+  "AirQualityCategory": "GOOD",
+  "DeterminingPollutant": null
+ },
+ {
+  "Site_Id": 33,
+  "Parameter": {
+   "ParameterCode": "PM10",
+   "ParameterDescription": "PM10",
+   "Units": "µg/m³",
+   "UnitsDescription": "microgram per cubic meter",
+   "Category": "Averages",
+   "SubCategory": "Hourly",
+   "Frequency": "Hourly average"
+  },
+  "Date": "2026-10-16",
+  "Hour": 24,
+  "HourDescription": "11 pm - 12 am",
+  "Value": null,
+  "AirQualityCategory": null,
+  "DeterminingPollutant": null
+ },
+ {
+  "Site_Id": 33,
+  "Parameter": {
+   "ParameterCode": "NO2",
+   "ParameterDescription": "Nitrogen Dioxide",
+   "Units": "pphm",
+   "UnitsDescription": "parts per hundred million",
+   "Category": "Averages",
+   "SubCategory": "Hourly",
+   "Frequency": "Hourly average"
+  },
+  "Date": "2026-10-16",
+  "Hour": 6,
+  "HourDescription": "5 am - 6 am",
+  "Value": 0.036472,
+  "AirQualityCategory": "GOOD",
+  "DeterminingPollutant": null
+ },
+ {
+  "Site_Id": 33,
+  "Parameter": {
+   "ParameterCode": "NO2",
+   "ParameterDescription": "Nitrogen Dioxide",
+   "Units": "pphm",
+   "UnitsDescription": "parts per hundred million",
+   "Category": "Averages",
+   "SubCategory": "Hourly",
+   "Frequency": "Hourly average"
+  },
+  "Date": "2026-10-16",
+  "Hour": 7,
+  "HourDescription": "6 am - 7 am",
+  "Value": 0.041731,
+  "AirQualityCategory": "GOOD",
+  "DeterminingPollutant": null
+ },
+ {
+  "Site_Id": 33,
+  "Parameter": {
+   "ParameterCode": "NO2",
+   "ParameterDescription": "Nitrogen Dioxide",
+   "Units": "pphm",
+   "UnitsDescription": "parts per hundred million",
+   "Category": "Averages",
+   "SubCategory": "Hourly",
+   "Frequency": "Hourly average"
+  },
+  "Date": "2026-10-16",
+  "Hour": 8,
+  "HourDescription": "7 am - 8 am",
+  "Value": 0.054828,
+  "AirQualityCategory": "GOOD",
+  "DeterminingPollutant": null
+ },
+ {
+  "Site_Id": 33,
+  "Parameter": {
+   "ParameterCode": "NO2",
+   "ParameterDescription": "Nitrogen Dioxide",
+   "Units": "pphm",
+   "UnitsDescription": "parts per hundred million",
+   "Category": "Averages",
+   "SubCategory": "Hourly",
+   "Frequency": "Hourly average"
+  },
+  "Date": "2026-10-16",
+  "Hour": 24,
+  "HourDescription": "11 pm - 12 am",
+  "Value": null,
+  "AirQualityCategory": null,
+  "DeterminingPollutant": null
+ }
+]

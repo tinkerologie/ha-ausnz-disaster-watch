@@ -22,9 +22,14 @@ from custom_components.ausnz_disaster_watch.models import (
     DisasterCameraItem,
     EmergencyNewsItem,
     FireDangerRating,
+    HeatwaveStatus,
     PowerOutageItem,
+    RegionalAlertItem,
     ReliefFacilityItem,
     RoadClosureItem,
+    SatelliteHotspots,
+    TsunamiStatus,
+    UVObservation,
     WeatherStationObservation,
     WeatherWarningItem,
 )
@@ -98,11 +103,52 @@ MAX_RETRIES = 3
 INITIAL_BACKOFF = 1.0
 
 
+class FeedCache[T]:
+    """Last good value of one slow feed, refreshed at most every ``ttl``.
+
+    A failed refresh (ProviderUnavailableError or a malformed document) returns the last good value while it is no
+    older than ``max_stale``, then None, so a long outage reads as "unknown", never as clear.
+    """
+
+    def __init__(self, label: str, ttl: timedelta, max_stale: timedelta) -> None:
+        """Initialise an empty cache; ``label`` names the feed in log messages."""
+        self._label = label
+        self._ttl = ttl
+        self._max_stale = max_stale
+        self._value: T | None = None
+        self._fetched_at: datetime | None = None
+
+    @property
+    def fetched_at(self) -> datetime | None:
+        """Return when the cached value was fetched."""
+        return self._fetched_at
+
+    async def async_get(self, fetch: Callable[[], Awaitable[T]]) -> T | None:
+        """Return the cached value if fresh, else fetch; on failure return bounded stale data or None."""
+        now = dt_util.utcnow()
+        if self._fetched_at is not None and now - self._fetched_at < self._ttl:
+            return self._value
+        try:
+            value = await fetch()
+        except (ProviderUnavailableError, *MALFORMED_ITEM_ERRORS) as err:
+            # A structurally broken document is an outage of this feed too
+            _LOGGER.debug("%s unavailable: %s", self._label, err)
+            if self._fetched_at is not None and now - self._fetched_at <= self._max_stale:
+                return self._value
+            return None
+        self._value = value
+        self._fetched_at = now
+        return value
+
+
 class BaseHazardProvider(ABC):
     """Abstract base provider for state and jurisdiction emergency feeds."""
 
     # IANA zone the agency publishes naive local timestamps in (see const.STATE_TIMEZONES)
     local_tz: ClassVar[str] = "UTC"
+    # False for providers of auxiliary data only; the coordinator then skips their hazard
+    # fetch, so they cannot count as a healthy hazard feed (#16)
+    provides_hazards: ClassVar[bool] = True
 
     def __init__(
         self,
@@ -260,14 +306,40 @@ class BaseHazardProvider(ABC):
         """Fetch nearby council disaster dashboard links."""
         return []
 
+    # Opt-in national feeds (#37). None means "not supported here, or undetermined".
+
+    async def async_fetch_tsunami_status(self) -> TsunamiStatus | None:
+        """Fetch the tsunami threat for the configured jurisdiction."""
+        return None
+
+    async def async_fetch_satellite_hotspots(self) -> SatelliteHotspots | None:
+        """Fetch satellite hotspots within the monitoring radius."""
+        return None
+
+    async def async_fetch_heatwave(self) -> HeatwaveStatus | None:
+        """Fetch the heatwave warning severity for the configured state."""
+        return None
+
+    async def async_fetch_uv(self) -> UVObservation | None:
+        """Fetch the UV index at the nearest monitoring station."""
+        return None
+
+    async def async_fetch_regional_alerts(self) -> list[RegionalAlertItem] | None:
+        """Fetch regional disaster alerts (context only, never local hazards)."""
+        return None
+
     async def _async_request(
         self,
         url: str,
         accept: str,
         is_json: bool,
         headers: dict[str, str] | None = None,
+        json_body: Any = None,
     ) -> Any:
-        """Fetch URL with exponential retry for transient HTTP (429, 5xx) and network errors."""
+        """Fetch URL with exponential retry for transient HTTP (429, 5xx) and network errors.
+
+        A ``json_body`` makes the request a POST with that JSON payload; otherwise it is a GET.
+        """
         req_headers = {
             "User-Agent": "HomeAssistant-AusNZDisasterWatch/1.0",
             "Accept": accept,
@@ -279,11 +351,12 @@ class BaseHazardProvider(ABC):
 
         for attempt in range(1, MAX_RETRIES + 1):
             try:
-                async with self.session.get(
-                    url,
-                    headers=req_headers,
-                    timeout=DEFAULT_TIMEOUT,
-                ) as resp:
+                request = (
+                    self.session.get(url, headers=req_headers, timeout=DEFAULT_TIMEOUT)
+                    if json_body is None
+                    else self.session.post(url, headers=req_headers, timeout=DEFAULT_TIMEOUT, json=json_body)
+                )
+                async with request as resp:
                     if resp.status == 200:
                         if is_json:
                             return await resp.json(content_type=None)
@@ -345,6 +418,13 @@ class BaseHazardProvider(ABC):
             is_json=True,
             headers=headers,
         )
+
+    async def async_post_json(self, url: str, body: Any, label: str) -> Any:
+        """POST a JSON body and decode the JSON reply, raising ProviderUnavailableError on failure."""
+        try:
+            return await self._async_request(url, accept="application/json", is_json=True, headers=None, json_body=body)
+        except (aiohttp.ClientError, TimeoutError, ValueError) as err:
+            raise ProviderUnavailableError(f"{label} unavailable: {err}") from err
 
     async def async_fetch_text(
         self,

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Recorded from ftp://ftp.bom.gov.au/anon/gen/fwo/IDZ00109.xml (BoM UV forecast, QLD) on 2026-10-16 (live). Trimmed to Brisbane. -->
+<product version="1.5" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.bom.gov.au/schema/v1.5/product.xsd">
+  <amoc>
+    <source>
+      <sender>Australian Government Bureau of Meteorology</sender>
+      <region>Head Office (ISS)</region>
+      <office>ISS</office>
+      <copyright>http://www.bom.gov.au/other/copyright.shtml</copyright>
+      <disclaimer>http://www.bom.gov.au/other/disclaimer.shtml</disclaimer>
+    </source>
+    <identifier>IDZ00109</identifier>
+    <issue-time-utc>2026-10-15T10:40:17Z</issue-time-utc>
+    <issue-time-local tz="AEDT">2026-10-15T21:40:17+11:00:00</issue-time-local>
+    <sent-time>2026-10-15T10:40:17Z</sent-time>
+    <status>O</status>
+    <service>WSP</service>
+    <sub-service>FPR</sub-service>
+    <product-type>F</product-type>
+    <phase>NEW</phase>
+  </amoc>
+  <forecast>
+    <area aac="QLD_PT001" description="Brisbane" type="location">
+      <forecast-period index="0" start-time-local="2026-10-16T01:00:00+10:00" end-time-local="2026-10-17T01:00:00+10:00" start-time-utc="2026-10-15T15:00:00Z" end-time-utc="2026-10-16T15:00:00Z">
+        <text type="uv_alert">Sun protection recommended from  7:50 am to  3:10 pm, UV Index predicted to reach 10 [Very High]</text>
+      </forecast-period>
+      <forecast-period index="1" start-time-local="2026-10-17T01:00:00+10:00" end-time-local="2026-10-18T01:00:00+10:00" start-time-utc="2026-10-16T15:00:00Z" end-time-utc="2026-10-17T15:00:00Z">
+        <text type="uv_alert">Sun protection recommended from  7:50 am to  3:10 pm, UV Index predicted to reach 10 [Very High]</text>
+      </forecast-period>
+      <forecast-period index="2" start-time-local="2026-10-18T01:00:00+10:00" end-time-local="2026-10-19T01:00:00+10:00" start-time-utc="2026-10-17T15:00:00Z" end-time-utc="2026-10-18T15:00:00Z">
+        <text type="uv_alert">Sun protection recommended from  7:50 am to  3:10 pm, UV Index predicted to reach 10 [Very High]</text>
+      </forecast-period>
+      <forecast-period index="3" start-time-local="2026-10-19T01:00:00+10:00" end-time-local="2026-10-20T01:00:00+10:00" start-time-utc="2026-10-18T15:00:00Z" end-time-utc="2026-10-19T15:00:00Z">
+        <text type="uv_alert">Sun protection recommended from  7:40 am to  3:10 pm, UV Index predicted to reach 10 [Very High]</text>
+      </forecast-period>
+    </area>
+  </forecast>
+</product>

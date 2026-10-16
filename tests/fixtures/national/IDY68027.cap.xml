@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SYNTHETIC FIXTURE - not a recorded JATWC product.
+  No JATWC tsunami product was live on ftp://ftp.bom.gov.au/anon/gen/fwo/ (IDY68*) when this was
+  written (2026-10-16), and no public archive of JATWC CAP files was found. This document follows
+  CAP 1.2 / CAP-AU 1.0 and the structure of the BoM heatwave CAP product (IDD21013.cap.xml) with
+  the JATWC product ID for the Queensland bulletin (IDY68027, BoM warnings guide). Replace it with
+  a recorded product when one is available.
+-->
+<alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
+    <identifier>AusBoM-IDY68027-2026-10-16T01:10:00+00:00</identifier>
+    <sender>CAP.Message@bom.gov.au</sender>
+    <sent>2026-10-16T01:10:00+00:00</sent>
+    <status>Actual</status>
+    <msgType>Alert</msgType>
+    <scope>Public</scope>
+    <code>urn:oasis:names:tc:emergency:cap:1.2:profile:CAP-AU:1.0</code>
+    <info>
+        <language>en-AU</language>
+        <category>Geo</category>
+        <event>Tsunami</event>
+        <responseType>Evacuate</responseType>
+        <urgency>Immediate</urgency>
+        <severity>Extreme</severity>
+        <certainty>Likely</certainty>
+        <effective>2026-10-16T01:10:00+00:00</effective>
+        <expires>2026-10-16T07:10:00+00:00</expires>
+        <senderName>Joint Australian Tsunami Warning Centre</senderName>
+        <headline>Tsunami Warning - Land Inundation Threat for Queensland</headline>
+        <description>A tsunami land inundation threat is current for coastal areas of southeast Queensland.</description>
+        <web>http://www.bom.gov.au/tsunami/</web>
+        <area>
+            <areaDesc>Queensland: coast from Sandy Cape to Point Danger.</areaDesc>
+            <geocode>
+                <valueName>http://www.iso.org/iso/country_codes.html</valueName>
+                <value>AU-QLD</value>
+            </geocode>
+        </area>
+    </info>
+</alert>

@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Recorded from https://www.tsunami.gov/events/PHEB/2026/10/13/26286001/1/WECA42/PHEBCAP.xml on 2026-10-16 (live). XML signature removed. -->
+<alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
+  <identifier>PHEB-1-26286001</identifier>
+  <sender>ntwc@noaa.gov</sender>
+  <sent>2026-10-13T12:34:39-00:00</sent>
+  <status>Actual</status>
+  <msgType>Alert</msgType>
+  <source>PTWC</source>
+  <scope>Public</scope>
+  <code>IPAWSv1.0</code>
+  <incidents>26286001</incidents>
+  <info>
+    <category>Geo</category>
+    <event>Tsunami Information</event>
+    <responseType>None</responseType>
+    <urgency>Unknown</urgency>
+    <severity>Minor</severity>
+    <certainty>Unlikely</certainty>
+    <onset>2026-10-13T12:34:39-00:00</onset>
+    <expires>2026-10-13T13:34:39-00:00</expires>
+    <senderName>NWS PACIFIC TSUNAMI WARNING CENTER HONOLULU HI</senderName>
+    <headline>  </headline>
+    <description>   - Event details: Preliminary magnitude 6.8 (Mwp) earthquake / Lat: -0.196, Lon: -19.231 at 2026-10-13T12:23:07Z </description>
+    <instruction>  N/A </instruction>
+    <web>http://www.tsunami.gov/events/PHEB/2026/10/13/26286001/1/WECA42/WECA42.txt</web>
+    <parameter>
+      <valueName>EventLocationName</valueName>
+      <value>CENTRAL MID-ATLANTIC RIDGE</value>
+    </parameter>
+    <parameter>
+      <valueName>EventPreliminaryMagnitude</valueName>
+      <value>6.8</value>
+    </parameter>
+    <parameter>
+      <valueName>EventPreliminaryMagnitudeType</valueName>
+      <value>Mwp</value>
+    </parameter>
+    <parameter>
+      <valueName>EventOriginTime</valueName>
+      <value>2026-10-13T12:23:07-00:00</value>
+    </parameter>
+    <parameter>
+      <valueName>EventDepth</valueName>
+      <value>10 kilometers</value>
+    </parameter>
+    <parameter>
+      <valueName>EventLatLon</valueName>
+      <value>-0.196,-19.231 0.000</value>
+    </parameter>
+    <parameter>
+      <valueName>NWSUGC</valueName>
+      <value>AMZ712-716-726-735-742-745-PRZ001&gt;003-005-007-008-010&gt;013- VIZ001-002-131434-</value>
+    </parameter>
+    <parameter>
+      <valueName>ProductDefinition</valueName>
+      <value/>
+    </parameter>
+    <parameter>
+      <valueName>WECA42</valueName>
+      <value>Tsunami Information Bulletin for large earthquakes in the Gulf of Mexico, Caribbean and Atlantic areas of which magnitudes could affect the San Juan and Caribbean areas.</value>
+    </parameter>
+    <parameter>
+      <valueName>EAS-ORG</valueName>
+      <value>WXR</value>
+    </parameter>
+    <resource>
+      <resourceDesc>Energy Map</resourceDesc>
+      <mimeType>image/jpeg</mimeType>
+      <uri>http://www.tsunami.gov/events/PHEB/2026/10/13/26286001/1/WECA42/ </uri>
+    </resource>
+    <resource>
+      <resourceDesc>Event Data as a JSON document</resourceDesc>
+      <mimeType>application/json</mimeType>
+      <uri>http://www.tsunami.gov/events/PHEB/2026/10/13/26286001/1/WECA42/PHEB.json</uri>
+    </resource>
+    <area>
+      <areaDesc>CENTRAL MID-ATLANTIC RIDGE</areaDesc>
+      <circle>-0.196,-19.231 0.0</circle>
+    </area>
+  </info>
+</alert>

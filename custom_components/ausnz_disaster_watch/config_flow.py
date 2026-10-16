@@ -57,6 +57,7 @@ from .const import (
 from .coordinator import nearest_council_dashboard
 from .forecast_options import ForecastOptionsFlow
 from .models import DisasterWatchConfigModel
+from .national_options import NationalFeedsOptionsFlow
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -574,7 +575,7 @@ class AustralianDisasterWatchConfigFlow(ConfigFlow, domain=DOMAIN):
         return AustralianDisasterWatchOptionsFlowHandler()
 
 
-class AustralianDisasterWatchOptionsFlowHandler(ForecastOptionsFlow):
+class AustralianDisasterWatchOptionsFlowHandler(ForecastOptionsFlow, NationalFeedsOptionsFlow):
     """Handle options flow for Australia and New Zealand Disaster Watch."""
 
     async def async_step_init(
@@ -582,7 +583,7 @@ class AustralianDisasterWatchOptionsFlowHandler(ForecastOptionsFlow):
         user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Show the options menu; river point edit/remove only appear once a point exists."""
-        menu = ["settings", "forecasts", "add_river_point"]
+        menu = ["settings", "forecasts", "national_feeds", "add_river_point"]
         if self._points:
             menu += ["edit_river_point", "remove_river_point"]
         return self.async_show_menu(step_id="init", menu_options=menu)

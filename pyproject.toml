@@ -295,5 +295,5 @@ keep-runtime-typing = true
 
 [tool.codespell]
 ignore-words-list = "aiport,astroid,checkin,currenty,hass,iif,incomfort,lookin,nam,notin,sie,deine,oder"
-skip = "./.*,*.csv,*.json,*.ambr,uv.lock,*.js,*.js.map,*.pyc"
+skip = "./.*,*.csv,*.json,*.ambr,uv.lock,*.js,*.js.map,*.pyc,tests/fixtures,tests/fixtures/*"
 quiet-level = 2

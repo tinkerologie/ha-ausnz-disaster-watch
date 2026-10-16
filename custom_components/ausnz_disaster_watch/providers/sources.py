@@ -235,7 +235,82 @@ _SOURCES = (
         terms_url="https://open-meteo.com/en/docs/google-weathernext-api",
         status=LicenceStatus.UNVERIFIED,
     ),
+    # Opt-in national and regional feeds (#37)
+    DataSource(
+        key="bom_ftp",
+        owner="Australian Government Bureau of Meteorology (anonymous FTP products)",
+        attribution="Australian Government Bureau of Meteorology (www.bom.gov.au)",
+        licence="BoM: personal and non-commercial use",
+        terms_url="https://www.bom.gov.au/copyright",
+        status=LicenceStatus.RESTRICTED,
+    ),
+    DataSource(
+        key="ptwc",
+        owner="NOAA National Weather Service Pacific Tsunami Warning Center",
+        attribution="NOAA Pacific Tsunami Warning Center (US Government work, public domain; no licence needed)",
+        licence="Public domain (US Government work)",
+        terms_url="https://www.weather.gov/disclaimer",
+        status=LicenceStatus.OPEN,
+    ),
+    DataSource(
+        key="dea_hotspots",
+        owner="Geoscience Australia (Digital Earth Australia Hotspots)",
+        attribution="Digital Earth Australia Hotspots, Geoscience Australia, CC BY 4.0",
+        licence="CC BY 4.0; not for safety-of-life decisions",
+        terms_url="https://www.ga.gov.au/copyright",
+        status=LicenceStatus.OPEN,
+    ),
+    DataSource(
+        key="arpansa_uv",
+        owner="Australian Radiation Protection and Nuclear Safety Agency (ARPANSA)",
+        attribution="UV observations courtesy of ARPANSA",
+        licence="Acknowledge ARPANSA and notify ARPANSA of the application; no retransmission or commercial use",
+        terms_url="https://www.arpansa.gov.au/our-services/monitoring/ultraviolet-radiation-monitoring/ultraviolet-radation-data-information",
+        status=LicenceStatus.RESTRICTED,
+    ),
+    DataSource(
+        key="gdacs",
+        owner="European Commission Joint Research Centre (GDACS)",
+        attribution="Global Disaster Alert and Coordination System (GDACS), European Union / JRC; indicative only",
+        licence="No GDACS licence found; the RSS <copyright> says public domain; EC legal notice applies",
+        terms_url="https://www.gdacs.org/About/termofuse.aspx",
+        status=LicenceStatus.UNVERIFIED,
+    ),
+    DataSource(
+        key="nsw_air_quality",
+        owner="NSW Department of Climate Change, Energy, the Environment and Water",
+        attribution="NSW Department of Climate Change, Energy, the Environment and Water, CC BY 4.0",
+        licence="CC BY 4.0",
+        terms_url="https://data.nsw.gov.au/data/dataset/nsw-air-quality-data-services",
+        status=LicenceStatus.OPEN,
+    ),
+    DataSource(
+        key="qld_air_quality",
+        owner="Queensland Government (Department of the Environment)",
+        attribution="© State of Queensland, CC BY 4.0",
+        licence="CC BY 4.0",
+        terms_url="https://www.data.qld.gov.au/dataset/air-quality-monitoring-live-data-feed",
+        status=LicenceStatus.OPEN,
+    ),
+    DataSource(
+        key="act_air_quality",
+        owner="ACT Government",
+        attribution="ACT Government, CC BY 4.0",
+        licence="CC BY 4.0",
+        terms_url="https://www.data.act.gov.au/d/94a5-zqnn",
+        status=LicenceStatus.OPEN,
+    ),
 )
+
+# Register keys of the national feeds, by the option that enables each one
+NATIONAL_FEED_SOURCES: dict[str, tuple[str, ...]] = {
+    "enable_tsunami": ("bom_ftp", "ptwc"),
+    "enable_satellite_hotspots": ("dea_hotspots",),
+    "enable_heatwave": ("bom_ftp",),
+    "enable_uv": ("arpansa_uv", "bom_ftp"),
+    "enable_state_air_quality": ("nsw_air_quality", "qld_air_quality", "act_air_quality"),
+    "enable_regional_alerts": ("gdacs",),
+}
 
 DATA_SOURCES: dict[str, DataSource] = {source.key: source for source in _SOURCES}
 
@@ -251,6 +326,7 @@ PROVIDER_SOURCES: dict[str, tuple[str, ...]] = {
     "NTHazardProvider": ("nt_fire_incidents",),
     "NZHazardProvider": ("geonet", "nema_cap", "metservice_cap", "nzta_roads"),
     "BoMHazardProvider": ("bom_wmo",),
+    "NationalHazardProvider": tuple(dict.fromkeys(key for keys in NATIONAL_FEED_SOURCES.values() for key in keys)),
 }
 
 
@@ -295,3 +371,8 @@ def sources_for_provider(provider_name: str) -> tuple[DataSource, ...]:
 def attribution_for(sources: Iterable[DataSource]) -> str | None:
     """Join the distinct attribution texts of ``sources``, or None if there are none."""
     return "; ".join(dict.fromkeys(source.attribution for source in sources)) or None
+
+
+def national_feed_attribution(option: str) -> str | None:
+    """Return the attribution for the sources behind one opt-in national feed option."""
+    return attribution_for(DATA_SOURCES[key] for key in NATIONAL_FEED_SOURCES.get(option, ()))

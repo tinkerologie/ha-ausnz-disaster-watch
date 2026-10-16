@@ -32,9 +32,15 @@ from .models import (
     FireDangerOutlook,
     FireDangerRating,
     FireSeasonStatus,
+    HazardType,
+    HeatwaveStatus,
     PowerOutageItem,
+    RegionalAlertItem,
     ReliefFacilityItem,
     RoadClosureItem,
+    SatelliteHotspots,
+    TsunamiStatus,
+    UVObservation,
     WarningLevel,
     WeatherStationObservation,
     WeatherWarningItem,
@@ -69,6 +75,16 @@ def calculate_haversine_distance(
     a = math.sin(delta_phi / 2.0) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2.0) ** 2
     c = 2.0 * math.atan2(math.sqrt(a), math.sqrt(1.0 - a))
     return r * c
+
+
+# National feed hooks (#37): snapshot field -> (provider hook, expected result type)
+NATIONAL_FEED_HOOKS: dict[str, tuple[str, type]] = {
+    "tsunami": ("async_fetch_tsunami_status", TsunamiStatus),
+    "satellite_hotspots": ("async_fetch_satellite_hotspots", SatelliteHotspots),
+    "heatwave": ("async_fetch_heatwave", HeatwaveStatus),
+    "uv": ("async_fetch_uv", UVObservation),
+    "regional_alerts": ("async_fetch_regional_alerts", list),
+}
 
 
 def _unique_by_title(warnings: list[WeatherWarningItem]) -> list[WeatherWarningItem]:
@@ -222,14 +238,16 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         down, info when it recovers). If every provider fails, UpdateFailed makes the entities
         unavailable and, on first refresh, puts the entry into setup retry.
         """
+        # Providers of auxiliary data only must not count as healthy hazard feeds
+        hazard_providers = [p for p in self.providers if getattr(p, "provides_hazards", True) is not False]
         results = await asyncio.gather(
-            *(provider.async_fetch_hazards() for provider in self.providers),
+            *(provider.async_fetch_hazards() for provider in hazard_providers),
             return_exceptions=True,
         )
         all_hazards: list[CanonicalHazard] = []
         feeds_ok: list[str] = []
         feeds_failed: list[str] = []
-        for provider, result in zip(self.providers, results, strict=True):
+        for provider, result in zip(hazard_providers, results, strict=True):
             key = type(provider).__name__
             if isinstance(result, BaseException):
                 if not isinstance(result, Exception):
@@ -261,7 +279,7 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
 
         self._feeds_ok = feeds_ok
         self._feeds_failed = feeds_failed
-        if self.providers and not feeds_ok:
+        if hazard_providers and not feeds_ok:
             raise UpdateFailed(
                 translation_domain=DOMAIN,
                 translation_key="feeds_unavailable",
@@ -517,18 +535,57 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
             "fire_outlook": fire_outlook,
             "fire_season": self.fire_service.season,
             "weather_stations": weather_stations,
-            "air_quality_stations": air_quality_stations,
+            "air_quality_stations": self._nearest_first(air_quality_stations),
             "relief_facilities": relief_facilities,
             "cameras": unique_cameras,
             "nearby_councils": nearby_councils,
         }
+
+    def _nearest_first(self, stations: list[AirQualityStationData]) -> list[AirQualityStationData]:
+        """Set each located station's distance and order stations nearest first (unlocated last)."""
+        for station in stations:
+            if station.latitude is not None and station.longitude is not None:
+                station.distance_km = round(
+                    calculate_haversine_distance(self.latitude, self.longitude, station.latitude, station.longitude), 1
+                )
+        return sorted(stations, key=lambda s: (s.distance_km is None, s.distance_km or 0.0))
+
+    async def _async_fetch_national_feeds(self) -> dict[str, Any]:
+        """Collect the opt-in national feeds (#37); each feed fails on its own.
+
+        The first provider that returns a value of the expected type wins; ``None`` means the
+        feed is off or undetermined. National data never enters ``hazards``.
+        """
+
+        async def fetch(provider: Any, field: str, hook: str, expected: type) -> tuple[str, Any]:
+            try:
+                value = await getattr(provider, hook)()
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.debug("Error updating %s from %s: %s", field, provider.__class__.__name__, err)
+                return field, None
+            if field == "regional_alerts" and isinstance(value, list):
+                value = [item for item in value if isinstance(item, RegionalAlertItem)]
+            return field, value if isinstance(value, expected) else None
+
+        results: dict[str, Any] = dict.fromkeys(NATIONAL_FEED_HOOKS)
+        gathered = await asyncio.gather(
+            *(
+                fetch(provider, field, hook, expected)
+                for provider in self.providers
+                for field, (hook, expected) in NATIONAL_FEED_HOOKS.items()
+            )
+        )
+        for field, value in gathered:
+            if results[field] is None and value is not None:
+                results[field] = value
+        return results
 
     async def _async_update_data(self) -> DisasterCoordinatorData:
         """Fetch all hazards and telemetry from active providers."""
         self._update_location()
         all_hazards = await self._async_fetch_all_hazards()
         filtered_hazards, has_active_threat = self._filter_and_process_hazards(all_hazards)
-        aux = await self._async_fetch_composite_feeds()
+        aux, national = await asyncio.gather(self._async_fetch_composite_feeds(), self._async_fetch_national_feeds())
 
         # Dynamic Polling Interval Adjustment
         if has_active_threat:
@@ -561,6 +618,7 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
             nearby_councils=aux["nearby_councils"],
             feeds_ok=self._feeds_ok,
             feeds_failed=self._feeds_failed,
+            **national,
         )
 
     @property
@@ -675,6 +733,36 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
     def nearby_councils(self) -> list[dict[str, str]]:
         """Return nearby council dashboard links."""
         return getattr(self.data, "nearby_councils", []) if self.data is not None else []
+
+    @property
+    def tsunami(self) -> TsunamiStatus | None:
+        """Return the tsunami status, or None if off or undetermined."""
+        return getattr(self.data, "tsunami", None) if self.data is not None else None
+
+    @property
+    def tsunami_hazards(self) -> list[CanonicalHazard]:
+        """Return retained tsunami hazards (for example official NZ NEMA alerts)."""
+        return [h for h in self.active_hazards if h.hazard_type is HazardType.TSUNAMI]
+
+    @property
+    def satellite_hotspots(self) -> SatelliteHotspots | None:
+        """Return satellite hotspots within the radius, or None if off or undetermined."""
+        return getattr(self.data, "satellite_hotspots", None) if self.data is not None else None
+
+    @property
+    def heatwave(self) -> HeatwaveStatus | None:
+        """Return the heatwave status, or None if off or undetermined."""
+        return getattr(self.data, "heatwave", None) if self.data is not None else None
+
+    @property
+    def uv(self) -> UVObservation | None:
+        """Return the UV observation, or None if off or undetermined."""
+        return getattr(self.data, "uv", None) if self.data is not None else None
+
+    @property
+    def regional_alerts(self) -> list[RegionalAlertItem] | None:
+        """Return regional GDACS alerts, or None if off or undetermined."""
+        return getattr(self.data, "regional_alerts", None) if self.data is not None else None
 
 
 AusNZDisasterWatchCoordinator = AustralianDisasterWatchCoordinator

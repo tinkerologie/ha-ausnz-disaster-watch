@@ -19,13 +19,14 @@ from .const import (
     ATTR_INCIDENT_COUNT,
     ATTR_NEAREST_INCIDENT_DISTANCE,
     ATTR_NEAREST_INCIDENT_TITLE,
+    CONF_ENABLE_TSUNAMI,
     STATE_NZ,
 )
 from .coordinator import AustralianDisasterWatchCoordinator
 from .entity import AustralianDisasterWatchEntity
 from .forecast_entity import forecast_binary_sensors
 from .providers.fire_danger import local_today
-from .providers.sources import attribution_for
+from .providers.sources import attribution_for, national_feed_attribution
 
 
 async def async_setup_entry(
@@ -45,6 +46,8 @@ async def async_setup_entry(
     ]
     if coordinator.state_code != STATE_NZ:
         entities.append(TotalFireBanBinarySensor(coordinator))
+    if coordinator.combined_config.get(CONF_ENABLE_TSUNAMI, False):
+        entities.append(TsunamiWarningBinarySensor(coordinator))
     async_add_entities(entities)
 
 
@@ -221,4 +224,50 @@ class TotalFireBanBinarySensor(AustralianDisasterWatchEntity, BinarySensorEntity
                 if day.date >= today
             ],
             "source": outlook.total_fire_ban_source,
+        }
+
+
+class TsunamiWarningBinarySensor(AustralianDisasterWatchEntity, BinarySensorEntity):
+    """On while a tsunami watch or warning applies (JATWC, PTWC guidance or a retained tsunami hazard)."""
+
+    _attr_device_class = BinarySensorDeviceClass.SAFETY
+    _attr_translation_key = "tsunami_warning"
+
+    def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
+        """Initialize tsunami binary sensor."""
+        super().__init__(coordinator, "tsunami_warning")
+        # Credit only the sources behind this feed (#34)
+        self._attr_attribution = national_feed_attribution(CONF_ENABLE_TSUNAMI)
+
+    @property
+    def available(self) -> bool:
+        """Return False while the tsunami status is undetermined."""
+        return super().available and self.coordinator.tsunami is not None
+
+    @property
+    def is_on(self) -> bool:
+        """Return True for an active tsunami status or a tsunami hazard in range."""
+        status = self.coordinator.tsunami
+        return bool(status is not None and status.active) or bool(self.coordinator.tsunami_hazards)
+
+    @property
+    def icon(self) -> str:
+        """Return icon depending on state."""
+        return "mdi:tsunami" if self.is_on else "mdi:waves"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the threat level, headline and the products checked."""
+        status = self.coordinator.tsunami
+        if status is None:
+            return {}
+        return {
+            "threat_level": status.threat_level,
+            "headline": status.headline,
+            "issued": status.issued.isoformat() if status.issued else None,
+            "expires": status.expires.isoformat() if status.expires else None,
+            "products": status.products,
+            "source": status.source,
+            "checked_at": status.checked_at.isoformat() if status.checked_at else None,
+            "tsunami_hazards": [h.title for h in self.coordinator.tsunami_hazards],
         }

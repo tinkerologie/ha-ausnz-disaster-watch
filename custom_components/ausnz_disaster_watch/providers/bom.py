@@ -25,6 +25,7 @@ from homeassistant.util import dt as dt_util
 
 from .base import MALFORMED_ITEM_ERRORS, BaseHazardProvider, ProviderUnavailableError, stable_id
 from .cap import CapAlert, CapDocumentCache, area_distance_km, representative_point
+from .tsunami import jatwc_products
 
 if TYPE_CHECKING:
     from xml.etree.ElementTree import Element
@@ -119,11 +120,15 @@ class BoMHazardProvider(BaseHazardProvider):
         return [item for expires, item in self._weather_warnings if expires is None or expires > now]
 
     def _accepts_product(self, product_id: str | None) -> bool:
-        """Return True if the product belongs to the configured jurisdiction."""
+        """Return True if the product belongs to the configured jurisdiction.
+
+        JATWC tsunami products are national (``IDY68...``): the national ones and the state's
+        own bulletin are accepted for every state (#37).
+        """
         prefixes = STATE_PRODUCT_PREFIXES.get(self.state_code)
         if prefixes is None or product_id is None:
             return True  # "ALL"/unknown state, or an item without a product id
-        return product_id.startswith(prefixes)
+        return product_id.startswith(prefixes) or product_id in jatwc_products(self.state_code)
 
     def _candidate_items_per_product(self, items: list[Element]) -> list[tuple[str, Element]]:
         """Group items by BoM product and keep the newest by RSS pubDate.
