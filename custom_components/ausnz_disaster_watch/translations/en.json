@@ -64,7 +64,8 @@
           "remove_river_point": "Remove river points",
           "river_gauges": "River and creek level gauges",
           "national_feeds": "National and regional feeds (optional)",
-          "cameras": "Road and flood cameras (optional)"
+          "cameras": "Road and flood cameras (optional)",
+          "emergency_broadcaster": "Emergency broadcaster radio"
         }
       },
       "settings": {
@@ -218,6 +219,16 @@
           "camera_radius": "Only cameras within this distance of the location are added.",
           "camera_max": "At most this many camera entities, nearest first, so a city entry does not create hundreds of entities."
         }
+      },
+      "emergency_broadcaster": {
+        "title": "Emergency broadcaster",
+        "description": "In an emergency, listen to your local emergency broadcaster: ABC Local Radio in Australia, RNZ in New Zealand. When it is on, the integration adds an emergency broadcaster sensor (disabled by default) and an entry in the media browser that plays the station's live stream, for example from an automation. The nearest station to your location is {nearest}. The nearest station is not always the one that covers your town, so you can choose another. Streams play directly from the broadcaster.",
+        "data": {
+          "emergency_broadcaster": "Station"
+        },
+        "data_description": {
+          "emergency_broadcaster": "Off, the station nearest the monitored location (it follows the Home Assistant home location for home-zone entries), or a station you choose."
+        }
       }
     },
     "error": {
@@ -240,6 +251,12 @@
         "qldtraffic_flood": "QLDTraffic flood cameras",
         "qldtraffic_web": "QLDTraffic web cameras",
         "nzta": "NZ Transport Agency traffic cameras"
+      }
+    },
+    "emergency_broadcaster": {
+      "options": {
+        "off": "Off",
+        "nearest": "Nearest station"
       }
     }
   },
@@ -377,6 +394,9 @@
       },
       "regional_disaster_alerts": {
         "name": "Regional Disaster Alerts"
+      },
+      "emergency_broadcaster": {
+        "name": "Emergency broadcaster"
       }
     }
   },
@@ -389,6 +409,9 @@
     },
     "river_gauges_unavailable": {
       "message": "None of the selected river gauges could be reached"
+    },
+    "broadcaster_unavailable": {
+      "message": "No emergency broadcaster is available for {identifier}. Turn it on in the integration options, or check that the entry is loaded."
     }
   },
   "issues": {

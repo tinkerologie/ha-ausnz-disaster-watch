@@ -490,6 +490,31 @@ _SOURCES = (
         terms_url="https://www.data.act.gov.au/d/94a5-zqnn",
         status=LicenceStatus.OPEN,
     ),
+    # Emergency broadcaster (#73): bundled at build time, streams are only linked
+    DataSource(
+        key="radio_browser",
+        owner="Radio Browser community directory",
+        attribution="Station directory: Radio Browser (public domain; no licence needed)",
+        licence="Public domain dedication of the directory data; API free for any software",
+        terms_url="https://www.radio-browser.info/",
+        status=LicenceStatus.OPEN,
+    ),
+    DataSource(
+        key="abc_local_radio",
+        owner="Australian Broadcasting Corporation (ABC Local Radio)",
+        attribution="ABC Local Radio, Australian Broadcasting Corporation",
+        licence="ABC Terms of Use: ABC content for personal, non-commercial use; the stream is linked, not copied",
+        terms_url="https://help.abc.net.au/hc/en-us/articles/360001548096-ABC-Terms-of-Use",
+        status=LicenceStatus.RESTRICTED,
+    ),
+    DataSource(
+        key="rnz_national",
+        owner="Radio New Zealand (RNZ)",
+        attribution="RNZ National, Radio New Zealand",
+        licence="RNZ Terms of Use: personal listening only, no rebroadcast; the stream is linked, not copied",
+        terms_url="https://www.rnz.co.nz/about/legal",
+        status=LicenceStatus.RESTRICTED,
+    ),
 )
 
 # Register keys of the national feeds, by the option that enables each one
@@ -547,6 +572,13 @@ FORECAST_SOURCES: dict[str, tuple[str, ...]] = {
 }
 
 
+# Emergency broadcaster sources by table country (#73)
+BROADCASTER_SOURCES: dict[str, tuple[str, ...]] = {
+    "AU": ("abc_local_radio", "radio_browser"),
+    "NZ": ("rnz_national", "radio_browser"),
+}
+
+
 # Fire danger sources per jurisdiction of the location's fire weather district (#28)
 FIRE_SOURCES: dict[str, tuple[str, ...]] = {
     "NSW": ("bom_fire_danger", "nsw_rfs"),
@@ -564,6 +596,11 @@ FIRE_SOURCES: dict[str, tuple[str, ...]] = {
 def sources_for_fire(jurisdiction: str) -> tuple[DataSource, ...]:
     """Return the register entries the fire danger outlook reads for a jurisdiction."""
     return tuple(DATA_SOURCES[key] for key in FIRE_SOURCES.get(jurisdiction, ()))
+
+
+def sources_for_broadcaster(country: str) -> tuple[DataSource, ...]:
+    """Return the register entries behind the emergency broadcaster of a country (AU or NZ)."""
+    return tuple(DATA_SOURCES[key] for key in BROADCASTER_SOURCES.get(country, ()))
 
 
 def sources_for_forecast(*features: str) -> tuple[DataSource, ...]:
