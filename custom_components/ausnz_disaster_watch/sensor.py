@@ -25,7 +25,7 @@ from .coordinator import AustralianDisasterWatchCoordinator
 from .dam_sensor import async_setup_dam_sensors
 from .entity import AustralianDisasterWatchEntity
 from .forecast_entity import forecast_sensors
-from .models import WarningLevel
+from .models import WarningLevel, to_dict, to_json_dict
 from .providers.fire_danger import NZ_SEASONS, local_today
 from .providers.heatwave import HEATWAVE_SEVERITIES
 from .providers.sources import attribution_for, national_feed_attribution
@@ -192,7 +192,7 @@ class HighestWarningLevelSensor(AustralianDisasterWatchEntity, SensorEntity):
         return {
             "inside_warning_area": bool(inside),
             "inside_warning_level": inside[0].warning_level.value if inside else None,
-            "emergency_news": [n.model_dump(mode="json") for n in news[:20]],
+            "emergency_news": [to_json_dict(n) for n in news[:20]],
             "nearby_councils": councils[:10],
         }
 
@@ -239,7 +239,7 @@ class PowerOutagesCountSensor(AustralianDisasterWatchEntity, SensorEntity):
         nearest = outages[0] if outages else None
         return {
             "customers_affected": sum(o.customers_affected for o in outages),
-            "outages": [o.model_dump() for o in outages[:25]],
+            "outages": [to_dict(o) for o in outages[:25]],
             "est_restore": nearest.restore_time if nearest else None,
             "nearest_outage_distance_km": nearest.distance_km if nearest else None,
             "nearest_outage_distributor": nearest.distributor if nearest else None,
@@ -285,7 +285,7 @@ class RoadClosuresCountSensor(AustralianDisasterWatchEntity, SensorEntity):
         """Return list of active road closures."""
         closures = self.coordinator.road_closures
         return {
-            "closures": [c.model_dump(mode="json") for c in closures[:25]],
+            "closures": [to_json_dict(c) for c in closures[:25]],
         }
 
 
@@ -312,8 +312,8 @@ class WeatherWarningsCountSensor(AustralianDisasterWatchEntity, SensorEntity):
         news = self.coordinator.emergency_news
         councils = self.coordinator.nearby_councils
         return {
-            "warnings": [w.model_dump(mode="json") for w in warnings[:20]],
-            "emergency_news": [n.model_dump(mode="json") for n in news[:20]],
+            "warnings": [to_json_dict(w) for w in warnings[:20]],
+            "emergency_news": [to_json_dict(n) for n in news[:20]],
             "nearby_councils": councils[:10],
         }
 
@@ -367,7 +367,7 @@ class FireDangerRatingSensor(AustralianDisasterWatchEntity, SensorEntity):
             current = outlook.day(today)
             attrs["date"] = today.isoformat()
             attrs["fire_behaviour_index"] = current.fire_behaviour_index if current else None
-            attrs["forecast"] = [day.model_dump(mode="json") for day in outlook.days if day.date >= today]
+            attrs["forecast"] = [to_json_dict(day) for day in outlook.days if day.date >= today]
             attrs["issued_at"] = outlook.issued_at.isoformat() if outlook.issued_at else None
             # Today's rating may come from the state agency when BoM's issue starts tomorrow (#89)
             attrs["source"] = (current.source if current else None) or outlook.source
@@ -446,7 +446,7 @@ class AirQualityIndexSensor(AustralianDisasterWatchEntity, SensorEntity):
             "distance_km": first.distance_km,
             "observed_at": first.observed_at.isoformat() if first.observed_at else None,
             "source": first.source,
-            "stations": [s.model_dump(mode="json") for s in stations[:10]],
+            "stations": [to_json_dict(s) for s in stations[:10]],
         }
 
 
@@ -486,7 +486,7 @@ class PrimaryWeatherObservationSensor(AustralianDisasterWatchEntity, SensorEntit
             "wind_speed_max_kph": first.wind_speed_max,
             "wind_direction_deg": first.wind_direction,
             "solar_radiation_wm2": first.solar_radiation,
-            "stations": [s.model_dump() for s in stations[:10]],
+            "stations": [to_dict(s) for s in stations[:10]],
         }
 
 
@@ -511,7 +511,7 @@ class ReliefFacilitiesCountSensor(AustralianDisasterWatchEntity, SensorEntity):
         """Return facilities list."""
         facilities = self.coordinator.relief_facilities
         return {
-            "facilities": [f.model_dump() for f in facilities[:25]],
+            "facilities": [to_dict(f) for f in facilities[:25]],
         }
 
 
@@ -552,7 +552,7 @@ class SatelliteHotspotsSensor(AustralianDisasterWatchEntity, SensorEntity):
             "max_confidence": max(confidences, default=None),
             "min_confidence_filter": hotspots.min_confidence,
             "truncated": hotspots.truncated,
-            "hotspots": [i.model_dump(mode="json") for i in items[:MAX_LISTED_ITEMS]],
+            "hotspots": [to_json_dict(i) for i in items[:MAX_LISTED_ITEMS]],
         }
 
 
@@ -590,7 +590,7 @@ class HeatwaveSeveritySensor(AustralianDisasterWatchEntity, SensorEntity):
             "headline": heatwave.headline,
             "issued": heatwave.issued.isoformat() if heatwave.issued else None,
             "expires": heatwave.expires.isoformat() if heatwave.expires else None,
-            "areas": [area.model_dump() for area in heatwave.areas],
+            "areas": [to_dict(area) for area in heatwave.areas],
             "product_id": heatwave.product_id,
         }
 
@@ -664,4 +664,4 @@ class RegionalDisasterAlertsSensor(AustralianDisasterWatchEntity, SensorEntity):
         alerts = self.coordinator.regional_alerts
         if alerts is None:
             return {}
-        return {"alerts": [a.model_dump(mode="json") for a in alerts[:MAX_LISTED_ITEMS]]}
+        return {"alerts": [to_json_dict(a) for a in alerts[:MAX_LISTED_ITEMS]]}

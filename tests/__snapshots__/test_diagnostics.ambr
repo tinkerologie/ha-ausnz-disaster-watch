@@ -1,0 +1,72 @@
+# serializer version: 1
+# name: test_diagnostics_snapshot
+  list([
+    dict({
+      'attribution': None,
+      'call_to_action': 'Leave now',
+      'distance_km': 18.425024794696125,
+      'expires': '2026-10-15T13:00:00Z',
+      'hazard_type': 'Bushfire',
+      'id': 'QLD_QFD_WARN_201',
+      'inside_area': False,
+      'is_hazard_reduction': False,
+      'latitude': '**REDACTED**',
+      'location_name': '**REDACTED**',
+      'longitude': '**REDACTED**',
+      'raw_properties': dict({
+        'OBJECTID': 201,
+        'created_user': '**REDACTED**',
+        'nested': dict({
+          'kind': 'Flood',
+          'latitude': '**REDACTED**',
+          'pair': list([
+            1,
+            2,
+          ]),
+        }),
+      }),
+      'responsible_agency': None,
+      'source': 'Queensland Fire Department',
+      'status': 'Going',
+      'title': 'Watch and Act - Bushfire at Caboolture',
+      'updated_at': '2026-10-15T05:30:01.120000Z',
+      'warning_level': 'Watch and Act',
+      'web_url': None,
+    }),
+  ])
+# ---
+# name: test_diagnostics_snapshot.1
+  dict({
+    'active_hazards_count': 1,
+    'attribution': None,
+    'data_sources': list([
+    ]),
+    'exclude_hazard_reduction': True,
+    'feed_health': dict({
+      'AsyncMock': dict({
+        'status': 'ok',
+      }),
+    }),
+    'has_emergency_warning_nearby': True,
+    'hazards_with_area': 1,
+    'highest_warning_level': 'Watch and Act',
+    'include_roadworks': False,
+    'inside_warning_area': False,
+    'last_exception': None,
+    'last_update_success': True,
+    'override_emergency': True,
+    'power_outage_sources': list([
+    ]),
+    'providers': list([
+      'AsyncMock',
+    ]),
+    'radius_km': 50.0,
+    'road_closures_count': 0,
+    'road_feeds_failed': list([
+    ]),
+    'road_providers': list([
+    ]),
+    'state_code': 'QLD',
+    'update_interval_seconds': 60.0,
+  })
+# ---

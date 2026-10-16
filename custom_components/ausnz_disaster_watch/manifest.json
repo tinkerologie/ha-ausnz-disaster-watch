@@ -28,8 +28,7 @@
     "aio-geojson-geonetnz-volcano>=0.9",
     "aio-geojson-nsw-rfs-incidents>=0.7",
     "aio-georss-gdacs>=0.10",
-    "defusedxml>=0.7.1",
-    "pydantic>=2.10"
+    "defusedxml>=0.7.1"
   ],
   "version": "2026.10.0b0"
 }

@@ -9,6 +9,7 @@ from homeassistant.core import HomeAssistant
 
 from . import AusNZDisasterWatchConfigEntry
 from .const import CONF_COUNCIL_DASHBOARD_URL, CONF_LATITUDE, CONF_LOCATION_NAME, CONF_LONGITUDE, CONF_VIC_API_KEY
+from .models import to_json_dict
 
 TO_REDACT = {
     CONF_LATITUDE,
@@ -32,7 +33,7 @@ async def async_get_config_entry_diagnostics(
     """Return diagnostics for a config entry."""
     coordinator = entry.runtime_data
 
-    hazards_data = [hazard.model_dump(mode="json") for hazard in coordinator.active_hazards]
+    hazards_data = [to_json_dict(hazard) for hazard in coordinator.active_hazards]
 
     return {
         "entry": {

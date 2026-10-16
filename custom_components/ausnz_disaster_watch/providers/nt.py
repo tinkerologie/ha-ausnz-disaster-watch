@@ -13,6 +13,7 @@ from __future__ import annotations
 import asyncio
 from collections import Counter
 from collections.abc import Awaitable, Callable
+from dataclasses import replace
 import logging
 from typing import Any
 from urllib.parse import urlencode
@@ -247,5 +248,5 @@ class NTHazardProvider(BaseHazardProvider):
                 item_id = f"{base_id}_{suffix}"
                 suffix += 1
             seen.add(item_id)
-            result.append(hazard if item_id == hazard.id else hazard.model_copy(update={"id": item_id}))
+            result.append(hazard if item_id == hazard.id else replace(hazard, id=item_id))
         return result

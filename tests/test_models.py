@@ -1,13 +1,33 @@
 """Unit tests for models, enums and CanonicalHazard."""
 
-from datetime import UTC, datetime
+from collections.abc import Callable
+from dataclasses import FrozenInstanceError, fields, replace
+import datetime as dt
+from datetime import UTC, date, datetime, timedelta, timezone
+from decimal import Decimal
+from typing import Any
 
+import pytest
+
+from custom_components.ausnz_disaster_watch import models
 from custom_components.ausnz_disaster_watch.models import (
     CanonicalHazard,
     DisasterCoordinatorData,
     DisasterWatchConfigModel,
+    FireDangerDay,
+    FireDangerOutlook,
+    FireDangerRating,
+    FireSeasonStatus,
     HazardType,
+    HeatwaveArea,
+    HeatwaveStatus,
+    ModelValidationError,
+    PowerOutageItem,
+    TsunamiStatus,
+    UVObservation,
     WarningLevel,
+    to_dict,
+    to_json_dict,
 )
 
 
@@ -267,3 +287,169 @@ def test_disaster_coordinator_data_mapping() -> None:
     empty_data = DisasterCoordinatorData()
     assert len(empty_data) == 0
     assert bool(empty_data) is True
+
+
+def _hazard(**overrides: Any) -> CanonicalHazard:
+    values: dict[str, Any] = {
+        "id": "h1",
+        "source": "TEST",
+        "title": "Incident",
+        "hazard_type": HazardType.BUSHFIRE,
+        "warning_level": WarningLevel.ADVICE,
+        "latitude": -27.0,
+        "longitude": 153.0,
+    } | overrides
+    return CanonicalHazard(**values)
+
+
+def test_models_convert_values_like_the_pydantic_models() -> None:
+    """Lenient conversions providers relied on still happen when a model is created (#20)."""
+    hazard = _hazard(
+        hazard_type="Flood", warning_level="Watch and Act", latitude=-27, longitude="153.5", title=HazardType.FLOOD
+    )
+    assert hazard.hazard_type is HazardType.FLOOD
+    assert hazard.warning_level is WarningLevel.WATCH_AND_ACT
+    assert (hazard.latitude, hazard.longitude) == (-27.0, 153.5)
+    assert type(hazard.latitude) is float
+    assert type(hazard.title) is str  # a StrEnum member is stored as its value
+    assert _hazard(is_hazard_reduction="yes").is_hazard_reduction is True
+    assert _hazard(is_hazard_reduction=0).is_hazard_reduction is False
+    assert _hazard(inside_area="Off").inside_area is False
+    assert _hazard(area=[[(-27, 153), ("-27.1", 153.1)]]).area == (((-27.0, 153.0), (-27.1, 153.1)),)
+
+    assert PowerOutageItem(customers_affected="12").customers_affected == 12
+    assert PowerOutageItem(customers_affected=3.0).customers_affected == 3
+    assert PowerOutageItem(customers_affected=" 4.0 ").customers_affected == 4
+    assert PowerOutageItem(customers_affected=Decimal(5)).customers_affected == 5
+
+    stamp = datetime(2023, 11, 14, 22, 13, 20, tzinfo=UTC)
+    assert TsunamiStatus(active=True, source="s", issued=1700000000).issued == stamp
+    assert TsunamiStatus(active=True, source="s", issued="1700000000").issued == stamp
+    assert TsunamiStatus(active=True, source="s", issued="2026-10-15T05:30:00Z").issued == datetime(
+        2026, 10, 15, 5, 30, tzinfo=UTC
+    )
+    assert TsunamiStatus(active=1, source="s", products=("a",)).products == ["a"]
+
+    # Nested models may be given as dicts; dates as text or a midnight datetime
+    outlook = FireDangerOutlook(
+        district_number="NSW_FW008",
+        district_name="Greater Sydney",
+        time_zone="Australia/Sydney",
+        source="BoM",
+        days=[{"date": "2026-10-15", "rating": "High"}, FireDangerDay(date=datetime(2026, 10, 16))],
+    )
+    assert [day.date for day in outlook.days] == [date(2026, 10, 15), date(2026, 10, 16)]
+    assert DisasterCoordinatorData(fire_danger={"rating": "High"}).fire_danger == FireDangerRating(rating="High")
+
+
+def test_models_copy_containers() -> None:
+    """A model holds its own copy of a list or dict, as the pydantic models did."""
+    raw: dict[str, Any] = {"a": 1}
+    hazard = _hazard(raw_properties=raw)
+    raw["b"] = 2
+    assert hazard.raw_properties == {"a": 1}
+    outages: list[PowerOutageItem] = []
+    data = DisasterCoordinatorData(power_outages=outages)
+    outages.append(PowerOutageItem())
+    assert data.power_outages == []
+
+
+@pytest.mark.parametrize(
+    ("factory", "field"),
+    [
+        (lambda: _hazard(latitude=91.0), "latitude"),
+        (lambda: _hazard(longitude=-180.5), "longitude"),
+        (lambda: _hazard(distance_km=-1.0), "distance_km"),
+        (lambda: _hazard(latitude=float("nan")), "latitude"),
+        (lambda: _hazard(latitude="north"), "latitude"),
+        (lambda: _hazard(latitude=None), "latitude"),
+        (lambda: _hazard(title=None), "title"),
+        (lambda: _hazard(title=5), "title"),
+        (lambda: _hazard(warning_level="Extreme"), "warning_level"),
+        (lambda: _hazard(is_hazard_reduction="maybe"), "is_hazard_reduction"),
+        (lambda: _hazard(is_hazard_reduction=2), "is_hazard_reduction"),
+        (lambda: _hazard(inside_area=" off"), "inside_area"),
+        (lambda: _hazard(raw_properties=[1]), "raw_properties"),
+        (lambda: PowerOutageItem(customers_affected=2.5), "customers_affected"),
+        (lambda: PowerOutageItem(customers_affected="many"), "customers_affected"),
+        (lambda: PowerOutageItem(customers_affected=[1]), "customers_affected"),
+        (lambda: PowerOutageItem(customers_affected=-1), "customers_affected"),
+        (lambda: PowerOutageItem(latitude=object()), "latitude"),
+        (lambda: TsunamiStatus(active=True, source="s", issued="soon"), "issued"),
+        (lambda: TsunamiStatus(active=True, source="s", issued=float("inf")), "issued"),
+        (lambda: TsunamiStatus(active=True, source="s", issued=[2026]), "issued"),
+        (lambda: TsunamiStatus(active=True, source="s", products="a"), "products"),
+        (lambda: FireDangerDay(date=datetime(2026, 10, 15, 1)), "date"),
+        (lambda: FireDangerDay(date=20261015), "date"),
+        (lambda: FireDangerDay(date="15/10/2026"), "date"),
+        (lambda: DisasterCoordinatorData(fire_danger="High"), "fire_danger"),
+        (lambda: DisasterCoordinatorData(hazards={"h1": {"id": "h1"}}), "hazards"),
+        (lambda: DisasterWatchConfigModel(state="qld"), "state"),
+        (lambda: DisasterWatchConfigModel(radius=301), "radius"),
+    ],
+)
+def test_models_reject_wrong_values(factory: Callable[[], Any], field: str) -> None:
+    """A value of the wrong type or out of range raises a ValueError naming the field (#16)."""
+    with pytest.raises(ModelValidationError, match=rf"\.{field}: ") as err:
+        factory()
+    assert isinstance(err.value, ValueError)  # providers skip the record (MALFORMED_ITEM_ERRORS)
+
+
+def test_unsupported_field_type() -> None:
+    """A field type the models do not convert is a programming error found at import."""
+    with pytest.raises(TypeError, match="Unsupported model field type"):
+        models._converter_for(set[int])
+    assert models._converter_for(Any) is None  # any value is accepted
+    assert models._optional(None) is None
+
+
+def test_frozen_models_cannot_change() -> None:
+    """Models nothing updates after creation are frozen; replace() makes a changed copy."""
+    outage = PowerOutageItem(id="1")
+    with pytest.raises(FrozenInstanceError):
+        outage.id = "2"  # type: ignore[misc]
+    assert replace(outage, id="2").id == "2"
+
+
+def test_config_model_from_config() -> None:
+    """Entry data and options are validated; keys the model does not read are ignored."""
+    cfg = DisasterWatchConfigModel.from_config({"state": "NSW", "radius": "100", "unrelated": object()})
+    assert (cfg.state, cfg.radius) == ("NSW", 100)
+    with pytest.raises(ModelValidationError, match="radius"):
+        DisasterWatchConfigModel.from_config({"radius": 4})
+
+
+def test_json_and_python_dumps() -> None:
+    """to_json_dict writes what pydantic's JSON mode wrote; to_dict keeps Python values (#20)."""
+    issued = datetime(2026, 10, 15, 5, 30, 1, 120000, tzinfo=UTC)
+    hazard = _hazard(
+        updated_at=issued,
+        area=(((-27.0, 153.0),),),
+        raw_properties={"nested": {"when": issued, "kind": HazardType.FLOOD, "pair": (1, 2)}, HazardType.FLOOD: 1},
+    )
+    as_json = to_json_dict(hazard)
+    assert list(as_json) == [f.name for f in fields(CanonicalHazard) if f.name != "area"]
+    assert as_json["hazard_type"] == "Bushfire"
+    assert as_json["updated_at"] == "2026-10-15T05:30:01.120000Z"
+    assert as_json["raw_properties"] == {
+        "nested": {"when": "2026-10-15T05:30:01.120000Z", "kind": "Flood", "pair": [1, 2]},
+        "Flood": 1,
+    }
+    as_python = to_dict(hazard)
+    assert "area" not in as_python
+    assert as_python["hazard_type"] is HazardType.BUSHFIRE
+    assert as_python["updated_at"] is issued
+    assert as_python["raw_properties"]["nested"]["pair"] == (1, 2)
+
+    brisbane = timezone(timedelta(hours=10))
+    status = TsunamiStatus(active=False, source="JATWC", issued=datetime(2026, 10, 15, 15, 30, tzinfo=brisbane))
+    assert to_json_dict(status)["issued"] == "2026-10-15T15:30:00+10:00"
+    assert to_json_dict(FireDangerDay(date=date(2026, 10, 15)))["date"] == "2026-10-15"
+    heatwave = HeatwaveStatus(severity="none", product_id="p", areas=[HeatwaveArea(name="a", severity="low")])
+    assert to_json_dict(heatwave)["areas"] == [{"name": "a", "severity": "low"}]
+    assert to_json_dict(DisasterCoordinatorData(nearby_councils=[{"name": "x"}]))["nearby_councils"] == [{"name": "x"}]
+    assert to_json_dict(FireSeasonStatus(last_updated=datetime(2026, 1, 1, 12, tzinfo=UTC)))["last_updated"] == (
+        "2026-01-01T12:00:00Z"
+    )
+    assert to_dict(UVObservation(station_id="b", station_name="Brisbane", index=3))["index"] == 3.0
+    assert models._dump(dt.time(5, 30), json_mode=True) == "05:30:00"

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import replace
 from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock, patch
@@ -193,7 +194,7 @@ async def test_new_zealand_has_no_australian_entities(hass: HomeAssistant) -> No
         data={CONF_STATE: "NZ", "location_name": "Auckland", "latitude": -36.85, "longitude": 174.76, CONF_RADIUS: 50},
         unique_id="nz_auckland",
     )
-    await setup_entry(hass, entry, [hazard_mock(), national_mock(tsunami=TSUNAMI.model_copy(update={"active": False}))])
+    await setup_entry(hass, entry, [hazard_mock(), national_mock(tsunami=replace(TSUNAMI, active=False))])
     nz = "australia_and_new_zealand_disaster_watch_nz_auckland"
     assert hass.states.get(f"binary_sensor.{nz}_tsunami_warning").state == STATE_OFF
     assert hass.states.get(f"sensor.{nz}_regional_disaster_alerts") is not None
@@ -217,7 +218,7 @@ async def test_tsunami_hazard_turns_sensor_on(
         longitude=152.98,
         updated_at=NOW,
     )
-    inactive = TSUNAMI.model_copy(update={"active": False, "threat_level": None})
+    inactive = replace(TSUNAMI, active=False, threat_level=None)
     national = national_mock(tsunami=None if undetermined else inactive)
     await setup_entry(hass, mock_config_entry, [hazard_mock([hazard]), national])
     state = hass.states.get(f"binary_sensor.{PREFIX}_tsunami_warning")

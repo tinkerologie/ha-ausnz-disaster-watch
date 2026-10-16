@@ -7,7 +7,6 @@ from dataclasses import dataclass
 import logging
 from typing import Any, Final
 
-from pydantic import ValidationError
 import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult, OptionsFlow
@@ -72,7 +71,7 @@ from .coordinator import nearest_council_dashboard
 from .council_registry import councils_for_state, usable_url
 from .dam_options import DamOptionsFlow, offers_dam_storages
 from .hazard_options import HazardOptionsFlow
-from .models import DisasterWatchConfigModel
+from .models import DisasterWatchConfigModel, ModelValidationError
 from .national_options import NationalFeedsOptionsFlow
 from .providers import POWER_OUTAGE_SOURCES, get_providers_for_config
 from .providers.power import PowerOutageSource
@@ -265,8 +264,8 @@ async def async_feeds_reachable(hass: HomeAssistant, data: dict[str, Any]) -> bo
 def is_valid_config(data: dict[str, Any]) -> bool:
     """Return True if the entry data passes the config model validation."""
     try:
-        DisasterWatchConfigModel.model_validate(data)
-    except ValidationError:
+        DisasterWatchConfigModel.from_config(data)
+    except ModelValidationError:
         return False
     return True
 

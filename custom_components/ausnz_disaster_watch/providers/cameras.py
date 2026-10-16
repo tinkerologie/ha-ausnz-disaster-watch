@@ -19,7 +19,7 @@ is kept for a day. Images are fetched only when a camera entity is viewed (``cam
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import timedelta
 import logging
 from typing import Any, ClassVar
@@ -271,6 +271,6 @@ class CameraCatalogueProvider(BaseHazardProvider):
                 # The parsers only keep located cameras
                 distance = haversine_km(lat, lon, float(camera.latitude or 0.0), float(camera.longitude or 0.0))
                 if distance <= radius:
-                    nearby.append(camera.model_copy(update={"distance_km": round(distance, 1)}))
+                    nearby.append(replace(camera, distance_km=round(distance, 1)))
         nearby.sort(key=lambda camera: camera.distance_km or 0.0)
         return nearby[:cap]

@@ -71,8 +71,7 @@ Declare every third-party package the integration imports (anything not provided
 
 ```json
 "requirements": [
-  "defusedxml>=0.7.1",
-  "pydantic>=2.10"
+  "defusedxml>=0.7.1"
 ]
 ```
 

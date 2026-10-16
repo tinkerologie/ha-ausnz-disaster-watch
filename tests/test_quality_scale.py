@@ -7,6 +7,7 @@ manifest tier backed by its rules.
 
 from __future__ import annotations
 
+from dataclasses import replace
 import json
 from pathlib import Path
 from typing import Any
@@ -142,7 +143,7 @@ def test_every_hazard_type_has_a_map_icon(mock_hazard_emergency_warning: Canonic
     """Each hazard type's geolocation translation key has an icon."""
     icons = json.loads((INTEGRATION / "icons.json").read_text(encoding="utf-8"))["entity"]["geo_location"]
     for hazard_type in HazardType:
-        hazard = mock_hazard_emergency_warning.model_copy(update={"hazard_type": hazard_type})
+        hazard = replace(mock_hazard_emergency_warning, hazard_type=hazard_type)
         assert hazard_translation_key(hazard) in icons, hazard_type
 
 
