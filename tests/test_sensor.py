@@ -6,7 +6,9 @@ from unittest.mock import AsyncMock, patch
 
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.ausnz_disaster_watch.const import CONF_COUNCIL_DASHBOARD_URL
 from custom_components.ausnz_disaster_watch.coordinator import AustralianDisasterWatchCoordinator
+from custom_components.ausnz_disaster_watch.council_registry import own_council_link
 from custom_components.ausnz_disaster_watch.models import (
     AirQualityStationData,
     CanonicalHazard,
@@ -20,6 +22,7 @@ from custom_components.ausnz_disaster_watch.models import (
     WeatherStationObservation,
     WeatherWarningItem,
 )
+from custom_components.ausnz_disaster_watch.providers.qld import QueenslandHazardProvider
 from custom_components.ausnz_disaster_watch.sensor import (
     AirQualityIndexSensor,
     FireDangerRatingSensor,
@@ -294,3 +297,43 @@ async def test_expanded_disaster_sensors(
     rf_count = ReliefFacilitiesCountSensor(coordinator)
     assert rf_count.native_value == 1
     assert "facilities" in rf_count.extra_state_attributes
+
+
+async def test_council_attribute(hass: HomeAssistant, mock_config_entry: MockConfigEntry) -> None:
+    """The warning sensors name the entry's own council dashboard next to the nearby ones (#94)."""
+    coordinator = AustralianDisasterWatchCoordinator(hass, mock_config_entry)
+    coordinator.data = DisasterCoordinatorData(nearby_councils=[{"name": "Redland City", "url": "https://x"}])
+    level = HighestWarningLevelSensor(coordinator)
+    warnings = WeatherWarningsCountSensor(coordinator)
+
+    # A moved host is followed, as the dashboard client does: the link is the dashboard it reads
+    coordinator.providers = [
+        AsyncMock(),
+        QueenslandHazardProvider(
+            hass, AsyncMock(), {"state": "QLD", CONF_COUNCIL_DASHBOARD_URL: "dashboard.cityofgoldcoast.com.au/"}
+        ),
+    ]
+    own = {"name": "City of Gold Coast", "url": "https://dashboard.goldcoast.qld.gov.au"}
+    assert level.extra_state_attributes["council"] == own
+    assert warnings.extra_state_attributes["council"] == own
+    assert level.extra_state_attributes["nearby_councils"] == [{"name": "Redland City", "url": "https://x"}]
+
+    # No council dashboard: no link
+    coordinator.providers = [QueenslandHazardProvider(hass, AsyncMock(), {"state": "QLD"})]
+    assert level.extra_state_attributes["council"] is None
+    coordinator.providers = [AsyncMock()]
+    assert warnings.extra_state_attributes["council"] is None
+
+
+def test_own_council_link() -> None:
+    """The own link is named from the registry, or by its host when the registry does not know it (#94)."""
+    assert own_council_link(None) is None
+    assert own_council_link("") is None
+    assert own_council_link("https://disaster.moretonbay.qld.gov.au") == {
+        "name": "City of Moreton Bay",
+        "url": "https://disaster.moretonbay.qld.gov.au",
+    }
+    assert own_council_link("https://dashboard.example.org/qld") == {
+        "name": "dashboard.example.org",
+        "url": "https://dashboard.example.org/qld",
+    }

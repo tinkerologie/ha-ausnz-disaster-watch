@@ -187,7 +187,7 @@ class HighestWarningLevelSensor(AustralianDisasterWatchEntity, SensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        """Return attributes including active emergency news and nearby councils."""
+        """Return attributes including active emergency news, the entry's council and nearby councils."""
         news = self.coordinator.emergency_news
         councils = self.coordinator.nearby_councils
         inside = self.coordinator.inside_warning_hazards
@@ -195,6 +195,7 @@ class HighestWarningLevelSensor(AustralianDisasterWatchEntity, SensorEntity):
             "inside_warning_area": bool(inside),
             "inside_warning_level": inside[0].warning_level.value if inside else None,
             "emergency_news": [to_json_dict(n) for n in news[:20]],
+            "council": self.coordinator.council,
             "nearby_councils": councils[:10],
         }
 
@@ -309,13 +310,14 @@ class WeatherWarningsCountSensor(AustralianDisasterWatchEntity, SensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        """Return list of weather warnings, emergency news, and nearby councils."""
+        """Return weather warnings, emergency news, the entry's council and nearby councils."""
         warnings = self.coordinator.weather_warnings
         news = self.coordinator.emergency_news
         councils = self.coordinator.nearby_councils
         return {
             "warnings": [to_json_dict(w) for w in warnings[:20]],
             "emergency_news": [to_json_dict(n) for n in news[:20]],
+            "council": self.coordinator.council,
             "nearby_councils": councils[:10],
         }
 

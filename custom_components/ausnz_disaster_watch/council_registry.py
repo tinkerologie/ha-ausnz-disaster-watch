@@ -122,6 +122,22 @@ def _normalise_url(url: str | None) -> str:
     return re.sub(r"^https?://", "", (url or "").strip().lower()).rstrip("/")
 
 
+def own_council_link(dashboard_url: str | None) -> dict[str, str] | None:
+    """Return the link to the entry's own council dashboard, or None without one (#94).
+
+    ``dashboard_url`` is the dashboard the entry reads, already normalised (moved hosts
+    rewritten). The name comes from the registry; a dashboard the registry does not know
+    (a custom URL) is named by its host.
+    """
+    if not dashboard_url:
+        return None
+    own = _normalise_url(dashboard_url)
+    for council in COUNCIL_DASHBOARDS.values():
+        if council["url"] and _normalise_url(council["url"]) == own:
+            return {"name": council["name"], "url": dashboard_url}
+    return {"name": own.split("/", 1)[0], "url": dashboard_url}
+
+
 # How many neighbouring council dashboards the card links to.
 NEARBY_COUNCIL_LINKS: Final = 6
 

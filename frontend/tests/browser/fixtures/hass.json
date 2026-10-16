@@ -554,6 +554,7 @@
       "state": "advice",
       "attributes": {
         "emergency_news": [],
+        "council": null,
         "nearby_councils": [],
         "icon": "mdi:information",
         "friendly_name": "Australia and New Zealand Disaster Watch (NZ - Wellington) Highest Warning Level"
@@ -617,6 +618,7 @@
         "state_class": "measurement",
         "warnings": [],
         "emergency_news": [],
+        "council": null,
         "nearby_councils": [],
         "unit_of_measurement": "warnings",
         "icon": "mdi:weather-lightning-rainy",
@@ -1124,6 +1126,10 @@
       "state": "watch_and_act",
       "attributes": {
         "emergency_news": [],
+        "council": {
+          "name": "City of Moreton Bay",
+          "url": "https://disaster.moretonbay.qld.gov.au"
+        },
         "nearby_councils": [
           {
             "name": "Sunshine Coast Regional Council",
@@ -1295,6 +1301,10 @@
           }
         ],
         "emergency_news": [],
+        "council": {
+          "name": "City of Moreton Bay",
+          "url": "https://disaster.moretonbay.qld.gov.au"
+        },
         "nearby_councils": [
           {
             "name": "Sunshine Coast Regional Council",

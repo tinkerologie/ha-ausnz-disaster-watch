@@ -134,7 +134,8 @@ export const en = {
   "relief.group.place_of_refuge": "Places of refuge",
   "relief.group.sandbag_station": "Sandbag stations",
   "relief.group.other": "Other facilities",
-  "relief.councils": "Council dashboards",
+  "relief.own_council": "Your council dashboard",
+  "relief.councils": "Nearby council dashboards",
   "relief.open": "Open",
   "relief.closed": "Closed",
 
@@ -175,6 +176,9 @@ export const en = {
   "editor.show_planned_burns": "Show planned burns",
   "editor.show_planned_burns_helper":
     "Planned burns only reach the card when the integration's 'Exclude hazard reduction burns' option is off.",
+  "editor.show_nearby_councils": "Show nearby councils",
+  "editor.show_nearby_councils_helper":
+    "Also link to the disaster dashboards of neighbouring councils. Off: only your own council's dashboard is shown.",
   "editor.categories": "Categories",
   "editor.categories_helper": "Incident categories to show. Leave empty for all.",
   "editor.refresh_interval": "Refresh interval",

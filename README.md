@@ -422,7 +422,7 @@ The integration serves and registers its card suite automatically: one Lovelace 
 | Power outages | `custom:ausnz-disaster-outages-card` | Outages, customers affected, cause and estimated restore time |
 | Roads | `custom:ausnz-disaster-roads-card` | Road closures and hazards with status, advice and distance |
 | Conditions | `custom:ausnz-disaster-conditions-card` | Local weather observation (temperature, feels like, humidity, wind, gust, pressure, rain since 9 am) and air quality |
-| Relief | `custom:ausnz-disaster-relief-card` | Evacuation centres, places of refuge and sandbag stations, and links to nearby council disaster dashboards |
+| Relief | `custom:ausnz-disaster-relief-card` | Evacuation centres, places of refuge and sandbag stations, and a link to your council's disaster dashboard (optionally the neighbouring councils' too) |
 | Cameras | `custom:ausnz-disaster-cameras-card` | Flood and traffic camera snapshots, refreshed while visible |
 | Map | `custom:ausnz-disaster-map-card` | Incidents on a map with your home zone and animated rain radar |
 | All-in-one | `custom:ausnz-disaster-card` | A stack of the cards above in one card |
@@ -450,7 +450,9 @@ Card-specific options:
 | Map | `radar_opacity` | `0.7` | Radar layer opacity (0.1 to 1). |
 | Map | `satellite_layer` | `none` | Satellite imagery under the incidents: `himawari_visible` (daytime clouds, every 10 minutes), `himawari_ir` (clouds day and night, every 10 minutes), `viirs_truecolor` (daily true colour image: smoke, burn scars, flood extent) or `none`. |
 | Map | `show_cyclone_tracks` | `false` | Draw the GDACS forecast track, wind areas and uncertainty cone of current cyclones listed by the **Regional Disaster Alerts** sensor. Needs the integration option **Regional disaster alerts (GDACS)**. |
+| Relief | `show_nearby_councils` | `false` | Also link to the disaster dashboards of up to six neighbouring councils, below **Your council dashboard**. Off, the card links only to the council dashboard the entry reads (none when the entry has no council dashboard). |
 | All-in-one | `cards` | `status`, `incidents`, `warnings`, `fire_danger`, `roads`, `outages` | Sections to stack, in order. Also available: `conditions`, `relief`, `cameras`, `map`. |
+| All-in-one | `show_nearby_councils` | `false` | Passed to the relief section (see Relief above). |
 
 ### Examples
 
