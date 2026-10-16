@@ -174,12 +174,25 @@ Not used. Do not add them without permission.
 - NIWA fireweather: terms forbid redistribution (from the issue; not rechecked).
 - Demonz council dashboards: "Unauthorised use is not permitted" (from the issue; not rechecked).
 
+## Sources in open pull requests
+
+Not merged yet. The PR that adds one must move it into [Runtime feeds](#runtime-feeds) and
+`providers/sources.py`; `tests/test_data_sources.py` fails until it does.
+
+| Source | Endpoint | Licence and terms | Attribution | PR |
+| --- | --- | --- | --- | --- |
+| Open-Meteo Forecast API | `api.open-meteo.com/v1/forecast` | CC BY 4.0 (https://open-meteo.com/en/licence). The free API is non-commercial only, under 10,000 calls a day, 5,000 an hour and 600 a minute per IP (https://open-meteo.com/en/terms). No key. | Weather data by Open-Meteo.com (CC BY 4.0) | #58 |
+| Open-Meteo Flood API (GloFAS v4, Copernicus) | `flood-api.open-meteo.com/v1/flood` | Open-Meteo terms; GloFAS data under its Copernicus licence, listed on the Open-Meteo licence page | Flood data by Open-Meteo.com (GloFAS, CC BY 4.0) | #58 |
+| ECMWF AIFS ensemble via Open-Meteo | `ensemble-api.open-meteo.com/v1/ensemble` (`ecmwf_aifs025_ensemble`) | ECMWF open data, CC BY 4.0 | ECMWF AIFS (CC BY 4.0) | #58 |
+| Google WeatherNext 2 ensemble via Open-Meteo | same (`google_weathernext2_ensemble`) | `unverified`. Open-Meteo states no licence; Google's "GDM Real-Time Weather Forecasting Experimental Data Terms of Use" limit real-time data to internal use (data older than 1 hour is CC BY 4.0). Opt-in, off by default, separately removable. | Google WeatherNext 2 | #58 |
+| NZTA (Waka Kotahi) road closures | see #57 | data.govt.nz lists the licence as "No License Provided" (`unverified`) | — | #57 |
+| GeoNet CAP alerts; GeoNet and NSW RFS via `aio_geojson_*` libraries | see #57 | Same publishers and terms as `geonet` (CC BY 3.0 NZ) and `nsw_rfs` (CC BY 4.0) above | as above | #57 |
+
 ## Candidate open sources
 
 Not used yet; licences as reported in #34 and its comments, to be rechecked when a source is added.
 
 - Live Traffic NSW (CC BY), QLDTraffic GeoJSON API (CC BY 4.0, key), Main Roads WA (CC BY 4.0), Traffic SA (CC BY), VIC DTP (CC BY 4.0, key), DEA Hotspots (CC BY 4.0), Brisbane open data (CC BY 4.0), CFA feeds (CC BY 4.0, CFA only), TFS feeds (CC BY 4.0 with display conditions).
-- Open-Meteo (https://open-meteo.com/en/terms): data CC BY 4.0, "Weather data by Open-Meteo.com" with a link; the free API is non-commercial and limited to 10,000 calls a day, 5,000 an hour and 600 a minute. ECMWF AIFS via Open-Meteo: CC BY 4.0. GloFAS via the Flood API: Copernicus licence. Google WeatherNext 2 via Open-Meteo: open question (Google's experimental data terms restrict real-time use).
 - MET Norway (https://api.met.no/doc/TermsOfService): NLOD 2.0 and CC BY 4.0, credit "Data from MET Norway"; requires an identifying User-Agent that does not start with "HomeAssistant".
 
 ## Out of scope
