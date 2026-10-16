@@ -196,6 +196,8 @@ __pypackages__/
 [Ll]ib64
 [Ll]ocal
 [Ss]cripts
+# ...but not the card suite's lint scripts
+!frontend/scripts/
 pyvenv.cfg
 .venv
 pip-selfcheck.json

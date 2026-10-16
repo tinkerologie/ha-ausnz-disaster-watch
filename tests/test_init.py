@@ -6,7 +6,6 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.ausnz_disaster_watch import async_setup
 from custom_components.ausnz_disaster_watch.const import CONF_LATITUDE, CONF_LONGITUDE, CONF_RADIUS
 from custom_components.ausnz_disaster_watch.coordinator import AustralianDisasterWatchCoordinator
 from homeassistant.config_entries import ConfigEntryState
@@ -32,8 +31,6 @@ async def test_integration_lifecycle(
     mock_providers: AsyncMock,
 ) -> None:
     """Set up stores the coordinator in runtime_data, registers no update listener, and unloads cleanly."""
-    assert await async_setup(hass, {}) is True
-
     mock_config_entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(mock_config_entry.entry_id) is True
     await hass.async_block_till_done()
@@ -113,3 +110,26 @@ async def test_reconfigure_reloads_without_listener_deprecation(
     assert mock_config_entry.state is ConfigEntryState.LOADED
     assert mock_config_entry.runtime_data.latitude == -27.30
     assert "has an update listener and should use it for scheduling a reload" not in caplog.text
+
+
+async def test_remove_last_entry_unregisters_frontend(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    mock_providers: AsyncMock,
+) -> None:
+    """Removing the last config entry removes the dashboard resource; removing one of two does not (#22)."""
+    other = MockConfigEntry(
+        domain=mock_config_entry.domain,
+        data={**mock_config_entry.data},
+        unique_id="other_entry",
+        title="Other",
+    )
+    mock_config_entry.add_to_hass(hass)
+    other.add_to_hass(hass)
+    with patch(
+        "custom_components.ausnz_disaster_watch.async_unregister_frontend", new_callable=AsyncMock
+    ) as mock_unregister:
+        assert await hass.config_entries.async_remove(other.entry_id)
+        mock_unregister.assert_not_called()
+        assert await hass.config_entries.async_remove(mock_config_entry.entry_id)
+        mock_unregister.assert_awaited_once_with(hass)

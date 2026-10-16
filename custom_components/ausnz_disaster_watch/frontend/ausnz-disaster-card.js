@@ -1,787 +1,819 @@
-var e=globalThis,t=e.ShadowRoot&&(e.ShadyCSS===void 0||e.ShadyCSS.nativeShadow)&&`adoptedStyleSheets`in Document.prototype&&`replace`in CSSStyleSheet.prototype,n=Symbol(),r=new WeakMap,i=class{constructor(e,t,r){if(this._$cssResult$=!0,r!==n)throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");this.cssText=e,this.t=t}get styleSheet(){let e=this.o,n=this.t;if(t&&e===void 0){let t=n!==void 0&&n.length===1;t&&(e=r.get(n)),e===void 0&&((this.o=e=new CSSStyleSheet).replaceSync(this.cssText),t&&r.set(n,e))}return e}toString(){return this.cssText}},a=e=>new i(typeof e==`string`?e:e+``,void 0,n),o=(e,...t)=>new i(e.length===1?e[0]:t.reduce((t,n,r)=>t+(e=>{if(!0===e._$cssResult$)return e.cssText;if(typeof e==`number`)return e;throw Error(`Value passed to 'css' function must be a 'css' function result: `+e+`. Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.`)})(n)+e[r+1],e[0]),e,n),s=(n,r)=>{if(t)n.adoptedStyleSheets=r.map(e=>e instanceof CSSStyleSheet?e:e.styleSheet);else for(let t of r){let r=document.createElement(`style`),i=e.litNonce;i!==void 0&&r.setAttribute(`nonce`,i),r.textContent=t.cssText,n.appendChild(r)}},c=t?e=>e:e=>e instanceof CSSStyleSheet?(e=>{let t=``;for(let n of e.cssRules)t+=n.cssText;return a(t)})(e):e,{is:l,defineProperty:u,getOwnPropertyDescriptor:d,getOwnPropertyNames:f,getOwnPropertySymbols:p,getPrototypeOf:ee}=Object,m=globalThis,h=m.trustedTypes,g=h?h.emptyScript:``,_=m.reactiveElementPolyfillSupport,v=(e,t)=>e,y={toAttribute(e,t){switch(t){case Boolean:e=e?g:null;break;case Object:case Array:e=e==null?e:JSON.stringify(e)}return e},fromAttribute(e,t){let n=e;switch(t){case Boolean:n=e!==null;break;case Number:n=e===null?null:Number(e);break;case Object:case Array:try{n=JSON.parse(e)}catch{n=null}}return n}},b=(e,t)=>!l(e,t),x={attribute:!0,type:String,converter:y,reflect:!1,useDefault:!1,hasChanged:b};Symbol.metadata??=Symbol(`metadata`),m.litPropertyMetadata??=new WeakMap;var S=class extends HTMLElement{static addInitializer(e){this._$Ei(),(this.l??=[]).push(e)}static get observedAttributes(){return this.finalize(),this._$Eh&&[...this._$Eh.keys()]}static createProperty(e,t=x){if(t.state&&(t.attribute=!1),this._$Ei(),this.prototype.hasOwnProperty(e)&&((t=Object.create(t)).wrapped=!0),this.elementProperties.set(e,t),!t.noAccessor){let n=Symbol(),r=this.getPropertyDescriptor(e,n,t);r!==void 0&&u(this.prototype,e,r)}}static getPropertyDescriptor(e,t,n){let{get:r,set:i}=d(this.prototype,e)??{get(){return this[t]},set(e){this[t]=e}};return{get:r,set(t){let a=r?.call(this);i?.call(this,t),this.requestUpdate(e,a,n)},configurable:!0,enumerable:!0}}static getPropertyOptions(e){return this.elementProperties.get(e)??x}static _$Ei(){if(this.hasOwnProperty(v(`elementProperties`)))return;let e=ee(this);e.finalize(),e.l!==void 0&&(this.l=[...e.l]),this.elementProperties=new Map(e.elementProperties)}static finalize(){if(this.hasOwnProperty(v(`finalized`)))return;if(this.finalized=!0,this._$Ei(),this.hasOwnProperty(v(`properties`))){let e=this.properties,t=[...f(e),...p(e)];for(let n of t)this.createProperty(n,e[n])}let e=this[Symbol.metadata];if(e!==null){let t=litPropertyMetadata.get(e);if(t!==void 0)for(let[e,n]of t)this.elementProperties.set(e,n)}this._$Eh=new Map;for(let[e,t]of this.elementProperties){let n=this._$Eu(e,t);n!==void 0&&this._$Eh.set(n,e)}this.elementStyles=this.finalizeStyles(this.styles)}static finalizeStyles(e){let t=[];if(Array.isArray(e)){let n=new Set(e.flat(1/0).reverse());for(let e of n)t.unshift(c(e))}else e!==void 0&&t.push(c(e));return t}static _$Eu(e,t){let n=t.attribute;return!1===n?void 0:typeof n==`string`?n:typeof e==`string`?e.toLowerCase():void 0}constructor(){super(),this._$Ep=void 0,this.isUpdatePending=!1,this.hasUpdated=!1,this._$Em=null,this._$Ev()}_$Ev(){this._$ES=new Promise(e=>this.enableUpdating=e),this._$AL=new Map,this._$E_(),this.requestUpdate(),this.constructor.l?.forEach(e=>e(this))}addController(e){(this._$EO??=new Set).add(e),this.renderRoot!==void 0&&this.isConnected&&e.hostConnected?.()}removeController(e){this._$EO?.delete(e)}_$E_(){let e=new Map,t=this.constructor.elementProperties;for(let n of t.keys())this.hasOwnProperty(n)&&(e.set(n,this[n]),delete this[n]);e.size>0&&(this._$Ep=e)}createRenderRoot(){let e=this.shadowRoot??this.attachShadow(this.constructor.shadowRootOptions);return s(e,this.constructor.elementStyles),e}connectedCallback(){this.renderRoot??=this.createRenderRoot(),this.enableUpdating(!0),this._$EO?.forEach(e=>e.hostConnected?.())}enableUpdating(e){}disconnectedCallback(){this._$EO?.forEach(e=>e.hostDisconnected?.())}attributeChangedCallback(e,t,n){this._$AK(e,n)}_$ET(e,t){let n=this.constructor.elementProperties.get(e),r=this.constructor._$Eu(e,n);if(r!==void 0&&!0===n.reflect){let i=(n.converter?.toAttribute===void 0?y:n.converter).toAttribute(t,n.type);this._$Em=e,i==null?this.removeAttribute(r):this.setAttribute(r,i),this._$Em=null}}_$AK(e,t){let n=this.constructor,r=n._$Eh.get(e);if(r!==void 0&&this._$Em!==r){let e=n.getPropertyOptions(r),i=typeof e.converter==`function`?{fromAttribute:e.converter}:e.converter?.fromAttribute===void 0?y:e.converter;this._$Em=r;let a=i.fromAttribute(t,e.type);this[r]=a??this._$Ej?.get(r)??a,this._$Em=null}}requestUpdate(e,t,n,r=!1,i){if(e!==void 0){let a=this.constructor;if(!1===r&&(i=this[e]),n??=a.getPropertyOptions(e),!((n.hasChanged??b)(i,t)||n.useDefault&&n.reflect&&i===this._$Ej?.get(e)&&!this.hasAttribute(a._$Eu(e,n))))return;this.C(e,t,n)}!1===this.isUpdatePending&&(this._$ES=this._$EP())}C(e,t,{useDefault:n,reflect:r,wrapped:i},a){n&&!(this._$Ej??=new Map).has(e)&&(this._$Ej.set(e,a??t??this[e]),!0!==i||a!==void 0)||(this._$AL.has(e)||(this.hasUpdated||n||(t=void 0),this._$AL.set(e,t)),!0===r&&this._$Em!==e&&(this._$Eq??=new Set).add(e))}async _$EP(){this.isUpdatePending=!0;try{await this._$ES}catch(e){Promise.reject(e)}let e=this.scheduleUpdate();return e!=null&&await e,!this.isUpdatePending}scheduleUpdate(){return this.performUpdate()}performUpdate(){if(!this.isUpdatePending)return;if(!this.hasUpdated){if(this.renderRoot??=this.createRenderRoot(),this._$Ep){for(let[e,t]of this._$Ep)this[e]=t;this._$Ep=void 0}let e=this.constructor.elementProperties;if(e.size>0)for(let[t,n]of e){let{wrapped:e}=n,r=this[t];!0!==e||this._$AL.has(t)||r===void 0||this.C(t,void 0,n,r)}}let e=!1,t=this._$AL;try{e=this.shouldUpdate(t),e?(this.willUpdate(t),this._$EO?.forEach(e=>e.hostUpdate?.()),this.update(t)):this._$EM()}catch(t){throw e=!1,this._$EM(),t}e&&this._$AE(t)}willUpdate(e){}_$AE(e){this._$EO?.forEach(e=>e.hostUpdated?.()),this.hasUpdated||(this.hasUpdated=!0,this.firstUpdated(e)),this.updated(e)}_$EM(){this._$AL=new Map,this.isUpdatePending=!1}get updateComplete(){return this.getUpdateComplete()}getUpdateComplete(){return this._$ES}shouldUpdate(e){return!0}update(e){this._$Eq&&=this._$Eq.forEach(e=>this._$ET(e,this[e])),this._$EM()}updated(e){}firstUpdated(e){}};S.elementStyles=[],S.shadowRootOptions={mode:`open`},S[v(`elementProperties`)]=new Map,S[v(`finalized`)]=new Map,_?.({ReactiveElement:S}),(m.reactiveElementVersions??=[]).push(`2.1.2`);var C=globalThis,w=e=>e,T=C.trustedTypes,E=T?T.createPolicy(`lit-html`,{createHTML:e=>e}):void 0,D=`$lit$`,O=`lit$${Math.random().toFixed(9).slice(2)}$`,k=`?`+O,A=`<${k}>`,j=document,M=()=>j.createComment(``),N=e=>e===null||typeof e!=`object`&&typeof e!=`function`,P=Array.isArray,F=e=>P(e)||typeof e?.[Symbol.iterator]==`function`,I=`[ 	
-\f\r]`,L=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,R=/-->/g,z=/>/g,B=RegExp(`>|${I}(?:([^\\s"'>=/]+)(${I}*=${I}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`,`g`),V=/'/g,H=/"/g,U=/^(?:script|style|textarea|title)$/i,W=(e=>(t,...n)=>({_$litType$:e,strings:t,values:n}))(1),G=Symbol.for(`lit-noChange`),K=Symbol.for(`lit-nothing`),te=new WeakMap,q=j.createTreeWalker(j,129);function ne(e,t){if(!P(e)||!e.hasOwnProperty(`raw`))throw Error(`invalid template strings array`);return E===void 0?t:E.createHTML(t)}var re=(e,t)=>{let n=e.length-1,r=[],i,a=t===2?`<svg>`:t===3?`<math>`:``,o=L;for(let t=0;t<n;t++){let n=e[t],s,c,l=-1,u=0;for(;u<n.length&&(o.lastIndex=u,c=o.exec(n),c!==null);)u=o.lastIndex,o===L?c[1]===`!--`?o=R:c[1]===void 0?c[2]===void 0?c[3]!==void 0&&(o=B):(U.test(c[2])&&(i=RegExp(`</`+c[2],`g`)),o=B):o=z:o===B?c[0]===`>`?(o=i??L,l=-1):c[1]===void 0?l=-2:(l=o.lastIndex-c[2].length,s=c[1],o=c[3]===void 0?B:c[3]===`"`?H:V):o===H||o===V?o=B:o===R||o===z?o=L:(o=B,i=void 0);let d=o===B&&e[t+1].startsWith(`/>`)?` `:``;a+=o===L?n+A:l>=0?(r.push(s),n.slice(0,l)+D+n.slice(l)+O+d):n+O+(l===-2?t:d)}return[ne(e,a+(e[n]||`<?>`)+(t===2?`</svg>`:t===3?`</math>`:``)),r]},J=class e{constructor({strings:t,_$litType$:n},r){let i;this.parts=[];let a=0,o=0,s=t.length-1,c=this.parts,[l,u]=re(t,n);if(this.el=e.createElement(l,r),q.currentNode=this.el.content,n===2||n===3){let e=this.el.content.firstChild;e.replaceWith(...e.childNodes)}for(;(i=q.nextNode())!==null&&c.length<s;){if(i.nodeType===1){if(i.hasAttributes())for(let e of i.getAttributeNames())if(e.endsWith(D)){let t=u[o++],n=i.getAttribute(e).split(O),r=/([.?@])?(.*)/.exec(t);c.push({type:1,index:a,name:r[2],strings:n,ctor:r[1]===`.`?ae:r[1]===`?`?oe:r[1]===`@`?se:Z}),i.removeAttribute(e)}else e.startsWith(O)&&(c.push({type:6,index:a}),i.removeAttribute(e));if(U.test(i.tagName)){let e=i.textContent.split(O),t=e.length-1;if(t>0){i.textContent=T?T.emptyScript:``;for(let n=0;n<t;n++)i.append(e[n],M()),q.nextNode(),c.push({type:2,index:++a});i.append(e[t],M())}}}else if(i.nodeType===8){if(i.data===k)c.push({type:2,index:a});else{let e=-1;for(;(e=i.data.indexOf(O,e+1))!==-1;)c.push({type:7,index:a}),e+=O.length-1}}a++}}static createElement(e,t){let n=j.createElement(`template`);return n.innerHTML=e,n}};function Y(e,t,n=e,r){if(t===G)return t;let i=r===void 0?n._$Cl:n._$Co?.[r],a=N(t)?void 0:t._$litDirective$;return i?.constructor!==a&&(i?._$AO?.(!1),a===void 0?i=void 0:(i=new a(e),i._$AT(e,n,r)),r===void 0?n._$Cl=i:(n._$Co??=[])[r]=i),i!==void 0&&(t=Y(e,i._$AS(e,t.values),i,r)),t}var ie=class{constructor(e,t){this._$AV=[],this._$AN=void 0,this._$AD=e,this._$AM=t}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(e){let{el:{content:t},parts:n}=this._$AD,r=(e?.creationScope??j).importNode(t,!0);q.currentNode=r;let i=q.nextNode(),a=0,o=0,s=n[0];for(;s!==void 0;){if(a===s.index){let t;s.type===2?t=new X(i,i.nextSibling,this,e):s.type===1?t=new s.ctor(i,s.name,s.strings,this,e):s.type===6&&(t=new ce(i,this,e)),this._$AV.push(t),s=n[++o]}a!==s?.index&&(i=q.nextNode(),a++)}return q.currentNode=j,r}p(e){let t=0;for(let n of this._$AV)n!==void 0&&(n.strings===void 0?n._$AI(e[t]):(n._$AI(e,n,t),t+=n.strings.length-2)),t++}},X=class e{get _$AU(){return this._$AM?._$AU??this._$Cv}constructor(e,t,n,r){this.type=2,this._$AH=K,this._$AN=void 0,this._$AA=e,this._$AB=t,this._$AM=n,this.options=r,this._$Cv=r?.isConnected??!0}get parentNode(){let e=this._$AA.parentNode,t=this._$AM;return t!==void 0&&e?.nodeType===11&&(e=t.parentNode),e}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(e,t=this){e=Y(this,e,t),N(e)?e===K||e==null||e===``?(this._$AH!==K&&this._$AR(),this._$AH=K):e!==this._$AH&&e!==G&&this._(e):e._$litType$===void 0?e.nodeType===void 0?F(e)?this.k(e):this._(e):this.T(e):this.$(e)}O(e){return this._$AA.parentNode.insertBefore(e,this._$AB)}T(e){this._$AH!==e&&(this._$AR(),this._$AH=this.O(e))}_(e){this._$AH!==K&&N(this._$AH)?this._$AA.nextSibling.data=e:this.T(j.createTextNode(e)),this._$AH=e}$(e){let{values:t,_$litType$:n}=e,r=typeof n==`number`?this._$AC(e):(n.el===void 0&&(n.el=J.createElement(ne(n.h,n.h[0]),this.options)),n);if(this._$AH?._$AD===r)this._$AH.p(t);else{let e=new ie(r,this),n=e.u(this.options);e.p(t),this.T(n),this._$AH=e}}_$AC(e){let t=te.get(e.strings);return t===void 0&&te.set(e.strings,t=new J(e)),t}k(t){P(this._$AH)||(this._$AH=[],this._$AR());let n=this._$AH,r,i=0;for(let a of t)i===n.length?n.push(r=new e(this.O(M()),this.O(M()),this,this.options)):r=n[i],r._$AI(a),i++;i<n.length&&(this._$AR(r&&r._$AB.nextSibling,i),n.length=i)}_$AR(e=this._$AA.nextSibling,t){for(this._$AP?.(!1,!0,t);e!==this._$AB;){let t=w(e).nextSibling;w(e).remove(),e=t}}setConnected(e){this._$AM===void 0&&(this._$Cv=e,this._$AP?.(e))}},Z=class{get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}constructor(e,t,n,r,i){this.type=1,this._$AH=K,this._$AN=void 0,this.element=e,this.name=t,this._$AM=r,this.options=i,n.length>2||n[0]!==``||n[1]!==``?(this._$AH=Array(n.length-1).fill(new String),this.strings=n):this._$AH=K}_$AI(e,t=this,n,r){let i=this.strings,a=!1;if(i===void 0)e=Y(this,e,t,0),a=!N(e)||e!==this._$AH&&e!==G,a&&(this._$AH=e);else{let r=e,o,s;for(e=i[0],o=0;o<i.length-1;o++)s=Y(this,r[n+o],t,o),s===G&&(s=this._$AH[o]),a||=!N(s)||s!==this._$AH[o],s===K?e=K:e!==K&&(e+=(s??``)+i[o+1]),this._$AH[o]=s}a&&!r&&this.j(e)}j(e){e===K?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,e??``)}},ae=class extends Z{constructor(){super(...arguments),this.type=3}j(e){this.element[this.name]=e===K?void 0:e}},oe=class extends Z{constructor(){super(...arguments),this.type=4}j(e){this.element.toggleAttribute(this.name,!!e&&e!==K)}},se=class extends Z{constructor(e,t,n,r,i){super(e,t,n,r,i),this.type=5}_$AI(e,t=this){if((e=Y(this,e,t,0)??K)===G)return;let n=this._$AH,r=e===K&&n!==K||e.capture!==n.capture||e.once!==n.once||e.passive!==n.passive,i=e!==K&&(n===K||r);r&&this.element.removeEventListener(this.name,this,n),i&&this.element.addEventListener(this.name,this,e),this._$AH=e}handleEvent(e){typeof this._$AH==`function`?this._$AH.call(this.options?.host??this.element,e):this._$AH.handleEvent(e)}},ce=class{constructor(e,t,n){this.element=e,this.type=6,this._$AN=void 0,this._$AM=t,this.options=n}get _$AU(){return this._$AM._$AU}_$AI(e){Y(this,e)}},le=C.litHtmlPolyfillSupport;le?.(J,X),(C.litHtmlVersions??=[]).push(`3.3.3`);var ue=(e,t,n)=>{let r=n?.renderBefore??t,i=r._$litPart$;if(i===void 0){let e=n?.renderBefore??null;r._$litPart$=i=new X(t.insertBefore(M(),e),e,void 0,n??{})}return i._$AI(e),i},Q=globalThis,$=class extends S{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0}createRenderRoot(){let e=super.createRenderRoot();return this.renderOptions.renderBefore??=e.firstChild,e}update(e){let t=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(e),this._$Do=ue(t,this.renderRoot,this.renderOptions)}connectedCallback(){super.connectedCallback(),this._$Do?.setConnected(!0)}disconnectedCallback(){super.disconnectedCallback(),this._$Do?.setConnected(!1)}render(){return G}};$._$litElement$=!0,$.finalized=!0,Q.litElementHydrateSupport?.({LitElement:$});var de=Q.litElementPolyfillSupport;de?.({LitElement:$}),(Q.litElementVersions??=[]).push(`4.2.2`);var fe=class extends ${_config;_hass;_filter=`all`;_activeTab=`none`;static properties={_config:{state:!0},_hass:{state:!0},_filter:{state:!0},_activeTab:{state:!0}};static styles=o`
-    :host {
-      display: block;
+var e=`ausnz_disaster_watch`,t=`https://github.com/tinkerologie/ha-ausnz-disaster-watch#dashboard-cards`,n={emergencyWarningNearby:`emergency_warning_nearby`,activeHazardsNearby:`active_hazards_nearby`,powerOutageActive:`power_outage_active`,roadClosureNearby:`road_closure_nearby`,nearestHazardDistance:`nearest_hazard_distance`,activeHazardsCount:`active_hazards_count`,highestWarningLevel:`highest_warning_level`,nearestHazardTitle:`nearest_hazard_title`,powerOutagesCount:`power_outages_count`,powerOutagesCustomersAffected:`power_outages_customers_affected`,roadClosuresCount:`road_closures_count`,weatherWarningsCount:`weather_warnings_count`,fireDangerRating:`fire_danger_rating`,airQualityRating:`air_quality_rating`,primaryWeatherObservation:`primary_weather_observation`,reliefFacilitiesCount:`relief_facilities_count`},r={status:`ausnz-disaster-status-card`,incidents:`ausnz-disaster-incidents-card`,warnings:`ausnz-disaster-warnings-card`,fire_danger:`ausnz-disaster-fire-danger-card`,outages:`ausnz-disaster-outages-card`,roads:`ausnz-disaster-roads-card`,conditions:`ausnz-disaster-conditions-card`,relief:`ausnz-disaster-relief-card`,cameras:`ausnz-disaster-cameras-card`,map:`ausnz-disaster-map-card`},i=`ausnz-disaster-card`,a=[`status`,`incidents`,`warnings`,`fire_danger`,`roads`,`outages`],o=Object.keys(r),s={"card.status.name":`Disaster Watch status`,"card.status.description":`Headline warning level, hazard count, nearest hazard and active alerts.`,"card.incidents.name":`Disaster Watch incidents`,"card.incidents.description":`Incidents nearest first, with category filters and Australian Warning System levels.`,"card.warnings.name":`Disaster Watch warnings`,"card.warnings.description":`Weather warnings and emergency news.`,"card.fire_danger.name":`Disaster Watch fire danger`,"card.fire_danger.description":`Fire danger rating on the AFDRS scale, district and total fire ban.`,"card.outages.name":`Disaster Watch power outages`,"card.outages.description":`Power outages and customers affected.`,"card.roads.name":`Disaster Watch roads`,"card.roads.description":`Road closures and hazards.`,"card.conditions.name":`Disaster Watch conditions`,"card.conditions.description":`Local weather observation and air quality.`,"card.relief.name":`Disaster Watch relief`,"card.relief.description":`Evacuation centres, places of refuge, sandbag stations and council dashboards.`,"card.cameras.name":`Disaster Watch cameras`,"card.cameras.description":`Flood and traffic camera snapshots.`,"card.map.name":`Disaster Watch map`,"card.map.description":`Map of incidents with animated rain radar.`,"card.all.name":`Disaster Watch`,"card.all.description":`All-in-one card: a configurable stack of the Disaster Watch cards.`,"state.not_set_up":`Set up the Australia and New Zealand Disaster Watch integration to use this card.`,"state.device_missing":`The selected Disaster Watch device was not found. Choose another device in the card editor.`,"state.unavailable":`Data is unavailable right now.`,"state.entity_missing":`This Disaster Watch entity is missing or disabled.`,"action.details":`Show details`,"action.open_link":`Open source page`,"action.show_all":`Show all {count}`,"action.show_less":`Show less`,"status.all_clear":`All clear`,"status.unavailable":`Status unavailable`,"status.level.emergency":`Emergency Warning`,"status.level.watch_and_act":`Watch and Act`,"status.level.advice":`Advice`,"status.level.information":`Information`,"status.level.unknown":`Level unknown`,"status.hazards":`{count} hazards nearby`,"status.hazard":`1 hazard nearby`,"status.no_hazards":`No hazards nearby`,"status.nearest":`nearest {distance}`,"status.chip.emergency_warning_nearby":`Emergency warning`,"status.chip.active_hazards_nearby":`Hazards nearby`,"status.chip.power_outage_active":`Power outage`,"status.chip.road_closure_nearby":`Road closure`,"status.alerts":`Active alerts`,"incidents.title":`Incidents`,"incidents.empty":`No incidents nearby.`,"incidents.empty_filtered":`No incidents in this category.`,"incidents.filters":`Incident filters`,"incidents.category.all":`All`,"incidents.category.fire":`Fire`,"incidents.category.flood_storm":`Flood & storm`,"incidents.category.geological":`Geological`,"incidents.category.roads":`Roads`,"incidents.category.other":`Other`,"incidents.planned_burns":`Planned burns`,"incidents.planned_burn":`Planned burn`,"incidents.updated":`updated {time}`,"warnings.title":`Warnings`,"warnings.tab.warnings":`Warnings ({count})`,"warnings.tab.news":`News ({count})`,"warnings.views":`Warnings or news`,"warnings.empty":`No weather warnings.`,"warnings.news_empty":`No emergency news.`,"fire.title":`Fire danger`,"fire.rating.moderate":`Moderate`,"fire.rating.high":`High`,"fire.rating.extreme":`Extreme`,"fire.rating.catastrophic":`Catastrophic`,"fire.rating.no_rating":`No rating`,"fire.scale":`Fire danger rating scale`,"fire.current":`Current rating`,"fire.forecast_for":`Forecast for {day}`,"fire.total_fire_ban":`Total fire ban`,"fire.no_total_fire_ban":`No total fire ban`,"fire.district":`{district} district`,"outages.title":`Power outages`,"outages.count":`{count} outages`,"outages.count_one":`{count} outage`,"outages.customers_affected":`{count} customers affected`,"outages.customers_affected_one":`{count} customer affected`,"outages.empty":`No power outages reported.`,"outages.customers":`{count} customers`,"outages.customers_one":`{count} customer`,"outages.restore":`Restore {time}`,"roads.title":`Roads`,"roads.empty":`No road closures or hazards.`,"conditions.title":`Conditions`,"conditions.weather":`Weather`,"conditions.air_quality":`Air quality`,"conditions.temperature":`Temperature`,"conditions.feels_like":`Feels like`,"conditions.humidity":`Humidity`,"conditions.wind":`Wind`,"conditions.wind_from":`Wind from {direction}`,"conditions.gust":`Gust`,"conditions.pressure":`Pressure`,"conditions.rain":`Rain since 9 am`,"conditions.station":`Station: {name}`,"conditions.no_weather":`No weather observation.`,"conditions.no_air_quality":`No air quality reading.`,"conditions.aq.good":`Good`,"conditions.aq.fair":`Fair`,"conditions.aq.poor":`Poor`,"conditions.aq.very_poor":`Very poor`,"conditions.aq.extremely_poor":`Extremely poor`,"conditions.aq.unknown":`Unknown`,"relief.title":`Relief`,"relief.empty":`No relief facilities open nearby.`,"relief.group.evacuation_centre":`Evacuation centres`,"relief.group.place_of_refuge":`Places of refuge`,"relief.group.sandbag_station":`Sandbag stations`,"relief.group.other":`Other facilities`,"relief.councils":`Council dashboards`,"relief.open":`Open`,"relief.closed":`Closed`,"cameras.title":`Cameras`,"cameras.empty":`No cameras for this location.`,"cameras.no_image":`No image yet`,"map.title":`Map`,"map.label":`Map of incidents near {name}`,"map.home":`Home`,"map.play":`Play radar animation`,"map.pause":`Pause radar animation`,"map.radar_at":`Radar {time}`,"map.radar_unavailable":`Rain radar is unavailable right now.`,"map.radar_off":`Radar off`,"editor.device":`Disaster Watch location`,"editor.device_helper":`The integration entry (location) this card shows. Defaults to the first one.`,"editor.title":`Title`,"editor.title_helper":`Leave empty for the default title.`,"editor.max_items":`Maximum items`,"editor.max_items_helper":`Rows shown before a Show all button.`,"editor.show_planned_burns":`Show planned burns`,"editor.show_planned_burns_helper":`Planned burns only reach the card when the integration's 'Exclude hazard reduction burns' option is off.`,"editor.categories":`Categories`,"editor.categories_helper":`Incident categories to show. Leave empty for all.`,"editor.refresh_interval":`Refresh interval`,"editor.refresh_interval_helper":`Seconds between snapshot refreshes while the card is visible.`,"editor.zoom":`Zoom`,"editor.zoom_helper":`Initial zoom. Leave empty to fit all incidents.`,"editor.radar":`Rain radar`,"editor.radar_helper":`Animated RainViewer radar (free for personal use, attribution shown on the map).`,"editor.radar_opacity":`Radar opacity`,"editor.cards":`Sections`,"editor.cards_helper":`Cards to stack, in order.`},c={en:s};function l(e){let t=e?.locale?.language||e?.language||`en`;if(c[t])return{lang:t,strings:c[t]};let n=t.split(`-`)[0]??`en`;return c[n]?{lang:n,strings:c[n]}:{lang:`en`,strings:s}}function u(e,t){let n=l(e);return n.strings[t]===void 0?{lang:`en`,strings:s,template:s[t]}:{...n,template:n.strings[t]}}function d(e,t){return t?e.replace(/\{(\w+)\}/g,(e,n)=>n in t?String(t[n]):e):e}function f(e,t,n){return d(u(e,t).template??t,n)}function ee(e,t){try{return new Intl.PluralRules(e).select(t)}catch{return t===1?`one`:`other`}}function p(e,t,n,r=String(n)){let{lang:i,strings:a,template:o}=u(e,t),s=a[`${t}_one`];return d(ee(i,n)===`one`&&s!==void 0?s:o??t,{count:r})}var m=globalThis,h=m.ShadowRoot&&(m.ShadyCSS===void 0||m.ShadyCSS.nativeShadow)&&`adoptedStyleSheets`in Document.prototype&&`replace`in CSSStyleSheet.prototype,g=Symbol(),te=new WeakMap,ne=class{constructor(e,t,n){if(this._$cssResult$=!0,n!==g)throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");this.cssText=e,this.t=t}get styleSheet(){let e=this.o,t=this.t;if(h&&e===void 0){let n=t!==void 0&&t.length===1;n&&(e=te.get(t)),e===void 0&&((this.o=e=new CSSStyleSheet).replaceSync(this.cssText),n&&te.set(t,e))}return e}toString(){return this.cssText}},re=e=>new ne(typeof e==`string`?e:e+``,void 0,g),_=(e,...t)=>new ne(e.length===1?e[0]:t.reduce((t,n,r)=>t+(e=>{if(!0===e._$cssResult$)return e.cssText;if(typeof e==`number`)return e;throw Error(`Value passed to 'css' function must be a 'css' function result: `+e+`. Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.`)})(n)+e[r+1],e[0]),e,g),ie=(e,t)=>{if(h)e.adoptedStyleSheets=t.map(e=>e instanceof CSSStyleSheet?e:e.styleSheet);else for(let n of t){let t=document.createElement(`style`),r=m.litNonce;r!==void 0&&t.setAttribute(`nonce`,r),t.textContent=n.cssText,e.appendChild(t)}},ae=h?e=>e:e=>e instanceof CSSStyleSheet?(e=>{let t=``;for(let n of e.cssRules)t+=n.cssText;return re(t)})(e):e,{is:oe,defineProperty:se,getOwnPropertyDescriptor:ce,getOwnPropertyNames:le,getOwnPropertySymbols:ue,getPrototypeOf:de}=Object,fe=globalThis,pe=fe.trustedTypes,me=pe?pe.emptyScript:``,he=fe.reactiveElementPolyfillSupport,v=(e,t)=>e,ge={toAttribute(e,t){switch(t){case Boolean:e=e?me:null;break;case Object:case Array:e=e==null?e:JSON.stringify(e)}return e},fromAttribute(e,t){let n=e;switch(t){case Boolean:n=e!==null;break;case Number:n=e===null?null:Number(e);break;case Object:case Array:try{n=JSON.parse(e)}catch{n=null}}return n}},_e=(e,t)=>!oe(e,t),ve={attribute:!0,type:String,converter:ge,reflect:!1,useDefault:!1,hasChanged:_e};Symbol.metadata??=Symbol(`metadata`),fe.litPropertyMetadata??=new WeakMap;var y=class extends HTMLElement{static addInitializer(e){this._$Ei(),(this.l??=[]).push(e)}static get observedAttributes(){return this.finalize(),this._$Eh&&[...this._$Eh.keys()]}static createProperty(e,t=ve){if(t.state&&(t.attribute=!1),this._$Ei(),this.prototype.hasOwnProperty(e)&&((t=Object.create(t)).wrapped=!0),this.elementProperties.set(e,t),!t.noAccessor){let n=Symbol(),r=this.getPropertyDescriptor(e,n,t);r!==void 0&&se(this.prototype,e,r)}}static getPropertyDescriptor(e,t,n){let{get:r,set:i}=ce(this.prototype,e)??{get(){return this[t]},set(e){this[t]=e}};return{get:r,set(t){let a=r?.call(this);i?.call(this,t),this.requestUpdate(e,a,n)},configurable:!0,enumerable:!0}}static getPropertyOptions(e){return this.elementProperties.get(e)??ve}static _$Ei(){if(this.hasOwnProperty(v(`elementProperties`)))return;let e=de(this);e.finalize(),e.l!==void 0&&(this.l=[...e.l]),this.elementProperties=new Map(e.elementProperties)}static finalize(){if(this.hasOwnProperty(v(`finalized`)))return;if(this.finalized=!0,this._$Ei(),this.hasOwnProperty(v(`properties`))){let e=this.properties,t=[...le(e),...ue(e)];for(let n of t)this.createProperty(n,e[n])}let e=this[Symbol.metadata];if(e!==null){let t=litPropertyMetadata.get(e);if(t!==void 0)for(let[e,n]of t)this.elementProperties.set(e,n)}this._$Eh=new Map;for(let[e,t]of this.elementProperties){let n=this._$Eu(e,t);n!==void 0&&this._$Eh.set(n,e)}this.elementStyles=this.finalizeStyles(this.styles)}static finalizeStyles(e){let t=[];if(Array.isArray(e)){let n=new Set(e.flat(1/0).reverse());for(let e of n)t.unshift(ae(e))}else e!==void 0&&t.push(ae(e));return t}static _$Eu(e,t){let n=t.attribute;return!1===n?void 0:typeof n==`string`?n:typeof e==`string`?e.toLowerCase():void 0}constructor(){super(),this._$Ep=void 0,this.isUpdatePending=!1,this.hasUpdated=!1,this._$Em=null,this._$Ev()}_$Ev(){this._$ES=new Promise(e=>this.enableUpdating=e),this._$AL=new Map,this._$E_(),this.requestUpdate(),this.constructor.l?.forEach(e=>e(this))}addController(e){(this._$EO??=new Set).add(e),this.renderRoot!==void 0&&this.isConnected&&e.hostConnected?.()}removeController(e){this._$EO?.delete(e)}_$E_(){let e=new Map,t=this.constructor.elementProperties;for(let n of t.keys())this.hasOwnProperty(n)&&(e.set(n,this[n]),delete this[n]);e.size>0&&(this._$Ep=e)}createRenderRoot(){let e=this.shadowRoot??this.attachShadow(this.constructor.shadowRootOptions);return ie(e,this.constructor.elementStyles),e}connectedCallback(){this.renderRoot??=this.createRenderRoot(),this.enableUpdating(!0),this._$EO?.forEach(e=>e.hostConnected?.())}enableUpdating(e){}disconnectedCallback(){this._$EO?.forEach(e=>e.hostDisconnected?.())}attributeChangedCallback(e,t,n){this._$AK(e,n)}_$ET(e,t){let n=this.constructor.elementProperties.get(e),r=this.constructor._$Eu(e,n);if(r!==void 0&&!0===n.reflect){let i=(n.converter?.toAttribute===void 0?ge:n.converter).toAttribute(t,n.type);this._$Em=e,i==null?this.removeAttribute(r):this.setAttribute(r,i),this._$Em=null}}_$AK(e,t){let n=this.constructor,r=n._$Eh.get(e);if(r!==void 0&&this._$Em!==r){let e=n.getPropertyOptions(r),i=typeof e.converter==`function`?{fromAttribute:e.converter}:e.converter?.fromAttribute===void 0?ge:e.converter;this._$Em=r;let a=i.fromAttribute(t,e.type);this[r]=a??this._$Ej?.get(r)??a,this._$Em=null}}requestUpdate(e,t,n,r=!1,i){if(e!==void 0){let a=this.constructor;if(!1===r&&(i=this[e]),n??=a.getPropertyOptions(e),!((n.hasChanged??_e)(i,t)||n.useDefault&&n.reflect&&i===this._$Ej?.get(e)&&!this.hasAttribute(a._$Eu(e,n))))return;this.C(e,t,n)}!1===this.isUpdatePending&&(this._$ES=this._$EP())}C(e,t,{useDefault:n,reflect:r,wrapped:i},a){n&&!(this._$Ej??=new Map).has(e)&&(this._$Ej.set(e,a??t??this[e]),!0!==i||a!==void 0)||(this._$AL.has(e)||(this.hasUpdated||n||(t=void 0),this._$AL.set(e,t)),!0===r&&this._$Em!==e&&(this._$Eq??=new Set).add(e))}async _$EP(){this.isUpdatePending=!0;try{await this._$ES}catch(e){Promise.reject(e)}let e=this.scheduleUpdate();return e!=null&&await e,!this.isUpdatePending}scheduleUpdate(){return this.performUpdate()}performUpdate(){if(!this.isUpdatePending)return;if(!this.hasUpdated){if(this.renderRoot??=this.createRenderRoot(),this._$Ep){for(let[e,t]of this._$Ep)this[e]=t;this._$Ep=void 0}let e=this.constructor.elementProperties;if(e.size>0)for(let[t,n]of e){let{wrapped:e}=n,r=this[t];!0!==e||this._$AL.has(t)||r===void 0||this.C(t,void 0,n,r)}}let e=!1,t=this._$AL;try{e=this.shouldUpdate(t),e?(this.willUpdate(t),this._$EO?.forEach(e=>e.hostUpdate?.()),this.update(t)):this._$EM()}catch(t){throw e=!1,this._$EM(),t}e&&this._$AE(t)}willUpdate(e){}_$AE(e){this._$EO?.forEach(e=>e.hostUpdated?.()),this.hasUpdated||(this.hasUpdated=!0,this.firstUpdated(e)),this.updated(e)}_$EM(){this._$AL=new Map,this.isUpdatePending=!1}get updateComplete(){return this.getUpdateComplete()}getUpdateComplete(){return this._$ES}shouldUpdate(e){return!0}update(e){this._$Eq&&=this._$Eq.forEach(e=>this._$ET(e,this[e])),this._$EM()}updated(e){}firstUpdated(e){}};y.elementStyles=[],y.shadowRootOptions={mode:`open`},y[v(`elementProperties`)]=new Map,y[v(`finalized`)]=new Map,he?.({ReactiveElement:y}),(fe.reactiveElementVersions??=[]).push(`2.1.2`);var ye=globalThis,be=e=>e,b=ye.trustedTypes,xe=b?b.createPolicy(`lit-html`,{createHTML:e=>e}):void 0,Se=`$lit$`,x=`lit$${Math.random().toFixed(9).slice(2)}$`,Ce=`?`+x,we=`<${Ce}>`,S=document,C=()=>S.createComment(``),w=e=>e===null||typeof e!=`object`&&typeof e!=`function`,Te=Array.isArray,Ee=e=>Te(e)||typeof e?.[Symbol.iterator]==`function`,De=`[ 	
+\f\r]`,T=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,Oe=/-->/g,ke=/>/g,E=RegExp(`>|${De}(?:([^\\s"'>=/]+)(${De}*=${De}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`,`g`),Ae=/'/g,je=/"/g,Me=/^(?:script|style|textarea|title)$/i,D=(e=>(t,...n)=>({_$litType$:e,strings:t,values:n}))(1),O=Symbol.for(`lit-noChange`),k=Symbol.for(`lit-nothing`),Ne=new WeakMap,A=S.createTreeWalker(S,129);function Pe(e,t){if(!Te(e)||!e.hasOwnProperty(`raw`))throw Error(`invalid template strings array`);return xe===void 0?t:xe.createHTML(t)}var Fe=(e,t)=>{let n=e.length-1,r=[],i,a=t===2?`<svg>`:t===3?`<math>`:``,o=T;for(let t=0;t<n;t++){let n=e[t],s,c,l=-1,u=0;for(;u<n.length&&(o.lastIndex=u,c=o.exec(n),c!==null);)u=o.lastIndex,o===T?c[1]===`!--`?o=Oe:c[1]===void 0?c[2]===void 0?c[3]!==void 0&&(o=E):(Me.test(c[2])&&(i=RegExp(`</`+c[2],`g`)),o=E):o=ke:o===E?c[0]===`>`?(o=i??T,l=-1):c[1]===void 0?l=-2:(l=o.lastIndex-c[2].length,s=c[1],o=c[3]===void 0?E:c[3]===`"`?je:Ae):o===je||o===Ae?o=E:o===Oe||o===ke?o=T:(o=E,i=void 0);let d=o===E&&e[t+1].startsWith(`/>`)?` `:``;a+=o===T?n+we:l>=0?(r.push(s),n.slice(0,l)+Se+n.slice(l)+x+d):n+x+(l===-2?t:d)}return[Pe(e,a+(e[n]||`<?>`)+(t===2?`</svg>`:t===3?`</math>`:``)),r]},Ie=class e{constructor({strings:t,_$litType$:n},r){let i;this.parts=[];let a=0,o=0,s=t.length-1,c=this.parts,[l,u]=Fe(t,n);if(this.el=e.createElement(l,r),A.currentNode=this.el.content,n===2||n===3){let e=this.el.content.firstChild;e.replaceWith(...e.childNodes)}for(;(i=A.nextNode())!==null&&c.length<s;){if(i.nodeType===1){if(i.hasAttributes())for(let e of i.getAttributeNames())if(e.endsWith(Se)){let t=u[o++],n=i.getAttribute(e).split(x),r=/([.?@])?(.*)/.exec(t);c.push({type:1,index:a,name:r[2],strings:n,ctor:r[1]===`.`?ze:r[1]===`?`?Be:r[1]===`@`?Ve:M}),i.removeAttribute(e)}else e.startsWith(x)&&(c.push({type:6,index:a}),i.removeAttribute(e));if(Me.test(i.tagName)){let e=i.textContent.split(x),t=e.length-1;if(t>0){i.textContent=b?b.emptyScript:``;for(let n=0;n<t;n++)i.append(e[n],C()),A.nextNode(),c.push({type:2,index:++a});i.append(e[t],C())}}}else if(i.nodeType===8){if(i.data===Ce)c.push({type:2,index:a});else{let e=-1;for(;(e=i.data.indexOf(x,e+1))!==-1;)c.push({type:7,index:a}),e+=x.length-1}}a++}}static createElement(e,t){let n=S.createElement(`template`);return n.innerHTML=e,n}};function j(e,t,n=e,r){if(t===O)return t;let i=r===void 0?n._$Cl:n._$Co?.[r],a=w(t)?void 0:t._$litDirective$;return i?.constructor!==a&&(i?._$AO?.(!1),a===void 0?i=void 0:(i=new a(e),i._$AT(e,n,r)),r===void 0?n._$Cl=i:(n._$Co??=[])[r]=i),i!==void 0&&(t=j(e,i._$AS(e,t.values),i,r)),t}var Le=class{constructor(e,t){this._$AV=[],this._$AN=void 0,this._$AD=e,this._$AM=t}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(e){let{el:{content:t},parts:n}=this._$AD,r=(e?.creationScope??S).importNode(t,!0);A.currentNode=r;let i=A.nextNode(),a=0,o=0,s=n[0];for(;s!==void 0;){if(a===s.index){let t;s.type===2?t=new Re(i,i.nextSibling,this,e):s.type===1?t=new s.ctor(i,s.name,s.strings,this,e):s.type===6&&(t=new He(i,this,e)),this._$AV.push(t),s=n[++o]}a!==s?.index&&(i=A.nextNode(),a++)}return A.currentNode=S,r}p(e){let t=0;for(let n of this._$AV)n!==void 0&&(n.strings===void 0?n._$AI(e[t]):(n._$AI(e,n,t),t+=n.strings.length-2)),t++}},Re=class e{get _$AU(){return this._$AM?._$AU??this._$Cv}constructor(e,t,n,r){this.type=2,this._$AH=k,this._$AN=void 0,this._$AA=e,this._$AB=t,this._$AM=n,this.options=r,this._$Cv=r?.isConnected??!0}get parentNode(){let e=this._$AA.parentNode,t=this._$AM;return t!==void 0&&e?.nodeType===11&&(e=t.parentNode),e}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(e,t=this){e=j(this,e,t),w(e)?e===k||e==null||e===``?(this._$AH!==k&&this._$AR(),this._$AH=k):e!==this._$AH&&e!==O&&this._(e):e._$litType$===void 0?e.nodeType===void 0?Ee(e)?this.k(e):this._(e):this.T(e):this.$(e)}O(e){return this._$AA.parentNode.insertBefore(e,this._$AB)}T(e){this._$AH!==e&&(this._$AR(),this._$AH=this.O(e))}_(e){this._$AH!==k&&w(this._$AH)?this._$AA.nextSibling.data=e:this.T(S.createTextNode(e)),this._$AH=e}$(e){let{values:t,_$litType$:n}=e,r=typeof n==`number`?this._$AC(e):(n.el===void 0&&(n.el=Ie.createElement(Pe(n.h,n.h[0]),this.options)),n);if(this._$AH?._$AD===r)this._$AH.p(t);else{let e=new Le(r,this),n=e.u(this.options);e.p(t),this.T(n),this._$AH=e}}_$AC(e){let t=Ne.get(e.strings);return t===void 0&&Ne.set(e.strings,t=new Ie(e)),t}k(t){Te(this._$AH)||(this._$AH=[],this._$AR());let n=this._$AH,r,i=0;for(let a of t)i===n.length?n.push(r=new e(this.O(C()),this.O(C()),this,this.options)):r=n[i],r._$AI(a),i++;i<n.length&&(this._$AR(r&&r._$AB.nextSibling,i),n.length=i)}_$AR(e=this._$AA.nextSibling,t){for(this._$AP?.(!1,!0,t);e!==this._$AB;){let t=be(e).nextSibling;be(e).remove(),e=t}}setConnected(e){this._$AM===void 0&&(this._$Cv=e,this._$AP?.(e))}},M=class{get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}constructor(e,t,n,r,i){this.type=1,this._$AH=k,this._$AN=void 0,this.element=e,this.name=t,this._$AM=r,this.options=i,n.length>2||n[0]!==``||n[1]!==``?(this._$AH=Array(n.length-1).fill(new String),this.strings=n):this._$AH=k}_$AI(e,t=this,n,r){let i=this.strings,a=!1;if(i===void 0)e=j(this,e,t,0),a=!w(e)||e!==this._$AH&&e!==O,a&&(this._$AH=e);else{let r=e,o,s;for(e=i[0],o=0;o<i.length-1;o++)s=j(this,r[n+o],t,o),s===O&&(s=this._$AH[o]),a||=!w(s)||s!==this._$AH[o],s===k?e=k:e!==k&&(e+=(s??``)+i[o+1]),this._$AH[o]=s}a&&!r&&this.j(e)}j(e){e===k?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,e??``)}},ze=class extends M{constructor(){super(...arguments),this.type=3}j(e){this.element[this.name]=e===k?void 0:e}},Be=class extends M{constructor(){super(...arguments),this.type=4}j(e){this.element.toggleAttribute(this.name,!!e&&e!==k)}},Ve=class extends M{constructor(e,t,n,r,i){super(e,t,n,r,i),this.type=5}_$AI(e,t=this){if((e=j(this,e,t,0)??k)===O)return;let n=this._$AH,r=e===k&&n!==k||e.capture!==n.capture||e.once!==n.once||e.passive!==n.passive,i=e!==k&&(n===k||r);r&&this.element.removeEventListener(this.name,this,n),i&&this.element.addEventListener(this.name,this,e),this._$AH=e}handleEvent(e){typeof this._$AH==`function`?this._$AH.call(this.options?.host??this.element,e):this._$AH.handleEvent(e)}},He=class{constructor(e,t,n){this.element=e,this.type=6,this._$AN=void 0,this._$AM=t,this.options=n}get _$AU(){return this._$AM._$AU}_$AI(e){j(this,e)}},Ue=ye.litHtmlPolyfillSupport;Ue?.(Ie,Re),(ye.litHtmlVersions??=[]).push(`3.3.3`);var We=(e,t,n)=>{let r=n?.renderBefore??t,i=r._$litPart$;if(i===void 0){let e=n?.renderBefore??null;r._$litPart$=i=new Re(t.insertBefore(C(),e),e,void 0,n??{})}return i._$AI(e),i},Ge=globalThis,N=class extends y{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0}createRenderRoot(){let e=super.createRenderRoot();return this.renderOptions.renderBefore??=e.firstChild,e}update(e){let t=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(e),this._$Do=We(t,this.renderRoot,this.renderOptions)}connectedCallback(){super.connectedCallback(),this._$Do?.setConnected(!0)}disconnectedCallback(){super.disconnectedCallback(),this._$Do?.setConnected(!1)}render(){return O}};N._$litElement$=!0,N.finalized=!0,Ge.litElementHydrateSupport?.({LitElement:N});var Ke=Ge.litElementPolyfillSupport;Ke?.({LitElement:N}),(Ge.litElementVersions??=[]).push(`4.2.2`);var qe={ATTRIBUTE:1,CHILD:2,PROPERTY:3,BOOLEAN_ATTRIBUTE:4,EVENT:5,ELEMENT:6},Je=e=>(...t)=>({_$litDirective$:e,values:t}),Ye=class{constructor(e){}get _$AU(){return this._$AM._$AU}_$AT(e,t,n){this._$Ct=e,this._$AM=t,this._$Ci=n}_$AS(e,t){return this.update(e,t)}update(e,t){return this.render(...t)}},Xe=`important`,Ze=` !`+Xe,P=Je(class extends Ye{constructor(e){if(super(e),e.type!==qe.ATTRIBUTE||e.name!==`style`||e.strings?.length>2)throw Error("The `styleMap` directive must be used in the `style` attribute and must be the only part in the attribute.")}render(e){return Object.keys(e).reduce((t,n)=>{let r=e[n];return r==null?t:t+`${n=n.includes(`-`)?n:n.replace(/(?:^(webkit|moz|ms|o)|)(?=[A-Z])/g,`-$&`).toLowerCase()}:${r};`},``)}update(e,[t]){let{style:n}=e.element;if(this.ft===void 0)return this.ft=new Set(Object.keys(t)),this.render(t);for(let e of this.ft)t[e]??(this.ft.delete(e),e.includes(`-`)?n.removeProperty(e):n[e]=null);for(let e in t){let r=t[e];if(r!=null){this.ft.add(e);let t=typeof r==`string`&&r.endsWith(Ze);e.includes(`-`)||t?n.setProperty(e,t?r.slice(0,-11):r,t?Xe:``):n[e]=r}}return O}});function Qe(e){return`var(--${e}-color)`}var $e=e=>P({"--tone":Qe(e)});function et(e,t,n=!1){return D`<span class="bubble ${n?`large`:``}" style=${$e(t)} aria-hidden="true">
+    <ha-icon .icon=${e}></ha-icon>
+  </span>`}function F(e,t,n){return D`<span class="badge" style=${$e(t)}>
+    ${n?D`<ha-icon .icon=${n} aria-hidden="true"></ha-icon>`:k}<span>${e}</span>
+  </span>`}function I(e,t){return D`<div class="empty"><ha-icon .icon=${e} aria-hidden="true"></ha-icon><span>${t}</span></div>`}function L(e,t){return D`<ha-alert alert-type=${e}>${t}</ha-alert>`}function R(e){return D`<div class="header">
+    <ha-icon .icon=${e.icon} aria-hidden="true"></ha-icon>
+    <h2 class="title">${e.title}${e.count?D` <span class="count">${e.count}</span>`:k}</h2>
+    ${e.onDetails?D`<div class="actions">
+            <ha-icon-button .label=${e.detailsLabel??``} @click=${e.onDetails}>
+              <ha-icon icon="mdi:information-outline"></ha-icon>
+            </ha-icon-button>
+          </div>`:k}
+  </div>`}function z(e){return D`<div class="row" role="listitem">
+    <ha-md-list-item
+      type=${e.onActivate?`button`:`text`}
+      @click=${e.onActivate??k}
+    >
+      <span slot="start">${et(e.icon,e.tone)}</span>
+      <span slot="headline" class="headline">${e.headline}</span>
+      ${e.badge?D`<span slot="supporting-text" class="row-badge">${e.badge}</span>`:k}
+      ${e.supporting?D`<span slot="supporting-text" class="supporting">${e.supporting}</span>`:k}
+      ${e.trailing?D`<span slot="end" class="trailing">${e.trailing}</span>`:k}
+    </ha-md-list-item>
+    ${e.link?D`<ha-icon-button
+            class="link"
+            .label=${e.linkLabel??``}
+            .href=${e.link}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <ha-icon icon="mdi:open-in-new"></ha-icon>
+          </ha-icon-button>`:k}
+  </div>`}function B(e,t){return D`<div class="list" role="list" aria-label=${t??k}>${e}</div>`}function tt(e,t,n,r){return D`<ha-button
+    class="more"
+    appearance="plain"
+    size="s"
+    aria-expanded=${t?`true`:`false`}
+    @click=${r}
+    >${t?f(e,`action.show_less`):f(e,`action.show_all`,{count:n})}</ha-button
+  >`}var nt=new WeakMap;function rt(e){let t=e.entities,n=nt.get(t);if(n)return n;let r=new Map,i=new Map;for(let t of Object.values(e.entities??{}))if(t.platform===`ausnz_disaster_watch`&&t.device_id){if(t.translation_key){let e=r.get(t.device_id);e||r.set(t.device_id,e=new Map),e.set(t.translation_key,t.entity_id)}if(t.entity_id.startsWith(`camera.`)){let e=i.get(t.device_id)??[];e.push(t.entity_id),i.set(t.device_id,e)}}let a=new Set([...r.keys(),...i.keys()]),o=Object.keys(e.devices??{}).filter(e=>a.has(e));for(let e of a)o.includes(e)||o.push(e);let s={devices:o,byKey:r,cameras:i};return nt.set(t,s),s}function V(e){return rt(e).devices}function it(e,t){return t||V(e)[0]}function at(e,t){return!!t&&V(e).includes(t)}function ot(t,n){if(!n)return;let r=t.devices?.[n];if(!r)return;let i=r.identifiers?.find(([t])=>t===e);return i?i[1]:r.config_entries?.[0]}function st(e,t){if(!t)return;let n=e.devices?.[t];return n?.name_by_user||n?.name||void 0}function ct(e,t,n){if(t)return rt(e).byKey.get(t)?.get(n)}function H(e,t,n){let r=ct(e,t,n);return r?e.states[r]:void 0}function lt(e,t){return t?[...rt(e).cameras.get(t)??[]].sort((t,n)=>{let r=String(e.states[t]?.attributes.friendly_name??t),i=String(e.states[n]?.attributes.friendly_name??n);return r.localeCompare(i)}):[]}var ut=new WeakMap;function dt(e,t){if(!t)return[];let n=ut.get(e.states);n||ut.set(e.states,n=new Map);let r=n.get(t);if(r)return r;let i=Object.values(e.states).filter(e=>e.entity_id.startsWith(`geo_location.`)&&e.attributes.integration===`ausnz_disaster_watch`&&e.attributes.entry_id===t).sort((e,t)=>(pt(e)??1/0)-(pt(t)??1/0));return n.set(t,i),i}function ft(e){let t=e.attributes.title??e.attributes.friendly_name;return typeof t==`string`&&t?t:e.entity_id}function pt(e){let t=Number.parseFloat(e.state);if(Number.isFinite(t))return t;let n=e.attributes.distance_km;return typeof n==`number`&&Number.isFinite(n)?n:void 0}var mt=[`ha-card`,`ha-icon`,`ha-icon-button`,`ha-button`,`ha-alert`,`ha-assist-chip`,`ha-filter-chip`,`ha-chip-set`,`ha-md-list-item`,`ha-tooltip`],ht;function gt(e=5e3){return ht??=(async()=>{try{await window.loadCardHelpers?.()}catch{}await Promise.race([Promise.all(mt.map(e=>customElements.whenDefined(e))),new Promise(t=>setTimeout(t,e))])})(),ht}var _t=_`
+  :host {
+    display: block;
+    height: 100%;
+    font-family: var(--ha-font-family-body);
+    color: var(--primary-text-color);
+    -webkit-font-smoothing: var(--ha-font-smoothing);
+  }
+  :host([embedded]) {
+    height: auto;
+  }
+  ha-card,
+  section.embedded {
+    container-type: inline-size;
+  }
+  ha-card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  section.embedded {
+    display: flex;
+    flex-direction: column;
+  }
+  .header {
+    display: flex;
+    align-items: center;
+    gap: var(--ha-space-2);
+    min-height: var(--ha-space-12);
+    padding: var(--ha-space-2) var(--ha-space-2) 0 var(--ha-space-4);
+  }
+  .header ha-icon {
+    color: var(--secondary-text-color);
+    flex: none;
+  }
+  .header .title {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    font-family: var(--ha-font-family-heading);
+    font-size: var(--ha-font-size-l);
+    font-weight: var(--ha-font-weight-medium);
+    line-height: var(--ha-line-height-condensed);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .header .count {
+    color: var(--secondary-text-color);
+    font-size: var(--ha-font-size-s);
+    font-weight: var(--ha-font-weight-normal);
+  }
+  .header .actions {
+    display: flex;
+    align-items: center;
+    flex: none;
+    color: var(--secondary-text-color);
+  }
+  .content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ha-space-3);
+    padding: var(--ha-space-2) var(--ha-space-4) var(--ha-space-4);
+    min-height: 0;
+  }
+  .secondary {
+    color: var(--secondary-text-color);
+    font-size: var(--ha-font-size-s);
+    line-height: var(--ha-line-height-normal);
+  }
+  .list {
+    display: flex;
+    flex-direction: column;
+    margin: 0 calc(-1 * var(--ha-space-4));
+  }
+  .list-title {
+    margin: var(--ha-space-2) 0 0;
+    color: var(--secondary-text-color);
+    font-size: var(--ha-font-size-s);
+    font-weight: var(--ha-font-weight-medium);
+    letter-spacing: 0.02em;
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+  }
+  .row ha-md-list-item {
+    flex: 1;
+    min-width: 0;
+    --md-list-item-leading-space: var(--ha-space-4);
+    --md-list-item-trailing-space: var(--ha-space-4);
+    --md-list-item-top-space: var(--ha-space-2);
+    --md-list-item-bottom-space: var(--ha-space-2);
+    --md-list-item-label-text-size: var(--ha-font-size-m);
+    --md-list-item-supporting-text-size: var(--ha-font-size-s);
+    --md-list-item-trailing-supporting-text-size: var(--ha-font-size-s);
+    --ha-md-list-item-gap: var(--ha-space-3);
+  }
+  .row .link {
+    flex: none;
+    margin-inline-end: var(--ha-space-2);
+    color: var(--secondary-text-color);
+  }
+  .row .headline,
+  .row .supporting {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .row .row-badge {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ha-space-1);
+    margin: var(--ha-space-1) 0;
+  }
+  .row .trailing {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--ha-space-1);
+    white-space: nowrap;
+  }
+  .bubble {
+    --tone: var(--grey-color);
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--ha-space-9);
+    height: var(--ha-space-9);
+    border-radius: var(--ha-border-radius-pill);
+    background-color: color-mix(in srgb, var(--tone) 20%, transparent);
+    color: var(--tone);
+  }
+  .bubble.large {
+    width: var(--ha-space-12);
+    height: var(--ha-space-12);
+  }
+  .badge {
+    --tone: var(--grey-color);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ha-space-1);
+    max-width: 100%;
+    padding: 0 var(--ha-space-2);
+    min-height: var(--ha-space-6);
+    border-radius: var(--ha-border-radius-pill);
+    background-color: color-mix(in srgb, var(--tone) 18%, transparent);
+    color: var(--primary-text-color);
+    font-size: var(--ha-font-size-s);
+    font-weight: var(--ha-font-weight-medium);
+    line-height: var(--ha-line-height-condensed);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .badge ha-icon {
+    color: var(--tone);
+    --mdc-icon-size: var(--ha-space-4);
+    flex: none;
+  }
+  .empty {
+    display: flex;
+    align-items: center;
+    gap: var(--ha-space-3);
+    padding: var(--ha-space-2) 0;
+    color: var(--secondary-text-color);
+    font-size: var(--ha-font-size-m);
+  }
+  .empty ha-icon {
+    flex: none;
+  }
+  ha-chip-set {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ha-space-2);
+  }
+  ha-alert {
+    display: block;
+  }
+  .more {
+    align-self: flex-start;
+  }
+  hr.divider {
+    width: 100%;
+    margin: 0;
+    border: none;
+    border-top: var(--ha-border-width-sm) solid var(--divider-color);
+  }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  :where(button.plain) {
+    all: unset;
+    box-sizing: border-box;
+    cursor: pointer;
+    border-radius: var(--ha-border-radius-lg);
+  }
+  :focus-visible {
+    outline: var(--ha-border-width-md) solid var(--ha-color-focus, var(--primary-color));
+    outline-offset: var(--ha-border-width-md);
+  }
+  /* Narrow sections-view cells (3 of 12 columns). */
+  @container (max-width: 240px) {
+    .header > ha-icon {
+      display: none;
     }
-    ha-card {
-      padding: 16px;
-      border-radius: var(--ha-card-border-radius, 12px);
-      box-shadow: var(--ha-card-box-shadow, 0 2px 8px rgba(0, 0, 0, 0.1));
-      background: var(--ha-card-background, var(--card-background-color, #fff));
-      color: var(--primary-text-color, #212121);
-      font-family: var(--paper-font-body1_-_font-family, Roboto, sans-serif);
-      overflow: hidden;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation: none !important;
+      transition: none !important;
     }
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-    .title {
-      font-size: 1.15rem;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .banner {
-      padding: 12px 16px;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-weight: 600;
-      margin-bottom: 14px;
-      color: #fff;
-      transition: background-color 0.3s ease;
-    }
-    .banner-emergency {
-      background: #d32f2f;
-      animation: pulse 2s infinite;
-    }
-    .banner-watch-and-act {
-      background: #e65100;
-    }
-    .banner-advice {
-      background: #f57f17;
-      color: #212121;
-    }
-    .banner-clear {
-      background: #2e7d32;
-    }
-    @keyframes pulse {
-      0% {
-        box-shadow: 0 0 0 0 rgba(211, 47, 47, 0.6);
+  }
+`;function vt(e,t,n){e.dispatchEvent(new CustomEvent(t,{detail:n,bubbles:!0,composed:!0}))}function yt(e,t){t&&vt(e,`hass-more-info`,{entityId:t})}var U=class extends N{static properties={hass:{attribute:!1},embedded:{type:Boolean,reflect:!0},_config:{state:!0}};static styles=[_t];constructor(){super(),this.embedded=!1}entityKeys(){return[]}usesIncidents=!1;extraEntityIds(e){return[]}static validateConfig(e){if(!e||typeof e!=`object`)throw Error(`Invalid configuration`);if(e.device!==void 0&&typeof e.device!=`string`)throw Error(`'device' must be a device ID`);if(e.title!==void 0&&typeof e.title!=`string`)throw Error(`'title' must be text`)}setConfig(e){this.constructor.validateConfig(e),this._config={...e}}get config(){return this._config}get deviceId(){return this.hass?it(this.hass,this._config?.device):void 0}get entryId(){return this.hass?ot(this.hass,this.deviceId):void 0}entityId(e){return this.hass?ct(this.hass,this.deviceId,e):void 0}cardTitle(){return this._config?.title||f(this.hass,this.titleKey)}moreInfo(e){yt(this,e)}trackedEntityIds(e){let t=it(e,this._config?.device),n=[];for(let r of this.entityKeys()){let i=ct(e,t,r);i&&n.push(i)}if(this.usesIncidents)for(let r of dt(e,ot(e,t)))n.push(r.entity_id);return n.push(...this.extraEntityIds(e)),n}shouldUpdate(e){if(!e.has(`hass`)||e.size>1)return!0;let t=e.get(`hass`),n=this.hass;if(!t||!n||t.entities!==n.entities||t.devices!==n.devices||t.locale!==n.locale||t.themes?.darkMode!==n.themes?.darkMode)return!0;let r=new Set([...this.trackedEntityIds(t),...this.trackedEntityIds(n)]);for(let e of r)if(t.states[e]!==n.states[e])return!0;return!1}connectedCallback(){super.connectedCallback(),gt()}getCardSize(){return 3}getGridOptions(){return{columns:12,rows:`auto`,min_columns:6}}renderSetupState(e){if(V(e).length===0)return D`<div class="content">${L(`info`,f(e,`state.not_set_up`))}</div>`;if(this._config?.device&&!at(e,this._config.device))return D`<div class="content">${L(`warning`,f(e,`state.device_missing`))}</div>`}render(){if(!this._config||!this.hass)return k;let e=this.renderSetupState(this.hass)??this.renderBody(this.hass,this._config);return this.embedded?D`<section class="embedded" aria-label=${this.cardTitle()}>${e}</section>`:D`<ha-card>${e}</ha-card>`}};function W(e){let t=e?V(e)[0]:void 0;return t?{device:t}:{}}function G(){return[{name:`device`,selector:{device:{filter:{integration:e}}}},{name:`title`,selector:{text:{}}}]}var bt={device:`editor.device`,title:`editor.title`,max_items:`editor.max_items`,show_planned_burns:`editor.show_planned_burns`,categories:`editor.categories`,refresh_interval:`editor.refresh_interval`,zoom:`editor.zoom`,radar:`editor.radar`,radar_opacity:`editor.radar_opacity`,cards:`editor.cards`},xt={device:`editor.device_helper`,title:`editor.title_helper`,max_items:`editor.max_items_helper`,show_planned_burns:`editor.show_planned_burns_helper`,categories:`editor.categories_helper`,refresh_interval:`editor.refresh_interval_helper`,zoom:`editor.zoom_helper`,radar:`editor.radar_helper`,cards:`editor.cards_helper`},K=e=>{let t=bt[e.name];return t?f(void 0,t):void 0},q=e=>{let t=xt[e.name];return t?f(void 0,t):void 0};function J(e,t,n=1,r=1e3){let i=e[t];if(i!=null&&(typeof i!=`number`||!Number.isInteger(i)||i<n||i>r))throw Error(`'${t}' must be a whole number from ${n} to ${r}`)}function St(e,t,n,r){let i=e[t];if(i!=null&&(typeof i!=`number`||!Number.isFinite(i)||i<n||i>r))throw Error(`'${t}' must be a number from ${n} to ${r}`)}function Ct(e,t){let n=e[t];if(n!==void 0&&typeof n!=`boolean`)throw Error(`'${t}' must be true or false`)}function wt(e,t,n){let r=e[t];if(r!=null&&(!Array.isArray(r)||r.some(e=>typeof e!=`string`||!n.includes(e))))throw Error(`'${t}' must be a list of: ${n.join(`, `)}`)}var Tt={status:`card.status.name`,incidents:`card.incidents.name`,warnings:`card.warnings.name`,fire_danger:`card.fire_danger.name`,outages:`card.outages.name`,roads:`card.roads.name`,conditions:`card.conditions.name`,relief:`card.relief.name`,cameras:`card.cameras.name`,map:`card.map.name`},Et=class e extends N{static properties={_config:{state:!0}};static styles=[_t,_`
+      .title {
+        margin: 0;
+        padding: var(--ha-space-4) var(--ha-space-4) 0;
+        font-family: var(--ha-font-family-heading);
+        font-size: var(--ha-font-size-xl);
+        font-weight: var(--ha-font-weight-medium);
+        line-height: var(--ha-line-height-condensed);
       }
-      70% {
-        box-shadow: 0 0 0 10px rgba(211, 47, 47, 0);
+    `];_children=new Map;_hass;set hass(e){let t=e=>!!e&&V(e).length>0;if((t(e)!==t(this._hass)||!this._hass)&&this.requestUpdate(),this._hass=e,e)for(let t of this._children.values())t.hass=e}get hass(){return this._hass}static validateConfig(e){U.validateConfig(e),wt(e,`cards`,o)}static getConfigForm(){return{schema:[...G(),{name:`cards`,selector:{select:{multiple:!0,reorder:!0,mode:`list`,options:o.map(e=>({value:e,label:f(void 0,Tt[e])}))}}}],computeLabel:K,computeHelper:q,assertConfig:e=>this.validateConfig(e)}}static getStubConfig(e){return W(e)}setConfig(t){e.validateConfig(t),this._config={...t}}sections(){return this._config?.cards?.length?this._config.cards:a}connectedCallback(){super.connectedCallback(),gt()}getCardSize(){return this.sections().length*3}getGridOptions(){return{columns:12,rows:`auto`,min_columns:6}}willUpdate(e){if(this._config){if(e.has(`_config`)){let e=new Set(this.sections());for(let t of[...this._children.keys()])e.has(t)||this._children.delete(t);for(let t of e){let e=this._children.get(t);e||(e=document.createElement(r[t]),e.embedded=!0,this._children.set(t,e)),e.setConfig({type:`custom:${r[t]}`,device:this._config.device})}}if(this._hass)for(let e of this._children.values())e.hass=this._hass}}render(){if(!this._config)return k;let e=this.sections().map(e=>this._children.get(e)).filter(e=>!!e);return this._hass&&V(this._hass).length===0?D`<ha-card><div class="content">${L(`info`,f(this._hass,`state.not_set_up`))}</div></ha-card>`:D`<ha-card>
+      ${this._config.title?D`<h2 class="title">${this._config.title}</h2>`:k}
+      ${e.map((e,t)=>D`${t?D`<hr class="divider" />`:k}${e}`)}
+    </ha-card>`}},Dt=new Set([`unavailable`,`unknown`]);function Y(e){return!e||Dt.has(e.state)}function Ot(e){return e.locale?.language||e.language||`en`}function kt(e){return e.locale?.time_zone===`server`?e.config?.time_zone:void 0}function At(e,t){if(e.formatEntityState)return e.formatEntityState(t);let n=t.attributes.unit_of_measurement;return n?`${t.state} ${n}`:t.state}function jt(e,t,n,r){let i=r===void 0?t.attributes[n]:r;return e.formatEntityAttributeValue?e.formatEntityAttributeValue(t,n,i):typeof i==`number`?X(e,i):String(i??``)}function X(e,t,n){try{return new Intl.NumberFormat(Ot(e),n).format(t)}catch{return String(t)}}function Mt(e,t){if(t!=null&&Number.isFinite(t))return`${X(e,t,{maximumFractionDigits:+(t<10)})} km`}function Nt(e){if(typeof e!=`string`&&typeof e!=`number`)return;let t=typeof e==`string`?/^\/Date\((-?\d+)(?:[+-]\d{4})?\)\/$/.exec(e.trim()):null;if(t)return new Date(Number(t[1]));let n=new Date(e);return Number.isNaN(n.getTime())?void 0:n}var Pt=[[`year`,31536e3],[`month`,2592e3],[`week`,604800],[`day`,86400],[`hour`,3600],[`minute`,60],[`second`,1]];function Ft(e,t,n=Date.now()){let r=Nt(t);if(!r)return;let i=Math.round((r.getTime()-n)/1e3),a=new Intl.RelativeTimeFormat(Ot(e),{numeric:`auto`});for(let[e,t]of Pt)if(Math.abs(i)>=t||e===`second`)return a.format(Math.round(i/t),e)}function It(e,t,n={dateStyle:`medium`,timeStyle:`short`}){let r=Nt(t);if(r)try{return new Intl.DateTimeFormat(Ot(e),{...n,timeZone:kt(e)}).format(r)}catch{return r.toISOString()}}function Lt(e){if(typeof e!=`string`||!e.trim())return;let t;try{t=new URL(e.trim())}catch{return}return t.protocol===`http:`||t.protocol===`https:`?t.href:void 0}function Z(e){if(typeof e==`number`)return Number.isFinite(e)?e:void 0;if(typeof e==`string`&&e.trim()!==``){let t=Number(e);return Number.isFinite(t)?t:void 0}}function Q(e){return typeof e==`string`&&e.trim()?e.trim():void 0}function $(e){return Array.isArray(e)?e.filter(e=>e&&typeof e==`object`):[]}var Rt=e=>`/api/camera_proxy/${e}`,zt=10,Bt=class extends U{static properties={...U.properties,_tick:{state:!0},_failed:{state:!0},_signed:{state:!0}};static styles=[...U.styles,_`
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(calc(var(--ha-space-20) * 2), 1fr));
+        gap: var(--ha-space-3);
       }
-      100% {
-        box-shadow: 0 0 0 0 rgba(211, 47, 47, 0);
+      .camera {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: var(--ha-space-1);
+        min-width: 0;
+        text-align: start;
       }
-    }
-
-    /* Top 4 Dashboard Metric Tiles */
-    .dashboard-tiles {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
-      margin-bottom: 14px;
-    }
-    @media (min-width: 480px) {
-      .dashboard-tiles {
-        grid-template-columns: repeat(4, 1fr);
+      .frame {
+        position: relative;
+        aspect-ratio: 16 / 9;
+        overflow: hidden;
+        border-radius: var(--ha-border-radius-lg);
+        background-color: var(--ha-color-fill-neutral-quiet-resting);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--secondary-text-color);
       }
-    }
-    .dash-tile {
-      border-radius: 8px;
-      padding: 10px 12px;
-      color: #ffffff;
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      transition: transform 0.15s ease, filter 0.15s ease;
-      min-height: 64px;
-      user-select: none;
-    }
-    .dash-tile:hover {
-      transform: translateY(-2px);
-      filter: brightness(1.08);
-    }
-    .dash-tile.active {
-      outline: 2px solid #ffffff;
-      box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
-    }
-    .dash-tile-news {
-      background: #c14619;
-    }
-    .dash-tile-power {
-      background: #004a89;
-    }
-    .dash-tile-roads {
-      background: #43525a;
-    }
-    .dash-tile-weather {
-      background: #125b26;
-    }
-    .dash-tile-title {
-      font-size: 0.75rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .dash-tile-value {
-      font-size: 1.35rem;
-      font-weight: 700;
-      margin-top: 4px;
-      display: flex;
-      align-items: baseline;
-      gap: 4px;
-    }
-    .dash-tile-sub {
-      font-size: 0.7rem;
-      opacity: 0.9;
-    }
-
-    /* Quick Action Buttons (Relief, Cameras, Telemetry) */
-    .quick-actions {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-      margin-bottom: 14px;
-    }
-    .action-btn {
-      background: var(--secondary-background-color, #f0f0f0);
-      color: var(--primary-text-color, #212121);
-      border: 1px solid var(--divider-color, #e0e0e0);
-      border-radius: 6px;
-      padding: 6px 10px;
-      font-size: 0.78rem;
-      font-weight: 600;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      transition: all 0.2s ease;
-      user-select: none;
-    }
-    .action-btn:hover {
-      background: var(--primary-color, #0288d1);
-      color: #fff;
-      border-color: var(--primary-color, #0288d1);
-    }
-    .action-btn.active {
-      background: var(--primary-color, #0288d1);
-      color: #fff;
-      border-color: var(--primary-color, #0288d1);
-    }
-
-    /* Drawer / Expanded Section */
-    .drawer-content {
-      background: var(--secondary-background-color, #fafafa);
-      border: 1px solid var(--divider-color, #e0e0e0);
-      border-radius: 8px;
-      padding: 12px;
-      margin-bottom: 14px;
-      animation: fadeIn 0.2s ease;
-    }
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(-4px);
+      .frame img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
       }
-      to {
-        opacity: 1;
-        transform: translateY(0);
+      .placeholder {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--ha-space-1);
+        font-size: var(--ha-font-size-s);
       }
-    }
-    .drawer-header {
-      font-weight: 700;
-      font-size: 0.9rem;
-      margin-bottom: 8px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid var(--divider-color, #e0e0e0);
-      padding-bottom: 4px;
-    }
-    .drawer-close {
-      cursor: pointer;
-      font-size: 1rem;
-      line-height: 1;
-    }
-
-    /* Outage & Road Item Cards */
-    .detail-list {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      max-height: 260px;
-      overflow-y: auto;
-    }
-    .detail-card {
-      background: var(--card-background-color, #fff);
-      border: 1px solid var(--divider-color, #e0e0e0);
-      border-radius: 6px;
-      padding: 8px 10px;
-      font-size: 0.8rem;
-    }
-    .detail-card-title {
-      font-weight: 600;
-      margin-bottom: 3px;
-    }
-    .detail-card-meta {
-      color: var(--secondary-text-color, #666);
-      font-size: 0.72rem;
-    }
-
-    /* Telemetry Grid (Weather, Fire Danger, Air Quality) */
-    .telemetry-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-      gap: 8px;
-      margin-top: 6px;
-    }
-    .telemetry-card {
-      background: var(--card-background-color, #fff);
-      border: 1px solid var(--divider-color, #e0e0e0);
-      border-radius: 6px;
-      padding: 8px;
-      text-align: center;
-    }
-    .telemetry-card-label {
-      font-size: 0.7rem;
-      color: var(--secondary-text-color, #666);
-      text-transform: uppercase;
-    }
-    .telemetry-card-val {
-      font-size: 1.1rem;
-      font-weight: 700;
-      margin-top: 2px;
-    }
-    .fdr-badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 12px;
-      font-weight: 700;
-      font-size: 0.75rem;
-      margin-top: 4px;
-      color: #fff;
-    }
-    .fdr-moderate {
-      background: #2e7d32;
-    }
-    .fdr-high {
-      background: #f57f17;
-    }
-    .fdr-extreme {
-      background: #e65100;
-    }
-    .fdr-catastrophic {
-      background: #b71c1c;
-    }
-
-    /* Camera Grid */
-    .camera-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 8px;
-      max-height: 280px;
-      overflow-y: auto;
-    }
-    .camera-card {
-      background: var(--card-background-color, #fff);
-      border: 1px solid var(--divider-color, #e0e0e0);
-      border-radius: 6px;
-      overflow: hidden;
-      font-size: 0.75rem;
-    }
-    .camera-img {
-      width: 100%;
-      height: 90px;
-      object-fit: cover;
-      background: #333;
-      display: block;
-    }
-    .camera-label {
-      padding: 4px 6px;
-      font-weight: 600;
-      text-overflow: ellipsis;
-      overflow: hidden;
-      white-space: nowrap;
-    }
-
-    /* Nearby Council Links */
-    .council-links {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-top: 6px;
-    }
-    .council-chip {
-      background: var(--card-background-color, #fff);
-      border: 1px solid var(--divider-color, #e0e0e0);
-      border-radius: 14px;
-      padding: 4px 10px;
-      font-size: 0.75rem;
-      text-decoration: none;
-      color: var(--primary-color, #0288d1);
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .council-chip:hover {
-      background: var(--secondary-background-color, #f0f0f0);
-    }
-
-    /* Filter Chips */
-    .filters {
-      display: flex;
-      gap: 6px;
-      margin-bottom: 10px;
-      overflow-x: auto;
-      padding-bottom: 2px;
-    }
-    .filter-chip {
-      background: var(--secondary-background-color, #f0f0f0);
-      border: 1px solid var(--divider-color, #e0e0e0);
-      border-radius: 16px;
-      padding: 4px 10px;
-      font-size: 0.75rem;
-      cursor: pointer;
-      user-select: none;
-      transition: all 0.2s ease;
-      white-space: nowrap;
-    }
-    .filter-chip.active {
-      background: var(--primary-color, #0288d1);
-      color: #fff;
-      border-color: var(--primary-color, #0288d1);
-    }
-
-    /* Incidents List */
-    .incidents-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      max-height: 340px;
-      overflow-y: auto;
-    }
-    .incident-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 12px;
-      background: var(--secondary-background-color, #fafafa);
-      border-left: 4px solid var(--divider-color, #e0e0e0);
-      border-radius: 4px;
-      text-decoration: none;
-      color: inherit;
-      transition: transform 0.15s ease, background 0.15s ease;
-    }
-    .incident-item:hover {
-      background: var(--table-row-hover-color, #f0f4f8);
-      transform: translateX(2px);
-    }
-    .incident-item.emergency {
-      border-left-color: #d32f2f;
-    }
-    .incident-item.watch-act {
-      border-left-color: #e65100;
-    }
-    .incident-item.advice {
-      border-left-color: #fbc02d;
-    }
-    .incident-main {
-      flex: 1;
-      margin-right: 12px;
-    }
-    .incident-title {
-      font-size: 0.88rem;
-      font-weight: 600;
-      line-height: 1.25;
-    }
-    .incident-sub {
-      font-size: 0.72rem;
-      color: var(--secondary-text-color, #757575);
-      margin-top: 3px;
-    }
-    .incident-meta {
-      text-align: right;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 3px;
-    }
-    .badge {
-      font-size: 0.68rem;
-      padding: 2px 7px;
-      border-radius: 10px;
-      font-weight: 600;
-      text-transform: uppercase;
-    }
-    .badge-emergency {
-      background: #ffebee;
-      color: #c62828;
-    }
-    .badge-watch-act {
-      background: #fff3e0;
-      color: #ef6c00;
-    }
-    .badge-advice {
-      background: #fffde7;
-      color: #f57f17;
-    }
-    .badge-info {
-      background: #e3f2fd;
-      color: #1565c0;
-    }
-    .distance-tag {
-      font-size: 0.78rem;
-      font-weight: 600;
-      color: var(--primary-color, #0288d1);
-    }
-    .footer {
-      display: flex;
-      justify-content: flex-end;
-      margin-top: 12px;
-      padding-top: 8px;
-      border-top: 1px solid var(--divider-color, #e0e0e0);
-    }
-    .btn-map {
-      background: var(--primary-color, #03a9f4);
-      color: #fff;
-      border: none;
-      padding: 7px 14px;
-      border-radius: 6px;
-      font-weight: 600;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      text-decoration: none;
-      font-size: 0.82rem;
-    }
-    .empty-state {
-      padding: 16px 10px;
-      text-align: center;
-      color: var(--secondary-text-color, #757575);
-      font-size: 0.85rem;
-    }
-  `;setConfig(e){this._config={title:`Australia and New Zealand Disaster Watch`,max_incidents:10,show_map_button:!0,...e}}set hass(e){this._hass=e}getCardSize(){return 7}static getStubConfig(){return{type:`custom:ausnz-disaster-card`,title:`Australia and New Zealand Disaster Watch`,max_incidents:10,show_map_button:!0}}_findEntity(e,t=!0){if(!this._hass)return null;let n=this._hass.entities??{},r=Object.keys(this._hass.states).find(t=>t.startsWith(`sensor.`)&&t.endsWith(`_${e}`)&&n[t]?.platform===`ausnz_disaster_watch`);return r||=Object.keys(this._hass.states).find(t=>{if(!t.startsWith(`sensor.`)||!t.endsWith(`_${e}`))return!1;let n=this._hass.states[t],r=n?.attributes?.attribution||``;return r.includes(`Disaster Watch`)||r.includes(`Emergency Services`)||n?.attributes?.integration===`ausnz_disaster_watch`}),!r&&t&&(r=Object.keys(this._hass.states).find(t=>t.startsWith(`sensor.`)&&t.endsWith(`_${e}`))),r?this._hass.states[r]:null}_getNearbyIncidents(){if(!this._hass)return[];let e=[];for(let[t,n]of Object.entries(this._hass.states))t.startsWith(`geo_location.`)&&n.attributes&&(n.attributes.integration===`ausnz_disaster_watch`||n.attributes.integration===`australian_disaster_watch`||n.attributes.source?.includes(`ausnz_disaster_watch`)||n.attributes.source?.includes(`australian_disaster_watch`))&&e.push({id:t,title:n.state||n.attributes.title||`Emergency Incident`,hazard_type:n.attributes.hazard_type||`Other`,warning_level:n.attributes.warning_level||`Information`,distance_km:n.attributes.distance_km||n.attributes.distance,location_name:n.attributes.location_name,responsible_agency:n.attributes.responsible_agency||n.attributes.agency||n.attributes.source,web_url:n.attributes.web_url,status:n.attributes.status,updated_at:n.attributes.updated_at});return e.sort((e,t)=>(e.distance_km??9999)-(t.distance_km??9999)),e}_toggleTab(e){this._activeTab=this._activeTab===e?`none`:e}render(){if(!this._hass)return W`<ha-card><div class="empty-state">Loading...</div></ha-card>`;let e=this._findEntity(`highest_warning_level`),t=this._findEntity(`active_hazards_count`),n=this._findEntity(`power_outages_count`),r=this._findEntity(`road_closures_count`),i=this._findEntity(`weather_warnings_count`),a=this._findEntity(`fire_danger_rating`),o=this._findEntity(`air_quality`),s=this._findEntity(`local_weather_observation`,!1)||this._findEntity(`primary_weather_observation`),c=this._findEntity(`relief_facilities_count`),l=e?.state||`All Clear`,u=t&&parseInt(t.state,10)||0,d=n&&parseInt(n.state,10)||0,f=r&&parseInt(r.state,10)||0,p=i&&parseInt(i.state,10)||0,ee=c&&parseInt(c.state,10)||0,m=n?.attributes?.customers_affected||0,h=n?.attributes?.outages||[],g=r?.attributes?.closures||[],_=i?.attributes?.warnings||[],v=c?.attributes?.facilities||[],y=`banner-clear`,b=`ALL CLEAR — NO ACTIVE THREATS`,x=`🛡️`;l===`Emergency Warning`?(y=`banner-emergency`,b=`EMERGENCY WARNING IN REGION`,x=`🚨`):l===`Watch and Act`?(y=`banner-watch-and-act`,b=`WATCH AND ACT IN REGION`,x=`⚠️`):l===`Advice`&&(y=`banner-advice`,b=`ADVICE LEVEL ACTIVE`,x=`ℹ️`);let S=this._getNearbyIncidents(),C=S;this._filter===`fire`?C=S.filter(e=>e.hazard_type.toLowerCase().includes(`fire`)):this._filter===`weather`?C=S.filter(e=>[`flood`,`storm`,`cyclone`].some(t=>e.hazard_type.toLowerCase().includes(t))):this._filter===`road`&&(C=S.filter(e=>e.hazard_type.toLowerCase().includes(`road`)));let w=this._config?.max_incidents||10,T=C.slice(0,w),E=s?.state===void 0?`--`:`${s.state}°C`,D=s?.attributes?.relative_humidity?`${s.attributes.relative_humidity}%`:`--`,O=s?.attributes?.pressure_hpa?`${s.attributes.pressure_hpa} hPa`:`--`,k=s?.attributes?.wind_speed_avg_kph?`${s.attributes.wind_speed_avg_kph} km/h`:`--`,A=a?.state&&a.state!==`unknown`&&a.state!==`unavailable`?a.state:`--`,j=o?.state&&o.state!==`unknown`&&o.state!==`unavailable`?o.state:`--`,M=i?.attributes?.emergency_news||e?.attributes?.emergency_news||[],N=M.length,P=i?.attributes?.nearby_councils||e?.attributes?.nearby_councils||[],F=Object.entries(this._hass.states).filter(([e,t])=>{if(!e.startsWith(`camera.`))return!1;let n=this._hass.entities??{};return n[e]?.platform===`ausnz_disaster_watch`||n[e]?.platform===`australian_disaster_watch`||t.attributes?.integration===`ausnz_disaster_watch`||t.attributes?.integration===`australian_disaster_watch`||e.includes(`disaster_watch`)}).map(([e,t])=>({entityId:e,name:t.attributes.friendly_name||t.attributes.name||e.replace(`camera.`,``)}));return W`
-      <ha-card>
-        <div class="header">
-          <div class="title">
-            <span>🚨</span>
-            <span>${this._config?.title||`Australia and New Zealand Disaster Watch`}</span>
+      .name {
+        font-size: var(--ha-font-size-s);
+        font-weight: var(--ha-font-weight-medium);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .camera:hover .frame {
+        background-color: var(--ha-color-fill-neutral-quiet-hover);
+      }
+    `];_signing=new Set;titleKey=`cameras.title`;_timer;_observer;_visible=!1;_onVisibility=()=>this.updateTimer();constructor(){super(),this._tick=0,this._failed=new Set,this._signed={}}extraEntityIds(e){return lt(e,it(e,this.config?.device))}static validateConfig(e){super.validateConfig(e),J(e,`refresh_interval`,zt,3600)}static getConfigForm(){return{schema:[...G(),{name:`refresh_interval`,selector:{number:{min:zt,max:3600,step:5,mode:`box`,unit_of_measurement:`s`}}}],computeLabel:K,computeHelper:q,assertConfig:e=>this.validateConfig(e)}}static getStubConfig(e){return W(e)}getCardSize(){return 4}connectedCallback(){super.connectedCallback(),document.addEventListener(`visibilitychange`,this._onVisibility),`IntersectionObserver`in window?(this._observer=new IntersectionObserver(e=>{this._visible=e.some(e=>e.isIntersecting),this.updateTimer()}),this._observer.observe(this)):(this._visible=!0,this.updateTimer())}disconnectedCallback(){super.disconnectedCallback(),document.removeEventListener(`visibilitychange`,this._onVisibility),this._observer?.disconnect(),this._observer=void 0,this._visible=!1,this.updateTimer()}updated(e){super.updated(e),this.signMissing(),e.has(`_config`)&&this._timer&&(clearInterval(this._timer),this._timer=void 0,this.updateTimer())}updateTimer(){let e=this._visible&&document.visibilityState===`visible`&&this.isConnected;if(e&&!this._timer){let e=this._config?.refresh_interval??60;this._timer=setInterval(()=>{this._failed=new Set,this._tick+=1},e*1e3)}else!e&&this._timer&&(clearInterval(this._timer),this._timer=void 0)}signMissing(){let e=this.hass;if(e)for(let t of lt(e,this.deviceId)){let n=e.states[t];if(!n||Y(n)||Q(n.attributes.entity_picture))continue;let r=`${t}@${this._tick}`;this._signed[r]||this._signing.has(r)||(this._signing.add(r),e.connection.sendMessagePromise({type:`auth/sign_path`,path:Rt(t),expires:300}).then(e=>{e?.path&&(this._signed={...this.prune(),[r]:e.path})}).catch(()=>void 0).finally(()=>this._signing.delete(r)))}}prune(){return Object.fromEntries(Object.entries(this._signed).filter(([e])=>e.endsWith(`@${this._tick}`)))}imageUrl(e){return this._tick?`${e}${e.includes(`?`)?`&`:`?`}t=${this._tick}`:e}renderBody(e,t){let n=lt(e,this.deviceId);return D`${R({title:this.cardTitle(),icon:`mdi:cctv`,count:n.length?String(n.length):void 0})}
+      <div class="content">
+        ${n.length?D`<div class="grid" role="list">
+                ${n.map(t=>{let n=e.states[t],r=Q(e.entities[t]?.name)??Q(n?.attributes.friendly_name)??t,i=Y(n)?void 0:Q(n?.attributes.entity_picture),a=i?this.imageUrl(i):this._signed[`${t}@${this._tick}`],o=a&&!this._failed.has(a);return D`<div role="listitem">
+                    <button class="plain camera" aria-label=${`${r}. ${f(e,`action.details`)}`} @click=${()=>this.moreInfo(t)}>
+                      <span class="frame">
+                        ${o?D`<img
+                                src=${a}
+                                alt=${r}
+                                loading="lazy"
+                                @error=${()=>this._failed=new Set([...this._failed,a])}
+                              />`:D`<span class="placeholder">
+                                <ha-icon icon="mdi:image-off-outline" aria-hidden="true"></ha-icon>
+                                <span>${f(e,`cameras.no_image`)}</span>
+                              </span>`}
+                      </span>
+                      <span class="name">${r}</span>
+                    </button>
+                  </div>`})}
+              </div>`:I(`mdi:cctv-off`,f(e,`cameras.empty`))}
+      </div>`}},Vt=[`moderate`,`high`,`extreme`,`catastrophic`],Ht={moderate:`green`,high:`yellow`,extreme:`orange`,catastrophic:`red`,no_rating:`grey`},Ut={moderate:`mdi:fire`,high:`mdi:fire`,extreme:`mdi:fire-alert`,catastrophic:`mdi:fire-alert`,no_rating:`mdi:fire-off`};function Wt(e){if(typeof e!=`string`)return`no_rating`;let t=e.trim().toLowerCase();return t.includes(`catastrophic`)?`catastrophic`:t.includes(`extreme`)?`extreme`:t.includes(`high`)?`high`:t.includes(`moderate`)?`moderate`:`no_rating`}function Gt(e){return Ht[e]}var Kt={good:`green`,fair:`yellow`,poor:`orange`,very_poor:`red`,extremely_poor:`purple`,unknown:`grey`};function qt(e){if(typeof e!=`string`)return`unknown`;let t=e.trim().toLowerCase();return t.includes(`extremely`)||t.includes(`hazardous`)?`extremely_poor`:t.includes(`very poor`)||t.includes(`very_poor`)?`very_poor`:t.includes(`poor`)?`poor`:t.includes(`fair`)||t.includes(`moderate`)?`fair`:t.includes(`good`)||t.includes(`very good`)?`good`:`unknown`}function Jt(e){return Kt[e]}function Yt(e){if(typeof e!=`string`)return`grey`;let t=e.toLowerCase();return t.includes(`closed`)||t.includes(`closure`)?`red`:t.includes(`flood`)?`blue`:t.includes(`hazard`)||t.includes(`caution`)||t.includes(`restrict`)||t.includes(`lane`)?`amber`:t.includes(`open`)?`green`:`grey`}function Xt(e){let t=Yt(e);return t===`red`?`mdi:road-variant`:t===`blue`?`mdi:waves`:t===`amber`?`mdi:traffic-cone`:`mdi:road`}var Zt=[`N`,`NNE`,`NE`,`ENE`,`E`,`ESE`,`SE`,`SSE`,`S`,`SSW`,`SW`,`WSW`,`W`,`WNW`,`NW`,`NNW`];function Qt(e){return Zt[Math.round((e%360+360)%360/22.5)%16]}var $t=[{attr:`pm2_5`,label:`PM2.5`},{attr:`pm10`,label:`PM10`},{attr:`no2`,label:`NO₂`},{attr:`o3`,label:`O₃`}],en=class extends U{static styles=[...U.styles,_`
+      .group {
+        display: flex;
+        flex-direction: column;
+        gap: var(--ha-space-2);
+      }
+      .group-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--ha-space-2);
+      }
+      .group-title {
+        margin: 0;
+        font-size: var(--ha-font-size-m);
+        font-weight: var(--ha-font-weight-medium);
+      }
+      .temperature {
+        display: flex;
+        align-items: baseline;
+        flex-wrap: wrap;
+        gap: var(--ha-space-2);
+      }
+      .temperature .value {
+        font-size: var(--ha-font-size-3xl);
+        font-weight: var(--ha-font-weight-normal);
+        line-height: var(--ha-line-height-condensed);
+      }
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(calc(var(--ha-space-20) + var(--ha-space-8)), 1fr));
+        gap: var(--ha-space-2) var(--ha-space-4);
+        margin: 0;
+      }
+      .metric {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+      .metric dt {
+        color: var(--secondary-text-color);
+        font-size: var(--ha-font-size-s);
+      }
+      .metric dd {
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: var(--ha-space-1);
+        font-size: var(--ha-font-size-m);
+        font-weight: var(--ha-font-weight-medium);
+      }
+      .metric dd ha-icon {
+        --mdc-icon-size: var(--ha-space-4);
+        color: var(--secondary-text-color);
+      }
+    `];titleKey=`conditions.title`;entityKeys(){return[n.primaryWeatherObservation,n.airQualityRating]}static getConfigForm(){return{schema:G(),computeLabel:K,computeHelper:q,assertConfig:e=>this.validateConfig(e)}}static getStubConfig(e){return W(e)}getCardSize(){return 4}metric(e,t){return t===void 0||t===``?k:D`<div class="metric"><dt>${e}</dt><dd>${t}</dd></div>`}renderWeather(e,t){if(!t||Y(t))return I(`mdi:weather-cloudy-alert`,f(e,`conditions.no_weather`));let n=t.attributes,r=(r,i)=>{let a=Z(n[r]);return a===void 0?void 0:`${jt(e,t,r,a)} ${i}`},i=Z(n.wind_direction_deg),a=r(`wind_speed_avg_kph`,`km/h`),o=Z($(n.stations)[0]?.rain_since_9am),s=Q(n.station_name),c=a===void 0?void 0:D`${i===void 0?k:D`<ha-icon
+                    icon="mdi:navigation"
+                    style=${P({transform:`rotate(${i+180}deg)`})}
+                    aria-hidden="true"
+                  ></ha-icon>`}<span>${a}${i===void 0?``:` ${Qt(i)}`}</span>${i===void 0?k:D`<span class="sr-only">${f(e,`conditions.wind_from`,{direction:Qt(i)})}</span>`}`;return D`<button
+        class="plain temperature"
+        aria-label=${`${f(e,`conditions.temperature`)} ${At(e,t)}. ${f(e,`action.details`)}`}
+        @click=${()=>this.moreInfo(t.entity_id)}
+      >
+        <span class="value">${At(e,t)}</span>
+        ${s?D`<span class="secondary">${f(e,`conditions.station`,{name:s})}</span>`:k}
+      </button>
+      <dl class="metrics">
+        ${this.metric(f(e,`conditions.feels_like`),r(`apparent_temperature`,`°C`))}
+        ${this.metric(f(e,`conditions.humidity`),r(`relative_humidity`,`%`))}
+        ${this.metric(f(e,`conditions.wind`),c)}
+        ${this.metric(f(e,`conditions.gust`),r(`wind_speed_max_kph`,`km/h`))}
+        ${this.metric(f(e,`conditions.pressure`),r(`pressure_hpa`,`hPa`))}
+        ${this.metric(f(e,`conditions.rain`),o===void 0?void 0:`${jt(e,t,`rain_since_9am`,o)} mm`)}
+      </dl>`}renderAirQuality(e,t){if(!t||Y(t))return I(`mdi:air-filter`,f(e,`conditions.no_air_quality`));let n=Q(t.attributes.station_name);return D`<dl class="metrics">
+        ${$t.map(n=>this.metric(n.label,Q(t.attributes[n.attr])??(Z(t.attributes[n.attr])===void 0?void 0:jt(e,t,n.attr))))}
+      </dl>
+      ${n?D`<span class="secondary">${f(e,`conditions.station`,{name:n})}</span>`:k}`}renderBody(e,t){let r=H(e,this.deviceId,n.primaryWeatherObservation),i=H(e,this.deviceId,n.airQualityRating),a=qt(Y(i)?void 0:i?.state),o=Y(i)?void 0:a===`unknown`?Q(i?.state):f(e,`conditions.aq.${a}`);return D`${R({title:this.cardTitle(),icon:`mdi:weather-partly-cloudy`})}
+      <div class="content">
+        <section class="group" aria-label=${f(e,`conditions.weather`)}>${this.renderWeather(e,r)}</section>
+        <hr class="divider" />
+        <section class="group" aria-label=${f(e,`conditions.air_quality`)}>
+          <div class="group-head">
+            <h3 class="group-title">${f(e,`conditions.air_quality`)}</h3>
+            ${o?D`<button class="plain" aria-label=${`${f(e,`conditions.air_quality`)}: ${o}. ${f(e,`action.details`)}`} @click=${()=>this.moreInfo(i?.entity_id)}>
+                    ${F(o,Jt(a),`mdi:air-filter`)}
+                  </button>`:k}
+          </div>
+          ${this.renderAirQuality(e,i)}
+        </section>
+      </div>`}},tn=class extends U{static styles=[...U.styles,_`
+      .rating {
+        display: flex;
+        align-items: center;
+        gap: var(--ha-space-3);
+      }
+      .rating-text {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+      @container (max-width: 260px) {
+        .rating {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+      }
+      .rating-label {
+        overflow-wrap: anywhere;
+        font-size: var(--ha-font-size-xl);
+        font-weight: var(--ha-font-weight-bold);
+        line-height: var(--ha-line-height-condensed);
+      }
+      .content {
+        container-type: inline-size;
+      }
+      .scale {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: var(--ha-space-1);
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      .segment {
+        display: flex;
+        flex-direction: column;
+        gap: var(--ha-space-1);
+        min-width: 0;
+        font-size: var(--ha-font-size-xs);
+        color: var(--secondary-text-color);
+        text-align: center;
+      }
+      .segment .bar {
+        height: var(--ha-space-2);
+        border-radius: var(--ha-border-radius-pill);
+        background-color: color-mix(in srgb, var(--tone) 30%, transparent);
+      }
+      .segment.active {
+        color: var(--primary-text-color);
+        font-weight: var(--ha-font-weight-bold);
+      }
+      .segment.active .bar {
+        background-color: var(--tone);
+        box-shadow: 0 0 0 var(--ha-border-width-md) var(--card-background-color, var(--ha-card-background)),
+          0 0 0 calc(2 * var(--ha-border-width-md)) var(--tone);
+      }
+      .segment .name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      /* Narrow cards name only the current level under the scale; all names stay readable to screen readers. */
+      @container (max-width: 300px) {
+        .segment:not(.active) .name {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          overflow: hidden;
+          clip: rect(0, 0, 0, 0);
+        }
+        .segment.active .name {
+          overflow: visible;
+        }
+      }
+      .badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--ha-space-2);
+      }
+    `];titleKey=`fire.title`;entityKeys(){return[n.fireDangerRating]}static getConfigForm(){return{schema:G(),computeLabel:K,computeHelper:q,assertConfig:e=>this.validateConfig(e)}}static getStubConfig(e){return W(e)}getGridOptions(){return{columns:6,rows:`auto`,min_columns:6}}renderBody(e,t){let r=H(e,this.deviceId,n.fireDangerRating),i=R({title:this.cardTitle(),icon:`mdi:fire`,detailsLabel:f(e,`action.details`),onDetails:r?()=>this.moreInfo(r.entity_id):void 0});if(!r||r.state===`unavailable`)return D`${i}<div class="content">
+          ${L(`warning`,f(e,r?`state.unavailable`:`state.entity_missing`))}
+        </div>`;let a=Wt(Y(r)?void 0:r.state),o=Gt(a),s=f(e,`fire.rating.${a}`),c=Q(r.attributes.district_name),l=Q(r.attributes.day),u=r.attributes.total_fire_ban===!0;return D`${i}
+      <div class="content">
+        <div class="rating">
+          ${et(Ut[a],o,!0)}
+          <div class="rating-text">
+            <span class="rating-label">${s}</span>
+            ${c||l?D`<span class="secondary"
+                    >${[c?f(e,`fire.district`,{district:c}):void 0,l?f(e,`fire.forecast_for`,{day:l}):void 0].filter(Boolean).join(` · `)}</span
+                  >`:k}
           </div>
         </div>
-
-        <div class="banner ${y}">
-          <span>${x} ${b}</span>
-          <span>${u} active hazards</span>
+        <ol class="scale" aria-label=${f(e,`fire.scale`)}>
+          ${Vt.map(t=>{let n=t===a,r=f(e,`fire.rating.${t}`);return D`<li
+              class="segment ${n?`active`:``}"
+              style=${P({"--tone":Qe(Gt(t))})}
+              aria-current=${n?`true`:k}
+            >
+              <span class="bar" aria-hidden="true"></span>
+              <span class="name">${r}</span>
+              ${n?D`<span class="sr-only">${f(e,`fire.current`)}</span>`:k}
+            </li>`})}
+        </ol>
+        <div class="badges">
+          ${u?F(f(e,`fire.total_fire_ban`),`red`,`mdi:fire-off`):F(f(e,`fire.no_total_fire_ban`),`grey`,`mdi:check`)}
         </div>
-
-        <!-- 4 Top Metric Tiles (Emergency News, Power Outages, Road Conditions, Weather Warnings) -->
-        <div class="dashboard-tiles">
-          <div
-            class="dash-tile dash-tile-news ${this._activeTab===`news`?`active`:``}"
-            @click=${()=>this._toggleTab(`news`)}
-          >
-            <div class="dash-tile-title">
-              <span>📰</span>
-              <span>Emergency News</span>
-            </div>
-            <div class="dash-tile-value">
-              <span>${N}</span>
-              <span class="dash-tile-sub">Bulletins</span>
-            </div>
-          </div>
-
-          <div
-            class="dash-tile dash-tile-power ${this._activeTab===`outages`?`active`:``}"
-            @click=${()=>this._toggleTab(`outages`)}
-          >
-            <div class="dash-tile-title">
-              <span>⚡</span>
-              <span>Power Outages</span>
-            </div>
-            <div class="dash-tile-value">
-              <span>${d}</span>
-              <span class="dash-tile-sub">(${m} affected)</span>
-            </div>
-          </div>
-
-          <div
-            class="dash-tile dash-tile-roads ${this._activeTab===`roads`?`active`:``}"
-            @click=${()=>this._toggleTab(`roads`)}
-          >
-            <div class="dash-tile-title">
-              <span>🚧</span>
-              <span>Road Conditions</span>
-            </div>
-            <div class="dash-tile-value">
-              <span>${f}</span>
-              <span class="dash-tile-sub">Closures</span>
-            </div>
-          </div>
-
-          <div
-            class="dash-tile dash-tile-weather ${this._activeTab===`warnings`?`active`:``}"
-            @click=${()=>this._toggleTab(`warnings`)}
-          >
-            <div class="dash-tile-title">
-              <span>⛈️</span>
-              <span>Weather Warnings</span>
-            </div>
-            <div class="dash-tile-value">
-              <span>${p}</span>
-              <span class="dash-tile-sub">BoM Alerts</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Quick Action Buttons -->
-        <div class="quick-actions">
-          <button
-            class="action-btn ${this._activeTab===`telemetry`?`active`:``}"
-            @click=${()=>this._toggleTab(`telemetry`)}
-          >
-            <span>🌡️</span>
-            <span>Conditions & AFDRS</span>
-          </button>
-
-          <button
-            class="action-btn ${this._activeTab===`cameras`?`active`:``}"
-            @click=${()=>this._toggleTab(`cameras`)}
-          >
-            <span>📹</span>
-            <span>Flood Cameras (${F.length})</span>
-          </button>
-
-          <button
-            class="action-btn ${this._activeTab===`relief`?`active`:``}"
-            @click=${()=>this._toggleTab(`relief`)}
-          >
-            <span>🏠</span>
-            <span>Relief & Evac (${ee})</span>
-          </button>
-
-          <button
-            class="action-btn ${this._activeTab===`councils`?`active`:``}"
-            @click=${()=>this._toggleTab(`councils`)}
-          >
-            <span>🏛️</span>
-            <span>Nearby Councils (${P.length})</span>
-          </button>
-        </div>
-
-        <!-- Expandable Drawer for Active Tab -->
-        ${this._activeTab===`none`?``:W`
-              <div class="drawer-content">
-                ${this._activeTab===`news`?W`
-                      <div class="drawer-header">
-                        <span>📰 Emergency Bulletins & News (${N})</span>
-                        <span class="drawer-close" @click=${()=>this._activeTab=`none`}>✕</span>
-                      </div>
-                      <div class="detail-list">
-                        ${M.length===0?W`<div class="empty-state">No active emergency news or bulletins published.</div>`:M.map(e=>W`
-                                <div class="detail-card">
-                                  <div class="detail-card-title">${e.title||`Disaster News`}</div>
-                                  ${e.description?W`<div class="detail-card-meta">${e.description}</div>`:``}
-                                  ${e.link?W`<div class="detail-card-meta"><a href="${e.link}" target="_blank" rel="noreferrer" style="color:var(--primary-color);">Read official release →</a></div>`:``}
-                                </div>
-                              `)}
-                      </div>
-                    `:``}
-
-                ${this._activeTab===`outages`?W`
-                      <div class="drawer-header">
-                        <span>⚡ Power Outages (${d} active — ${m} customers affected)</span>
-                        <span class="drawer-close" @click=${()=>this._activeTab=`none`}>✕</span>
-                      </div>
-                      <div class="detail-list">
-                        ${h.length===0?W`<div class="empty-state">No power outages reported in monitored area.</div>`:h.map(e=>W`
-                                <div class="detail-card">
-                                  <div class="detail-card-title">${e.suburb||`Local Suburb`} — ${e.cause}</div>
-                                  <div class="detail-card-meta">
-                                    Customers: ${e.customers_affected} • Estimated Restoration: ${e.restore_time||`Pending`}
-                                  </div>
-                                </div>
-                              `)}
-                      </div>
-                    `:``}
-
-                ${this._activeTab===`roads`?W`
-                      <div class="drawer-header">
-                        <span>🚧 Road Conditions & Closures (${f})</span>
-                        <span class="drawer-close" @click=${()=>this._activeTab=`none`}>✕</span>
-                      </div>
-                      <div class="detail-list">
-                        ${g.length===0?W`<div class="empty-state">No road closures reported in monitored area.</div>`:g.map(e=>W`
-                                <div class="detail-card">
-                                  <div class="detail-card-title">${e.road} (${e.suburb||`Region`}) — ${e.status}</div>
-                                  <div class="detail-card-meta">
-                                    Reason: ${e.reason||`Hazard`} • Agency: ${e.source} ${e.advice?`• Advice: ${e.advice}`:``}
-                                  </div>
-                                </div>
-                              `)}
-                      </div>
-                    `:``}
-
-                ${this._activeTab===`warnings`?W`
-                      <div class="drawer-header">
-                        <span>⛈️ Bureau of Meteorology Warnings (${p})</span>
-                        <span class="drawer-close" @click=${()=>this._activeTab=`none`}>✕</span>
-                      </div>
-                      <div class="detail-list">
-                        ${_.length===0?W`<div class="empty-state">No weather warnings currently active.</div>`:_.map(e=>W`
-                                <div class="detail-card">
-                                  <div class="detail-card-title">
-                                    <a href="${e.link||`#`}" target="_blank" rel="noreferrer" style="color:inherit;text-decoration:underline;">
-                                      ${e.title}
-                                    </a>
-                                  </div>
-                                  <div class="detail-card-meta">Districts: ${e.locations||`Forecast Area`}</div>
-                                </div>
-                              `)}
-                      </div>
-                    `:``}
-
-                ${this._activeTab===`telemetry`?W`
-                      <div class="drawer-header">
-                        <span>🌡️ Environmental Telemetry & Fire Danger</span>
-                        <span class="drawer-close" @click=${()=>this._activeTab=`none`}>✕</span>
-                      </div>
-                      <div class="telemetry-grid">
-                        <div class="telemetry-card">
-                          <div class="telemetry-card-label">Air Temp</div>
-                          <div class="telemetry-card-val">${E}</div>
-                        </div>
-                        <div class="telemetry-card">
-                          <div class="telemetry-card-label">Humidity</div>
-                          <div class="telemetry-card-val">${D}</div>
-                        </div>
-                        <div class="telemetry-card">
-                          <div class="telemetry-card-label">Pressure</div>
-                          <div class="telemetry-card-val">${O}</div>
-                        </div>
-                        <div class="telemetry-card">
-                          <div class="telemetry-card-label">Wind Speed</div>
-                          <div class="telemetry-card-val">${k}</div>
-                        </div>
-                        <div class="telemetry-card">
-                          <div class="telemetry-card-label">Fire Danger (AFDRS)</div>
-                          <span class="fdr-badge ${A.toLowerCase().includes(`catastrophic`)?`fdr-catastrophic`:A.toLowerCase().includes(`extreme`)?`fdr-extreme`:A.toLowerCase().includes(`high`)?`fdr-high`:`fdr-moderate`}">${A}</span>
-                        </div>
-                        <div class="telemetry-card">
-                          <div class="telemetry-card-label">Air Quality</div>
-                          <div class="telemetry-card-val" style="color:#2e7d32;">${j}</div>
-                        </div>
-                      </div>
-                    `:``}
-
-                ${this._activeTab===`cameras`?W`
-                      <div class="drawer-header">
-                        <span>📹 Live Flood & Traffic Webcams (${F.length})</span>
-                        <span class="drawer-close" @click=${()=>this._activeTab=`none`}>✕</span>
-                      </div>
-                      ${F.length===0?W`<div class="detail-list"><div class="empty-state">No live flood or traffic cameras available for this jurisdiction.</div></div>`:W`
-                            <div class="camera-grid">
-                              ${F.map(e=>W`
-                                  <div class="camera-card">
-                                    <img
-                                      class="camera-img"
-                                      src="/api/camera_proxy/${e.entityId}"
-                                      alt="${e.name}"
-                                      loading="lazy"
-                                    />
-                                    <div class="camera-label">${e.name}</div>
-                                  </div>
-                                `)}
-                            </div>
-                          `}
-                    `:``}
-
-                ${this._activeTab===`relief`?W`
-                      <div class="drawer-header">
-                        <span>🏠 Disaster Relief Facilities</span>
-                        <span class="drawer-close" @click=${()=>this._activeTab=`none`}>✕</span>
-                      </div>
-                      <div class="detail-list">
-                        ${v.length===0?W`<div class="empty-state">No open relief facilities or evacuations required at this time.</div>`:v.map(e=>W`
-                                <div class="detail-card">
-                                  <div class="detail-card-title">${e.name} (${e.suburb||`Region`})</div>
-                                  <div class="detail-card-meta">Address: ${e.address||`Council Depot`} • Status: ${e.status}</div>
-                                </div>
-                              `)}
-                      </div>
-                    `:``}
-
-                ${this._activeTab===`councils`?W`
-                      <div class="drawer-header">
-                        <span>🏛️ Connected Australian Disaster Dashboards (${P.length})</span>
-                        <span class="drawer-close" @click=${()=>this._activeTab=`none`}>✕</span>
-                      </div>
-                      ${P.length===0?W`<div class="detail-list"><div class="empty-state">No neighboring council disaster dashboards configured for this jurisdiction.</div></div>`:W`
-                            <div class="council-links">
-                              ${P.map(e=>W`
-                                  <a class="council-chip" href="${e.url}" target="_blank" rel="noreferrer">
-                                    <span>📍</span> ${e.name}
-                                  </a>
-                                `)}
-                            </div>
-                          `}
-                    `:``}
-              </div>
-            `}
-
-        <!-- Filter Chips for Incident List -->
-        <div class="filters">
-          <div
-            class="filter-chip ${this._filter===`all`?`active`:``}"
-            @click=${()=>this._filter=`all`}
-          >
-            All Hazards (${S.length})
-          </div>
-          <div
-            class="filter-chip ${this._filter===`fire`?`active`:``}"
-            @click=${()=>this._filter=`fire`}
-          >
-            Fires
-          </div>
-          <div
-            class="filter-chip ${this._filter===`weather`?`active`:``}"
-            @click=${()=>this._filter=`weather`}
-          >
-            Weather / Flood
-          </div>
-          <div
-            class="filter-chip ${this._filter===`road`?`active`:``}"
-            @click=${()=>this._filter=`road`}
-          >
-            Roads
-          </div>
-        </div>
-
-        <!-- Incidents List -->
-        <div class="incidents-list">
-          ${T.length===0?W`<div class="empty-state">
-                No active incidents found in this filter within the monitored radius.
-              </div>`:T.map(e=>{let t=`badge-info`,n=``;return e.warning_level===`Emergency Warning`?(t=`badge-emergency`,n=`emergency`):e.warning_level===`Watch and Act`?(t=`badge-watch-act`,n=`watch-act`):e.warning_level===`Advice`&&(t=`badge-advice`,n=`advice`),W`
-                  <a
-                    class="incident-item ${n}"
-                    href="${e.web_url||`/map`}"
-                    target="${e.web_url?`_blank`:`_self`}"
-                    rel="noreferrer"
-                  >
-                    <div class="incident-main">
-                      <div class="incident-title">${e.title}</div>
-                      <div class="incident-sub">
-                        ${e.hazard_type} • ${e.responsible_agency||`Emergency Agency`}
-                        ${e.location_name?`• ${e.location_name}`:``}
-                      </div>
-                    </div>
-                    <div class="incident-meta">
-                      <span class="badge ${t}">${e.warning_level}</span>
-                      ${e.distance_km===void 0?``:W`<span class="distance-tag">${e.distance_km} km</span>`}
-                    </div>
-                  </a>
-                `})}
-        </div>
-
-        ${this._config?.show_map_button?W`
-              <div class="footer">
-                <a class="btn-map" href="/map">
-                  <span>🗺️</span>
-                  <span>View Incidents on Map</span>
-                </a>
-              </div>
-            `:``}
-      </ha-card>
-    `}};customElements.get(`ausnz-disaster-card`)||customElements.define(`ausnz-disaster-card`,fe),customElements.get(`aus-disaster-card`)||customElements.define(`aus-disaster-card`,fe),window.customCards=window.customCards||[],window.customCards.some(e=>e.type===`ausnz-disaster-card`)||window.customCards.push({type:`ausnz-disaster-card`,name:`Australia and New Zealand Disaster Watch Card`,description:`Real-time Australia and New Zealand Warning System disaster monitor and proximity hazard tracker.`,preview:!0,documentationURL:`https://github.com/tinkerologie/ha-ausnz-disaster-watch`}),window.customCards.some(e=>e.type===`aus-disaster-card`)||window.customCards.push({type:`aus-disaster-card`,name:`Australia and New Zealand Disaster Watch Card (Legacy Alias)`,description:`Real-time Australia and New Zealand Warning System disaster monitor and proximity hazard tracker.`,preview:!1,documentationURL:`https://github.com/tinkerologie/ha-ausnz-disaster-watch`});
+      </div>`}},nn={emergency:{level:`emergency`,tone:`red`,icon:`mdi:alert-octagon`,rank:4},watch_and_act:{level:`watch_and_act`,tone:`orange`,icon:`mdi:alert`,rank:3},advice:{level:`advice`,tone:`amber`,icon:`mdi:information`,rank:2},information:{level:`information`,tone:`blue`,icon:`mdi:information-outline`,rank:1},unknown:{level:`unknown`,tone:`grey`,icon:`mdi:help-circle-outline`,rank:0}};function rn(e){if(typeof e!=`string`)return`unknown`;let t=e.trim().toLowerCase();return t.includes(`emergency`)?`emergency`:t.includes(`watch and act`)||t.includes(`watch & act`)?`watch_and_act`:t.includes(`advice`)?`advice`:t.includes(`info`)||t.includes(`routine`)||t.includes(`notification`)?`information`:`unknown`}function an(e){return nn[rn(e)]}function on(e,t){return e===void 0||e===`unavailable`||e===`unknown`?`unavailable`:e.trim().toLowerCase()===`all clear`?t===void 0||t>0?`unknown`:`all_clear`:rn(e)}function sn(e){return e===`all_clear`?{level:`unknown`,tone:`green`,icon:`mdi:shield-check`,rank:0}:e===`unavailable`?{level:`unknown`,tone:`grey`,icon:`mdi:cloud-off-outline`,rank:-1}:nn[e]}var cn=[`fire`,`flood_storm`,`geological`,`roads`,`other`],ln={Bushfire:{category:`fire`,icon:`mdi:fire`},"Grass Fire":{category:`fire`,icon:`mdi:grass`},"Structure Fire":{category:`fire`,icon:`mdi:fire-alert`},Flood:{category:`flood_storm`,icon:`mdi:water-alert`},"Severe Storm":{category:`flood_storm`,icon:`mdi:weather-lightning`},"Tropical Cyclone":{category:`flood_storm`,icon:`mdi:weather-hurricane`},Earthquake:{category:`geological`,icon:`mdi:pulse`},Volcano:{category:`geological`,icon:`mdi:volcano`},Tsunami:{category:`geological`,icon:`mdi:tsunami`},"Road Hazard / Crash":{category:`roads`,icon:`mdi:car-emergency`},"Hazmat Incident":{category:`other`,icon:`mdi:biohazard`},Other:{category:`other`,icon:`mdi:alert-decagram`}},un={fire:`mdi:fire`,flood_storm:`mdi:weather-pouring`,geological:`mdi:earth`,roads:`mdi:car-emergency`,other:`mdi:alert-decagram`};function dn(e){return typeof e==`string`&&ln[e]?.category||`other`}function fn(e){return typeof e==`string`&&ln[e]?.icon||`mdi:alert-decagram`}var pn=10,mn={emergency:`status.level.emergency`,watch_and_act:`status.level.watch_and_act`,advice:`status.level.advice`,information:`status.level.information`,unknown:`status.level.unknown`},hn=class extends U{static properties={...U.properties,_category:{state:!0},_showBurns:{state:!0},_expanded:{state:!0}};titleKey=`incidents.title`;usesIncidents=!0;constructor(){super(),this._category=`all`,this._showBurns=void 0,this._expanded=!1}static validateConfig(e){super.validateConfig(e);let t=e;J(t,`max_items`,1,100),Ct(t,`show_planned_burns`),wt(t,`categories`,cn)}static getConfigForm(){return{schema:[...G(),{name:`max_items`,selector:{number:{min:1,max:100,mode:`box`}}},{name:`show_planned_burns`,selector:{boolean:{}}},{name:`categories`,selector:{select:{multiple:!0,mode:`list`,options:cn.map(e=>({value:e,label:f(void 0,`incidents.category.${e}`)}))}}}],computeLabel:K,computeHelper:q,assertConfig:e=>this.validateConfig(e)}}static getStubConfig(e){return W(e)}getCardSize(){return 2+Math.min(this._config?.max_items??pn,6)}get showBurns(){return this._showBurns??this._config?.show_planned_burns??!1}categories(){let e=this._config?.categories;return e?.length?e:cn}renderIncident(e,t){let n=t.attributes,r=an(n.warning_level),i=ft(t),a=Ft(e,n.updated_at),o=[Q(n.location_name),Mt(e,pt(t)),a?f(e,`incidents.updated`,{time:a}):void 0].filter(Boolean).join(` · `);return z({icon:Q(n.icon)??fn(n.hazard_type),tone:r.tone,headline:i,supporting:D`${n.is_hazard_reduction?D`${f(e,`incidents.planned_burn`)} · `:k}${o}`,badge:F(f(e,mn[r.level]),r.tone,r.icon),onActivate:()=>this.moreInfo(t.entity_id),link:Lt(n.web_url),linkLabel:`${f(e,`action.open_link`)}: ${i}`})}renderBody(e,t){let n=this.categories(),r=dt(e,this.entryId).filter(e=>n.includes(dn(e.attributes.hazard_type))),i=r.some(e=>e.attributes.is_hazard_reduction===!0),a=this.showBurns?r:r.filter(e=>e.attributes.is_hazard_reduction!==!0),o=new Map;for(let e of a){let t=dn(e.attributes.hazard_type);o.set(t,(o.get(t)??0)+1)}let s=this._category!==`all`&&n.includes(this._category)?this._category:`all`,c=s===`all`?a:a.filter(e=>dn(e.attributes.hazard_type)===s),l=t.max_items??pn,u=this._expanded?c:c.slice(0,l),d=(t,n)=>D`<ha-filter-chip
+      .selected=${s===t}
+      .label=${`${f(e,`incidents.category.${t}`)} ${n}`}
+      @click=${e=>{e.preventDefault(),this._category=t,this._expanded=!1}}
+    >
+      ${t===`all`?k:D`<ha-icon slot="icon" .icon=${un[t]}></ha-icon>`}
+    </ha-filter-chip>`;return D`${R({title:this.cardTitle(),icon:`mdi:alert-decagram`,count:String(a.length)})}
+      <div class="content">
+        ${r.length?D`<ha-chip-set aria-label=${f(e,`incidents.filters`)}>
+                ${d(`all`,a.length)}
+                ${n.length>1?n.map(e=>d(e,o.get(e)??0)):k}
+                ${i?D`<ha-filter-chip
+                        .selected=${this.showBurns}
+                        .label=${f(e,`incidents.planned_burns`)}
+                        @click=${e=>{e.preventDefault(),this._showBurns=!this.showBurns}}
+                      >
+                        <ha-icon slot="icon" icon="mdi:fire-circle"></ha-icon>
+                      </ha-filter-chip>`:k}
+              </ha-chip-set>`:k}
+        ${u.length?B(u.map(t=>this.renderIncident(e,t)),this.cardTitle()):I(`mdi:shield-check-outline`,f(e,r.length?`incidents.empty_filtered`:`incidents.empty`))}
+        ${c.length>l?tt(e,this._expanded,c.length,()=>this._expanded=!this._expanded):k}
+      </div>`}},gn=(function(){let e=typeof document<`u`&&document.createElement(`link`).relList;return e&&e.supports&&e.supports(`modulepreload`)?`modulepreload`:`preload`})(),_n=function(e,t){return new URL(e,t).href},vn={},yn=function(e){return e.pathname.endsWith(`.css`)},bn=function(e,t,n){if(t in e)return e[t];let r=n();if(!r){e[t]=void 0;return}let i=r.then(()=>{e[t]=void 0},n=>{throw e[t]=void 0,n});return e[t]=i,i},xn=function(e,t,n){let r=Promise.resolve();if(t&&t.length>0){let e,i=document.querySelector(`meta[property=csp-nonce]`),a=i?.nonce||i?.getAttribute(`nonce`);function o(e){return Promise.all(e.map(e=>Promise.resolve(e).then(e=>({status:`fulfilled`,value:e}),e=>({status:`rejected`,reason:e}))))}function s(e){return import.meta.resolve?new URL(import.meta.resolve(e)):new URL(e,import.meta.url)}r=o(t.map(t=>{t=_n(t,n);let r=s(t),i=yn(r);return bn(vn,r.href,()=>{if(e===void 0){e={all:new Set,styles:new Set};let t=document.getElementsByTagName(`link`);for(let n=t.length-1;n>=0;n--){let r=t[n];e.all.add(r.href),r.rel===`stylesheet`&&e.styles.add(r.href)}}if((i?e.styles:e.all).has(r.href))return;let t=document.createElement(`link`);if(t.rel=i?`stylesheet`:gn,i||(t.as=`script`),t.crossOrigin=``,t.href=r.href,a&&t.setAttribute(`nonce`,a),document.head.appendChild(t),i)return new Promise((e,n)=>{t.addEventListener(`load`,e),t.addEventListener(`error`,()=>n(Error(`Unable to preload CSS for ${r}`)))})})}).filter(e=>e!==void 0))}function i(e){let t=new Event(`vite:preloadError`,{cancelable:!0});if(t.payload=e,window.dispatchEvent(t),!t.defaultPrevented)throw e}return r.then(t=>{for(let e of t||[])e.status===`rejected`&&i(e.reason);return e().catch(i)})},Sn=.7,Cn,wn=()=>Cn??=xn(()=>import(`./ausnz-disaster-leaflet-map-KILmbYR7.js`),[],import.meta.url),Tn=class extends U{static properties={...U.properties,_radar:{state:!0},_loadError:{state:!0}};static styles=[...U.styles,_`
+      ha-card,
+      section.embedded {
+        min-height: calc(var(--ha-space-20) * 3.5);
+      }
+      .map-wrap {
+        position: relative;
+        flex: 1;
+        min-height: calc(var(--ha-space-20) * 2.5);
+        margin: var(--ha-space-2) 0 0;
+      }
+      :host([embedded]) .map-wrap {
+        height: calc(var(--ha-space-20) * 4);
+        flex: none;
+      }
+      .map {
+        position: absolute;
+        inset: 0;
+        background-color: var(--ha-color-fill-neutral-quiet-resting);
+        font-family: var(--ha-font-family-body);
+        z-index: 0;
+      }
+      .map.dark .basemap {
+        filter: invert(0.9) hue-rotate(170deg) brightness(1.5) contrast(1.2) saturate(0.3);
+      }
+      .map .leaflet-control-attribution {
+        background-color: color-mix(in srgb, var(--card-background-color, var(--ha-card-background)) 80%, transparent);
+        color: var(--secondary-text-color);
+        font-size: var(--ha-font-size-xs);
+      }
+      .map .leaflet-control-attribution a {
+        color: var(--primary-color);
+      }
+      .map .leaflet-bar {
+        border: var(--ha-border-width-sm) solid var(--divider-color);
+        box-shadow: none;
+        border-radius: var(--ha-border-radius-md);
+        overflow: hidden;
+      }
+      .map .leaflet-bar a {
+        background-color: var(--card-background-color, var(--ha-card-background));
+        color: var(--primary-text-color);
+        border-bottom-color: var(--divider-color);
+      }
+      .map .leaflet-tooltip {
+        background-color: var(--card-background-color, var(--ha-card-background));
+        color: var(--primary-text-color);
+        border: var(--ha-border-width-sm) solid var(--divider-color);
+        border-radius: var(--ha-border-radius-md);
+        box-shadow: none;
+        font-family: var(--ha-font-family-body);
+        font-size: var(--ha-font-size-s);
+      }
+      .map .leaflet-tooltip::before {
+        display: none;
+      }
+      .map .radar-frame {
+        transition: opacity var(--ha-animation-duration-slow) ease-in-out;
+      }
+      .map .incident {
+        fill-opacity: 0.6;
+        stroke-width: 2;
+        cursor: pointer;
+      }
+      .map .incident:focus-visible {
+        outline: none;
+        stroke-width: 4;
+        stroke: var(--primary-text-color);
+      }
+      .map .tone-red {
+        fill: var(--red-color);
+        stroke: var(--red-color);
+      }
+      .map .tone-orange {
+        fill: var(--orange-color);
+        stroke: var(--orange-color);
+      }
+      .map .tone-amber {
+        fill: var(--amber-color);
+        stroke: var(--amber-color);
+      }
+      .map .tone-blue {
+        fill: var(--blue-color);
+        stroke: var(--blue-color);
+      }
+      .map .tone-grey {
+        fill: var(--grey-color);
+        stroke: var(--grey-color);
+      }
+      .map .home-zone {
+        fill: var(--primary-color);
+        fill-opacity: 0.08;
+        stroke: var(--primary-color);
+        stroke-opacity: 0.6;
+        stroke-dasharray: 4 4;
+      }
+      .map .home-dot {
+        fill: var(--primary-color);
+        fill-opacity: 1;
+        stroke: var(--card-background-color, var(--ha-card-background));
+        stroke-width: 2;
+      }
+      .radar-bar {
+        display: flex;
+        align-items: center;
+        gap: var(--ha-space-2);
+        min-height: var(--ha-space-12);
+        padding: 0 var(--ha-space-4) 0 var(--ha-space-1);
+        color: var(--secondary-text-color);
+        font-size: var(--ha-font-size-s);
+      }
+      .radar-bar .time {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .frames {
+        display: flex;
+        gap: var(--ha-space-1);
+      }
+      .frames span {
+        width: var(--ha-space-2);
+        height: var(--ha-space-2);
+        border-radius: var(--ha-border-radius-pill);
+        background-color: var(--ha-color-fill-neutral-normal-resting);
+      }
+      .frames span.current {
+        background-color: var(--primary-color);
+      }
+      .notice {
+        padding: 0 var(--ha-space-4) var(--ha-space-4);
+      }
+    `];titleKey=`map.title`;usesIncidents=!0;_map;_container;_creating=!1;_resizeObserver;_intersectionObserver;_reducedMotion=typeof matchMedia==`function`&&matchMedia(`(prefers-reduced-motion: reduce)`).matches;constructor(){super(),this._radar={state:`off`},this._loadError=!1}static validateConfig(e){super.validateConfig(e);let t=e;J(t,`zoom`,1,18),Ct(t,`radar`),St(t,`radar_opacity`,.1,1)}static getConfigForm(){return{schema:[...G(),{name:`zoom`,selector:{number:{min:1,max:18,mode:`box`}}},{name:`radar`,default:!0,selector:{boolean:{}}},{name:`radar_opacity`,selector:{number:{min:.1,max:1,step:.05,mode:`slider`}}}],computeLabel:K,computeHelper:q,assertConfig:e=>this.validateConfig(e)}}static getStubConfig(e){return W(e)}getGridOptions(){return{columns:12,rows:6,min_columns:6,min_rows:4}}getCardSize(){return 7}trackedHomeId=`zone.home`;trackedEntityIds(e){return[...super.trackedEntityIds(e),this.trackedHomeId]}connectedCallback(){super.connectedCallback(),this.hasUpdated&&this.ensureMap()}disconnectedCallback(){super.disconnectedCallback(),this.teardown()}teardown(){this._resizeObserver?.disconnect(),this._intersectionObserver?.disconnect(),this._resizeObserver=void 0,this._intersectionObserver=void 0,this._map?.destroy(),this._map=void 0,this._container=void 0}updated(e){super.updated(e),this._map&&this.renderRoot.querySelector(`.map`)!==this._container&&this.teardown(),this._map?(e.has(`hass`)||e.has(`_config`))&&this._map.update(this.viewOptions()):this.ensureMap()}viewOptions(){let e=this.hass,t=dt(e,this.entryId).flatMap(t=>{let n=Z(t.attributes.latitude),r=Z(t.attributes.longitude);if(n===void 0||r===void 0)return[];let i=an(t.attributes.warning_level);return[{id:t.entity_id,title:ft(t),levelLabel:f(e,mn[i.level]),tone:i.tone,latitude:n,longitude:r,agency:Q(t.attributes.responsible_agency)??Q(t.attributes.agency)}]}),n=e.states[this.trackedHomeId],r=Z(n?.attributes.latitude),i=Z(n?.attributes.longitude);return{incidents:t,home:r!==void 0&&i!==void 0?{latitude:r,longitude:i,radius:Z(n?.attributes.radius),label:f(e,`map.home`)}:Number.isFinite(e.config?.latitude)&&Number.isFinite(e.config?.longitude)?{latitude:e.config.latitude,longitude:e.config.longitude,label:f(e,`map.home`)}:void 0,darkMode:!!e.themes?.darkMode,zoom:this._config?.zoom,radar:this._config?.radar!==!1,radarOpacity:this._config?.radar_opacity??Sn}}async ensureMap(){if(this._map||this._creating||!this.hass||!this.isConnected)return;let e=this.renderRoot.querySelector(`.map`);if(e){this._creating=!0;try{let t=await wn(),n=this.renderRoot;if(!n.adoptedStyleSheets.some(e=>e.leaflet)){let e=new CSSStyleSheet;e.replaceSync(t.leafletCss),e.leaflet=!0,n.adoptedStyleSheets=[e,...n.adoptedStyleSheets]}if(!this.isConnected||this._map||!e.isConnected)return;this._container=e,this._map=new t.IncidentMap(e,this.hass.connection,e=>this._radar=e,e=>this.moreInfo(e),this._reducedMotion),this._resizeObserver=new ResizeObserver(()=>this._map?.invalidateSize()),this._resizeObserver.observe(e),this._intersectionObserver=new IntersectionObserver(e=>this._map?.setVisible(e.some(e=>e.isIntersecting))),this._intersectionObserver.observe(this),this._map.update(this.viewOptions())}catch(e){console.error(`Disaster Watch map failed to load`,e),this._loadError=!0}finally{this._creating=!1}}}togglePlay(){let e=!this._radar.playing;this._map?.setPlaying(e)}renderRadarBar(e){let t=this._radar;if(t.state!==`ok`||t.frameTime===void 0)return k;let n=It(e,t.frameTime,{timeStyle:`short`}),r=Ft(e,t.frameTime),i=!!t.playing;return D`<div class="radar-bar">
+      <ha-icon-button .label=${f(e,i?`map.pause`:`map.play`)} aria-pressed=${i?`true`:`false`} @click=${this.togglePlay}>
+        <ha-icon .icon=${i?`mdi:pause`:`mdi:play`}></ha-icon>
+      </ha-icon-button>
+      <span class="time" aria-live=${i?`off`:`polite`}>${f(e,`map.radar_at`,{time:n??``})}${r?` · ${r}`:``}</span>
+      <span class="frames" aria-hidden="true">
+        ${Array.from({length:t.frameCount??0},(e,n)=>D`<span class=${n===t.frameIndex?`current`:``}></span>`)}
+      </span>
+    </div>`}renderBody(e,t){let n=st(e,this.deviceId)??e.config?.location_name??``;return D`${R({title:this.cardTitle(),icon:`mdi:map-marker-radius`})}
+      <div class="map-wrap">
+        <div class="map" role="region" aria-label=${f(e,`map.label`,{name:n})}></div>
+      </div>
+      ${this.renderRadarBar(e)}
+      ${this._radar.state===`unavailable`?D`<div class="notice">${L(`info`,f(e,`map.radar_unavailable`))}</div>`:k}
+      ${this._loadError?D`<div class="notice">${L(`error`,f(e,`state.unavailable`))}</div>`:k}`}};function En(e,t){return(Y(e)?void 0:Z(e?.state))??Z(t)}var Dn=8,On=class extends U{static properties={...U.properties,_expanded:{state:!0}};titleKey=`outages.title`;constructor(){super(),this._expanded=!1}entityKeys(){return[n.powerOutagesCount,n.powerOutagesCustomersAffected]}static validateConfig(e){super.validateConfig(e),J(e,`max_items`,1,100)}static getConfigForm(){return{schema:[...G(),{name:`max_items`,selector:{number:{min:1,max:100,mode:`box`}}}],computeLabel:K,computeHelper:q,assertConfig:e=>this.validateConfig(e)}}static getStubConfig(e){return W(e)}renderBody(e,t){let r=H(e,this.deviceId,n.powerOutagesCount),i=R({title:this.cardTitle(),icon:`mdi:transmission-tower-off`,detailsLabel:f(e,`action.details`),onDetails:r?()=>this.moreInfo(r.entity_id):void 0});if(Y(r))return D`${i}<div class="content">
+          ${L(`warning`,f(e,r?`state.unavailable`:`state.entity_missing`))}
+        </div>`;let a=$(r.attributes.outages),o=Z(r.state)??a.length,s=En(H(e,this.deviceId,n.powerOutagesCustomersAffected),r.attributes.customers_affected),c=t.max_items??Dn,l=this._expanded?a:a.slice(0,c);return D`${i}
+      <div class="content">
+        ${o===0?I(`mdi:transmission-tower`,f(e,`outages.empty`)):D`<span class="secondary"
+                  >${[p(e,`outages.count`,o,X(e,o)),s===void 0?void 0:p(e,`outages.customers_affected`,s,X(e,s))].filter(Boolean).join(` · `)}</span
+                >
+                ${B(l.map(t=>{let n=It(e,t.restore_time,{weekday:`short`,hour:`numeric`,minute:`2-digit`})??Q(t.restore_time),r=Z(t.customers_affected);return z({icon:`mdi:transmission-tower-off`,tone:`amber`,headline:Q(t.suburb)??`—`,supporting:[Q(t.cause),n?f(e,`outages.restore`,{time:n}):void 0].filter(Boolean).join(` · `)||void 0,trailing:r===void 0?void 0:D`<span class="secondary"
+                              >${p(e,`outages.customers`,r,X(e,r))}</span
+                            >`})}),this.cardTitle())}
+                ${a.length>c?tt(e,this._expanded,a.length,()=>this._expanded=!this._expanded):k}`}
+      </div>`}},kn=[{key:`evacuation_centre`,icon:`mdi:home-group`},{key:`place_of_refuge`,icon:`mdi:home-heart`},{key:`sandbag_station`,icon:`mdi:sack`},{key:`other`,icon:`mdi:home-alert`}];function An(e){return e===`evacuation_centre`||e===`place_of_refuge`||e===`sandbag_station`?e:`other`}var jn=class extends U{titleKey=`relief.title`;entityKeys(){return[n.reliefFacilitiesCount,n.highestWarningLevel,n.weatherWarningsCount]}static getConfigForm(){return{schema:G(),computeLabel:K,computeHelper:q,assertConfig:e=>this.validateConfig(e)}}static getStubConfig(e){return W(e)}getCardSize(){return 5}renderBody(e,t){let r=H(e,this.deviceId,n.reliefFacilitiesCount),i=H(e,this.deviceId,n.highestWarningLevel),a=H(e,this.deviceId,n.weatherWarningsCount),o=R({title:this.cardTitle(),icon:`mdi:home-heart`,detailsLabel:f(e,`action.details`),onDetails:r?()=>this.moreInfo(r.entity_id):void 0});if(Y(r))return D`${o}<div class="content">
+          ${L(`warning`,f(e,r?`state.unavailable`:`state.entity_missing`))}
+        </div>`;let s=$(r.attributes.facilities).sort((e,t)=>(Z(e.distance_km)??1/0)-(Z(t.distance_km)??1/0)),c=$(i?.attributes.nearby_councils??a?.attributes.nearby_councils).filter(e=>Q(e.name)||Q(e.url));return D`${o}
+      <div class="content">
+        ${s.length===0?I(`mdi:home-search-outline`,f(e,`relief.empty`)):k}
+        ${kn.map(({key:t,icon:n})=>{let r=s.filter(e=>An(e.facility_type)===t);if(!r.length)return k;let i=f(e,`relief.group.${t}`);return D`<h3 class="list-title">${i}</h3>
+            ${B(r.map(t=>{let r=(Q(t.status)??`Open`).toLowerCase()!==`closed`,a=Q(t.name)??i;return z({icon:n,tone:r?`green`:`grey`,headline:a,supporting:Q(t.address)??Q(t.suburb),badge:F(f(e,r?`relief.open`:`relief.closed`),r?`green`:`grey`,r?`mdi:door-open`:`mdi:door-closed`),trailing:Mt(e,Z(t.distance_km))})}),i)}`})}
+        ${c.length?D`<h3 class="list-title">${f(e,`relief.councils`)}</h3>
+                ${B(c.map(t=>{let n=Q(t.name)??Q(t.url)??``,r=Lt(t.url);return z({icon:`mdi:view-dashboard-outline`,tone:`blue`,headline:n,supporting:r?new URL(r).hostname:void 0,link:r,linkLabel:`${f(e,`action.open_link`)}: ${n}`})}),f(e,`relief.councils`))}`:k}
+      </div>`}},Mn=8,Nn=class extends U{static properties={...U.properties,_expanded:{state:!0}};titleKey=`roads.title`;constructor(){super(),this._expanded=!1}entityKeys(){return[n.roadClosuresCount]}static validateConfig(e){super.validateConfig(e),J(e,`max_items`,1,100)}static getConfigForm(){return{schema:[...G(),{name:`max_items`,selector:{number:{min:1,max:100,mode:`box`}}}],computeLabel:K,computeHelper:q,assertConfig:e=>this.validateConfig(e)}}static getStubConfig(e){return W(e)}renderBody(e,t){let r=H(e,this.deviceId,n.roadClosuresCount),i=Y(r),a=i?[]:$(r.attributes.closures),o=i?void 0:Z(r.state)??a.length,s=R({title:this.cardTitle(),icon:`mdi:traffic-cone`,count:o?String(o):void 0,detailsLabel:f(e,`action.details`),onDetails:r?()=>this.moreInfo(r.entity_id):void 0});if(i)return D`${s}<div class="content">
+          ${L(`warning`,f(e,r?`state.unavailable`:`state.entity_missing`))}
+        </div>`;let c=[...a].sort((e,t)=>(Z(e.distance_km)??1/0)-(Z(t.distance_km)??1/0)),l=t.max_items??Mn,u=this._expanded?c:c.slice(0,l);return D`${s}
+      <div class="content">
+        ${c.length?B(u.map(t=>{let n=Q(t.status)??`—`,r=Yt(n),i=Ft(e,t.updated_at);return z({icon:Xt(n),tone:r,headline:[Q(t.road),Q(t.suburb)].filter(Boolean).join(`, `)||n,supporting:[Q(t.advice)??Q(t.description)??Q(t.reason),i].filter(Boolean).join(` · `)||void 0,badge:F(n,r),trailing:Mt(e,Z(t.distance_km))})}),this.cardTitle()):I(`mdi:road-variant`,f(e,`roads.empty`))}
+        ${c.length>l?tt(e,this._expanded,c.length,()=>this._expanded=!this._expanded):k}
+      </div>`}},Pn=[{key:n.emergencyWarningNearby,icon:`mdi:alert-octagon`,label:`status.chip.emergency_warning_nearby`},{key:n.activeHazardsNearby,icon:`mdi:alert`,label:`status.chip.active_hazards_nearby`},{key:n.powerOutageActive,icon:`mdi:transmission-tower-off`,label:`status.chip.power_outage_active`},{key:n.roadClosureNearby,icon:`mdi:traffic-cone`,label:`status.chip.road_closure_nearby`}],Fn={all_clear:`status.all_clear`,unavailable:`status.unavailable`,emergency:`status.level.emergency`,watch_and_act:`status.level.watch_and_act`,advice:`status.level.advice`,information:`status.level.information`,unknown:`status.level.unknown`},In=class extends U{static styles=[...U.styles,_`
+      .hero {
+        display: flex;
+        align-items: center;
+        gap: var(--ha-space-4);
+        padding: var(--ha-space-2);
+        margin: calc(-1 * var(--ha-space-2));
+        width: calc(100% + 2 * var(--ha-space-2));
+      }
+      .hero:hover {
+        background-color: var(--ha-color-fill-neutral-quiet-hover);
+      }
+      .hero-text {
+        display: flex;
+        flex-direction: column;
+        gap: var(--ha-space-1);
+        min-width: 0;
+      }
+      .level {
+        font-family: var(--ha-font-family-heading);
+        font-size: var(--ha-font-size-xl);
+        font-weight: var(--ha-font-weight-bold);
+        line-height: var(--ha-line-height-condensed);
+      }
+      .summary {
+        color: var(--secondary-text-color);
+        font-size: var(--ha-font-size-m);
+        line-height: var(--ha-line-height-normal);
+      }
+      .nearest {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+      }
+      .content.status {
+        padding-top: var(--ha-space-4);
+      }
+    `];titleKey=`card.status.name`;entityKeys(){return[n.highestWarningLevel,n.activeHazardsCount,n.nearestHazardDistance,n.nearestHazardTitle,...Pn.map(e=>e.key)]}static getConfigForm(){return{schema:G(),computeLabel:K,computeHelper:q,assertConfig:e=>this.validateConfig(e)}}static getStubConfig(e){return W(e)}getGridOptions(){return{columns:12,rows:`auto`,min_columns:6}}getCardSize(){return 2}renderBody(e,t){let r=this.deviceId,i=H(e,r,n.highestWarningLevel),a=H(e,r,n.activeHazardsCount),o=Y(a)?void 0:Z(a?.state),s=on(Y(i)?void 0:i?.state,o),c=sn(s),l=f(e,Fn[s]),u=H(e,r,n.nearestHazardDistance),d=H(e,r,n.nearestHazardTitle),ee=Y(u)?void 0:Z(u?.state),p=Q(u?.attributes.title)??(Y(d)||d?.state===`None`?void 0:Q(d?.state)),m=``;s!==`unavailable`&&o!==void 0&&(m=o===0?f(e,`status.no_hazards`):o===1?f(e,`status.hazard`):f(e,`status.hazards`,{count:o}));let h=Mt(e,ee),g=o&&h?`${f(e,`status.nearest`,{distance:h})}${p?` — ${p}`:``}`:void 0,te=Pn.map(t=>({...t,stateObj:H(e,r,t.key)})).filter(e=>e.stateObj?.state===`on`);return D`<div class="content status">
+      <button
+        class="plain hero"
+        aria-label=${`${l}. ${m}${g?`, ${g}`:``}. ${f(e,`action.details`)}`}
+        @click=${()=>this.moreInfo(i?.entity_id)}
+      >
+        <span class="bubble large" style=${P({"--tone":Qe(c.tone)})} aria-hidden="true">
+          <ha-icon .icon=${c.icon}></ha-icon>
+        </span>
+        <span class="hero-text">
+          <span class="level">${l}</span>
+          ${m?D`<span class="summary">${m}</span>`:k}
+          ${g?D`<span class="summary nearest">${g}</span>`:k}
+        </span>
+      </button>
+      ${te.length?D`<ha-chip-set aria-label=${f(e,`status.alerts`)}>
+              ${te.map(t=>D`<ha-assist-chip
+                  filled
+                  .label=${f(e,t.label)}
+                  @click=${()=>this.moreInfo(t.stateObj?.entity_id)}
+                >
+                  <ha-icon slot="icon" .icon=${t.icon}></ha-icon>
+                </ha-assist-chip>`)}
+            </ha-chip-set>`:k}
+    </div>`}},Ln=8,Rn={status:In,incidents:hn,warnings:class extends U{static properties={...U.properties,_view:{state:!0},_expanded:{state:!0}};titleKey=`warnings.title`;constructor(){super(),this._view=`warnings`,this._expanded=!1}entityKeys(){return[n.weatherWarningsCount,n.highestWarningLevel]}static validateConfig(e){super.validateConfig(e),J(e,`max_items`,1,100)}static getConfigForm(){return{schema:[...G(),{name:`max_items`,selector:{number:{min:1,max:100,mode:`box`}}}],computeLabel:K,computeHelper:q,assertConfig:e=>this.validateConfig(e)}}static getStubConfig(e){return W(e)}getCardSize(){return 5}renderItem(e,t,n){let r=Q(t.title)??``,i=Ft(e,t.pub_date),a=Q(t.locations)??Q(t.description);return z({icon:n,tone:this._view===`warnings`?`orange`:`blue`,headline:r,supporting:[a,i].filter(Boolean).join(` · `)||void 0,link:Lt(t.link),linkLabel:`${f(e,`action.open_link`)}: ${r}`})}renderBody(e,t){let r=H(e,this.deviceId,n.weatherWarningsCount),i=H(e,this.deviceId,n.highestWarningLevel),a=Y(r),o=$(r?.attributes.warnings),s=$(r?.attributes.emergency_news??i?.attributes.emergency_news),c=a?0:Z(r?.state)??o.length,l=this._view===`warnings`?o:s,u=t.max_items??Ln,d=this._expanded?l:l.slice(0,u),ee=this._view===`warnings`?`mdi:weather-lightning-rainy`:`mdi:newspaper-variant-outline`,p=(e,t)=>D`<ha-filter-chip
+      no-leading-icon
+      .selected=${this._view===e}
+      .label=${t}
+      @click=${t=>{t.preventDefault(),this._view=e,this._expanded=!1}}
+    ></ha-filter-chip>`;return D`${R({title:this.cardTitle(),icon:`mdi:weather-lightning-rainy`,detailsLabel:f(e,`action.details`),onDetails:r?()=>this.moreInfo(r.entity_id):void 0})}
+      <div class="content">
+        ${a?L(`warning`,f(e,r?`state.unavailable`:`state.entity_missing`)):D`<ha-chip-set aria-label=${f(e,`warnings.views`)}>
+                  ${p(`warnings`,f(e,`warnings.tab.warnings`,{count:c}))}
+                  ${p(`news`,f(e,`warnings.tab.news`,{count:s.length}))}
+                </ha-chip-set>
+                ${d.length?B(d.map(t=>this.renderItem(e,t,ee))):I(`mdi:check-circle-outline`,f(e,this._view===`warnings`?`warnings.empty`:`warnings.news_empty`))}
+                ${l.length>u?tt(e,this._expanded,l.length,()=>this._expanded=!this._expanded):k}
+`}
+      </div>`}},fire_danger:tn,outages:On,roads:Nn,conditions:en,relief:jn,cameras:Bt,map:Tn},zn=[{tag:i,ctor:Et,key:`all`},...Object.keys(Rn).map(e=>({tag:r[e],ctor:Rn[e],key:e}))];window.customCards=window.customCards||[];for(let{tag:e,ctor:n,key:r}of zn)customElements.get(e)||customElements.define(e,n),window.customCards.some(t=>t.type===e)||window.customCards.push({type:e,name:f(void 0,`card.${r}.name`),description:f(void 0,`card.${r}.description`),preview:!0,documentationURL:t});

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Disaster Watch card harness</title>
+    <!--
+      Test-only stand-ins for Home Assistant's theme and elements. The values mirror HA
+      2026.10's default light and dark themes closely enough for layout screenshots.
+    -->
+    <style>
+      :root {
+        --ha-space-1: 4px; --ha-space-2: 8px; --ha-space-3: 12px; --ha-space-4: 16px; --ha-space-5: 20px;
+        --ha-space-6: 24px; --ha-space-8: 32px; --ha-space-9: 36px; --ha-space-10: 40px; --ha-space-12: 48px;
+        --ha-space-20: 80px;
+        --ha-border-radius-sm: 4px; --ha-border-radius-md: 8px; --ha-border-radius-lg: 12px;
+        --ha-border-radius-pill: 9999px; --ha-border-width-sm: 1px; --ha-border-width-md: 2px;
+        --ha-font-family-body: Roboto, Noto, sans-serif; --ha-font-family-heading: var(--ha-font-family-body);
+        --ha-font-size-xs: 10px; --ha-font-size-s: 12px; --ha-font-size-m: 14px; --ha-font-size-l: 16px;
+        --ha-font-size-xl: 20px; --ha-font-size-2xl: 24px; --ha-font-size-3xl: 28px;
+        --ha-font-weight-normal: 400; --ha-font-weight-medium: 500; --ha-font-weight-bold: 700;
+        --ha-line-height-condensed: 1.2; --ha-line-height-normal: 1.6;
+        --ha-animation-duration-slow: 350ms;
+        --red-color: #f44336; --orange-color: #ff9800; --amber-color: #ffc107; --yellow-color: #ffeb3b;
+        --green-color: #4caf50; --blue-color: #2196f3; --purple-color: #926bc7; --grey-color: #9e9e9e;
+        --primary-color: #009ac7; --ha-color-focus: #009ac7;
+        --primary-text-color: #141414; --secondary-text-color: #5e5e5e; --divider-color: rgba(0, 0, 0, 0.12);
+        --card-background-color: #ffffff; --ha-card-background: #ffffff; --primary-background-color: #fafafa;
+        --ha-color-fill-neutral-quiet-resting: #f3f3f3; --ha-color-fill-neutral-quiet-hover: #e6e6e6;
+        --ha-color-fill-neutral-normal-resting: #e0e0e0;
+      }
+      :root[data-theme="dark"] {
+        --primary-text-color: #e1e1e1; --secondary-text-color: #9b9b9b; --divider-color: rgba(225, 225, 225, 0.12);
+        --card-background-color: #1c1c1c; --ha-card-background: #1c1c1c; --primary-background-color: #111111;
+        --ha-color-fill-neutral-quiet-resting: #2a2a2a; --ha-color-fill-neutral-quiet-hover: #333333;
+        --ha-color-fill-neutral-normal-resting: #3a3a3a;
+      }
+      body {
+        margin: 0;
+        padding: 16px;
+        background: var(--primary-background-color);
+        color: var(--primary-text-color);
+        font-family: var(--ha-font-family-body);
+      }
+      #grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        grid-auto-rows: minmax(56px, auto);
+        align-items: start;
+        gap: 8px;
+        width: 960px;
+      }
+    </style>
+    <script type="module" src="/stubs.js"></script>
+  </head>
+  <body>
+    <div id="grid"></div>
+  </body>
+</html>

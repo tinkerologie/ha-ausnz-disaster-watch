@@ -15,7 +15,7 @@ from custom_components.ausnz_disaster_watch.geo_location import (
 )
 from custom_components.ausnz_disaster_watch.models import CanonicalHazard
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 
 EMERGENCY_ENTITY_ID = "geo_location.ausnz_disaster_watch_qld_qfd_warn_101"
 WATCH_ENTITY_ID = "geo_location.ausnz_disaster_watch_qld_qfd_warn_102"
@@ -70,6 +70,9 @@ async def test_geolocation_dynamic_lifecycle(
     assert geo_state.attributes["warning_level"] == "Emergency Warning"
     assert geo_state.attributes["hazard_type"] == "Bushfire"
     assert geo_state.attributes["icon"] == "mdi:fire"
+    # Cards scope incidents per config entry through these attributes (#26).
+    assert geo_state.attributes["integration"] == "ausnz_disaster_watch"
+    assert geo_state.attributes["entry_id"] == mock_config_entry.entry_id
 
     registry_entry = entity_registry.async_get(EMERGENCY_ENTITY_ID)
     assert registry_entry is not None
@@ -400,3 +403,25 @@ async def test_geolocation_setup_keeps_registry_during_partial_outage(
     mock_config_entry.runtime_data = coordinator
     await async_setup_entry(hass, mock_config_entry, MagicMock())
     assert entity_registry.async_get(stale.entity_id) is not None
+
+
+async def test_device_identifier_matches_incident_entry_id(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    mock_hazard_emergency_warning: CanonicalHazard,
+) -> None:
+    """The device identifier is exactly (DOMAIN, entry_id), the value incidents carry as ``entry_id``.
+
+    The cards read the second identifier value (frontend/src/ha/entities.ts entryIdForDevice) and
+    match it against each geo_location event's ``entry_id`` attribute; changing either breaks scoping.
+    """
+    await _setup_with_hazards(hass, mock_config_entry, [mock_hazard_emergency_warning])
+    devices = dr.async_entries_for_config_entry(dr.async_get(hass), mock_config_entry.entry_id)
+    assert len(devices) == 1
+    assert devices[0].identifiers == {(DOMAIN, mock_config_entry.entry_id)}
+
+    (domain, entry_id) = next(iter(devices[0].identifiers))
+    assert domain == DOMAIN
+    geo_state = hass.states.get(EMERGENCY_ENTITY_ID)
+    assert geo_state is not None
+    assert geo_state.attributes["entry_id"] == entry_id

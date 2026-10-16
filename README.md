@@ -36,9 +36,8 @@ Directly integrates official emergency feeds—including the **Queensland Fire D
 - **Dynamic Polling Engine**:
   - Normal update interval: 5 minutes (300 seconds).
   - Threat update interval: Automatically drops to 60 seconds when an active Emergency Warning or Watch and Act is detected in your perimeter.
-- **Bundled Lovelace Dashboard Card**:
-  - Includes a custom Lovelace card (`ausnz-disaster-card`) that automatically registers with Home Assistant.
-  - Features real-time threat banners, nearest distance counters, category filtering (Fires, Weather/Floods, Roads), and quick map navigation.
+- **Dashboard card suite**:
+  - Eleven cards that register automatically: status, incidents, warnings, fire danger, power outages, roads, conditions, relief, cameras, a map with animated rain radar, and an all-in-one card. See [Dashboard Cards](#dashboard-cards).
 
 ---
 
@@ -201,18 +200,68 @@ To change the state or location, use **Reconfigure** on the integration entry. R
 
 ---
 
-## Lovelace Dashboard Card
+## Dashboard Cards
 
-The integration automatically serves and registers the custom Lovelace card: `custom:ausnz-disaster-card` (the older `custom:aus-disaster-card` name still works for now).
+The integration serves and registers its card suite automatically: one Lovelace resource, `/ausnz_disaster_watch/ausnz-disaster-card.js`, with no manual resource setup. All cards appear in the card picker (search for **Disaster Watch**) with a live preview, have a visual editor, size themselves in the sections view and follow your light or dark theme.
+
+| Card | Type | Shows |
+|---|---|---|
+| Status | `custom:ausnz-disaster-status-card` | Highest Australian Warning System level, hazard count, nearest hazard and active alerts (emergency warning, hazards, power outage, road closure) |
+| Incidents | `custom:ausnz-disaster-incidents-card` | Incidents nearest first with category filters (Fire, Flood & storm, Geological, Roads, Other), warning level, distance, last update and the agency's page |
+| Warnings | `custom:ausnz-disaster-warnings-card` | Weather warnings and emergency news |
+| Fire danger | `custom:ausnz-disaster-fire-danger-card` | Fire danger rating on the four-level AFDRS scale, district, forecast day and total fire ban |
+| Power outages | `custom:ausnz-disaster-outages-card` | Outages, customers affected, cause and estimated restore time |
+| Roads | `custom:ausnz-disaster-roads-card` | Road closures and hazards with status, advice and distance |
+| Conditions | `custom:ausnz-disaster-conditions-card` | Local weather observation (temperature, feels like, humidity, wind, gust, pressure, rain since 9 am) and air quality |
+| Relief | `custom:ausnz-disaster-relief-card` | Evacuation centres, places of refuge and sandbag stations, and links to nearby council disaster dashboards |
+| Cameras | `custom:ausnz-disaster-cameras-card` | Flood and traffic camera snapshots, refreshed while visible |
+| Map | `custom:ausnz-disaster-map-card` | Incidents on a map with your home zone and animated rain radar |
+| All-in-one | `custom:ausnz-disaster-card` | A stack of the cards above in one card |
+
+### Options
+
+Every card has these options:
+
+| Option | Default | Description |
+|---|---|---|
+| `device` | first Disaster Watch entry | The Disaster Watch device (one per configured location). Each card only shows data from this entry, so several locations never mix. |
+| `title` | card name | Card heading. |
+
+Card-specific options:
+
+| Card | Option | Default | Description |
+|---|---|---|---|
+| Incidents | `max_items` | `10` | Rows shown before a **Show all** button. |
+| Incidents | `show_planned_burns` | `false` | Show planned (hazard reduction) burns. They only reach the card when the integration option **Exclude hazard reduction burns** is off. |
+| Incidents | `categories` | all | Any of `fire`, `flood_storm`, `geological`, `roads`, `other`. |
+| Warnings, Power outages, Roads | `max_items` | `8` | Rows shown before a **Show all** button. |
+| Cameras | `refresh_interval` | `60` | Seconds between snapshot refreshes (minimum 10). Snapshots only refresh while the card is on screen. |
+| Map | `zoom` | fit incidents | Initial zoom level (1 to 18). |
+| Map | `radar` | `true` | Animated RainViewer rain radar. |
+| Map | `radar_opacity` | `0.7` | Radar layer opacity (0.1 to 1). |
+| All-in-one | `cards` | `status`, `incidents`, `warnings`, `fire_danger`, `roads`, `outages` | Sections to stack, in order. Also available: `conditions`, `relief`, `cameras`, `map`. |
+
+### Examples
+
+```yaml
+type: custom:ausnz-disaster-status-card
+device: 0123456789abcdef0123456789abcdef
+```
+
+```yaml
+type: custom:ausnz-disaster-incidents-card
+device: 0123456789abcdef0123456789abcdef
+max_items: 5
+categories: [fire, flood_storm]
+```
 
 ```yaml
 type: custom:ausnz-disaster-card
-title: Moreton Bay Disaster Watch
-max_incidents: 10
-show_map_button: true
+title: Moreton Bay
+cards: [status, map, incidents, warnings]
 ```
 
-To show only this integration's events on the native map card:
+To show only this integration's events on Home Assistant's own map card instead:
 
 ```yaml
 type: map
@@ -220,12 +269,19 @@ geo_location_sources:
   - ausnz_disaster_watch
 ```
 
-### Card Features:
-- **Australian Warning System Status Banner**: Color-coded alert banner (Red for Emergency Warning with pulsing animation, Orange for Watch and Act, Yellow for Advice, Green for All Clear).
-- **Metric Cards**: Quick view of nearest hazard distance and active incidents count.
-- **Category Filter**: Filter live incidents by *All*, *Fires*, *Weather / Flood*, or *Roads*.
-- **Direct Link**: Click any incident to open the official agency warning advisory or map.
-- **View on Map Button**: One-click navigation to Home Assistant's native Map view.
+Pick the device in the card editor rather than typing the ID. In the **sections** view the cards size themselves (the fire danger card defaults to half width, the map to six rows); you can resize them in the card's **Layout** tab.
+
+### Map and radar
+
+The map uses Home Assistant's own map tile service (OpenStreetMap data) and falls back to OpenStreetMap tiles on older cores. Rain radar comes from the free [RainViewer](https://www.rainviewer.com/) public API, which is free for personal and educational use and requires attribution; the credit is shown on the map. RainViewer's public tiles stop at zoom level 7, so radar is scaled up when you zoom in. The radar list is fetched at most every 10 minutes, the animation pauses when the card is off screen, and it does not autoplay if your device asks for reduced motion.
+
+### Upgrading from the single card
+
+**Breaking change:** the old single card was replaced by the card suite.
+
+- `custom:aus-disaster-card` was removed. Change it to `custom:ausnz-disaster-card` (the all-in-one card) or use the focused cards.
+- The all-in-one card's `max_incidents` and `show_map_button` options were removed and are ignored. Use the incidents card's `max_items` and the map card instead.
+- The integration removes the old `/ausnz_disaster_watch/aus-disaster-card.js` resource automatically. If you manage Lovelace resources in YAML, delete that resource yourself.
 
 ---
 

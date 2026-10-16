@@ -8,7 +8,6 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv, entity_registry as er
-from homeassistant.helpers.typing import ConfigType
 
 from .const import (
     CONF_COUNCIL_DASHBOARD_URL,
@@ -21,7 +20,7 @@ from .const import (
 )
 from .coordinator import AustralianDisasterWatchCoordinator, nearest_council_dashboard
 from .forecast_coordinator import async_setup_forecasts
-from .frontend import async_register_frontend
+from .frontend import async_register_frontend, async_unregister_frontend
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -43,13 +42,6 @@ PLATFORMS: list[Platform] = [
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 type AusNZDisasterWatchConfigEntry = ConfigEntry[AustralianDisasterWatchCoordinator]
-
-
-async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Set up the Australia and New Zealand Disaster Watch component."""
-    # Register dashboard frontend cards
-    await async_register_frontend(hass)
-    return True
 
 
 async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -89,6 +81,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: AusNZDisasterWatchConfig
     themselves (OptionsFlowWithReload and async_update_reload_and_abort), so no update
     listener is registered here.
     """
+    # Serve and register the dashboard cards; idempotent across entries (#22).
+    await async_register_frontend(hass)
+
     coordinator = AustralianDisasterWatchCoordinator(hass, entry)
     await coordinator.async_config_entry_first_refresh()
     # Opt-in forecast features poll on their own schedule and never block setup (#38, #39, #40)
@@ -102,3 +97,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: AusNZDisasterWatchConfig
 async def async_unload_entry(hass: HomeAssistant, entry: AusNZDisasterWatchConfigEntry) -> bool:
     """Unload a config entry."""
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: AusNZDisasterWatchConfigEntry) -> None:
+    """Remove the dashboard card resource when the last config entry is deleted (#22)."""
+    remaining = [other for other in hass.config_entries.async_entries(DOMAIN) if other.entry_id != entry.entry_id]
+    if not remaining:
+        await async_unregister_frontend(hass)

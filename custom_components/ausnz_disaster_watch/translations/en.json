@@ -258,5 +258,11 @@
     "forecast_unavailable": {
       "message": "Open-Meteo {feature} data is unavailable: {error}"
     }
+  },
+  "issues": {
+    "card_resource_cleanup_failed": {
+      "title": "Dashboard card resource could not be removed",
+      "description": "The last Australia and New Zealand Disaster Watch entry was deleted, but Home Assistant could not remove the dashboard card resource `{url}`. It is retried a few times while Home Assistant runs. If this issue remains, remove the resource under **Settings > Dashboards > Resources**, then ignore this issue. Adding the integration again also fixes it."
+    }
   }
 }

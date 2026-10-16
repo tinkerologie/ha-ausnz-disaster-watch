@@ -1,10 +1,13 @@
-import { defineConfig } from "vite";
+import { defineConfig } from "vitest/config";
 
 export default defineConfig({
+  // Chunks load relative to the bundle, which HA serves at /ausnz_disaster_watch/.
+  base: "./",
   build: {
     modulePreload: false,
     outDir: "../custom_components/ausnz_disaster_watch/frontend",
-    emptyOutDir: false,
+    // The output folder holds only generated files: stale map chunks must not linger.
+    emptyOutDir: true,
     target: "es2022",
     minify: true,
     sourcemap: false,
@@ -16,8 +19,12 @@ export default defineConfig({
       output: {
         format: "es",
         entryFileNames: "[name].js",
-        chunkFileNames: "[name]-[hash].js",
+        chunkFileNames: "ausnz-disaster-[name]-[hash].js",
       },
     },
+  },
+  test: {
+    include: ["tests/unit/**/*.test.ts"],
+    environment: "node",
   },
 });
