@@ -1,0 +1,53 @@
+{
+  "total_count": 4,
+  "results": [
+    {
+      "incident_id": "INC 9000000001",
+      "outage_type": "UNPLANNED",
+      "incident_status": "NEW",
+      "cause": "None",
+      "cityname": "NORTH WOLLONGONG",
+      "start_date_time": "2026-10-16 10:57",
+      "est_restore_time": "2026-10-16 14:30",
+      "end_date_time": "1970-01-01 00:00",
+      "customers": 3,
+      "lat": -34.4087,
+      "lon": 150.8931,
+      "records": 2
+    },
+    {
+      "incident_id": "INC 9000000002",
+      "outage_type": "UNPLANNED",
+      "incident_status": "REPAIR CONTROL ROOM",
+      "cause": "Defective equipment",
+      "cityname": "BAULKHAM HILLS",
+      "start_date_time": "2026-10-16 08:13",
+      "est_restore_time": "2026-10-16 13:00",
+      "end_date_time": "1970-01-01 00:00",
+      "customers": 30,
+      "lat": -33.7626,
+      "lon": 150.994,
+      "records": 1
+    },
+    {
+      "incident_id": "INC 9000000002",
+      "outage_type": "UNPLANNED",
+      "incident_status": "REPAIR CONTROL ROOM",
+      "cause": "Defective equipment",
+      "cityname": "NORWEST",
+      "start_date_time": "2026-10-16 08:13",
+      "est_restore_time": "2026-10-16 13:00",
+      "end_date_time": "1970-01-01 00:00",
+      "customers": 30,
+      "lat": -33.733,
+      "lon": 150.96,
+      "records": 3
+    },
+    {
+      "incident_id": "INC 9000000003",
+      "outage_type": "UNPLANNED",
+      "lat": "x",
+      "lon": 150.0
+    }
+  ]
+}

@@ -213,9 +213,15 @@ class PowerOutagesCountSensor(AustralianDisasterWatchEntity, SensorEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return power outage list attributes."""
         outages = self.coordinator.power_outages
+        # Outages are sorted nearest first (#36)
+        nearest = outages[0] if outages else None
         return {
             "customers_affected": sum(o.customers_affected for o in outages),
             "outages": [o.model_dump() for o in outages[:25]],
+            "est_restore": nearest.restore_time if nearest else None,
+            "nearest_outage_distance_km": nearest.distance_km if nearest else None,
+            "nearest_outage_distributor": nearest.distributor if nearest else None,
+            "data_sources": self.coordinator.power_outage_sources,
         }
 
 

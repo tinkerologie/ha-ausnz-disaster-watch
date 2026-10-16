@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://earth.google.com/kml/2.1">
+<Document>
+<name>current.kml</name>
+<Style id='sw_1_normal_planned'><PolyStyle><color>8f808000</color></PolyStyle></Style>
+<Folder>
+<name><![CDATA[unset]]></name>
+<description>4 Records</description>
+<Placemark id="INCD-900001-q">
+<Snippet><![CDATA[INCD-900001-q]]></Snippet>
+<styleUrl>#sw_1_normal_unplanned</styleUrl>
+<description><![CDATA[<h2>INCD-900001-q</h2><div style="overflow: hidden;"><div><span>Time Off:</span>16/10/2026 09:23:50</div><div><span>Est. Time On:</span>16/10/2026 14:00:00</div></div><div><span>No. of Customers affected:</span>5</div><div><span>Reason:</span>We are investigating</div><div><span>Last Updated:</span>16/10/2026 11:14:52</div>]]></description><MultiGeometry>
+<Polygon id="external|outage_notification|1">
+<outerBoundaryIs><LinearRing><coordinates>
+148.59,-32.24 148.61,-32.24 148.61,-32.26 148.59,-32.26 148.59,-32.24
+</coordinates></LinearRing></outerBoundaryIs>
+</Polygon>
+</MultiGeometry>
+</Placemark>
+<Placemark id="INCD-900002-r">
+<styleUrl>#sw_1_normal_planned</styleUrl>
+<description><![CDATA[<h2>INCD-900002-r</h2><div><div><span>Time Off:</span>16/10/2026 08:30:00</div><div><span>Est. Time On:</span>16/10/2026 15:00:00</div></div><div><span>No. of Customers affected:</span>167</div><div><span>Reason:</span>General network maintenance &amp; upgrades</div>]]></description><MultiGeometry>
+<Polygon><outerBoundaryIs><LinearRing><coordinates>
+148.52,-32.23 148.53,-32.23 148.53,-32.24 148.52,-32.23
+</coordinates></LinearRing></outerBoundaryIs></Polygon>
+</MultiGeometry>
+</Placemark>
+<Placemark id="INCD-900003-t">
+<styleUrl>#sw_1_normal_unplanned</styleUrl>
+<description><![CDATA[<h2>INCD-900003-t</h2><div><span>Time Off:</span>15/10/2026 22:33:16</div><div><span>Est. Time On:</span></div><div><span>No. of Customers affected:</span>2</div><div><span>Reason:</span>We are investigating</div>]]></description>
+</Placemark>
+<Placemark id="INCD-900004-w">
+<styleUrl>#sw_1_normal_planned</styleUrl>
+<description><![CDATA[<h2>INCD-900004-w</h2><div><span>Time Off:</span>17/10/2026 08:30:00</div><div><span>Est. Time On:</span>17/10/2026 15:00:00</div><div><span>No. of Customers affected:</span>9</div>]]></description>
+</Placemark>
+<Placemark>
+<styleUrl>#sw_1_normal_unplanned</styleUrl>
+</Placemark>
+</Folder>
+</Document>
+</kml>

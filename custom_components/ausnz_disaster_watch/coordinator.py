@@ -49,6 +49,7 @@ from .providers import get_providers_for_config
 from .providers.base import BaseHazardProvider, ProviderUnavailableError
 from .providers.fire_danger import FireDangerService, local_today
 from .providers.geometry import area_distance
+from .providers.power import PowerOutageSource
 from .providers.roads import get_road_providers_for_config, merge_road_items
 from .providers.sources import DataSource, attribution_for, sources_for_provider
 
@@ -184,7 +185,10 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
             "longitude": self.longitude,
             "radius": self.radius_km,
         }
-        self.providers = get_providers_for_config(hass, session, provider_config)
+        providers = get_providers_for_config(hass, session, provider_config)
+        # Distributor outage feeds publish no hazards, so they never count as hazard feeds (#36)
+        self.power_sources: list[PowerOutageSource] = [p for p in providers if isinstance(p, PowerOutageSource)]
+        self.providers = [p for p in providers if not isinstance(p, PowerOutageSource)]
         # Fire danger outlook / NZ fire season on its own 30-minute schedule (#28)
         self.fire_service = FireDangerService(hass, session, provider_config)
         # Statewide road feeds (#29), kept apart so they never count towards hazard feed health
@@ -206,6 +210,7 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         self.override_emergency: bool = cfg.override_emergency
         self.exclude_hazard_reduction: bool = cfg.exclude_hazard_reduction
         self.include_roadworks: bool = cfg.include_roadworks
+        self.include_planned_outages: bool = cfg.include_planned_outages
         self.location_mode: str = cfg.location_mode
         self._stored_latitude = cfg.latitude
         self._stored_longitude = cfg.longitude
@@ -238,7 +243,7 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         self._resolve_location()
         if previous not in {(None, None), (self.latitude, self.longitude)}:
             self._last_good_hazards.clear()
-        for provider in [*self.providers, *self.road_providers, self.fire_service]:
+        for provider in [*self.providers, *self.road_providers, *self.power_sources, self.fire_service]:
             if isinstance(provider, BaseHazardProvider):
                 provider.set_location(self.latitude, self.longitude)
         # Location-based forecasts follow too; river points are user-picked coordinates and stay
@@ -366,19 +371,8 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
             try:
                 po = await provider.async_fetch_power_outages()
                 if isinstance(po, list):
-                    for item in po:
-                        if isinstance(item, PowerOutageItem):
-                            if item.latitude is not None and item.longitude is not None:
-                                dist = round(
-                                    calculate_haversine_distance(
-                                        self.latitude, self.longitude, item.latitude, item.longitude
-                                    ),
-                                    2,
-                                )
-                                if dist <= self.radius_km:
-                                    power_outages.append(item)
-                            else:
-                                power_outages.append(item)
+                    # Radius filtering happens with the distributor outages (_process_power_outages)
+                    power_outages.extend(item for item in po if isinstance(item, PowerOutageItem))
             except Exception as err:  # noqa: BLE001
                 _LOGGER.debug("Error updating power outages from %s: %s", provider.__class__.__name__, err)
 
@@ -530,6 +524,50 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
 
         await asyncio.gather(_fetch_cam(), _fetch_councils())
 
+    async def _collect_distributor_outages(self, power_outages: list[PowerOutageItem]) -> None:
+        """Fetch every distributor feed; a failing feed only loses its own outages (#36)."""
+        results = await asyncio.gather(
+            *(source.async_fetch_power_outages() for source in self.power_sources),
+            return_exceptions=True,
+        )
+        for source, result in zip(self.power_sources, results, strict=True):
+            if isinstance(result, BaseException):
+                if not isinstance(result, Exception):
+                    raise result  # e.g. CancelledError
+                _LOGGER.debug("Power outage feed %s is unavailable: %s", source.distributor, result)
+                continue
+            power_outages.extend(item for item in result if isinstance(item, PowerOutageItem))
+
+    def _process_power_outages(self, outages: list[PowerOutageItem]) -> list[PowerOutageItem]:
+        """Drop planned and duplicate outages, filter by radius and sort nearest first (#36).
+
+        Council dashboards re-serve Energex and Ergon outages, which have no distributor feed
+        here (Energy Queensland's terms require a written agreement), so nothing overlaps.
+        """
+        seen: set[tuple[str | None, str]] = set()
+        kept: list[PowerOutageItem] = []
+        for item in outages:
+            if item.planned and not self.include_planned_outages:
+                continue
+            if item.id is not None:
+                if (item.distributor, item.id) in seen:
+                    continue
+                seen.add((item.distributor, item.id))
+            if item.distance_km is None and item.latitude is not None and item.longitude is not None:
+                item.distance_km = round(
+                    calculate_haversine_distance(self.latitude, self.longitude, item.latitude, item.longitude), 2
+                )
+            if item.distance_km is not None and item.distance_km > self.radius_km:
+                continue
+            kept.append(item)
+        # Located outages nearest first; outages without a location last
+        return sorted(kept, key=lambda o: (o.distance_km is None, o.distance_km or 0.0))
+
+    @property
+    def power_outage_sources(self) -> list[dict[str, str]]:
+        """Return the distributor and register entry (licence, attribution) of each outage feed."""
+        return [source.metadata() for source in self.power_sources]
+
     async def _async_fetch_composite_feeds(self) -> dict[str, Any]:
         """Collect auxiliary telemetry and relief information from providers."""
         power_outages: list[PowerOutageItem] = []
@@ -557,6 +595,8 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
                 )
             )
             coros.append(self._collect_cameras_and_councils(provider, cameras, nearby_councils))
+
+        coros.append(self._collect_distributor_outages(power_outages))
 
         road_results, *_ = await asyncio.gather(*coros)
         self.road_feeds_failed = [
@@ -586,7 +626,7 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
                 unique_cameras.append(camera)
 
         return {
-            "power_outages": power_outages,
+            "power_outages": self._process_power_outages(power_outages),
             # Statewide feeds first, so their items win over council copies of the same event
             # Nearest first, so capped lists (the sensor shows 25) hold the closest roads; unlocated last
             "road_closures": sorted(
@@ -691,7 +731,7 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         return list(
             dict.fromkeys(
                 source
-                for provider in [*self.providers, *self.road_providers]
+                for provider in [*self.providers, *self.road_providers, *self.power_sources]
                 for source in sources_for_provider(type(provider).__name__)
             )
         )

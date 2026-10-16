@@ -81,7 +81,7 @@ Renders interactive pins on the native Home Assistant Map for every active hazar
 | `…_weather_warnings_count` | Active weather warnings | `warnings` |
 | `…_fire_danger_rating` | Today's AFDRS fire danger rating for your fire weather district, with a 4-day `forecast` attribute | — |
 | `…_fire_season` | New Zealand only: fire season at your location (`open`, `restricted`, `prohibited`) with Section 52 prohibitions | — |
-| `…_power_outages_count` / `…_power_outages_customers_affected` | Power outages and customers affected | `outages` / `customers` |
+| `…_power_outages_count` / `…_power_outages_customers_affected` | Power outages and customers affected (see [Power outages](#power-outages)) | `outages` / `customers` |
 | `…_road_closures_count` | Road closures, flooded roads and road hazards nearby (plus roadworks when enabled); the `closures` attribute lists the nearest 25 with their `category` | `closures` |
 | `…_relief_facilities_count` | Evacuation centres and sandbag stations nearby | `facilities` |
 | `…_air_quality` | Air quality rating of the nearest station | — |
@@ -167,6 +167,25 @@ A ban the source does not publish, or a source that cannot be read, is unknown, 
 In New Zealand, `…_fire_season` reports the Fire and Emergency NZ fire season zone at your location. Its `section_52`, `section_52_comment` and `prohibited_activities` attributes show any Section 52 prohibition (for example fireworks) covering the location.
 
 Fire danger forecasts and district boundaries © Bureau of Meteorology. Total fire bans © NSW RFS, ACT ESA, CFA, SA CFS and DFES WA. LGA boundaries © Australian Bureau of Statistics (CC BY 4.0). NZ fire seasons © Fire and Emergency New Zealand.
+### Power outages
+
+Outages come from the electricity distributors' own outage feeds and, in Queensland and NSW, from the council disaster dashboard (Energex and Ergon outages). Only outages in effect now count: planned work that has not started, and finished or cancelled outages, are left out. Planned outages are excluded unless **Include Planned Power Outages** is on in the options.
+
+| Distributor | Area | Feed | Terms | Default |
+| ----------- | ---- | ---- | ----- | ------- |
+| Endeavour Energy | Western Sydney, Blue Mountains, Illawarra | [Open data portal](https://data.endeavourenergy.com.au) (`outagecustomerlive`, `plannedoutagecustomer`), queried within the radius and grouped by incident (no street addresses) | [ODbL 1.0](https://www.opendatacommons.org/licenses/odbl/1.0/) | On |
+| Essential Energy | Regional NSW, around the ACT | Outage map KML (`current.kml`) | No terms published | On |
+| TasNetworks | Tasmania | Outage map JSON (`GetPowerOutages`) | No reuse terms published | On |
+| MainPower | North Canterbury, Kaikōura | Outage map JSON (`/jobs`) | No terms published | On |
+| Western Power | South-west WA | Outage map ArcGIS service, queried within the radius | [Personal, non-commercial use only](https://www.westernpower.com.au/terms--conditions/) | Extra feeds |
+| Powerco | Taranaki, Whanganui, Manawatū, Wairarapa, Tauranga, Coromandel | Outage map ArcGIS service, queried within the radius | [No public or commercial use](https://www.powerco.co.nz/terms-of-use) | Extra feeds |
+| Unison | Hawke's Bay, Taupō, Rotorua | Outage map JSON (about 2.6 MB, fetched at most every 15 minutes) | No terms published | Extra feeds |
+
+Feeds marked "Extra feeds" are used only when **Extra Power Outage Feeds** is on in the options. Feeds without a radius query are only downloaded when the radius reaches the distributor's network, and no feed is fetched more often than every 5 minutes.
+
+`…_power_outages_count` lists up to 25 outages, nearest first, each with `distributor`, `id`, `planned`, `status`, `start_time`, `restore_time` and `distance_km` (to the outage area's edge where the feed has polygons; 0 when home is inside it). It also has `est_restore`, `nearest_outage_distance_km` and `nearest_outage_distributor` for the nearest outage, and `data_sources` with each feed's distributor, licence and attribution. Endeavour Energy data: "Contains information from Endeavour Energy Open Data, made available under the Open Database Licence (ODbL) v1.0". Outages are only kept in your own Home Assistant; the integration does not publish them.
+
+Not used: Energex and Ergon's own ArcGIS services (Energy Queensland's terms require a written agreement; their outages still come from council dashboards), Ausgrid (counts only, no reuse without permission), SA Power Networks, CitiPower, Powercor, United Energy, Jemena, AusNet, Evoenergy, Horizon Power, Power and Water, Vector (API key), Wellington Electricity, Orion, Aurora Energy and the Waikato network (terms or robots.txt rule out reuse, or no keyless feed).
 
 ---
 
@@ -202,6 +221,7 @@ Click **Configure** on the integration card to open the options menu:
 
 - **Monitoring settings**: radius, emergency override, planned burns and council dashboard URL.
 - **Road closures** (not for ACT or New Zealand): planned roadworks and events, and the optional Victorian road data key; see [Road closures and flooded roads](#road-closures-and-flooded-roads).
+- **Power outages** (NSW, ACT, Tasmania, WA and New Zealand): include planned outages and turn on the extra outage feeds; see [Power outages](#power-outages).
 - **Forecast signals and AI rain outlook**: the opt-in Open-Meteo features below.
 - **Earthquakes** (Australian entries): include Geoscience Australia earthquakes (off by default).
 - **National and regional feeds (optional)**: tsunami, satellite hotspots, heatwave, UV, state air quality and GDACS (see [Optional national and regional feeds](#optional-national-and-regional-feeds)).

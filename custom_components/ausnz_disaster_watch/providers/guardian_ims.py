@@ -236,7 +236,11 @@ class GuardianDashboard:
     # --- Power -----------------------------------------------------------------------
 
     async def power_outages(self) -> list[PowerOutageItem]:
-        """Return Ergon and Energex outages; each network is only on the dashboards it serves."""
+        """Return Ergon and Energex outages; each network is only on the dashboards it serves.
+
+        The items carry the distributor name, so the coordinator can drop them while the
+        distributor's own feed works (#36).
+        """
         outages: list[PowerOutageItem] = []
         ergon = await self.fetch("ergonOutages")
         for item in ergon if isinstance(ergon, list) else []:
@@ -252,6 +256,7 @@ class GuardianDashboard:
                         customers_affected=int(_float(item.get("Customers")) or 0),
                         latitude=lat,
                         longitude=lon,
+                        distributor="Ergon Energy",
                     )
                 )
         energex = await self.fetch("energexOutages")
@@ -265,6 +270,7 @@ class GuardianDashboard:
                         cause=_text(outage.get("cause")) or "Under Investigation",
                         restore_time=restore.isoformat() if restore else None,
                         customers_affected=int(_float(outage.get("customersAffected")) or 0),
+                        distributor="Energex",
                     )
                 )
         return outages

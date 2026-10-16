@@ -1,0 +1,242 @@
+{
+  "type": "FeatureCollection",
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "EPSG:4326"
+    }
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "id": 1,
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              115.85,
+              -31.94
+            ],
+            [
+              115.87,
+              -31.94
+            ],
+            [
+              115.87,
+              -31.96
+            ],
+            [
+              115.85,
+              -31.96
+            ],
+            [
+              115.85,
+              -31.94
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "OBJECTID": 1,
+        "OUTAGETYPE": "U",
+        "INCIDENTREF": "INCD-990001-U",
+        "ENARNUMBER": "",
+        "OUTAGESTARTTIME": "16/10/2026 08:15 AM",
+        "ESTIMATEDRESTORATIONTIME": "16/10/2026 01:30 PM",
+        "PLANNEDOUTAGE": "Unplanned",
+        "NOCUSTOMERSIMPACTED": 172,
+        "TIMEADDED": 1792108800000,
+        "AFFECTED_AREA": "BALLAJURA,WHITEMAN",
+        "AFFECTED_AREA_NOCUSTOMERS": "1",
+        "Tags": "",
+        "SHAPE__Area": 1.0,
+        "SHAPE__Length": 1.0
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 2,
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              115.8,
+              -31.9
+            ],
+            [
+              115.82,
+              -31.9
+            ],
+            [
+              115.82,
+              -31.92
+            ],
+            [
+              115.8,
+              -31.9
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "OBJECTID": 2,
+        "OUTAGETYPE": "F",
+        "INCIDENTREF": "INCD-990002-X",
+        "ENARNUMBER": "643979",
+        "OUTAGESTARTTIME": "16/10/2026 08:00 AM",
+        "ESTIMATEDRESTORATIONTIME": "16/10/2026 05:00 PM",
+        "PLANNEDOUTAGE": "Unplanned",
+        "NOCUSTOMERSIMPACTED": 30,
+        "TIMEADDED": 1792108800000,
+        "AFFECTED_AREA": "NORTH PERTH",
+        "AFFECTED_AREA_NOCUSTOMERS": "1",
+        "Tags": "",
+        "SHAPE__Area": 1.0,
+        "SHAPE__Length": 1.0
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 3,
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              115.85,
+              -31.94
+            ],
+            [
+              115.87,
+              -31.94
+            ],
+            [
+              115.87,
+              -31.96
+            ],
+            [
+              115.85,
+              -31.96
+            ],
+            [
+              115.85,
+              -31.94
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "OBJECTID": 3,
+        "OUTAGETYPE": "F",
+        "INCIDENTREF": "INCD-990003-X",
+        "ENARNUMBER": "643404",
+        "OUTAGESTARTTIME": "17/10/2026 07:30 AM",
+        "ESTIMATEDRESTORATIONTIME": "17/10/2026 05:30 PM",
+        "PLANNEDOUTAGE": "Unplanned",
+        "NOCUSTOMERSIMPACTED": 60,
+        "TIMEADDED": 1792108800000,
+        "AFFECTED_AREA": "MOUNT LAWLEY",
+        "AFFECTED_AREA_NOCUSTOMERS": "1",
+        "Tags": "",
+        "SHAPE__Area": 1.0,
+        "SHAPE__Length": 1.0
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 4,
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              115.85,
+              -31.94
+            ],
+            [
+              115.87,
+              -31.94
+            ],
+            [
+              115.87,
+              -31.96
+            ],
+            [
+              115.85,
+              -31.96
+            ],
+            [
+              115.85,
+              -31.94
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "OBJECTID": 4,
+        "OUTAGETYPE": "U",
+        "INCIDENTREF": "INCD-990004-U",
+        "ENARNUMBER": "",
+        "OUTAGESTARTTIME": "31/05/2026 12:08 PM",
+        "ESTIMATEDRESTORATIONTIME": "01/06/2026 06:30 PM",
+        "PLANNEDOUTAGE": "Unplanned",
+        "NOCUSTOMERSIMPACTED": 134,
+        "TIMEADDED": 1792108800000,
+        "AFFECTED_AREA": "KUKERIN",
+        "AFFECTED_AREA_NOCUSTOMERS": "1",
+        "Tags": "",
+        "SHAPE__Area": 1.0,
+        "SHAPE__Length": 1.0
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 5,
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              115.85,
+              -31.94
+            ],
+            [
+              115.87,
+              -31.94
+            ],
+            [
+              115.87,
+              -31.96
+            ],
+            [
+              115.85,
+              -31.96
+            ],
+            [
+              115.85,
+              -31.94
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "OBJECTID": 5,
+        "OUTAGETYPE": "P",
+        "INCIDENTREF": "INCD-990005-P",
+        "ENARNUMBER": "",
+        "OUTAGESTARTTIME": "16/10/2026 07:00 AM",
+        "ESTIMATEDRESTORATIONTIME": "16/10/2026 08:30 AM",
+        "PLANNEDOUTAGE": "Planned",
+        "NOCUSTOMERSIMPACTED": 12,
+        "TIMEADDED": 1792108800000,
+        "AFFECTED_AREA": "INGLEWOOD",
+        "AFFECTED_AREA_NOCUSTOMERS": "1",
+        "Tags": "",
+        "SHAPE__Area": 1.0,
+        "SHAPE__Length": 1.0
+      }
+    }
+  ]
+}

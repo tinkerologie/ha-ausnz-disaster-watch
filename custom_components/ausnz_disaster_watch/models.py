@@ -251,6 +251,9 @@ class DisasterWatchConfigModel(BaseModel):
             return v.strip()
         return None
 
+    include_planned_outages: bool = Field(default=False)
+    extra_outage_feeds: bool = Field(default=False)
+
 
 class PowerOutageItem(BaseModel):
     """Real-time power outage item from energy network feeds (e.g. Energex, Ergon, Ausgrid)."""
@@ -263,6 +266,13 @@ class PowerOutageItem(BaseModel):
     customers_affected: int = Field(default=0, ge=0, description="Number of customers affected")
     latitude: float | None = Field(default=None, ge=-90.0, le=90.0)
     longitude: float | None = Field(default=None, ge=-180.0, le=180.0)
+    # Distributor feeds (#36); council dashboard items leave id and start_time unset
+    id: str | None = Field(default=None, description="Distributor incident ID")
+    distributor: str | None = Field(default=None, description="Electricity distributor (e.g. Energex)")
+    planned: bool = Field(default=False, description="Planned (maintenance) outage rather than a fault")
+    status: str | None = Field(default=None, description="Distributor status text")
+    start_time: str | None = Field(default=None, description="When the outage started (ISO 8601)")
+    distance_km: float | None = Field(default=None, ge=0, description="Distance from the monitored point")
 
 
 class RoadEventCategory(StrEnum):
