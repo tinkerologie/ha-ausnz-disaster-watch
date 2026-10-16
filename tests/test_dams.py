@@ -236,8 +236,17 @@ def _at(hours: float) -> datetime:
         (_site(), {"l": [(_at(-1), 49.9)]}, None, False, None),
         # No full supply volume: no percent; no level either: unknown
         (_site(full_volume_ml=None, full_level_m=None), {"v": [(_at(-1), 500.0)]}, None, None, None),
-        # The 24 h change needs a reading at least 24 h older
+        # The 24 h change needs a reading 18 to 36 h older
         (_site(), {"v": [(_at(-5), 900.0), (_at(-1), 950.0)]}, 95.0, False, None),
+        (_site(), {"v": [(_at(-41), 900.0), (_at(-1), 950.0)]}, 95.0, False, None),
+        # The reading closest to 24 h earlier is used, not the newest or the oldest in the window
+        (
+            _site(),
+            {"v": [(_at(-36), 800.0), (_at(-26), 900.0), (_at(-19), 930.0), (_at(-1), 950.0)]},
+            95.0,
+            False,
+            50.0,
+        ),
     ],
 )
 def test_reading_values(
@@ -350,6 +359,38 @@ async def test_discover_skips_storages_without_readings(
         async_get_clientsession(hass), latitude=BRISBANE[0], longitude=BRISBANE[1], radius_km=10, now=NOW
     )
     assert found == []
+
+
+async def test_discover_reads_further_until_enough_storages(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Unreadable nearby storages do not use up the choices: the next nearest ones are read too."""
+    sites = [
+        StorageSite(f"{i}", f"Dam {i}", -27.0 - i * 0.01, 152.0, "w00191", (f"v{i}",), (), 100.0, None)
+        for i in range(70)
+    ]
+    calls: list[list[str]] = []
+
+    async def fake_sites(session: Any, now: datetime) -> list[StorageSite]:
+        return sites
+
+    async def fake_fetch(session: Any, batch: list[StorageSite], now: datetime) -> dict[str, StorageReading]:
+        calls.append([site.site_id for site in batch])
+        # Only every third storage after the first 15 has data
+        return {
+            site.key: StorageReading(site, NOW, 50.0, None, None)
+            for site in batch
+            if int(site.site_id) >= 15 and int(site.site_id) % 3 == 0
+        }
+
+    monkeypatch.setattr(dams, "async_storage_sites", fake_sites)
+    monkeypatch.setattr(dams, "async_fetch_readings", fake_fetch)
+    found = await async_discover_storages(
+        async_get_clientsession(hass), latitude=-27.0, longitude=152.0, radius_km=10, now=NOW
+    )
+    # 60 candidates at most, read 15 at a time; 15 readable ones are among the first 60
+    assert len(calls) == 4
+    assert [reading.site.site_id for reading in found] == [str(i) for i in range(15, 60, 3)]
 
 
 def test_register_lists_the_source() -> None:

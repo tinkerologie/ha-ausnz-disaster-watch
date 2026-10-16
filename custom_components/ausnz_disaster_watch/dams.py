@@ -53,12 +53,16 @@ DAM_SCAN_INTERVAL: Final = timedelta(hours=1)
 DAM_READING_WINDOW: Final = timedelta(days=7)
 # The 24 h change compares the latest volume with the newest one at least this much older.
 CHANGE_PERIOD: Final = timedelta(hours=24)
+# How far from the latest reading the earlier one may be for the change to count as 24 h.
+CHANGE_WINDOW: Final = (timedelta(hours=18), timedelta(hours=36))
 # Site lists change rarely; they are fetched again after this long.
 DAM_SITE_CACHE_TTL: Final = timedelta(hours=24)
 # Longest the options flow waits for storage discovery.
 DAM_DISCOVERY_TIMEOUT: Final = timedelta(seconds=90)
 # Storages offered in the options flow, nearest first.
 DAM_CHOICES: Final = 15
+# Nearest storages read at most while looking for DAM_CHOICES with a reading.
+DAM_MAX_CANDIDATES: Final = 60
 # Upstream dams are often outside the hazard radius (Wivenhoe is 65 km from Brisbane), so
 # storages are searched at least this far out.
 DAM_MIN_SEARCH_KM: Final = 150.0
@@ -387,12 +391,21 @@ def parse_values(payload: Any) -> dict[str, list[tuple[datetime, float]]]:
 
 
 def _change(points: list[tuple[datetime, float]]) -> float | None:
-    """Return the change of the latest value over the last CHANGE_PERIOD, if known."""
+    """Return the change of the latest value over the last CHANGE_PERIOD, if known.
+
+    The earlier reading is the one closest to CHANGE_PERIOD before the latest, and must lie
+    within CHANGE_WINDOW (18 to 36 h) of it: a daily-reporting storage with a gap in its
+    data would otherwise report a change over several days as a 24 h change.
+    """
     if len(points) < 2:
         return None
     latest_time, latest = points[-1]
-    earlier = [value for time, value in points[:-1] if time <= latest_time - CHANGE_PERIOD]
-    return round(latest - earlier[-1], 1) if earlier else None
+    low, high = CHANGE_WINDOW
+    candidates = [(time, value) for time, value in points[:-1] if low <= latest_time - time <= high]
+    if not candidates:
+        return None
+    _time, earlier = min(candidates, key=lambda point: abs(latest_time - point[0] - CHANGE_PERIOD))
+    return round(latest - earlier, 1)
 
 
 def _first_series(
@@ -487,11 +500,17 @@ async def async_discover_storages(
     """Return the nearest storages with a current reading, nearest first.
 
     The search reaches at least DAM_MIN_SEARCH_KM, since the dams that flood a town are
-    often well upstream of it.
+    often well upstream of it. Candidates are read in distance order, DAM_CHOICES at a
+    time, until DAM_CHOICES storages with a reading are found, so storages whose series are
+    empty do not crowd out readable ones further away. At most DAM_MAX_CANDIDATES are read.
     """
     sites = await async_storage_sites(session, now)
-    nearby = nearest_sites(sites, latitude, longitude, max(radius_km, DAM_MIN_SEARCH_KM))[:DAM_CHOICES]
-    if not nearby:
-        return []
-    readings = await async_fetch_readings(session, nearby, now)
-    return [readings[site.key] for site in nearby if site.key in readings]
+    nearby = nearest_sites(sites, latitude, longitude, max(radius_km, DAM_MIN_SEARCH_KM))[:DAM_MAX_CANDIDATES]
+    found: list[StorageReading] = []
+    for start in range(0, len(nearby), DAM_CHOICES):
+        batch = nearby[start : start + DAM_CHOICES]
+        readings = await async_fetch_readings(session, batch, now)
+        found.extend(readings[site.key] for site in batch if site.key in readings)
+        if len(found) >= DAM_CHOICES:
+            break
+    return found[:DAM_CHOICES]

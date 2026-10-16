@@ -135,7 +135,7 @@ Each storage gets these entities, named after the storage, for example
 - `sensor.…_volume`: volume in megalitres (ML).
 - `sensor.…_level`: water level in metres, usually above sea level (AHD).
 - `binary_sensor.…_above_full_supply`: on while the storage is above 100% of full supply volume (or, for a storage without volume data, above full supply level). An ungated dam above full supply is spilling; a gated flood-mitigation dam above full supply is holding flood water that it will release.
-- **Attributes** (on all four): `site_id`, `latitude`, `longitude`, `distance_km`, `full_supply_volume_ml`, `full_supply_level_m`, `observed_at` (time of the reading, UTC), `percent_full`, `volume_ml`, `level_m`, `change_24h_ml` (volume change over the last 24 hours) and `above_full_supply`. The attribution names the data owner.
+- **Attributes** (on all four): `site_id`, `latitude`, `longitude`, `distance_km`, `full_supply_volume_ml`, `full_supply_level_m`, `observed_at` (time of the reading, UTC), `percent_full`, `volume_ml`, `level_m`, `change_24h_ml` (volume change since the reading closest to 24 hours earlier, taken 18 to 36 hours before the latest; `null` without one) and `above_full_supply`. The attribution names the data owner.
 - **Availability**: storages are polled hourly. A storage without a reading in the last 7 days is unavailable; if Water Data Online cannot be reached, the last readings are kept until they are 7 days old. Storages stay selected until you untick them.
 
 | Region | Source | Licence |
