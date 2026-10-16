@@ -154,6 +154,8 @@ answers with JSON, and never `*.disasterdashboards.com` (Demonz). On 2026-10-16,
 councils and the 5 known NSW councils answered. Eight dashboards (Barcoo, Gympie, Paroo, Redland,
 Richmond, Scenic Rim, Torres Strait Island, Yarrabah) send an incomplete certificate chain that
 Home Assistant (certifi, no AIA fetching) rejects; they are flagged `certificate_ok: false`.
+`.github/workflows/update-councils.yml` reruns the generator monthly (and on demand) and opens a pull
+request when the registry changes.
 
 Endpoints are fetched by `GuardianDashboard.fetch` in `providers/guardian_ims.py` as
 `{base_url}/dashboard/<endpoint>`; not every dashboard has every endpoint.
@@ -178,13 +180,12 @@ Endpoints are fetched by `GuardianDashboard.fetch` in `providers/guardian_ims.py
 | `/dashboard/bom` | Weather warnings | Re-served BoM warning summary (upstream) |
 | `/dashboard/getCameras` | Cameras | Council flood and traffic cameras; `image_url` points at council-hosted images (e.g. `camera-custom-image.s3-ap-southeast-2.amazonaws.com` for Moreton Bay), fetched on demand |
 
-Council base URLs the integration offers or links to (presets in `const.py`, the default in
-`config_flow.py`, the host aliases in `guardian_ims.py`, and the "nearby councils" links in
-`qld.py` and `nsw.py`; links are never polled):
+Council base URLs the integration offers or links to (presets from the generated registry, the
+default in `config_flow.py`, the host aliases in `guardian_ims.py`, and the "nearby councils" links;
+links are never polled):
 
-- QLD and NSW presets: every council in `custom_components/ausnz_disaster_watch/data/council_dashboards.json` (generated, see below); entries without a readable URL (other platforms, or a certificate Home Assistant rejects) are not polled. Old hosts `disaster.goldcoast`, `dashboard.cityofgoldcoast.com.au` and `disaster.redland` are aliased to the current hosts. Dashboards named in code (nearby council links, Moreton Bay endpoints): https://disaster.moretonbay.qld.gov.au, https://disaster.noosa.qld.gov.au, https://dashboard.goldcoast.qld.gov.au.
-- QLD links: https://disasterhub.sunshinecoast.qld.gov.au (a web app, not Guardian IMS), https://www.brisbane.qld.gov.au/community-support-and-safety/natural-disasters-and-emergencies/emergency-dashboard, https://disaster.somerset.qld.gov.au
-- NSW: https://disaster.hawkesbury.nsw.gov.au, https://emergency.bmcc.nsw.gov.au, https://emergency.ballina.nsw.gov.au, https://emergency.byron.nsw.gov.au, https://emergency.northernbeaches.nsw.gov.au
+- QLD and NSW presets: every council in `custom_components/ausnz_disaster_watch/data/council_dashboards.json` (generated, see below); entries without a readable URL (other platforms, or a certificate Home Assistant rejects) are not polled. Old hosts `disaster.goldcoast`, `dashboard.cityofgoldcoast.com.au` and `disaster.redland` are aliased to the current hosts. Dashboards named in code (the setup default, host aliases): https://disaster.moretonbay.qld.gov.au, https://disaster.noosa.qld.gov.au, https://dashboard.goldcoast.qld.gov.au.
+- Nearby council links (QLD and NSW): the six registry dashboards nearest the monitored point, without the entry's own (`council_registry.nearby_council_links`, #32).
 
 ## Informational links
 

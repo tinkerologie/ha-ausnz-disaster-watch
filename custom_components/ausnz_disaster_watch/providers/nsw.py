@@ -16,6 +16,7 @@ from aio_geojson_nsw_rfs_incidents.feed import NswRuralFireServiceIncidentsFeed
 from aio_geojson_nsw_rfs_incidents.feed_entry import NswRuralFireServiceIncidentsFeedEntry
 
 from custom_components.ausnz_disaster_watch.const import CONF_COUNCIL_DASHBOARD_URL, STATE_NSW
+from custom_components.ausnz_disaster_watch.council_registry import nearby_council_links
 from custom_components.ausnz_disaster_watch.models import (
     AirQualityStationData,
     CanonicalHazard,
@@ -39,15 +40,6 @@ from .guardian_ims import GuardianDashboard, normalise_dashboard_url
 _LOGGER = logging.getLogger(__name__)
 
 NSW_RFS_MAJOR_INCIDENTS_URL = RFS_URL
-
-# Links to NSW council dashboards (shown on the card; never polled)
-NSW_COUNCIL_LINKS: list[dict[str, str]] = [
-    {"name": "Hawkesbury City Council", "url": "https://disaster.hawkesbury.nsw.gov.au"},
-    {"name": "Blue Mountains City Council", "url": "https://emergency.bmcc.nsw.gov.au"},
-    {"name": "Ballina Shire Council", "url": "https://emergency.ballina.nsw.gov.au"},
-    {"name": "Byron Shire Council", "url": "https://emergency.byron.nsw.gov.au"},
-    {"name": "Northern Beaches Council", "url": "https://emergency.northernbeaches.nsw.gov.au"},
-]
 
 
 class NSWRFSIncidentEntry(CheckedEntryMixin, NswRuralFireServiceIncidentsFeedEntry):
@@ -216,5 +208,13 @@ class NSWHazardProvider(BaseHazardProvider):
         return await self.dashboard.cameras() if self.dashboard else []
 
     async def async_fetch_nearby_councils(self) -> list[dict[str, str]]:
-        """Return links to NSW council disaster dashboards."""
-        return [dict(link) for link in NSW_COUNCIL_LINKS]
+        """Return links to the NSW council dashboards nearest the monitored point (#32).
+
+        The links come from the generated council registry and are never polled.
+        """
+        return nearby_council_links(
+            "NSW",
+            self.config.get("latitude"),
+            self.config.get("longitude"),
+            self.dashboard.base_url if self.dashboard else None,
+        )

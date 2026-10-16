@@ -1,0 +1,81 @@
+name: Update council registry
+
+# Regenerates custom_components/ausnz_disaster_watch/data/council_dashboards.json with
+# script/update-councils (#32) and opens (or updates) a pull request when it changed.
+# The generator keeps a council whose dashboard does not answer, so one bad night does not
+# drop it; a maintainer reviews the added/removed/changed summary in the pull request.
+# Pull requests opened with GITHUB_TOKEN do not start other workflows, so push an empty
+# commit or close and reopen the pull request to run CI on it.
+
+on:
+  schedule:
+    - cron: 0 3 1 * *
+      timezone: Australia/Brisbane
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: update-councils
+  cancel-in-progress: false
+
+jobs:
+  update:
+    name: Regenerate the council registry
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the update branch
+      pull-requests: write # open or update the pull request
+    env:
+      BRANCH: chore/update-council-registry
+      REGISTRY: custom_components/ausnz_disaster_watch/data/council_dashboards.json
+    steps:
+      - name: Checkout the repository
+        # Credentials are kept (unlike the other workflows): this job pushes the update branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.14'
+
+      - name: Install the certificate bundle Home Assistant uses
+        # The generator flags dashboards whose certificate chain certifi cannot verify
+        run: python -m pip install certifi==2026.7.22
+
+      - name: Regenerate the registry
+        shell: bash # -eo pipefail: a generator failure fails the step despite tee
+        run: python script/update_councils.py | tee "$RUNNER_TEMP/summary.txt"
+
+      - name: Open or update the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet -- "$REGISTRY"; then
+            echo "Council registry unchanged"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -C "$BRANCH"
+          git add "$REGISTRY"
+          git commit -m "chore(councils): update the council dashboard registry" -m "Part of #32"
+          git push --force origin "$BRANCH"
+          {
+            echo "Monthly refresh of the council dashboard registry (\`script/update-councils\`)."
+            echo
+            echo "Review the summary: a removed council may only have been offline during the run."
+            echo
+            echo '```text'
+            cat "$RUNNER_TEMP/summary.txt"
+            echo '```'
+            echo
+            echo "Part of #32"
+          } > "$RUNNER_TEMP/body.md"
+          if gh pr view "$BRANCH" --json state --jq .state 2>/dev/null | grep -q OPEN; then
+            gh pr edit "$BRANCH" --body-file "$RUNNER_TEMP/body.md"
+          else
+            gh pr create --base main --head "$BRANCH" \
+              --title "chore(councils): update the council dashboard registry" \
+              --body-file "$RUNNER_TEMP/body.md"
+          fi
