@@ -161,6 +161,39 @@ _SOURCES = (
         terms_url="https://www.bom.gov.au/copyright",
         status=LicenceStatus.RESTRICTED,
     ),
+    # Opt-in Open-Meteo forecast features (#38, #39, #40); the free API is non-commercial only
+    DataSource(
+        key="open_meteo_forecast",
+        owner="Open-Meteo",
+        attribution="Weather data by Open-Meteo.com, CC BY 4.0",
+        licence="CC BY 4.0; free API non-commercial only, under 10,000 calls a day",
+        terms_url="https://open-meteo.com/en/terms",
+        status=LicenceStatus.OPEN,
+    ),
+    DataSource(
+        key="open_meteo_flood",
+        owner="Open-Meteo, with GloFAS data from the Copernicus Emergency Management Service",
+        attribution="Flood data by Open-Meteo.com (GloFAS), CC BY 4.0",
+        licence="CC BY 4.0; free API non-commercial only, under 10,000 calls a day",
+        terms_url="https://open-meteo.com/en/licence",
+        status=LicenceStatus.OPEN,
+    ),
+    DataSource(
+        key="ecmwf_aifs",
+        owner="ECMWF, served by Open-Meteo",
+        attribution="ECMWF AIFS, CC BY 4.0",
+        licence="CC BY 4.0 (ECMWF open data); Open-Meteo free API non-commercial only",
+        terms_url="https://www.ecmwf.int/en/forecasts/datasets/open-data",
+        status=LicenceStatus.OPEN,
+    ),
+    DataSource(
+        key="google_weathernext2",
+        owner="Google DeepMind, served by Open-Meteo",
+        attribution="Google WeatherNext 2",
+        licence="Not verified: Open-Meteo states none; Google's real-time experimental data terms may apply",
+        terms_url="https://open-meteo.com/en/docs/google-weathernext-api",
+        status=LicenceStatus.UNVERIFIED,
+    ),
 )
 
 DATA_SOURCES: dict[str, DataSource] = {source.key: source for source in _SOURCES}
@@ -178,6 +211,20 @@ PROVIDER_SOURCES: dict[str, tuple[str, ...]] = {
     "NZHazardProvider": ("geonet", "nema_cap", "metservice_cap", "nzta_roads"),
     "BoMHazardProvider": ("bom_wmo",),
 }
+
+
+# Forecast feature -> register keys (these are not hazard providers)
+FORECAST_SOURCES: dict[str, tuple[str, ...]] = {
+    "weather_signals": ("open_meteo_forecast",),
+    "river_forecast": ("open_meteo_flood",),
+    "ai_ensemble": ("open_meteo_forecast", "ecmwf_aifs"),
+    "ai_weathernext": ("google_weathernext2",),
+}
+
+
+def sources_for_forecast(*features: str) -> tuple[DataSource, ...]:
+    """Return the register entries for forecast features, in order."""
+    return tuple(DATA_SOURCES[key] for feature in features for key in FORECAST_SOURCES[feature])
 
 
 def sources_for_provider(provider_name: str) -> tuple[DataSource, ...]:

@@ -31,6 +31,13 @@ attribution to show, and what we decided where the terms are restrictive (#34).
   not have is asked again only after six hours. BoM and MetService CAP documents are cached
   by URL, so only new documents are downloaded.
 - Camera snapshots are fetched on demand when a camera entity is viewed (redirects followed).
+- The opt-in Open-Meteo forecast features (#38, #39, #40) are off by default and poll on their own
+  coordinators, one request per poll and a single attempt (a retry costs quota), retried after
+  30 minutes on failure: weather signals hourly, river points every 6 hours (all points in one
+  multi-location request), the AI ensemble every 6 hours with WeatherNext 2 at most every 12 hours.
+  Adding a river point makes a one-off reanalysis request and, for a point off the river grid, one
+  16-location neighbour probe. These requests send
+  `User-Agent: AusNZDisasterWatch (+https://github.com/tinkerologie/ha-ausnz-disaster-watch)`.
 
 ## Runtime feeds
 
@@ -50,6 +57,10 @@ attribution to show, and what we decided where the terms are restrictive (#34).
 | `nema_cap` | `https://alerthub.civildefence.govt.nz/atom/pwp` (`NZHazardProvider`) | National Emergency Management Agency (NZ) | CC BY 4.0, attribute to NEMA: https://www.civildefence.govt.nz/about/copyright †. The same page asks that reproduction "for any purpose other than personal or in-house use" be directed to the Director; NEMA's CAP feed announcement invites developers to use the feed. | National Emergency Management Agency (NZ), CC BY 4.0 | Allowed under CC BY | None published | `open` |
 | `metservice_cap` | `https://alerts.metservice.com/cap/rss` and the CAP documents it links (`NZHazardProvider`) | Meteorological Service of New Zealand | Feed: "Licensed under Creative Commons BY 4.0." Use is subject to the CAP Code of Practice: https://www.metservice.com/about/common-alerting-protocol † (pass alerts on unmodified, within 10 minutes, acknowledge the issuing authority). Commercial use of open data needs the disclaimer in https://about.metservice.com/our-data-access-policy | MetService, CC BY 4.0 | Allowed with the data access policy disclaimer | Code of Practice R.2: poll at least every 5 min and **not more often than every 2 min** (see decisions) | `open` |
 | `bom_wmo` | `https://severeweather.wmo.int/v2/cap-alerts/au-bom-en/rss.xml` and the CAP documents it links (`BoMHazardProvider`) | Bureau of Meteorology, via the WMO Severe Weather Information Centre | WMO: the information is free for reuse by media or other websites, provided it is credited to the issuing national meteorological service (https://severeweather.wmo.int/note.html). BoM default terms: personal or in-organisation use only, "must not supply it to any other person or use it for any commercial purpose" (https://www.bom.gov.au/copyright). BoM RSS terms: personal and non-commercial use, attribution and a link to the BoM website (https://www.bom.gov.au/rss/). Whether BoM terms bind CAP obtained from WMO is not stated. | Australian Government Bureau of Meteorology (www.bom.gov.au), via WMO SWIC | Not allowed under BoM terms | None published | `restricted` |
+| `open_meteo_forecast` | `https://api.open-meteo.com/v1/forecast` (`OpenMeteoClient.async_get_forecast`, weather hazard signals #39) | Open-Meteo | CC BY 4.0 (https://open-meteo.com/en/licence; credit "Weather data by Open-Meteo.com" with a link). Free API terms (https://open-meteo.com/en/terms): non-commercial use only. Best-match model; `lightning_potential` is not used (empty for AU/NZ). | Weather data by Open-Meteo.com, CC BY 4.0 | Not allowed on the free API (commercial plan needed) | Under 10,000 calls a day, 5,000 an hour, 600 a minute per IP; large requests count as several calls; no key | `open` |
+| `open_meteo_flood` | `https://flood-api.open-meteo.com/v1/flood` (`OpenMeteoClient.async_get_river_forecasts`, `async_get_river_history`, river flood forecast #38) | Open-Meteo, with GloFAS v4 data from the Copernicus Emergency Management Service | CC BY 4.0 (https://open-meteo.com/en/licence; credit "Weather data by Open-Meteo.com" with a link). Free API terms (https://open-meteo.com/en/terms): non-commercial use only. GloFAS is listed on the Open-Meteo licence page. | Flood data by Open-Meteo.com (GloFAS), CC BY 4.0 | Not allowed on the free API | As `open_meteo_forecast`; each location in a multi-location request counts | `open` |
+| `ecmwf_aifs` | `https://ensemble-api.open-meteo.com/v1/ensemble` with `models=ecmwf_aifs025_ensemble` (`OpenMeteoClient.async_get_ensemble`, AI rain outlook #40) | ECMWF, served by Open-Meteo | ECMWF open data, CC BY 4.0 (https://www.ecmwf.int/en/forecasts/datasets/open-data); Open-Meteo free API terms as above | ECMWF AIFS, CC BY 4.0 (with the Open-Meteo credit) | Not allowed on the free Open-Meteo API | As `open_meteo_forecast`; ensemble requests count per member set | `open` |
+| `google_weathernext2` | same endpoint with `models=google_weathernext2_ensemble` (AI rain outlook #40, its own toggle, off by default) | Google DeepMind, served by Open-Meteo | Not verified. Open-Meteo's page (https://open-meteo.com/en/docs/google-weathernext-api) states no licence. Google's "GDM Real-Time Weather Forecasting Experimental Data Terms of Use" limit real-time data to internal use; data older than 1 hour is CC BY 4.0. Whether these terms carry through to Open-Meteo is not confirmed; separately removable. | Google WeatherNext 2 | Unknown | As `ecmwf_aifs`; fetched at most every 12 hours | `unverified` |
 
 ## Council disaster dashboards (Guardian IMS)
 
@@ -177,15 +188,8 @@ Not used. Do not add them without permission.
 
 ## Sources in open pull requests
 
-Not merged yet. The PR that adds one must move it into [Runtime feeds](#runtime-feeds) and
+None. A PR that adds a source must add it to [Runtime feeds](#runtime-feeds) and
 `providers/sources.py`; `tests/test_data_sources.py` fails until it does.
-
-| Source | Endpoint | Licence and terms | Attribution | PR |
-| --- | --- | --- | --- | --- |
-| Open-Meteo Forecast API | `api.open-meteo.com/v1/forecast` | CC BY 4.0 (https://open-meteo.com/en/licence). The free API is non-commercial only, under 10,000 calls a day, 5,000 an hour and 600 a minute per IP (https://open-meteo.com/en/terms). No key. | Weather data by Open-Meteo.com (CC BY 4.0) | #58 |
-| Open-Meteo Flood API (GloFAS v4, Copernicus) | `flood-api.open-meteo.com/v1/flood` | Open-Meteo terms; GloFAS data under its Copernicus licence, listed on the Open-Meteo licence page | Flood data by Open-Meteo.com (GloFAS, CC BY 4.0) | #58 |
-| ECMWF AIFS ensemble via Open-Meteo | `ensemble-api.open-meteo.com/v1/ensemble` (`ecmwf_aifs025_ensemble`) | ECMWF open data, CC BY 4.0 | ECMWF AIFS (CC BY 4.0) | #58 |
-| Google WeatherNext 2 ensemble via Open-Meteo | same (`google_weathernext2_ensemble`) | `unverified`. Open-Meteo states no licence; Google's "GDM Real-Time Weather Forecasting Experimental Data Terms of Use" limit real-time data to internal use (data older than 1 hour is CC BY 4.0). Opt-in, off by default, separately removable. | Google WeatherNext 2 | #58 |
 
 ## Candidate open sources
 

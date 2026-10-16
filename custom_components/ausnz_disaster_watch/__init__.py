@@ -20,6 +20,7 @@ from .const import (
     STATE_QLD,
 )
 from .coordinator import AustralianDisasterWatchCoordinator, nearest_council_dashboard
+from .forecast_coordinator import async_setup_forecasts
 from .frontend import async_register_frontend
 
 _LOGGER = logging.getLogger(__name__)
@@ -90,6 +91,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: AusNZDisasterWatchConfig
     """
     coordinator = AustralianDisasterWatchCoordinator(hass, entry)
     await coordinator.async_config_entry_first_refresh()
+    # Opt-in forecast features poll on their own schedule and never block setup (#38, #39, #40)
+    coordinator.forecasts = await async_setup_forecasts(hass, entry, (coordinator.latitude, coordinator.longitude))
 
     entry.runtime_data = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

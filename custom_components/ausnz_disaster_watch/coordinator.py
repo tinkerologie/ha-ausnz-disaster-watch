@@ -21,6 +21,7 @@ from .const import (
     PRESET_COUNCIL_DASHBOARDS,
     THREAT_SCAN_INTERVAL,
 )
+from .forecast_coordinator import ForecastCoordinators
 from .models import (
     AirQualityStationData,
     CanonicalHazard,
@@ -128,6 +129,8 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         self._last_good_hazards: dict[str, tuple[datetime, list[CanonicalHazard]]] = {}
         self._feeds_ok: list[str] = []
         self._feeds_failed: list[str] = []
+        # Opt-in Open-Meteo forecast coordinators, set up by async_setup_entry (#38, #39, #40)
+        self.forecasts = ForecastCoordinators()
         self._update_config_values()
 
         session = async_get_clientsession(hass)
@@ -185,6 +188,10 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         for provider in self.providers:
             if isinstance(provider, BaseHazardProvider):
                 provider.set_location(self.latitude, self.longitude)
+        # Location-based forecasts follow too; river points are user-picked coordinates and stay
+        for forecast in (self.forecasts.weather, self.forecasts.ensemble):
+            if forecast is not None:
+                forecast.set_location(self.latitude, self.longitude)
 
     async def _async_fetch_all_hazards(self) -> list[CanonicalHazard]:
         """Fetch all hazards from active providers concurrently, tracking each feed's health (#16).

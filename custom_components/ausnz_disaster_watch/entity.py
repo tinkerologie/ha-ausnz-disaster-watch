@@ -22,8 +22,6 @@ class AusNZDisasterWatchEntity(CoordinatorEntity[AustralianDisasterWatchCoordina
         """Initialize the base entity."""
         super().__init__(coordinator)
         self.entity_key = entity_key
-        state = coordinator.state_code
-        loc_name = coordinator.combined_config.get(CONF_LOCATION_NAME, "Home")
 
         # Credit the upstream publishers as their terms require (#34)
         self._attr_attribution = coordinator.attribution
@@ -32,13 +30,20 @@ class AusNZDisasterWatchEntity(CoordinatorEntity[AustralianDisasterWatchCoordina
         self._attr_unique_id = f"{coordinator.entry.entry_id}_{entity_key}"
 
         # Group all entities under a unified device
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, coordinator.entry.entry_id)},
-            name=f"{DEFAULT_NAME} ({state} - {loc_name})",
-            manufacturer="Emergency Services Australia & New Zealand / Local Councils",
-            model=f"Disaster Monitor ({state})",
-            entry_type=DeviceEntryType.SERVICE,
-        )
+        self._attr_device_info = entry_device_info(coordinator)
+
+
+def entry_device_info(coordinator: AustralianDisasterWatchCoordinator) -> DeviceInfo:
+    """Return the one service device every entity of an entry belongs to."""
+    state = coordinator.state_code
+    loc_name = coordinator.combined_config.get(CONF_LOCATION_NAME, "Home")
+    return DeviceInfo(
+        identifiers={(DOMAIN, coordinator.entry.entry_id)},
+        name=f"{DEFAULT_NAME} ({state} - {loc_name})",
+        manufacturer="Emergency Services Australia & New Zealand / Local Councils",
+        model=f"Disaster Monitor ({state})",
+        entry_type=DeviceEntryType.SERVICE,
+    )
 
 
 AustralianDisasterWatchEntity = AusNZDisasterWatchEntity

@@ -21,6 +21,7 @@ from .const import (
 )
 from .coordinator import AustralianDisasterWatchCoordinator
 from .entity import AustralianDisasterWatchEntity
+from .forecast_entity import forecast_binary_sensors
 
 
 async def async_setup_entry(
@@ -37,6 +38,7 @@ async def async_setup_entry(
             ActiveHazardsNearbyBinarySensor(coordinator),
             PowerOutageActiveBinarySensor(coordinator),
             RoadClosureNearbyBinarySensor(coordinator),
+            *forecast_binary_sensors(coordinator),
         ]
     )
 

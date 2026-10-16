@@ -110,7 +110,67 @@ Flood and traffic camera snapshots near the monitored location, where the jurisd
    - Click **Submit**.
 
 ### Reconfiguration via Options Flow
-You can adjust the radius, toggle overrides, or change council dashboard URLs anytime by clicking **Configure** on the integration card without needing to restart Home Assistant.
+Click **Configure** on the integration card to open the options menu:
+
+- **Monitoring settings**: radius, emergency override, planned burns and council dashboard URL.
+- **Forecast signals and AI rain outlook**: the opt-in Open-Meteo features below.
+- **Add / edit / remove river points**: river flood forecast points.
+
+Saving any options page reloads the entry; no Home Assistant restart is needed.
+
+---
+
+## Forecast Signals (model-derived, not official)
+
+Three optional features use [Open-Meteo](https://open-meteo.com/) model forecasts. **All are off by default** and fetch nothing until you turn them on. They are separate from agency warnings: they are plain sensors with `official: false`, never `geo_location` hazards, never counted in the hazard sensors, and never mapped to Australian Warning System levels or to the official fire danger rating. **They do not replace BoM, MetService or emergency service warnings.**
+
+Each feature polls on its own schedule with one request per poll; a failed fetch makes only that feature's entities unavailable and is retried after 30 minutes.
+
+### Weather hazard signals (hourly)
+
+From the Open-Meteo Forecast API (best-match model) for the next 24 hours from the current hour:
+
+| Entity | Meaning |
+|---|---|
+| `sensor.*_max_wind_gust_forecast_24h` | Highest forecast 10 m gust (km/h) |
+| `binary_sensor.*_damaging_gusts_forecast` | On when that gust reaches the threshold (default 90 km/h, BoM's damaging wind criterion) |
+| `sensor.*_max_apparent_temperature_forecast_24h` | Highest forecast apparent temperature (°C) |
+| `binary_sensor.*_extreme_heat_forecast` | On when that temperature reaches the threshold (default 40 °C) |
+| `sensor.*_thunderstorm_potential_forecast` | `low` / `moderate` / `high` / `very_high` |
+| `sensor.*_calculated_fire_danger_index_not_official` | Calculated McArthur FFDI (not official) |
+
+- **Thunderstorm potential** is a project heuristic, not a BoM category. Each hour is rated from CAPE and precipitation probability together: very high at CAPE ≥ 2500 J/kg and ≥ 40 %, high at ≥ 1000 J/kg and ≥ 30 %, moderate at ≥ 500 J/kg and ≥ 20 %. A model thunderstorm weather code (WMO 95, 96, 99) makes the hour at least high. It ignores wind shear and convective inhibition. Open-Meteo's `lightning_potential` is not used because it is empty for Australia and New Zealand.
+- **Calculated fire danger index** uses the McArthur Mk5 FFDI in the Noble et al. (1980) form, `FFDI = 2·exp(−0.450 + 0.987·ln D − 0.0345·RH + 0.0338·T + 0.0234·V)`, with mean 10 m wind (not gusts). The drought factor `D` is **experimental and not validated**: Griffiths (1999) with the soil dryness index replaced by a 20-day proxy (FAO reference evapotranspiration minus effective rain, the part of each rain event above its first 5 mm, clamped to 0–203.2 mm). The past 20 days are archived model values, not gauge observations. It is not an AFDRS rating; the official rating stays in the Fire Danger Rating sensor.
+- Attributes: `source`, `model` (`best_match`), `forecast_issued_at` (when the forecast was fetched; Open-Meteo does not report a run time for best match), `window_start`, `window_end`, `peak_time` and the values behind each signal.
+
+### River flood forecast (every 6 hours)
+
+From the Open-Meteo Flood API (GloFAS v4, about 5 km river grid), for up to 10 named points. For each point:
+
+| Entity | Meaning |
+|---|---|
+| `sensor.*_river_discharge_<name>` | Today's (UTC) ensemble-mean discharge (m³/s); attributes `forecast` (7 days of mean, max and p75), `p75`, `trend` (rising/steady/falling over the horizon, 10 % band) |
+| `binary_sensor.*_river_flood_risk_<name>` | On when the ensemble maximum (`river_discharge_max`, the wettest ensemble member) on any day within the horizon (1–7 days, default 3) exceeds the point's threshold |
+
+- When you add a point, the integration checks that it has GloFAS data. A point in a city centre or by a small creek can fall outside the river grid; it then checks 16 neighbouring cells (0.05° and 0.1° away, in one request) and suggests the one with the largest discharge. This neighbour search is the integration's own heuristic.
+- The default threshold is the cell's **median annual peak discharge** over the last 20 years of the GloFAS reanalysis (about a 2-year flood; GloFAS's own flood alerts use return-period thresholds like this). It is fetched once when the point is added; you can override it with a local flood level in m³/s. `river_discharge_p75` is the 75th percentile across ensemble members, not a historical percentile.
+- All points are fetched in one request. GloFAS updates daily.
+
+### Experimental AI ensemble rain outlook (every 6 hours)
+
+Experimental AI model output from the Open-Meteo Ensemble API: ECMWF AIFS (51 members, new run every 6 hours) and, behind its own toggle (off by default), Google WeatherNext 2 (64 members, every 12 hours). Only models with a new run are requested, together in one request.
+
+| Entity | Meaning |
+|---|---|
+| `sensor.*_experimental_ai_heavy_rain_probability_24h` | Share of members (%) with a next-24-hour total at or above the threshold (default 50 mm) |
+| `sensor.*_experimental_ai_heavy_rain_probability_72h` | Share of members with any rolling 24-hour total in the next 72 hours at or above the threshold |
+| `sensor.*_experimental_ai_rain_outlook` | Ensemble-mean rain in the next 24 hours (mm); attributes give each model's probabilities, mean and 90th percentile, and whether the models agree within 20 points |
+
+Models are combined with equal weight, so WeatherNext 2's larger ensemble does not dominate. Every entity carries `experimental: true` and the notice "Experimental AI model output. Not an official warning." Whether Google's experimental real-time data terms carry through to WeatherNext 2 data served by Open-Meteo is **unverified**; that is why it has a separate toggle.
+
+### Data licence and usage limits
+
+Open-Meteo data are [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) ("Weather data by Open-Meteo.com"); flood data come from GloFAS (Copernicus) and AIFS from ECMWF (CC BY 4.0). Each entity's `attribution` names its sources. Open-Meteo's free API is for **non-commercial use only** and limited to 10,000 calls a day, 5,000 an hour and 600 a minute per IP ([terms](https://open-meteo.com/en/terms)). Large requests count as several calls, and ensemble requests count per member set. With all features on, one entry uses well under 1,000 weighted calls a day; adding a river point costs a one-off history request.
 
 To change the state or location, use **Reconfigure** on the integration entry. Reconfigure also updates the options above, and renames the entry when the state or location changes.
 

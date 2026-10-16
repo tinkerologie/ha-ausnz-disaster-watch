@@ -62,6 +62,8 @@ async def test_options_flow_reloads_and_applies_changes(
     assert first_coordinator.radius_km == 50.0
 
     result = await hass.config_entries.options.async_init(mock_config_entry.entry_id)
+    assert result["type"] is FlowResultType.MENU
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "settings"})
     assert result["type"] is FlowResultType.FORM
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],

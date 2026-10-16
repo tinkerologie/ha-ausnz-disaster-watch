@@ -171,3 +171,43 @@ ATTR_INCIDENT_COUNT: Final = "incident_count"
 ATTR_HIGHEST_WARNING_LEVEL: Final = "highest_warning_level"
 ATTR_NEAREST_INCIDENT_TITLE: Final = "nearest_incident_title"
 ATTR_NEAREST_INCIDENT_DISTANCE: Final = "nearest_incident_distance"
+
+# Open-Meteo forecast features (#38, #39, #40). All are opt-in and off for existing entries.
+# Model-derived signals: kept apart from agency warnings and never mapped to warning levels.
+CONF_WEATHER_SIGNALS: Final = "weather_signals"
+CONF_GUST_THRESHOLD: Final = "gust_threshold"
+CONF_HEAT_THRESHOLD: Final = "heat_threshold"
+CONF_AI_ENSEMBLE: Final = "ai_ensemble"
+CONF_AI_WEATHERNEXT: Final = "ai_weathernext"
+CONF_HEAVY_RAIN_THRESHOLD: Final = "heavy_rain_threshold"
+CONF_RIVER_POINTS: Final = "river_points"
+
+DEFAULT_WEATHER_SIGNALS: Final = False
+DEFAULT_GUST_THRESHOLD: Final = 90  # km/h, BoM damaging-wind gust criterion
+MIN_GUST_THRESHOLD: Final = 50
+MAX_GUST_THRESHOLD: Final = 150
+DEFAULT_HEAT_THRESHOLD: Final = 40  # °C apparent temperature
+MIN_HEAT_THRESHOLD: Final = 30
+MAX_HEAT_THRESHOLD: Final = 50
+DEFAULT_AI_ENSEMBLE: Final = False
+DEFAULT_AI_WEATHERNEXT: Final = False
+DEFAULT_HEAVY_RAIN_THRESHOLD: Final = 50  # mm in 24 h
+MIN_HEAVY_RAIN_THRESHOLD: Final = 5
+MAX_HEAVY_RAIN_THRESHOLD: Final = 500
+
+# River point keys (stored as a list of dicts in entry options)
+RIVER_POINT_ID: Final = "id"
+RIVER_POINT_NAME: Final = "name"
+RIVER_POINT_THRESHOLD: Final = "threshold"  # m³/s
+RIVER_POINT_BASELINE: Final = "baseline"  # m³/s, median annual peak of the GloFAS reanalysis
+RIVER_POINT_HORIZON: Final = "horizon_days"
+DEFAULT_RIVER_HORIZON: Final = 3
+MAX_RIVER_HORIZON: Final = 7
+MAX_RIVER_POINTS: Final = 10
+
+# Poll cadence. Forecasts change a few times a day, so they poll far less often than incidents.
+WEATHER_SIGNALS_INTERVAL: Final = timedelta(hours=1)
+RIVER_FORECAST_INTERVAL: Final = timedelta(hours=6)  # GloFAS updates daily
+AI_ENSEMBLE_INTERVAL: Final = timedelta(hours=6)  # AIFS runs every 6 h
+AI_WEATHERNEXT_MIN_AGE: Final = timedelta(hours=12)  # WeatherNext 2 runs every 12 h
+FORECAST_RETRY_INTERVAL: Final = timedelta(minutes=30)
