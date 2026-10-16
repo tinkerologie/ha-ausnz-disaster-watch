@@ -70,8 +70,13 @@ class GAEarthquakeProvider(BaseHazardProvider):
                 # A missing flag means the format changed: count the row as malformed, not hidden.
                 if (flag := props.get("display_flag")) is None:
                     raise KeyError("display_flag")
-                if flag != "Y" or not props.get("event_id"):
+                if flag != "Y":
                     continue
+                # A displayed event without an ID or a readable origin time is a format change
+                if not props.get("event_id"):
+                    raise KeyError("event_id")
+                if self.parse_datetime(props.get("origin_time")) is None:
+                    raise ValueError("origin_time missing or unreadable")
                 hazard = self._parse_feature(props)
             except MALFORMED_ITEM_ERRORS as err:
                 malformed += 1
