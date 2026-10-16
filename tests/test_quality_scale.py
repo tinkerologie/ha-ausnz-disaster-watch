@@ -92,7 +92,24 @@ def _status(value: Any) -> str:
 @pytest.fixture(name="rules")
 def rules_fixture() -> dict[str, Any]:
     """Return the rules of quality_scale.yaml."""
-    return yaml.safe_load((INTEGRATION / "quality_scale.yaml").read_text(encoding="utf-8"))["rules"]
+    return yaml.load((INTEGRATION / "quality_scale.yaml").read_text(encoding="utf-8"), UniqueKeyLoader)["rules"]
+
+
+class UniqueKeyLoader(yaml.SafeLoader):
+    """A safe YAML loader that rejects a key listed twice instead of keeping the last one."""
+
+    def construct_mapping(self, node: yaml.MappingNode, deep: bool = False) -> dict[Any, Any]:
+        """Build the mapping, failing on a duplicate key."""
+        keys = [self.construct_object(key, deep=deep) for key, _ in node.value]
+        if duplicates := {key for key in keys if keys.count(key) > 1}:
+            raise yaml.constructor.ConstructorError(None, None, f"duplicate keys {sorted(duplicates)}", node.start_mark)
+        return super().construct_mapping(node, deep=deep)
+
+
+def test_duplicate_rule_is_rejected() -> None:
+    """A rule listed twice fails to load instead of the second silently winning."""
+    with pytest.raises(yaml.constructor.ConstructorError, match="duplicate keys"):
+        yaml.load("rules:\n  brands: done\n  brands: todo\n", UniqueKeyLoader)
 
 
 def test_every_rule_is_listed(rules: dict[str, Any]) -> None:
