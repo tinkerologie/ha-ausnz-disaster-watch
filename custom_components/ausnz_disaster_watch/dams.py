@@ -268,12 +268,16 @@ def _in_australia(latitude: float, longitude: float) -> bool:
     return _LAT_RANGE[0] <= latitude <= _LAT_RANGE[1] and _LON_RANGE[0] <= longitude <= _LON_RANGE[1]
 
 
-def _coverage_end(value: Any) -> datetime | None:
-    """Return a series' last timestamp, or None when it has no data."""
+def _parse_time(value: Any) -> datetime | None:
+    """Return a KiWIS timestamp in UTC, or None when it is missing, invalid or has no offset.
+
+    KiWIS sends ISO times with the station's offset; a time without one is not guessed (#13).
+    """
     try:
-        return datetime.fromisoformat(str(value)).astimezone(UTC)
+        parsed = datetime.fromisoformat(str(value))
     except ValueError:
         return None
+    return parsed.astimezone(UTC) if parsed.tzinfo is not None else None
 
 
 def _first_value(rows: list[dict[str, Any]], field: str) -> float | None:
@@ -321,7 +325,7 @@ def parse_storage_list(payload: Any, attributes: dict[str, dict[str, Any]], now:
     for series_row in _table(payload, "storage list"):
         row = {**attributes.get(str(series_row.get("station_id")), {}), **series_row}
         preference = SERIES_PREFERENCE.get(str(row.get("parametertype_name")), ())
-        end = _coverage_end(row.get("to"))
+        end = _parse_time(row.get("to"))
         owner = str(row.get("DATA_OWNER"))
         if row.get("ts_name") not in preference or end is None or end < cutoff or owner not in OWNER_ATTRIBUTIONS:
             continue
@@ -373,10 +377,10 @@ def parse_values(payload: Any) -> dict[str, list[tuple[datetime, float]]]:
         for point in item.get("data") or []:
             try:
                 value = _optional_float(point[1])
-                observed = datetime.fromisoformat(str(point[0])).astimezone(UTC)
-            except (IndexError, KeyError, TypeError, ValueError):
+                observed = _parse_time(point[0])
+            except (IndexError, KeyError, TypeError):
                 continue
-            if value is not None:
+            if value is not None and observed is not None:
                 points.append((observed, value))
         series[str(item["ts_id"])] = points
     return series

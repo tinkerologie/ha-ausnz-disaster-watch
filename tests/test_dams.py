@@ -131,6 +131,7 @@ def test_parse_storage_list_skips_unusable_rows() -> None:
         ["1", "Ok", "-27.0", "152.0", "12", "DMQaQc.Merged.DailyMean.24HR", "Storage Volume", "", end],
         ["2", "No coordinates", "", "152.0", "21", volume, "Storage Volume", "", end],
         ["3", "No data", "-27.0", "153.0", "31", volume, "Storage Volume", "", ""],
+        ["3", "No offset", "-27.0", "153.0", "32", volume, "Storage Volume", "", "2026-10-15T10:00:00"],
         ["4", "No full supply", "-28.0", "152.0", "41", volume, "Storage Volume", "", end],
         ["5", "Level only", "-29.0", "152.0", "51", "DMQaQc.Merged.AsStored.1", "Storage Level", "", end],
         ["6", "Level only, no full level", "-30.0", "152.0", "61", volume, "Storage Level", "", end],
@@ -166,7 +167,11 @@ def test_parse_values() -> None:
     """Missing values and malformed points are skipped."""
     payload = [
         {"ts_id": "1", "data": [["2026-10-15T10:00:00.000+10:00", 5.0], ["2026-10-15T11:00:00.000+10:00", None]]},
-        {"ts_id": "2", "data": [["bad time", 1.0], ["2026-10-15T10:00:00.000+10:00"], None]},
+        # Invalid and offset-less times are skipped, not guessed
+        {
+            "ts_id": "2",
+            "data": [["bad time", 1.0], ["2026-10-15T10:00:00", 2.0], ["2026-10-15T10:00:00.000+10:00"], None],
+        },
         {"ts_id": "3"},
         {"no": "ts_id"},
         "not a series",
