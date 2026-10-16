@@ -433,6 +433,7 @@ async def test_options_flow(
         "earthquakes",
         "national_feeds",
         "cameras",
+        "emergency_broadcaster",
         "add_river_point",
         "river_gauges",
     ]
