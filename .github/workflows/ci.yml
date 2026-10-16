@@ -45,6 +45,15 @@ jobs:
           restore-keys: |
             ha-venv-${{ runner.os }}-${{ runner.environment }}-py314-lint-
 
+      - name: Drop a cached venv built under another workspace path
+        # Virtualenvs hard-code their absolute path; a cache restored on a runner with a
+        # different workspace (another self-hosted runner, or GitHub-hosted) is unusable.
+        run: |
+          if [ -f .local/ha-venv/bin/activate ] && ! grep -q "$PWD/.local/ha-venv" .local/ha-venv/bin/activate; then
+            echo "Cached venv was built elsewhere; recreating it"
+            rm -rf .local/ha-venv
+          fi
+
       - name: Install lint dependencies
         run: |
           if [ ! -d .local/ha-venv ] || [ ! -x .local/ha-venv/bin/python3 ]; then
@@ -97,6 +106,15 @@ jobs:
           key: ha-venv-${{ runner.os }}-${{ runner.environment }}-py314-ha${{ steps.ha_version.outputs.HA_VERSION }}-${{ hashFiles('**/requirements*.txt') }}
           restore-keys: |
             ha-venv-${{ runner.os }}-${{ runner.environment }}-py314-ha${{ steps.ha_version.outputs.HA_VERSION }}-
+
+      - name: Drop a cached venv built under another workspace path
+        # Virtualenvs hard-code their absolute path; a cache restored on a runner with a
+        # different workspace (another self-hosted runner, or GitHub-hosted) is unusable.
+        run: |
+          if [ -f .local/ha-venv/bin/activate ] && ! grep -q "$PWD/.local/ha-venv" .local/ha-venv/bin/activate; then
+            echo "Cached venv was built elsewhere; recreating it"
+            rm -rf .local/ha-venv
+          fi
 
       - name: Install build tools (self-hosted runner)
         # GitHub-hosted images include these; some Home Assistant test dependencies
