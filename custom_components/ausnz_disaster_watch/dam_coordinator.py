@@ -52,6 +52,9 @@ class DamStorageCoordinator(DataUpdateCoordinator[dict[str, StorageReading]]):
         )
         self.sites = sites
         self._session = async_get_clientsession(hass)
+        # The last Water Data Online readings on their own, kept through outages and aged
+        # separately from the merged readings, so an operator reading never refreshes them
+        self._bom: dict[str, StorageReading] = {}
 
     async def _async_update_data(self) -> dict[str, StorageReading]:
         """Fetch readings, bridging outages with the previous readings."""
@@ -59,11 +62,13 @@ class DamStorageCoordinator(DataUpdateCoordinator[dict[str, StorageReading]]):
         cutoff = now - DAM_READING_WINDOW
         error: DamSourceError | None = None
         try:
-            bom = await async_fetch_readings(self._session, self.sites, now)
+            self._bom = await async_fetch_readings(self._session, self.sites, now)
         except DamSourceError as err:
             _LOGGER.debug("Dam storages unavailable: %s", err)
             error = err
-            bom = {key: reading for key, reading in (self.data or {}).items() if reading.observed_at >= cutoff}
+            self._bom = {key: reading for key, reading in self._bom.items() if reading.observed_at >= cutoff}
+        bom = self._bom
+        # Only this poll's operator readings are merged: a feed that is down adds nothing
         operators = await async_fetch_operator_readings(self._session, self.sites, now)
         readings: dict[str, StorageReading] = {}
         for site in self.sites:

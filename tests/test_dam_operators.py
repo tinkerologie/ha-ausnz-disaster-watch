@@ -81,7 +81,9 @@ def _bom(site: StorageSite, volume: float | None, level: float | None) -> Storag
     return StorageReading(site, BOM_OBSERVED, volume, level, 10.0)
 
 
-def kisters_handler(url: URL, *, fail: bool = False) -> AiohttpClientMockResponse | None:
+def kisters_handler(
+    url: URL, *, fail: bool = False, bodies: dict[str, Any] | None = None
+) -> AiohttpClientMockResponse | None:
     """Answer WaterNSW web service requests with the captured responses."""
     if url.host != NSW_HOST:
         return None
@@ -92,15 +94,22 @@ def kisters_handler(url: URL, *, fail: bool = False) -> AiohttpClientMockRespons
         return AiohttpClientMockResponse("GET", url, json=load("waternsw_sto_sites.json"))
     params = request["params"]
     name = VARIABLES[f"{params['varfrom']}/{params['varto']}"]
-    return AiohttpClientMockResponse("GET", url, json=load(f"waternsw_{name}.json"))
+    body = (bodies or {}).get(name) or load(f"waternsw_{name}.json")
+    return AiohttpClientMockResponse("GET", url, json=body)
 
 
-def route(aioclient_mock: AiohttpClientMocker, *, nsw_fail: bool = False, hydro: Any = None) -> None:
+def route(
+    aioclient_mock: AiohttpClientMocker,
+    *,
+    nsw_fail: bool = False,
+    hydro: Any = None,
+    bodies: dict[str, Any] | None = None,
+) -> None:
     """Route WaterNSW and Hydro Tasmania requests; an int ``hydro`` is an HTTP status."""
     page = (FIXTURES / "hydro_tasmania.html").read_text() if hydro is None else hydro
 
     async def _side_effect(method: str, url: URL, data: Any) -> AiohttpClientMockResponse:
-        if (response := kisters_handler(url, fail=nsw_fail)) is not None:
+        if (response := kisters_handler(url, fail=nsw_fail, bodies=bodies)) is not None:
             return response
         if isinstance(page, int):
             return AiohttpClientMockResponse("GET", url, status=page)
@@ -181,6 +190,20 @@ async def test_waternsw_readings_window(hass: HomeAssistant, aioclient_mock: Aio
     )
     assert next_day["203042"].spill_24h_ml is None
     assert next_day["203042"].level_m == 129.71
+
+
+async def test_waternsw_totals_of_one_day(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) -> None:
+    """Spill and release are only shown together for the same 9 am day."""
+    spill = load("waternsw_spill.json")
+    for trace in spill["return"]["traces"]:
+        # The spill total is a day older than the release total
+        trace["trace"] = [
+            {**point, "t": point["t"] - 1000000} for point in trace["trace"] if point["t"] == 20261015090000
+        ]
+    route(aioclient_mock, bodies={"spill": spill})
+    readings = await async_waternsw_readings(async_get_clientsession(hass), ["203042"], NOW)
+    toonumbar = readings["203042"]
+    assert (toonumbar.spill_24h_ml, toonumbar.release_24h_ml, toonumbar.totals_date) == (None, 29.0, "2026-10-15")
 
 
 async def test_waternsw_no_variable(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) -> None:

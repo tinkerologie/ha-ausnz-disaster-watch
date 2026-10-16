@@ -58,6 +58,8 @@ WATERNSW_LEVEL_TOLERANCE_M: Final = 0.5
 WATERNSW_VOLUME_TOLERANCE: Final = 0.1
 # Operator readings older than this are ignored
 OPERATOR_READING_WINDOW: Final = timedelta(days=3)
+# Longest the options flow waits for operator matching after discovery
+OPERATOR_MATCH_TIMEOUT: Final = timedelta(seconds=45)
 # The WaterNSW storage gauge list changes rarely
 WATERNSW_SITE_CACHE_TTL: Final = timedelta(hours=24)
 
@@ -208,6 +210,9 @@ async def async_waternsw_readings(
         spill, release = latest.get("spill"), latest.get("release")
         current = [point for point in (level, volume) if point is not None and point[0] >= cutoff]
         totals = [point for point in (spill, release) if point is not None and point[0] >= cutoff]
+        # Spill and release are shown together for one 9 am day: the latest one with either
+        day = max((point[0] for point in totals), default=None)
+        totals = [point for point in totals if point[0] == day]
         if not current and not totals:
             continue
         readings[station] = OperatorReading(
@@ -217,7 +222,7 @@ async def async_waternsw_readings(
             volume_ml=round(volume[1], 1) if volume is not None and volume in current else None,
             spill_24h_ml=round(spill[1], 1) if spill is not None and spill in totals else None,
             release_24h_ml=round(release[1], 1) if release is not None and release in totals else None,
-            totals_date=max(point[0] for point in totals).astimezone(_AEST).date().isoformat() if totals else None,
+            totals_date=day.astimezone(_AEST).date().isoformat() if day is not None and totals else None,
         )
     return readings
 

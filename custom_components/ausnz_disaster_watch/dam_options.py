@@ -23,7 +23,7 @@ from .const import (
     LOCATION_MODE_HOME,
     STATE_NZ,
 )
-from .dam_operators import async_attach_operators
+from .dam_operators import OPERATOR_MATCH_TIMEOUT, async_attach_operators
 from .dams import (
     DAM_DISCOVERY_TIMEOUT,
     DamSourceError,
@@ -69,7 +69,8 @@ class DamOptionsFlow(OptionsFlowWithReload):
         """Pick storages near the location to add as sensors."""
         selected = sites_from_options(self.config_entry.options.get(CONF_DAM_STORAGES))
         if user_input is not None:
-            known = {**self._discovered_storages, **{site.key: site for site in selected}}
+            # A storage discovered again (and matched to its operator feed) replaces the stored copy
+            known = {**{site.key: site for site in selected}, **self._discovered_storages}
             # The selector only accepts listed keys, all of which are known
             chosen = [known[key].as_dict() for key in user_input.get(CONF_DAM_STORAGES, [])]
             return self.async_create_entry(data={**self.config_entry.options, CONF_DAM_STORAGES: chosen})
@@ -93,12 +94,17 @@ class DamOptionsFlow(OptionsFlowWithReload):
                     radius_km=float(config.get(CONF_RADIUS, DEFAULT_RADIUS)),
                     now=now,
                 )
-                # WaterNSW and Hydro Tasmania storages get their operator feed (fresher, with spill data)
-                discovered = await async_attach_operators(session, discovered, now)
         except (DamSourceError, TimeoutError) as err:
             _LOGGER.debug("Dam storage discovery failed: %r", err)
             errors["base"] = "dams_unavailable"
             discovered = []
+        try:
+            # WaterNSW and Hydro Tasmania storages get their operator feed (fresher, with spill
+            # data). Optional: a slow feed leaves the Bureau's storages to choose from.
+            async with asyncio.timeout(OPERATOR_MATCH_TIMEOUT.total_seconds()):
+                discovered = await async_attach_operators(session, discovered, now)
+        except TimeoutError:
+            _LOGGER.debug("Dam storage operator matching timed out")
         self._discovered_storages = {reading.site.key: reading.site for reading in discovered}
         for reading in discovered:
             labels[reading.site.key] = storage_label(reading, latitude, longitude)
