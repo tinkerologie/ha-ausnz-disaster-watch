@@ -360,6 +360,8 @@ Card-specific options:
 | Map | `zoom` | fit incidents | Initial zoom level (1 to 18). |
 | Map | `radar` | `true` | Animated RainViewer rain radar. |
 | Map | `radar_opacity` | `0.7` | Radar layer opacity (0.1 to 1). |
+| Map | `satellite_layer` | `none` | Satellite imagery under the incidents: `himawari_visible` (daytime clouds, every 10 minutes), `himawari_ir` (clouds day and night, every 10 minutes), `viirs_truecolor` (daily true colour image: smoke, burn scars, flood extent) or `none`. |
+| Map | `show_cyclone_tracks` | `false` | Draw the GDACS forecast track, wind areas and uncertainty cone of current cyclones listed by the **Regional Disaster Alerts** sensor. Needs the integration option **Regional disaster alerts (GDACS)**. |
 | All-in-one | `cards` | `status`, `incidents`, `warnings`, `fire_danger`, `roads`, `outages` | Sections to stack, in order. Also available: `conditions`, `relief`, `cameras`, `map`. |
 
 ### Examples
@@ -395,6 +397,15 @@ Pick the device in the card editor rather than typing the ID. In the **sections*
 ### Map and radar
 
 The map uses Home Assistant's own map tile service (OpenStreetMap data) and falls back to OpenStreetMap tiles on older cores. Rain radar comes from the free [RainViewer](https://www.rainviewer.com/) public API, which is free for personal and educational use and requires attribution; the credit is shown on the map. RainViewer's public tiles stop at zoom level 7, so radar is scaled up when you zoom in. The radar list is fetched at most every 10 minutes, the animation pauses when the card is off screen, and it does not autoplay if your device asks for reduced motion.
+
+Satellite imagery (`satellite_layer`, off by default) comes from [NASA GIBS](https://www.earthdata.nasa.gov/engage/open-data-services-software-policies/data-use-guidance), which needs no key:
+
+- **Himawari** visible and infrared show clouds and storms where radar has no coverage (inland and offshore). They animate on the same timeline as the radar: each radar frame shows the satellite image taken at or before it. With the radar off, the satellite frames animate on their own. Reduced motion shows the latest frame only. Himawari-9 belongs to the Japan Meteorological Agency, which is credited on the map.
+- **VIIRS true colour** is one image a day, useful the day after an event for smoke plumes, burn scars and flood extent. Chips under the map pick today, yesterday or the day before (UTC dates). Before 09:00 UTC today's image does not yet cover Australia and New Zealand, so yesterday's is shown first.
+
+Cyclone tracks (`show_cyclone_tracks`, off by default) are drawn from GDACS for each current tropical cyclone in the **Regional Disaster Alerts** sensor: the observed and forecast track (dashed), the wind areas and the uncertainty cone. The card fetches only GDACS tropical cyclone geometry links. GDACS output is an automatic model estimate, so the map says so: follow BoM and MetService warnings.
+
+Chips under the map hide or show the satellite layer and cyclone tracks. The attribution on the map lists only the layers that are on. Your browser fetches the radar, satellite and cyclone data directly, not Home Assistant; see the [data source register](docs/development/DATA_SOURCES.md#shown-in-the-card-fetched-by-the-browser).
 
 ### Upgrading from the single card
 

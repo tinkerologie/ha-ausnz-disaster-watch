@@ -20,7 +20,7 @@ export const en = {
   "card.cameras.name": "Disaster Watch cameras",
   "card.cameras.description": "Flood and traffic camera snapshots.",
   "card.map.name": "Disaster Watch map",
-  "card.map.description": "Map of incidents with animated rain radar.",
+  "card.map.description": "Map of incidents with animated rain radar, optional satellite imagery and cyclone tracks.",
   "card.all.name": "Disaster Watch",
   "card.all.description": "All-in-one card: a configurable stack of the Disaster Watch cards.",
 
@@ -151,6 +151,18 @@ export const en = {
   "map.radar_at": "Radar {time}",
   "map.radar_unavailable": "Rain radar is unavailable right now.",
   "map.radar_off": "Radar off",
+  "map.play_satellite": "Play satellite animation",
+  "map.pause_satellite": "Pause satellite animation",
+  "map.satellite_at": "Satellite {time}",
+  "map.satellite_unavailable": "Satellite imagery is unavailable right now.",
+  "map.layers": "Map layers",
+  "map.layer.himawari_visible": "Himawari visible",
+  "map.layer.himawari_ir": "Himawari infrared",
+  "map.layer.viirs_truecolor": "VIIRS true colour",
+  "map.viirs_days": "VIIRS image date",
+  "map.cyclones": "Cyclone tracks",
+  "map.cyclones_unavailable": "Cyclone tracks are unavailable right now.",
+  "map.cyclone_legend": "GDACS model estimate — follow BoM / MetService warnings.",
 
   // Editor
   "editor.device": "Disaster Watch location",
@@ -171,6 +183,13 @@ export const en = {
   "editor.radar": "Rain radar",
   "editor.radar_helper": "Animated RainViewer radar (free for personal use, attribution shown on the map).",
   "editor.radar_opacity": "Radar opacity",
+  "editor.satellite_layer": "Satellite layer",
+  "editor.satellite_layer_helper":
+    "Himawari clouds (every 10 minutes; visible is daytime only, infrared day and night) or the daily VIIRS true colour image (smoke, burn scars, flood extent). Imagery from NASA GIBS.",
+  "editor.satellite_layer.none": "None",
+  "editor.show_cyclone_tracks": "Cyclone tracks",
+  "editor.show_cyclone_tracks_helper":
+    "Draw GDACS forecast tracks and wind areas of current cyclones listed by the Regional Disaster Alerts sensor (turn on 'Regional disaster alerts (GDACS)' in the integration options). Model estimates only: follow BoM and MetService warnings.",
   "editor.cards": "Sections",
   "editor.cards_helper": "Cards to stack, in order.",
 } as const;

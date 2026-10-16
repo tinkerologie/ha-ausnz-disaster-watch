@@ -39,9 +39,12 @@ from homeassistant.helpers import entity_registry as er
 
 ROOT = Path(__file__).resolve().parent.parent
 PACKAGE = ROOT / "custom_components" / "ausnz_disaster_watch"
+CARD_SOURCE = ROOT / "frontend" / "src"
 # XML namespace URIs are identifiers, not endpoints
 NAMESPACES = ("http://www.w3.org/2005/Atom", "http://www.georss.org/georss", "http://purl.org/dc/elements/1.1/")
-_URL_RE = re.compile(r"https?://[^\s\"'`)<>{]+")
+# Links to this project (card documentation), not data sources
+PROJECT_LINKS = ("https://github.com/tinkerologie/ha-ausnz-disaster-watch",)
+_URL_RE = re.compile(r"https?://[^\s\"'`)<>{$…]+")
 
 
 class _StubProvider(BaseHazardProvider):
@@ -59,22 +62,41 @@ class _StubProvider(BaseHazardProvider):
         return self._hazards
 
 
-def _code_urls() -> set[str]:
-    """Return every URL literal in the provider modules, const.py and config_flow.py (templates cut at '{')."""
-    files = [*sorted((PACKAGE / "providers").rglob("*.py")), PACKAGE / "const.py", PACKAGE / "config_flow.py"]
+def _python_modules() -> list[Path]:
+    """Return every Python module of the integration, providers and subpackages included."""
+    return sorted(PACKAGE.rglob("*.py"))
+
+
+def _urls_in(files: list[Path]) -> set[str]:
+    """Return every URL literal in ``files`` (templates cut at '{' or '${')."""
     urls: set[str] = set()
     for file in files:
         text = file.read_text(encoding="utf-8")
         # Join implicitly concatenated string literals ("https://host" "/path")
         text = re.sub(r'"\s*\n\s*"', "", text)
         urls.update(url.rstrip(".,/}") for url in _URL_RE.findall(text))
-    return {url for url in urls if not url.startswith(NAMESPACES)}
+    return {url for url in urls if not url.startswith(NAMESPACES + PROJECT_LINKS)}
+
+
+def _code_urls() -> set[str]:
+    """Return every URL literal in the integration's Python modules."""
+    return _urls_in(_python_modules())
+
+
+def _card_urls() -> set[str]:
+    """Return every URL literal in the card source: endpoints the browser fetches and credit links."""
+    return _urls_in(sorted(CARD_SOURCE.rglob("*.ts")))
 
 
 def test_register_lists_every_url_the_code_uses() -> None:
-    """Every URL in the providers and config appears in docs/development/DATA_SOURCES.md."""
+    """Every URL in the integration's modules appears in docs/development/DATA_SOURCES.md."""
     register = (ROOT / REGISTER_PATH).read_text(encoding="utf-8")
-    missing = sorted(url for url in _code_urls() if url not in register)
+    modules = {file.relative_to(PACKAGE).as_posix() for file in _python_modules()}
+    # The scan covers the whole package, not only providers/ (rivers, frontend registration, ...)
+    assert {"rivers.py", "frontend.py", "providers/gdacs.py", "camera.py"} <= modules
+    urls = _code_urls()
+    assert "https://hilltop.gw.govt.nz/Data.hts" in urls
+    missing = sorted(url for url in urls if url not in register)
     assert not missing, f"Add these URLs to {REGISTER_PATH}: {missing}"
     # Council dashboard endpoints are fetched by name through GuardianDashboard.fetch
     endpoints = set()
@@ -82,6 +104,24 @@ def test_register_lists_every_url_the_code_uses() -> None:
         endpoints.update(re.findall(r'\.fetch\(f?"(\w+)', file.read_text(encoding="utf-8")))
     assert endpoints
     assert not sorted(e for e in endpoints if f"`/dashboard/{e}" not in register)
+
+
+def test_register_lists_every_url_the_card_uses() -> None:
+    """Every URL in the card source (fetched by the browser, or credited) is in the register (#71)."""
+    register = (ROOT / REGISTER_PATH).read_text(encoding="utf-8")
+    urls = _card_urls()
+    assert {
+        "https://api.rainviewer.com/public/weather-maps.json",
+        "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best",
+    } <= urls
+    missing = sorted(url for url in urls if url not in register)
+    assert not missing, f"Add these URLs to {REGISTER_PATH} (Shown in the card): {missing}"
+    section = register.split("## Shown in the card (fetched by the browser)", 1)[1].split("\n## ", 1)[0]
+    for key in ("ha_map_tiles", "osm_tiles", "rainviewer", "nasa_gibs", "gibs_himawari", "gdacs"):
+        assert f"| `{key}`" in section, key
+    rows = [line for line in section.splitlines() if line.startswith("| `")]
+    assert rows
+    assert all("| card (browser)" in row for row in rows)
 
 
 def test_register_entries_are_consistent() -> None:

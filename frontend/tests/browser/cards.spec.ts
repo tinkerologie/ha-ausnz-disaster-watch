@@ -429,3 +429,237 @@ test("scattered radar tile failures do not hide the radar; only consecutive ones
   await expect(el.getByText("Rain radar is unavailable right now.")).toHaveCount(0);
   await expect(el.locator(".radar-bar ha-icon-button")).toBeVisible();
 });
+
+/* ---------- Satellite layers and cyclone tracks (#71) ---------- */
+
+const GIBS = "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/";
+/** DescribeDomains with frames up to 10 minutes ago, so the latest seven are the last 70 minutes. */
+function gibsDomains(): string {
+  const end = new Date(Math.floor(Date.now() / 600000) * 600000 - 600000);
+  const start = new Date(end.getTime() - 3 * 3600000);
+  const iso = (d: Date) => d.toISOString().replace(/\.\d{3}Z$/, "Z");
+  return `<Domains><DimensionDomain><ows:Identifier>time</ows:Identifier><Domain>${iso(start)}/${iso(end)}/PT10M</Domain></DimensionDomain></Domains>`;
+}
+const ALERTS_ID = "sensor.australia_and_new_zealand_disaster_watch_qld_dev_regional_disaster_alerts";
+const GEOMETRY_URL = "https://www.gdacs.org/gdacsapi/api/polygons/getgeometry?eventtype=TC&eventid=1000999&episodeid=4";
+const CYCLONE = {
+  type: "FeatureCollection",
+  features: [
+    { type: "Feature", properties: { Class: "Poly_Cones" }, geometry: { type: "Polygon", coordinates: [[[152, -20], [156, -20], [156, -16], [152, -20]]] } },
+    { type: "Feature", properties: { Class: "Poly_Green" }, geometry: { type: "Polygon", coordinates: [[[152, -22], [155, -22], [155, -19], [152, -22]]] } },
+    { type: "Feature", properties: { Class: "Poly_Red" }, geometry: { type: "Polygon", coordinates: [[[153, -21], [154, -21], [154, -20], [153, -21]]] } },
+    { type: "Feature", properties: { Class: "Line_Line_0", forecast: false }, geometry: { type: "LineString", coordinates: [[156, -16], [154, -19]] } },
+    { type: "Feature", properties: { Class: "Line_Line_1", forecast: true }, geometry: { type: "LineString", coordinates: [[154, -19], [153, -23]] } },
+    { type: "Feature", properties: { Class: "Point_Centroid" }, geometry: { type: "Point", coordinates: [154, -19] } },
+  ],
+};
+
+async function routeGibs(page: Page, domainRequests: string[] = [], tiles: string[] = []) {
+  await page.route(`${GIBS}**`, (route) => {
+    const url = route.request().url();
+    if (url.endsWith(".xml")) {
+      domainRequests.push(url);
+      return route.fulfill({ body: gibsDomains(), contentType: "text/xml", headers: { "access-control-allow-origin": "*" } });
+    }
+    tiles.push(url);
+    return route.fulfill({ body: PNG, contentType: "image/png" });
+  });
+}
+
+const attributionText = (el: ReturnType<Page["locator"]>) => el.locator(".leaflet-control-attribution").textContent();
+
+test("map config form offers satellite and cyclone options, both off by default (#71)", async ({ page }) => {
+  await setup(page);
+  const form = await page.evaluate(async () => {
+    const cls = customElements.get("ausnz-disaster-map-card") as unknown as {
+      getConfigForm: () => { schema: { name: string; default?: unknown; selector: Record<string, unknown> }[]; computeLabel: (s: { name: string }) => string };
+      validateConfig: (c: unknown) => void;
+    };
+    const { schema, computeLabel } = cls.getConfigForm();
+    const bad = (config: unknown) => {
+      try {
+        cls.validateConfig(config);
+        return "";
+      } catch (err) {
+        return (err as Error).message;
+      }
+    };
+    return {
+      fields: schema.map((s) => [s.name, s.default ?? null, computeLabel(s)]),
+      options: (schema.find((s) => s.name === "satellite_layer")!.selector.select as { options: { value: string; label: string }[] }).options,
+      errors: [bad({ satellite_layer: "modis" }), bad({ show_cyclone_tracks: "yes" }), bad({ satellite_layer: "himawari_ir", show_cyclone_tracks: true })],
+    };
+  });
+  expect(form.fields).toContainEqual(["satellite_layer", "none", "Satellite layer"]);
+  expect(form.fields).toContainEqual(["show_cyclone_tracks", false, "Cyclone tracks"]);
+  expect(form.options.map((o) => o.value)).toEqual(["none", "himawari_visible", "himawari_ir", "viirs_truecolor"]);
+  expect(form.options.every((o) => o.label && o.label !== o.value)).toBe(true);
+  expect(form.errors[0]).toContain("satellite_layer");
+  expect(form.errors[1]).toContain("show_cyclone_tracks");
+  expect(form.errors[2]).toBe("");
+});
+
+test("default map requests no satellite or GDACS data (#71)", async ({ page }) => {
+  const domains: string[] = [];
+  const { external } = await setup(page);
+  await routeGibs(page, domains);
+  const el = await mount(page, "ausnz-disaster-map-card", { device: QLD });
+  await expect(el.locator(".leaflet-container")).toBeVisible();
+  await page.waitForTimeout(300);
+  expect(domains).toEqual([]);
+  await expect(el.locator("ha-chip-set")).toHaveCount(0);
+  expect(await attributionText(el)).not.toContain("NASA");
+  expect(external).toEqual([]);
+});
+
+test("Himawari infrared animates on its own timeline and the chip hides it (#71)", async ({ page }) => {
+  const domains: string[] = [];
+  const tiles: string[] = [];
+  const { errors, external } = await setup(page);
+  await routeGibs(page, domains, tiles);
+  const el = await mount(page, "ausnz-disaster-map-card", { device: QLD, radar: false, satellite_layer: "himawari_ir" });
+  await expect(el.locator(".radar-bar .time")).toContainText("Satellite");
+  await expect(el.locator(".radar-bar ha-icon-button")).toHaveAttribute("aria-pressed", "true");
+  await expect(el.locator(".radar-bar .frames span")).toHaveCount(7);
+  expect(domains).toHaveLength(1);
+  expect(domains[0]).toContain("/1.0.0/Himawari_AHI_Band13_Clean_Infrared/default/GoogleMapsCompatible_Level6/all/");
+  await expect.poll(() => tiles.length).toBeGreaterThan(0);
+  expect(tiles.every((u) => /Himawari_AHI_Band13_Clean_Infrared\/default\/\d{4}-\d\d-\d\dT\d\d:\d0:00Z\/GoogleMapsCompatible_Level6\//.test(u))).toBe(true);
+  const attribution = await attributionText(el);
+  expect(attribution).toContain("NASA GIBS / Himawari-9 (JMA)");
+  expect(attribution).not.toContain("RainViewer");
+  // Seven frame layers, one visible at a time at the IR opacity.
+  const opacities = await el.locator(".satellite-frame").evaluateAll((els) => els.map((e) => (e as HTMLElement).style.opacity));
+  expect(opacities).toHaveLength(7);
+  expect(opacities.filter((o) => o === "0.6")).toHaveLength(1);
+  const before = await el.locator(".radar-bar .frames span.current").evaluate((s) => [...s.parentElement!.children].indexOf(s));
+  await page.waitForTimeout(1800);
+  const after = await el.locator(".radar-bar .frames span.current").evaluate((s) => [...s.parentElement!.children].indexOf(s));
+  expect(after).not.toBe(before);
+
+  const chip = el.locator("ha-filter-chip", { hasText: "Himawari infrared" });
+  await expect(chip).toHaveAttribute("selected", "");
+  await chip.click();
+  await expect(el.locator(".satellite-frame")).toHaveCount(0);
+  await expect(el.locator(".radar-bar")).toHaveCount(0);
+  expect(await attributionText(el)).not.toContain("NASA");
+  await el.screenshot({ path: join("test-results", "screenshots", "map-himawari-hidden.png") });
+  expect(errors).toEqual([]);
+  expect(external).toEqual([]);
+});
+
+test("Himawari follows the radar timeline and respects reduced motion (#71)", async ({ page }) => {
+  await setup(page, { reducedMotion: true, dark: true });
+  await routeGibs(page);
+  const el = await mount(page, "ausnz-disaster-map-card", { device: QLD, satellite_layer: "himawari_visible" }, { dark: true });
+  await expect(el.locator(".radar-bar .time")).toContainText("Radar");
+  await expect(el.locator(".satellite-frame")).toHaveCount(7);
+  await expect(el.locator(".radar-bar ha-icon-button")).toHaveAttribute("aria-pressed", "false");
+  const visibleFrames = () =>
+    el.locator(".satellite-frame").evaluateAll((els) => els.map((e) => (e as HTMLElement).style.opacity).filter((o) => o !== "0").length);
+  expect(await visibleFrames()).toBe(1);
+  const first = await el.locator(".radar-bar .time").textContent();
+  await page.waitForTimeout(1500);
+  expect(await el.locator(".radar-bar .time").textContent()).toBe(first);
+  const attribution = await attributionText(el);
+  expect(attribution).toContain("RainViewer");
+  expect(attribution).toContain("Himawari-9 (JMA)");
+  await page.waitForTimeout(300);
+  await el.screenshot({ path: join("test-results", "screenshots", "map-himawari-radar-dark.png") });
+});
+
+test("satellite outage shows a notice and keeps the radar (#71)", async ({ page }) => {
+  await setup(page, { reducedMotion: true });
+  await page.route(`${GIBS}**`, (route) => route.fulfill({ status: 503, body: "" }));
+  const el = await mount(page, "ausnz-disaster-map-card", { device: QLD, satellite_layer: "himawari_ir" });
+  await expect(el.getByText("Satellite imagery is unavailable right now.")).toBeVisible();
+  await expect(el.locator(".radar-bar .time")).toContainText("Radar");
+});
+
+test("VIIRS true colour shows one daily image with a three-day date chip (#71)", async ({ page }) => {
+  const tiles: string[] = [];
+  const domains: string[] = [];
+  const { errors } = await setup(page, { reducedMotion: true });
+  await routeGibs(page, domains, tiles);
+  const el = await mount(page, "ausnz-disaster-map-card", { device: QLD, radar: false, satellite_layer: "viirs_truecolor" });
+  await expect(el.locator(".satellite-frame")).toHaveCount(1);
+  const day = (offset: number) => new Date(Date.now() - offset * 86400000).toISOString().slice(0, 10);
+  // Before 09:00 UTC the default is yesterday: today's image is still empty over AU/NZ.
+  const first = new Date().getUTCHours() >= 9 ? 0 : 1;
+  await expect.poll(() => tiles.some((u) => u.includes(`/VIIRS_NOAA21_CorrectedReflectance_TrueColor/default/${day(first)}/GoogleMapsCompatible_Level9/`))).toBe(true);
+  expect(domains).toEqual([]);
+  // No animation for a daily image.
+  await expect(el.locator(".radar-bar")).toHaveCount(0);
+  expect(await attributionText(el)).toContain("NASA GIBS / VIIRS NOAA-21");
+  const chips = el.locator("ha-filter-chip[no-leading-icon]");
+  await expect(chips).toHaveCount(3);
+  await expect(chips.nth(first)).toHaveAttribute("selected", "");
+  tiles.length = 0;
+  await chips.nth(2).click();
+  await expect(chips.nth(2)).toHaveAttribute("selected", "");
+  await expect.poll(() => tiles.some((u) => u.includes(`/default/${day(2)}/`))).toBe(true);
+  expect(tiles.some((u) => u.includes(`/default/${day(first)}/`))).toBe(false);
+  await el.screenshot({ path: join("test-results", "screenshots", "map-viirs.png") });
+  expect(errors).toEqual([]);
+});
+
+test("GDACS cyclone tracks are drawn from allowlisted geometry URLs only (#71)", async ({ page }) => {
+  const geometry: string[] = [];
+  const { errors, external } = await setup(page, { reducedMotion: true });
+  await page.route("https://www.gdacs.org/**", (route) => {
+    geometry.push(route.request().url());
+    return route.fulfill({ json: CYCLONE, headers: { "access-control-allow-origin": "*" } });
+  });
+  const alerts = fixture.states[ALERTS_ID];
+  const states = {
+    [ALERTS_ID]: {
+      ...alerts,
+      state: "3",
+      attributes: {
+        ...alerts.attributes,
+        alerts: [
+          { title: "Orange notification for tropical cyclone ALFRED-26", event_type_code: "TC", geometry_url: GEOMETRY_URL },
+          { title: "Earthquake", event_type_code: "EQ", geometry_url: GEOMETRY_URL.replace("TC", "EQ") },
+          { title: "Elsewhere", geometry_url: "https://evil.example/geometry.json" },
+        ],
+      },
+    },
+  };
+  const off = await mount(page, "ausnz-disaster-map-card", { device: QLD }, { states });
+  await expect(off.locator(".leaflet-container")).toBeVisible();
+  await page.waitForTimeout(300);
+  expect(geometry).toEqual([]);
+
+  const el = await mount(page, "ausnz-disaster-map-card", { device: QLD, show_cyclone_tracks: true }, { states });
+  await expect(el.locator("path.cyclone-track")).toHaveCount(1);
+  await expect(el.locator("path.cyclone-track-forecast")).toHaveCount(1);
+  await expect(el.locator("path.cyclone-buffer-red")).toHaveCount(1);
+  await expect(el.locator("path.cyclone-cone")).toHaveCount(1);
+  expect(geometry).toEqual([GEOMETRY_URL]);
+  await expect(el.getByText("GDACS model estimate — follow BoM / MetService warnings.")).toBeVisible();
+  expect(await attributionText(el)).toContain("GDACS (EC JRC / UN OCHA)");
+  // Colours come from HA tokens, not literals.
+  const fill = await el.locator("path.cyclone-buffer-red").evaluate((p) => getComputedStyle(p).fill);
+  expect(fill).not.toBe("none");
+  // Buffers sit below the incident markers.
+  const zCyclones = await el.locator(".leaflet-cyclones-pane").evaluate((p) => Number((p as HTMLElement).style.zIndex));
+  expect(zCyclones).toBeLessThan(400);
+  await el.screenshot({ path: join("test-results", "screenshots", "map-cyclone.png") });
+
+  const chip = el.locator("ha-filter-chip", { hasText: "Cyclone tracks" });
+  await chip.click();
+  await expect(el.locator("path.cyclone")).toHaveCount(0);
+  await expect(el.getByText("GDACS model estimate", { exact: false })).toHaveCount(0);
+  expect(await attributionText(el)).not.toContain("GDACS");
+  expect(errors).toEqual([]);
+  expect(external).toEqual([]);
+});
+
+test("GDACS outage shows a notice (#71)", async ({ page }) => {
+  await setup(page, { reducedMotion: true });
+  await page.route("https://www.gdacs.org/**", (route) => route.fulfill({ status: 500, body: "" }));
+  const alerts = fixture.states[ALERTS_ID];
+  const states = { [ALERTS_ID]: { ...alerts, attributes: { ...alerts.attributes, alerts: [{ title: "TC", geometry_url: GEOMETRY_URL }] } } };
+  const el = await mount(page, "ausnz-disaster-map-card", { device: QLD, show_cyclone_tracks: true }, { states });
+  await expect(el.getByText("Cyclone tracks are unavailable right now.")).toBeVisible();
+});
