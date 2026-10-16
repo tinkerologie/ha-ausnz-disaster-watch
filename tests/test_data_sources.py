@@ -22,7 +22,9 @@ from custom_components.ausnz_disaster_watch.providers import (
     NZHazardProvider,
     QueenslandHazardProvider,
     get_providers_for_config,
+    roads as road_providers_module,
 )
+from custom_components.ausnz_disaster_watch.providers.roads import BaseRoadProvider
 from custom_components.ausnz_disaster_watch.providers.sources import (
     DATA_SOURCES,
     PROVIDER_SOURCES,
@@ -59,7 +61,7 @@ class _StubProvider(BaseHazardProvider):
 
 def _code_urls() -> set[str]:
     """Return every URL literal in the provider modules, const.py and config_flow.py (templates cut at '{')."""
-    files = [*sorted((PACKAGE / "providers").glob("*.py")), PACKAGE / "const.py", PACKAGE / "config_flow.py"]
+    files = [*sorted((PACKAGE / "providers").rglob("*.py")), PACKAGE / "const.py", PACKAGE / "config_flow.py"]
     urls: set[str] = set()
     for file in files:
         text = file.read_text(encoding="utf-8")
@@ -76,7 +78,7 @@ def test_register_lists_every_url_the_code_uses() -> None:
     assert not missing, f"Add these URLs to {REGISTER_PATH}: {missing}"
     # Council dashboard endpoints are fetched by name through GuardianDashboard.fetch
     endpoints = set()
-    for file in (PACKAGE / "providers").glob("*.py"):
+    for file in (PACKAGE / "providers").rglob("*.py"):
         endpoints.update(re.findall(r'\.fetch\(f?"(\w+)', file.read_text(encoding="utf-8")))
     assert endpoints
     assert not sorted(e for e in endpoints if f"`/dashboard/{e}" not in register)
@@ -86,10 +88,11 @@ def test_register_entries_are_consistent() -> None:
     """Every provider maps to known sources; only open sources claim a licence in their attribution."""
     provider_names = {
         name
-        for name in providers_module.__all__
-        if isinstance(cls := getattr(providers_module, name), type)
+        for module in (providers_module, road_providers_module)
+        for name in module.__all__
+        if isinstance(cls := getattr(module, name), type)
         and issubclass(cls, BaseHazardProvider)
-        and cls is not BaseHazardProvider
+        and cls not in (BaseHazardProvider, BaseRoadProvider)
     }
     assert provider_names == set(PROVIDER_SOURCES)
     register = (ROOT / REGISTER_PATH).read_text(encoding="utf-8")

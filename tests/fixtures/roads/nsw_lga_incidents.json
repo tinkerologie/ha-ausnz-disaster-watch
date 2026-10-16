@@ -1,0 +1,192 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": 291152,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          148.6682667,
+          -30.5106617
+        ],
+        "collections": []
+      },
+      "properties": {
+        "headline": "",
+        "speedLimit": -1,
+        "weblinkUrl": null,
+        "expectedDelay": -1,
+        "ended": false,
+        "isNewIncident": true,
+        "impactingNetwork": false,
+        "subCategoryB": null,
+        "isInitialReport": false,
+        "created": 1792099057000,
+        "isMajor": false,
+        "name": null,
+        "subCategoryA": "null",
+        "adviceA": "Never drive through floodwater",
+        "adviceB": "Plan your journey",
+        "adviceC": "Use an alternative route",
+        "incidentKind": "Unplanned",
+        "mainCategory": "FLOODING",
+        "lastUpdated": 1792099058150,
+        "weblinkName": null,
+        "displayName": "FLOODING",
+        "roads": [
+          {
+            "conditionTendency": "",
+            "crossStreet": "",
+            "delay": "",
+            "impactedLanes": [
+              {
+                "affectedDirection": "All directions",
+                "closedLanes": "",
+                "description": "",
+                "extent": "Closed",
+                "numberOfLanes": "",
+                "roadType": "Road"
+              }
+            ],
+            "locationQualifier": "at",
+            "mainStreet": "Hardies Lease Road",
+            "quadrant": "",
+            "queueLength": 0,
+            "region": "Far West NSW",
+            "secondLocation": "",
+            "suburb": "Come by Chance",
+            "trafficVolume": ""
+          }
+        ],
+        "OrgName": "Walgett Shire Council",
+        "OrgEmail": "admin@walgett.nsw.gov.au",
+        "OrgContact": "02 6828 6100",
+        "OrgWebsite": "http://www.walgett.nsw.gov.au",
+        "isLocalRoad": "Local road",
+        "CategoryIcon": "Flood"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 195973,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          151.277712,
+          -33.85304
+        ],
+        "collections": []
+      },
+      "properties": {
+        "headline": "",
+        "speedLimit": -1,
+        "weblinkUrl": null,
+        "expectedDelay": -1,
+        "ended": false,
+        "isNewIncident": true,
+        "impactingNetwork": false,
+        "subCategoryB": null,
+        "isInitialReport": false,
+        "created": 1716267201000,
+        "isMajor": false,
+        "name": null,
+        "subCategoryA": "Upgrade",
+        "adviceA": "Check signage",
+        "adviceB": "Avoid the area",
+        "adviceC": " ",
+        "end": 1798721340000,
+        "incidentKind": "Planned",
+        "mainCategory": "SCHEDULED ROADWORK",
+        "lastUpdated": 1716904806669,
+        "weblinkName": null,
+        "duration": null,
+        "start": 1716904800000,
+        "displayName": "SCHEDULED ROADWORK Upgrade",
+        "roads": [
+          {
+            "conditionTendency": "",
+            "crossStreet": "",
+            "delay": "",
+            "impactedLanes": [],
+            "locationQualifier": "at",
+            "mainStreet": "Horler Avenue",
+            "quadrant": "",
+            "queueLength": 0,
+            "region": "Sydney",
+            "secondLocation": "",
+            "suburb": "Vaucluse",
+            "trafficVolume": ""
+          }
+        ],
+        "OrgName": "Woollahra Municipal Council",
+        "OrgEmail": "records@woollahra.nsw.gov.au",
+        "OrgContact": "02 9391 7000",
+        "OrgWebsite": "http://www.woollahra.nsw.gov.au",
+        "isLocalRoad": "Local road",
+        "CategoryIcon": "Roadworks"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 286793,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          151.1047878,
+          -33.8775649
+        ],
+        "collections": []
+      },
+      "properties": {
+        "headline": "",
+        "speedLimit": -1,
+        "weblinkUrl": null,
+        "expectedDelay": -1,
+        "ended": false,
+        "isNewIncident": false,
+        "impactingNetwork": false,
+        "subCategoryB": null,
+        "isInitialReport": false,
+        "created": 1788222899000,
+        "isMajor": false,
+        "name": null,
+        "subCategoryA": "null",
+        "adviceA": "Allow extra travel time",
+        "adviceB": "Check signage",
+        "adviceC": "Use diversions",
+        "end": 1794664800000,
+        "hideEndDate": false,
+        "incidentKind": "Planned",
+        "mainCategory": "SPECIAL EVENT",
+        "lastUpdated": 1788223174934,
+        "weblinkName": null,
+        "duration": null,
+        "start": 1794592800000,
+        "displayName": "SPECIAL EVENT",
+        "roads": [
+          {
+            "conditionTendency": "",
+            "crossStreet": "Burwood Road",
+            "delay": "",
+            "impactedLanes": [],
+            "locationQualifier": "between",
+            "mainStreet": "Railway Parade",
+            "quadrant": "",
+            "queueLength": 0,
+            "region": "Sydney",
+            "secondLocation": "Shaftesbury Road",
+            "suburb": "Burwood",
+            "trafficVolume": ""
+          }
+        ],
+        "OrgName": "Burwood Council",
+        "OrgEmail": "council@burwood.nsw.gov.au",
+        "OrgContact": "02 9911 9911",
+        "OrgWebsite": "http://www.burwood.nsw.gov.au",
+        "isLocalRoad": "Local road",
+        "CategoryIcon": "PublicEvent"
+      }
+    }
+  ]
+}

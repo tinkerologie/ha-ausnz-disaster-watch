@@ -1,0 +1,150 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": 132882,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          118.750648498535,
+          -25.9874401092529
+        ]
+      },
+      "properties": {
+        "FID": 132882,
+        "Id": 236683,
+        "Location": "Great Northern Hwy near Ashburton Downs - Meekatharra Rd - Pothole\r\n",
+        "IncidentTy": "Pothole / Road Surface Damage",
+        "ClosureTyp": "",
+        "publishExt": "Yes",
+        "TrafficCon": "All Lanes Open",
+        "EntryDate": "16/10/2026 06:05:43",
+        "UpdateDate": "16/10/2026 06:05:42",
+        "Road": "Great Northern Hwy",
+        "Region": "Mid West Gascoyne",
+        "Suburb": "Shire of Meekatharra",
+        "GlobalID": "0e5b5c64-6807-4bd8-9b23-41d29e44bd7f",
+        "TrafficImp": "Exercise Extreme Caution.",
+        "SeeMoreUrl": null,
+        "LocalRoadName": ""
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 132895,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          116.694352247666,
+          -28.3480258541404
+        ]
+      },
+      "properties": {
+        "FID": 132895,
+        "Id": 236828,
+        "Location": "Geraldton Mt Magnet Rd from Mullewa to Mount Magnet - Pavement Damage\r\n",
+        "IncidentTy": "Pothole / Road Surface Damage",
+        "ClosureTyp": "Road open with caution",
+        "publishExt": "Yes",
+        "TrafficCon": "Road Closure",
+        "EntryDate": "16/10/2026 06:05:42",
+        "UpdateDate": "16/10/2026 06:05:42",
+        "Road": "Geraldton Mt Magnet Rd",
+        "Region": "Mid West Gascoyne",
+        "Suburb": "City of Greater Geraldton",
+        "GlobalID": "5a44660d-0d30-4891-a751-4ddddcbda6c5",
+        "TrafficImp": "Isolated Pavement Damage. Exercise Extreme Caution.",
+        "SeeMoreUrl": "",
+        "LocalRoadName": ""
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 133709,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.075879853184,
+          -21.4401057350756
+        ]
+      },
+      "properties": {
+        "FID": 133709,
+        "Id": 248089,
+        "Location": "Marble Bar Rd from North Pole Rd to Roy Hill, Shire of East Pilbara - Cattle",
+        "IncidentTy": "Animal / Livestock",
+        "ClosureTyp": "Road open with caution",
+        "publishExt": "Yes",
+        "TrafficCon": "Road Closure",
+        "EntryDate": "16/10/2026 06:05:43",
+        "UpdateDate": "16/10/2026 06:05:42",
+        "Road": "Marble Bar Rd",
+        "Region": "Pilbara",
+        "Suburb": "Shire of East Pilbara",
+        "GlobalID": "0055a254-0993-4952-b7cd-17ffd47a7e2a",
+        "TrafficImp": "Exercise Extreme Caution.",
+        "SeeMoreUrl": "",
+        "LocalRoadName": ""
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 136377,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          114.314987182617,
+          -25.9450492858887
+        ]
+      },
+      "properties": {
+        "FID": 136377,
+        "Id": 277886,
+        "Location": "North West Coastal Hwy 15km south of Wooramel Roadhouse - Pavement Damage\r\n",
+        "IncidentTy": "Pothole / Road Surface Damage",
+        "ClosureTyp": "",
+        "publishExt": "Yes",
+        "TrafficCon": "All Lanes Open",
+        "EntryDate": "16/10/2026 06:05:43",
+        "UpdateDate": "16/10/2026 06:05:42",
+        "Road": "North West Coastal Hwy",
+        "Region": "Mid West Gascoyne",
+        "Suburb": "Shire of Carnarvon",
+        "GlobalID": "2a988449-e866-48ce-b067-50d2989e4630",
+        "TrafficImp": "Speed restrictions in place. Exercise Extreme Caution.",
+        "SeeMoreUrl": "",
+        "LocalRoadName": ""
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 138576,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          115.856910705566,
+          -32.1231384277344
+        ]
+      },
+      "properties": {
+        "FID": 138576,
+        "Id": 316984,
+        "Location": "Kwinana Fwy northbound at Armadale Rd, Cockburn Central- Breakdown / Tow Away",
+        "IncidentTy": "Break Down / Tow Away",
+        "ClosureTyp": "",
+        "publishExt": "Yes",
+        "TrafficCon": "Left Emergency Lane Blocked",
+        "EntryDate": "16/10/2026 06:29:50",
+        "UpdateDate": "16/10/2026 06:29:50",
+        "Road": "Kwinana Fwy",
+        "Region": "Metro",
+        "Suburb": "Cockburn Central",
+        "GlobalID": "95360e47-a8b5-4065-9fc5-2f4aff74987d",
+        "TrafficImp": "Left Emergency Lane Blocked.  No Known Congestion.  Exercise Extreme Caution.",
+        "SeeMoreUrl": null,
+        "LocalRoadName": ""
+      }
+    }
+  ]
+}

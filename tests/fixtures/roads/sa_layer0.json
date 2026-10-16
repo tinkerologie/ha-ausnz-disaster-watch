@@ -1,0 +1,104 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": 684561,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          138.63952521700003,
+          -28.71123555099996
+        ]
+      },
+      "properties": {
+        "ROADWORKS_AND_INCIDENTS_ID": "3405080754",
+        "REC_TYPE": "INCIDENT",
+        "INCIDENT_ID": 87254,
+        "DESCRIPTION": "Ferry Closed",
+        "START_DATE": 1775662850000,
+        "END_DATE": null,
+        "ROAD_NO": 11000,
+        "LOCAL_ROAD": "Birdsville Track",
+        "SIDE_STREET": "Coopers Creek Ferry Crossing Accs",
+        "SUBURB": null,
+        "LATITUDE": -28.7112355505794,
+        "LONGITUDE": 138.639525216617,
+        "GIS_LINK_ID": 99993405080754,
+        "ACTIVE": " ",
+        "START_DATE_STRING": "Wed 08 Apr 2026 03:40 PM",
+        "END_DATE_STRING": null,
+        "TRAFFIC_DIR": null,
+        "NO_LANES_CLOSED": null,
+        "SPEED_LIMIT": null,
+        "ESRI_OID": 684561
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 683922,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          138.7165077310001,
+          -34.791127607999954
+        ]
+      },
+      "properties": {
+        "ROADWORKS_AND_INCIDENTS_ID": "3405081524",
+        "REC_TYPE": "24HR ROADWORKS",
+        "INCIDENT_ID": 0,
+        "DESCRIPTION": "Vms Trailer",
+        "START_DATE": 1783328400000,
+        "END_DATE": 1793350800000,
+        "ROAD_NO": 5206,
+        "LOCAL_ROAD": "Hancock Road",
+        "SIDE_STREET": "Royal Admiral Pl",
+        "SUBURB": "Surrey Downs",
+        "LATITUDE": -34.791127608451596,
+        "LONGITUDE": 138.716507730548,
+        "GIS_LINK_ID": 99993405081524,
+        "ACTIVE": " ",
+        "START_DATE_STRING": "Mon 06 Jul 2026 09:00 AM",
+        "END_DATE_STRING": "Fri 30 Oct 2026 09:00 AM",
+        "TRAFFIC_DIR": "Both Directions",
+        "NO_LANES_CLOSED": "None",
+        "SPEED_LIMIT": "No Restriction",
+        "ESRI_OID": 683922
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 683923,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          138.71745534700005,
+          -34.80360861899993
+        ]
+      },
+      "properties": {
+        "ROADWORKS_AND_INCIDENTS_ID": "3405081526",
+        "REC_TYPE": "24HR ROADWORKS",
+        "INCIDENT_ID": 0,
+        "DESCRIPTION": "Sewer Connection",
+        "START_DATE": 1783972800000,
+        "END_DATE": 1793340000000,
+        "ROAD_NO": 5206,
+        "LOCAL_ROAD": "Hancock Road",
+        "SIDE_STREET": "Littler Dr",
+        "SUBURB": "Surrey Downs",
+        "LATITUDE": -34.803608619241594,
+        "LONGITUDE": 138.717455347088,
+        "GIS_LINK_ID": 99993405081526,
+        "ACTIVE": " ",
+        "START_DATE_STRING": "Mon 13 Jul 2026 08:00 PM",
+        "END_DATE_STRING": "Fri 30 Oct 2026 06:00 AM",
+        "TRAFFIC_DIR": "South Bound",
+        "NO_LANES_CLOSED": "Closure",
+        "SPEED_LIMIT": "40",
+        "ESRI_OID": 683923
+      }
+    }
+  ]
+}

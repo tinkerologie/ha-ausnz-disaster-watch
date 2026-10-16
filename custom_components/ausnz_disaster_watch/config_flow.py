@@ -30,6 +30,7 @@ from homeassistant.util import dt as dt_util
 from .const import (
     CONF_COUNCIL_DASHBOARD_URL,
     CONF_EXCLUDE_HAZARD_REDUCTION,
+    CONF_INCLUDE_ROADWORKS,
     CONF_LATITUDE,
     CONF_LOCATION_MODE,
     CONF_LOCATION_NAME,
@@ -38,7 +39,9 @@ from .const import (
     CONF_RADIUS,
     CONF_RIVER_GAUGES,
     CONF_STATE,
+    CONF_VIC_API_KEY,
     DEFAULT_EXCLUDE_HAZARD_REDUCTION,
+    DEFAULT_INCLUDE_ROADWORKS,
     DEFAULT_OVERRIDE_EMERGENCY,
     DEFAULT_RADIUS,
     DOMAIN,
@@ -606,6 +609,42 @@ def gauge_field_names(sites: list[GaugeSite]) -> list[str]:
     return [f"{site.name} ({site.site_id})" if names.count(site.name) > 1 else site.name for site in sites]
 
 
+def road_option_fields(current_config: dict[str, Any]) -> dict[Any, Any]:
+    """Return the road feed option fields (#29) for the entry's state.
+
+    Planned roadworks and events are off by default (ACT has no road feed, and the NZTA feed
+    never lists planned works); the
+    optional DTP open data key is offered for Victoria only.
+    """
+    state = str(current_config.get(CONF_STATE, STATE_QLD)).upper()
+    fields: dict[Any, Any] = {}
+    if state not in (STATE_ACT, STATE_NZ):
+        fields[
+            vol.Required(
+                CONF_INCLUDE_ROADWORKS,
+                default=current_config.get(CONF_INCLUDE_ROADWORKS, DEFAULT_INCLUDE_ROADWORKS),
+            )
+        ] = BooleanSelector()
+    if state == STATE_VIC:
+        fields[
+            vol.Optional(CONF_VIC_API_KEY, description={"suggested_value": current_config.get(CONF_VIC_API_KEY)})
+        ] = TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD))
+    return fields
+
+
+def clean_road_options(options: dict[str, Any], user_input: dict[str, Any]) -> dict[str, Any]:
+    """Merge the road step into the saved options; a cleared or blank VIC key removes the key.
+
+    The key lives only in the options, so removing it there means "no key".
+    """
+    cleaned = {**options, **user_input}
+    if key := str(user_input.get(CONF_VIC_API_KEY) or "").strip():
+        cleaned[CONF_VIC_API_KEY] = key
+    else:
+        cleaned.pop(CONF_VIC_API_KEY, None)
+    return cleaned
+
+
 class AustralianDisasterWatchOptionsFlowHandler(HazardOptionsFlow, NationalFeedsOptionsFlow):
     """Handle options flow for Australia and New Zealand Disaster Watch."""
 
@@ -629,6 +668,8 @@ class AustralianDisasterWatchOptionsFlowHandler(HazardOptionsFlow, NationalFeeds
         menu = ["settings", "forecasts", "national_feeds", "add_river_point"]
         if self._offers_earthquakes:
             menu.insert(2, "earthquakes")
+        if road_option_fields({**self.config_entry.data, **self.config_entry.options}):
+            menu.insert(1, "roads")
         if self._points:
             menu += ["edit_river_point", "remove_river_point"]
         state = str({**self.config_entry.data, **self.config_entry.options}.get(CONF_STATE, "")).upper()
@@ -771,6 +812,19 @@ class AustralianDisasterWatchOptionsFlowHandler(HazardOptionsFlow, NationalFeeds
         return self.async_show_form(
             step_id="river_alert_levels",
             data_schema=vol.Schema(schema),  # type: ignore[arg-type]
+        )
+
+    async def async_step_roads(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> ConfigFlowResult:
+        """Manage the statewide road feed options (#29)."""
+        if user_input is not None:
+            return self.async_create_entry(data=clean_road_options(dict(self.config_entry.options), user_input))
+        current_config = {**self.config_entry.data, **self.config_entry.options}
+        return self.async_show_form(
+            step_id="roads",
+            data_schema=vol.Schema(road_option_fields(current_config)),  # type: ignore[arg-type]
         )
 
 

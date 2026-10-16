@@ -8,7 +8,7 @@ from enum import StrEnum
 import re
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 # Longest call to action written to state attributes
 CALL_TO_ACTION_MAX_LENGTH = 255
@@ -240,6 +240,16 @@ class DisasterWatchConfigModel(BaseModel):
     longitude: float | None = Field(default=None, ge=-180.0, le=180.0)
     location_name: str | None = Field(default=None)
     council_dashboard_url: str | None = Field(default=None)
+    include_roadworks: bool = Field(default=False)
+    vic_api_key: str | None = Field(default=None)
+
+    @field_validator("vic_api_key", mode="before")
+    @classmethod
+    def blank_key_is_none(cls, v: Any) -> str | None:
+        """Treat a blank or whitespace-only key as no key."""
+        if isinstance(v, str) and v.strip():
+            return v.strip()
+        return None
 
 
 class PowerOutageItem(BaseModel):
@@ -255,10 +265,58 @@ class PowerOutageItem(BaseModel):
     longitude: float | None = Field(default=None, ge=-180.0, le=180.0)
 
 
+class RoadEventCategory(StrEnum):
+    """What a road event means for someone travelling nearby (#29).
+
+    Planned categories (roadworks, special events) never turn on the "road closure nearby"
+    or "flooded road nearby" binary sensors, even when the include-roadworks option lists them.
+    """
+
+    FLOODING = "flooding"  # flooded road or crossing, open or closed
+    CLOSURE = "closure"  # road closed or impassable (unplanned)
+    HAZARD = "hazard"  # unplanned incident or damage on an open road
+    ROADWORKS = "roadworks"  # planned roadworks
+    SPECIAL_EVENT = "special_event"  # planned special event
+
+    @property
+    def is_planned(self) -> bool:
+        """Return True for scheduled works and events."""
+        return self in (RoadEventCategory.ROADWORKS, RoadEventCategory.SPECIAL_EVENT)
+
+    @classmethod
+    def infer(cls, status: str | None, reason: str | None = None) -> RoadEventCategory:
+        """Classify an item from its status and reason text (council feeds without a category).
+
+        Precedence is flooding, planned works, closure, then hazard, so a flooded road that
+        is also closed reads as flooding.
+        """
+        status_text = (status or "").lower()
+        text = f"{status_text} {(reason or '').lower()}"
+        if "flood" in text or "water over" in text:
+            return cls.FLOODING
+        if "roadwork" in text or re.search(r"\bplanned\b", text):  # not "unplanned"
+            return cls.ROADWORKS
+        if "special event" in text:
+            return cls.SPECIAL_EVENT
+        if "closed" in status_text or "closure" in status_text or "impassable" in status_text:
+            return cls.CLOSURE
+        return cls.HAZARD
+
+
 class RoadClosureItem(BaseModel):
     """Road hazard, closure, or flooded crossing from Council or TMR/LiveTraffic."""
 
     model_config = ConfigDict(extra="ignore")
+
+    @model_validator(mode="before")
+    @classmethod
+    def infer_category(cls, data: Any) -> Any:
+        """Derive the category from status and reason when a feed does not set one."""
+        if isinstance(data, dict) and data.get("category") is None:
+            # One fallback for a missing and a null status, matching the field default
+            status = data.get("status") or "Closed"
+            data = {**data, "category": RoadEventCategory.infer(str(status), data.get("reason"))}
+        return data
 
     id: str = Field(description="Unique road condition identifier")
     road: str = Field(default="", description="Road or highway name")
@@ -272,6 +330,19 @@ class RoadClosureItem(BaseModel):
     latitude: float | None = Field(default=None, ge=-90.0, le=90.0)
     longitude: float | None = Field(default=None, ge=-180.0, le=180.0)
     distance_km: float | None = Field(default=None, ge=0.0)
+    category: RoadEventCategory = Field(
+        default=RoadEventCategory.CLOSURE, description="Closure, flooding, hazard, roadworks or special event"
+    )
+
+    @property
+    def is_flooding(self) -> bool:
+        """Return True for a flooded road."""
+        return self.category == RoadEventCategory.FLOODING
+
+    @property
+    def is_planned(self) -> bool:
+        """Return True for planned roadworks and special events."""
+        return self.category.is_planned
 
 
 class WeatherWarningItem(BaseModel):

@@ -55,6 +55,7 @@
         "title": "Australia and New Zealand Disaster Watch options",
         "menu_options": {
           "settings": "Monitoring settings",
+          "roads": "Road closures",
           "forecasts": "Forecast signals and AI rain outlook",
           "earthquakes": "Earthquakes (Geoscience Australia)",
           "add_river_point": "Add a river flood forecast point",
@@ -72,6 +73,18 @@
           "override_emergency": "Statewide Emergency Warning Override",
           "exclude_hazard_reduction": "Exclude Hazard Reduction / Planned Burns",
           "council_dashboard_url": "Council Disaster Dashboard URL"
+        }
+      },
+      "roads": {
+        "title": "Road closures",
+        "description": "Road closures, flooded roads and road hazards come from your state's official road feed and are filtered to your monitoring radius.",
+        "data": {
+          "include_roadworks": "Include planned roadworks and events",
+          "vic_api_key": "VicRoads (DTP) open data API key"
+        },
+        "data_description": {
+          "include_roadworks": "List planned roadworks and special events from the state road feed in the road closures sensor. They never turn on Road Closure Nearby or Flooded Road Nearby.",
+          "vic_api_key": "Optional. Victorian road closures need a free API key: register at opendata.transport.vic.gov.au, subscribe to the \"Unplanned Disruptions - Road\" API and paste the key here. Leave empty to skip Victorian road data."
         }
       },
       "forecasts": {
@@ -227,6 +240,9 @@
       },
       "tsunami_warning": {
         "name": "Tsunami Warning"
+      },
+      "flooded_road_nearby": {
+        "name": "Flooded Road Nearby"
       }
     },
     "sensor": {

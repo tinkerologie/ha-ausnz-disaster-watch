@@ -1,0 +1,73 @@
+{
+  "type": "FeatureCollection",
+  "lastPublished": 1792103970000,
+  "layerName": "Flood",
+  "rights": {
+    "copyright": "Transport for NSW",
+    "licence": "https://opendata.transport.nsw.gov.au/dataset/live-traffic-hazards"
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "id": 286275,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          141.588625,
+          -29.470923
+        ],
+        "collections": []
+      },
+      "properties": {
+        "headline": "",
+        "speedLimit": -1,
+        "weblinkUrl": null,
+        "expectedDelay": -1,
+        "ended": false,
+        "isNewIncident": false,
+        "impactingNetwork": true,
+        "subCategoryB": null,
+        "isInitialReport": false,
+        "created": 1787766615000,
+        "isMajor": false,
+        "name": null,
+        "subCategoryA": "null",
+        "adviceA": "Never drive through floodwater",
+        "adviceB": "Plan your journey",
+        "adviceC": " ",
+        "incidentKind": "Unplanned",
+        "mainCategory": "FLOODING",
+        "lastUpdated": 1791838270364,
+        "weblinkName": null,
+        "displayName": "FLOODING",
+        "roads": [
+          {
+            "conditionTendency": "",
+            "crossStreet": "Cameron Corner Road",
+            "delay": "",
+            "impactedLanes": [
+              {
+                "affectedDirection": "Both directions",
+                "closedLanes": "",
+                "description": "",
+                "extent": "Closed",
+                "numberOfLanes": "",
+                "roadType": "Road"
+              }
+            ],
+            "locationQualifier": "between",
+            "mainStreet": "Hewart Downs Road",
+            "quadrant": "",
+            "queueLength": 0,
+            "region": "Far West NSW",
+            "secondLocation": "Waka Road",
+            "suburb": "Milparinka",
+            "trafficVolume": ""
+          }
+        ],
+        "isLocalRoad": "Local road",
+        "CategoryIcon": "Flood"
+      }
+    }
+  ]
+}

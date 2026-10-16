@@ -1,0 +1,87 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": 12045,
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            115.52116,
+            -28.54005
+          ],
+          [
+            115.53133,
+            -28.54078
+          ],
+          [
+            115.53277,
+            -28.54074
+          ]
+        ]
+      },
+      "properties": {
+        "FID": 12045,
+        "Id": 236828,
+        "Location": "Geraldton Mt Magnet Rd from Mullewa to Mount Magnet - Pavement Damage\r\n",
+        "IncidentTy": "Pothole / Road Surface Damage",
+        "ClosureTyp": "Road open with caution",
+        "publishExt": "Yes",
+        "GeoJsonHas": null,
+        "EntryDate": "16/10/2026 06:05:42",
+        "UpdateDate": "16/10/2026 06:05:42",
+        "Road": "Geraldton Mt Magnet Rd",
+        "Region": "Mid West Gascoyne",
+        "Suburb": "City of Greater Geraldton",
+        "SHAPE_STLe": null,
+        "GlobalID": "f1c24059-4f96-4afb-9e2a-2a09e601d56f",
+        "Shape__Length": 270577.83529358474,
+        "TrafficImp": "Isolated Pavement Damage. Exercise Extreme Caution.",
+        "SeeMoreUrl": "",
+        "LocalRoadName": ""
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 12072,
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            119.36026,
+            -20.72682
+          ],
+          [
+            119.40819,
+            -20.75911
+          ],
+          [
+            119.42136,
+            -20.76795
+          ]
+        ]
+      },
+      "properties": {
+        "FID": 12072,
+        "Id": 248089,
+        "Location": "Marble Bar Rd from North Pole Rd to Roy Hill, Shire of East Pilbara - Cattle",
+        "IncidentTy": "Animal / Livestock",
+        "ClosureTyp": "Road open with caution",
+        "publishExt": "Yes",
+        "GeoJsonHas": null,
+        "EntryDate": "16/10/2026 06:05:43",
+        "UpdateDate": "16/10/2026 06:05:42",
+        "Road": "Marble Bar Rd",
+        "Region": "Pilbara",
+        "Suburb": "Shire of East Pilbara",
+        "SHAPE_STLe": null,
+        "GlobalID": "e297f034-c67b-42a5-bd45-aaba56f76465",
+        "Shape__Length": 287191.2394651151,
+        "TrafficImp": "Exercise Extreme Caution.",
+        "SeeMoreUrl": "",
+        "LocalRoadName": ""
+      }
+    }
+  ]
+}

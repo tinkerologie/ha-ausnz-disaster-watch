@@ -21,6 +21,7 @@ Directly integrates official emergency feeds—including the **Queensland Fire D
   - **National / Federal**: Bureau of Meteorology (BoM) weather warnings (severe thunderstorms, tropical cyclones, flood warnings).
   - **Earthquakes (optional)**: Geoscience Australia earthquakes of magnitude 3 or more from the last 48 hours, within your radius (M6+ Watch and Act, M4.5+ Advice, smaller Information). Turn it on under **Configure > Earthquakes** (Australian entries; New Zealand entries use GeoNet). Earthquake data © Commonwealth of Australia (Geoscience Australia), from [earthquakes.ga.gov.au](https://earthquakes.ga.gov.au/), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 - **River and Creek Levels** (opt-in): pick nearby water level gauges in Queensland, New South Wales, the ACT and New Zealand and get one sensor per gauge, polled every 15 minutes. See [River and creek level gauges](#river-and-creek-level-gauges).
+  - **Roads (NSW, QLD, VIC, SA, WA, NT, TAS)**: road closures, flooded roads and road hazards from each state's official open road feed (see [Road closures and flooded roads](#road-closures-and-flooded-roads)).
 - **Australian Warning System (AWS) Normalization**:
   - 🚨 **Emergency Warning** (Level 3 - Red)
   - ⚠️ **Watch and Act** (Level 2 - Orange)
@@ -65,7 +66,8 @@ Renders interactive pins on the native Home Assistant Map for every active hazar
 | `…_inside_warning_area` | `on` when the monitored location is inside the published area of an Advice, Watch and Act or Emergency Warning. Attributes: `warning_count`, `warning_level`, `warning_title`, `call_to_action` of the most severe one | `safety` |
 | `…_active_hazards_nearby` | `on` when any active incident is within perimeter | `problem` |
 | `…_power_outage_active` | `on` when a power outage is reported nearby | `problem` |
-| `…_road_closure_nearby` | `on` when a road closure is reported nearby | `problem` |
+| `…_road_closure_nearby` | `on` when a road closure, flooded road or road hazard is reported nearby (planned roadworks and events never turn it on) | `problem` |
+| `…_flooded_road_nearby` | `on` when a flooded road is reported nearby; attributes `flooded_count` and the `nearest` five flooded roads | `safety` |
 | `…_total_fire_ban` | `on` when a total fire ban is declared today for your fire weather district (Australia only; see [Fire danger and total fire bans](#fire-danger-and-total-fire-bans)) | `safety` |
 | `…_<gauge name>_above_alert_level` | `on` when a selected river gauge is at or above the alert level you set (see below) | `problem` |
 
@@ -80,7 +82,7 @@ Renders interactive pins on the native Home Assistant Map for every active hazar
 | `…_fire_danger_rating` | Today's AFDRS fire danger rating for your fire weather district, with a 4-day `forecast` attribute | — |
 | `…_fire_season` | New Zealand only: fire season at your location (`open`, `restricted`, `prohibited`) with Section 52 prohibitions | — |
 | `…_power_outages_count` / `…_power_outages_customers_affected` | Power outages and customers affected | `outages` / `customers` |
-| `…_road_closures_count` | Road closures nearby | `closures` |
+| `…_road_closures_count` | Road closures, flooded roads and road hazards nearby (plus roadworks when enabled); the `closures` attribute lists the nearest 25 with their `category` | `closures` |
 | `…_relief_facilities_count` | Evacuation centres and sandbag stations nearby | `facilities` |
 | `…_air_quality` | Air quality rating of the nearest station | — |
 | `…_local_weather_observation` | Temperature at the nearest weather station | `°C` |
@@ -199,6 +201,7 @@ Fire danger forecasts and district boundaries © Bureau of Meteorology. Total fi
 Click **Configure** on the integration card to open the options menu:
 
 - **Monitoring settings**: radius, emergency override, planned burns and council dashboard URL.
+- **Road closures** (not for ACT or New Zealand): planned roadworks and events, and the optional Victorian road data key; see [Road closures and flooded roads](#road-closures-and-flooded-roads).
 - **Forecast signals and AI rain outlook**: the opt-in Open-Meteo features below.
 - **Earthquakes** (Australian entries): include Geoscience Australia earthquakes (off by default).
 - **National and regional feeds (optional)**: tsunami, satellite hotspots, heatwave, UV, state air quality and GDACS (see [Optional national and regional feeds](#optional-national-and-regional-feeds)).
@@ -206,6 +209,41 @@ Click **Configure** on the integration card to open the options menu:
 - **River and creek level gauges**: the [river gauge picker](#river-and-creek-level-gauges) and optional alert levels (Queensland, New South Wales, the ACT and New Zealand).
 
 Saving any options page reloads the entry; no Home Assistant restart is needed.
+
+To change the state or location, use **Reconfigure** on the integration entry. Reconfigure also updates the options above, and renames the entry when the state or location changes.
+
+---
+
+## Road closures and flooded roads
+
+Each state's official road feed is read every few minutes and filtered to your radius. Every road item has a `category`:
+
+| `category` | Meaning | Turns on `road_closure_nearby` | Turns on `flooded_road_nearby` |
+| ---------- | ------- | :---: | :---: |
+| `flooding` | Flooded road or crossing, open or closed | yes | yes |
+| `closure` | Road closed or impassable | yes | no |
+| `hazard` | Unplanned incident or damage on an open road (crashes, debris, landslips, 4WD only) | yes | no |
+| `roadworks` | Planned roadworks (listed only with the option on) | no | no |
+| `special_event` | Planned special events (listed only with the option on) | no | no |
+
+Breakdowns, traffic signal faults, ferries, congestion and standing heavy-vehicle limits are not listed. Timestamps are converted from the agency's local time zone. A feed whose sources are all down keeps its last good items for up to 30 minutes. After that, or when any one source of a multi-source feed (for example one of the Live Traffic NSW files) has been down for more than 30 minutes, `…_road_closure_nearby` and `…_flooded_road_nearby` become unavailable rather than showing `off`; the remaining sources' items are still listed.
+
+| State | Source | Key | Licence |
+| ----- | ------ | --- | ------- |
+| NSW | [Live Traffic NSW](https://www.livetraffic.com) hazard feeds (incidents, floods, fires, alpine, council incidents; roadworks and major events with the option) | none | CC BY 4.0, Transport for NSW |
+| QLD | [QLDTraffic](https://qldtraffic.qld.gov.au) `events_v2.geojson` (the keyless GeoJSON feed; the documented API needs a key) | none | CC BY 4.0, Department of Transport and Main Roads; council events are attributed to the council that provided them |
+| VIC | DTP [Unplanned Disruptions - Road](https://opendata.transport.vic.gov.au/dataset/unplanned-disruptions-road) API v3 | free DTP key | CC BY 4.0, Department of Transport and Planning |
+| SA | [Traffic SA](https://www.traffic.sa.gov.au) open data (incidents and closures; roadworks with the option) | none | CC BY, Department for Infrastructure and Transport |
+| WA | Main Roads WA WebEOC road incidents and closures (roadworks and events with the option) | none | CC BY 4.0, Commissioner of Main Roads |
+| NT | [NT Road Report](https://roadreport.nt.gov.au) obstructions | none | reuse terms not published; attributed to NT Road Report |
+| TAS | [TasALERT](https://alert.tas.gov.au) road closures | none | feed access by request (not yet granted), as for the TasALERT hazard feed |
+
+QLD council dashboards (Guardian IMS) still add council road closures. A council copy of an event already in the state feed (same QLDTraffic event ID, or the same road and suburb within 1 km) is listed once, with the state feed's details. ACT has no road feed yet. New Zealand road closures come from NZTA (#24); their categories are read from the event's impact and description, so a flooded NZ road also turns on `…_flooded_road_nearby`.
+
+The **Road closures** options page has:
+
+- **Include planned roadworks and events** (off by default; not shown for ACT, which has no road feed, or New Zealand, whose NZTA feed never lists planned roadworks): lists planned roadworks and special events from the state road feed in `…_road_closures_count`. They never turn on `…_road_closure_nearby` or `…_flooded_road_nearby`.
+- **VicRoads (DTP) open data API key** (Victoria only, optional): Victorian road data needs a free key. Register at [opendata.transport.vic.gov.au](https://opendata.transport.vic.gov.au/), subscribe to the *Unplanned Disruptions - Road* API, and paste the key. Leave it empty to skip Victorian road data. The key is stored in the entry options and redacted from diagnostics.
 
 ---
 
@@ -260,8 +298,6 @@ Models are combined with equal weight, so WeatherNext 2's larger ensemble does n
 ### Data licence and usage limits
 
 Open-Meteo data are [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) ("Weather data by Open-Meteo.com"); flood data come from GloFAS (Copernicus) and AIFS from ECMWF (CC BY 4.0). Each entity's `attribution` names its sources. Open-Meteo's free API is for **non-commercial use only** and limited to 10,000 calls a day, 5,000 an hour and 600 a minute per IP ([terms](https://open-meteo.com/en/terms)). Large requests count as several calls, and ensemble requests count per member set. With all features on, one entry uses well under 1,000 weighted calls a day; adding a river point costs a one-off history request.
-
-To change the state or location, use **Reconfigure** on the integration entry. Reconfigure also updates the options above, and renames the entry when the state or location changes.
 
 ---
 
@@ -423,6 +459,13 @@ The integration reads public feeds published by emergency services, weather agen
 | ACT | ACT Emergency Services Agency | No licence published |
 | TAS | TasALERT | Feed access by request; not yet granted |
 | NT | NT Government Fire_Incidents service (Bushfires NT, NTFRS) | No licence published |
+| NSW | Live Traffic NSW road hazards (Transport for NSW) | CC BY 4.0 |
+| QLD | QLDTraffic road events (Transport and Main Roads) | CC BY 4.0; keyless path not in the API documentation |
+| VIC | DTP Unplanned Disruptions - Road (only with your own key) | CC BY 4.0 |
+| SA | Traffic SA road incidents and closures | CC BY |
+| WA | Main Roads WA road incidents and closures | CC BY 4.0 |
+| NT | NT Road Report | No licence published |
+| TAS | TasALERT road closures | Feed access by request; not yet granted |
 | AU | Bureau of Meteorology warnings via WMO SWIC | Personal, non-commercial use under BoM terms |
 | NZ | GeoNet | CC BY 3.0 NZ |
 | NZ | NEMA (Civil Defence) alerts | CC BY 4.0 |

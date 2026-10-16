@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Generator
+from collections.abc import Callable, Generator, Iterator
 from datetime import UTC, datetime
 import re
 from typing import Any
@@ -50,6 +50,13 @@ def no_fire_danger_network(request: pytest.FixtureRequest) -> Generator[None]:
         "custom_components.ausnz_disaster_watch.providers.fire_danger.FireDangerService.async_update",
         AsyncMock(return_value=None),
     ):
+        yield
+
+
+@pytest.fixture(autouse=True)
+def no_statewide_road_feeds() -> Iterator[None]:
+    """Keep the statewide road feeds (#29) off the network; road tests patch in their own providers."""
+    with patch("custom_components.ausnz_disaster_watch.coordinator.get_road_providers_for_config", return_value=[]):
         yield
 
 

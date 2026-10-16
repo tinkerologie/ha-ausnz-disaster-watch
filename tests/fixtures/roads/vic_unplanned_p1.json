@@ -1,0 +1,53 @@
+{
+  "meta": {
+    "total_records": 3,
+    "total_pages": 2,
+    "page": 1,
+    "limit": 500,
+    "count": 2
+  },
+  "data": {
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [145.3301, -37.6782],
+            [145.3355, -37.6801]
+          ]
+        },
+        "properties": {
+          "id": "88123",
+          "eventId": "88123",
+          "impactId": "1",
+          "eventLocationStatus": "Active",
+          "status": "Active",
+          "eventType": "Weather and natural",
+          "eventSubType": "Flood On Road",
+          "impact": {"direction": "Both directions", "impactType": "Road closed"},
+          "closedRoadName": "Yarra Glen Road",
+          "reference": {"localRoadName": "Yarra Glen Rd", "startIntersectionLocality": "Yarra Glen"},
+          "description": "Road closed due to flooding",
+          "lastUpdated": "2026-10-16T06:12:00+11:00"
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {"type": "Point", "coordinates": [144.9631, -37.8136]},
+        "properties": {
+          "id": "88124",
+          "eventLocationStatus": "Active",
+          "eventType": "Collision",
+          "eventSubType": "Multi-vehicle",
+          "impact": {"impactType": "Lanes closed"},
+          "declaredRoadName": "Princes Freeway",
+          "reference": {"startIntersectionLocality": "Melbourne"},
+          "lastUpdated": "2026-10-16T06:20:00+11:00"
+        }
+      }
+    ]
+  },
+  "links": [{"href": "?page=2&limit=500", "rel": "next"}]
+}

@@ -217,6 +217,7 @@ This integration uses the following identifiers consistently:
 - `providers/` - One `BaseHazardProvider` subclass per jurisdiction (`qld`, `nsw`, `vic`, `wa`, `sa`, `tas`, `act`, `nt`, `nz`) plus `bom`; `providers/__init__.py:get_providers_for_config` selects them
 - `forecast_coordinator.py`, `forecast_entity.py`, `forecast_options.py` - Opt-in Open-Meteo forecast features (weather signals, river flood forecast, AI ensemble outlook): own coordinators, entities and options steps; client and pure calculations in `providers/open_meteo.py` and `providers/forecast_signals.py` (not hazard providers)
 - `rivers.py`, `river_coordinator.py`, `river_sensor.py`, `river_binary_sensor.py` - Opt-in river gauges (#31): Kisters Hydstra and Hilltop clients, their own 15-minute coordinator (`coordinator.river_coordinator`) and one sensor (plus an optional alert binary sensor) per gauge chosen in the options flow
+- `providers/roads/` - One `BaseRoadProvider` per state road feed (`nsw`, `qld`, `vic`, `sa`, `wa`, `nt`, `tas`); `get_road_providers_for_config` selects them, `merge.py` merges them with council road items. Road providers never count towards hazard feed health
 - `models.py` - Canonical data models (`CanonicalHazard`, `WarningLevel`, `HazardType`, infrastructure/telemetry items)
 - `entity.py` - Base entity (`AusNZDisasterWatchEntity`) with shared device info and unique ID
 - `sensor.py`, `binary_sensor.py`, `geo_location.py`, `camera.py` - Entity platforms

@@ -185,6 +185,55 @@ _SOURCES = (
         terms_url="https://www.metservice.com/about/common-alerting-protocol",
         status=LicenceStatus.OPEN,
     ),
+    # Statewide road feeds (#29)
+    DataSource(
+        key="livetraffic_nsw",
+        owner="Transport for NSW",
+        attribution="© Transport for NSW (Live Traffic NSW), CC BY 4.0",
+        licence="CC BY 4.0",
+        terms_url="https://opendata.transport.nsw.gov.au/dataset/live-traffic-hazards",
+        status=LicenceStatus.OPEN,
+    ),
+    DataSource(
+        key="qldtraffic_events",
+        owner="Department of Transport and Main Roads (QLDTraffic)",
+        attribution="© State of Queensland (Department of Transport and Main Roads), QLDTraffic, CC BY 4.0",
+        licence="CC BY 4.0 (the keyless events_v2.geojson path is not in the API documentation)",
+        terms_url="https://www.data.qld.gov.au/dataset/131940-traffic-and-travel-information-geojson-api",
+        status=LicenceStatus.OPEN,
+    ),
+    DataSource(
+        key="dtp_vic_roads",
+        owner="Department of Transport and Planning (Victoria)",
+        attribution="© State of Victoria (Department of Transport and Planning), CC BY 4.0",
+        licence="CC BY 4.0; free API key",
+        terms_url="https://opendata.transport.vic.gov.au/dataset/unplanned-disruptions-road",
+        status=LicenceStatus.OPEN,
+    ),
+    DataSource(
+        key="traffic_sa",
+        owner="Department for Infrastructure and Transport (South Australia)",
+        attribution="© Government of South Australia (Department for Infrastructure and Transport), Traffic SA, CC BY",
+        licence="CC BY (data.sa.gov.au; data.gov.au lists CC BY 3.0 AU)",
+        terms_url="https://data.sa.gov.au/data/dataset/roadworks-and-incidents-real-time-information",
+        status=LicenceStatus.OPEN,
+    ),
+    DataSource(
+        key="mrwa_webeoc",
+        owner="Main Roads Western Australia",
+        attribution="© Commissioner of Main Roads Western Australia, CC BY 4.0",
+        licence="CC BY 4.0",
+        terms_url="https://catalogue.data.wa.gov.au/dataset/mrwa-webeoc-road-closures",
+        status=LicenceStatus.OPEN,
+    ),
+    DataSource(
+        key="nt_road_report",
+        owner="Northern Territory Government (Department of Logistics and Infrastructure)",
+        attribution="NT Road Report, Northern Territory Government",
+        licence="No licence or terms published for the feed",
+        terms_url="https://roadreport.nt.gov.au",
+        status=LicenceStatus.UNVERIFIED,
+    ),
     DataSource(
         key="bom_wmo",
         owner="Australian Government Bureau of Meteorology (via WMO Severe Weather Information Centre)",
@@ -393,6 +442,14 @@ PROVIDER_SOURCES: dict[str, tuple[str, ...]] = {
     "BoMHazardProvider": ("bom_wmo",),
     "GAEarthquakeProvider": ("ga_earthquakes",),
     "NationalHazardProvider": tuple(dict.fromkeys(key for keys in NATIONAL_FEED_SOURCES.values() for key in keys)),
+    # Statewide road feeds (#29); TasALERT road closures fall under the TasALERT terms
+    "NSWRoadProvider": ("livetraffic_nsw",),
+    "QueenslandRoadProvider": ("qldtraffic_events",),
+    "VictoriaRoadProvider": ("dtp_vic_roads",),
+    "SARoadProvider": ("traffic_sa",),
+    "WARoadProvider": ("mrwa_webeoc",),
+    "NTRoadProvider": ("nt_road_report",),
+    "TasmaniaRoadProvider": ("tasalert",),
 }
 
 
