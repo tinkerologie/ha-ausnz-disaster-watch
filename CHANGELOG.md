@@ -91,6 +91,6 @@ Versions follow Home Assistant's scheme, `YEAR.MONTH.PATCH` (for example `2026.1
     - `binary_sensor` entities for active threats, emergency warnings, road closures, and power outages.
     - `sensor` entities for active hazard count, highest warning level, closest incident distance, nearest incident title, fire danger ratings, air quality, local weather observation, road closures count, power outages count, weather warnings count, and relief facilities.
     - `camera` platform providing live flood camera and traffic webcam snapshot streaming.
-  - Custom Lovelace dashboard cards (`ausnz-disaster-card` / `aus-disaster-card`).
-  - Professional branding package in `branding/` (`icon.png`, `logo.png`, `icon.svg`).
+  - Lovelace dashboard card suite (`custom:ausnz-disaster-card` all-in-one plus the focused `custom:ausnz-disaster-*-card` cards).
+  - Brand images in `custom_components/ausnz_disaster_watch/brand/` following the brands proxy layout (`icon.png`, `icon@2x.png`, `logo.png`, `logo@2x.png`); source artwork in `branding/`.
   - Strict 100% test coverage across all integration files, zero lint warnings/errors, and complete validation with Home Assistant 2026 standards.
