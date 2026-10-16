@@ -10,6 +10,7 @@
 import L from "leaflet";
 import leafletCss from "leaflet/dist/leaflet.css?inline";
 import type { HassConnection } from "../../types";
+import { INITIAL_STATUS, type MapFrame, type MapStatus } from "./status";
 import { type CycloneGeometry, type CycloneRef, fetchCycloneGeometry, GDACS_ATTRIBUTION } from "./gdacs";
 import {
   fetchSatelliteTimes,
@@ -39,6 +40,7 @@ import {
 } from "./rainviewer";
 
 export { leafletCss };
+export type { LayerState, MapFrame, MapStatus } from "./status";
 
 export interface MapIncident {
   id: string;
@@ -71,29 +73,6 @@ export interface MapViewOptions {
   /** Cyclones whose GDACS geometry is drawn (empty when off). */
   cyclones: CycloneRef[];
 }
-
-export type LayerState = "off" | "loading" | "ok" | "unavailable";
-
-export interface MapFrame {
-  /** What drives the timeline: radar frames, or Himawari frames while the radar is off. */
-  source: "radar" | "satellite";
-  time: number;
-  index: number;
-  count: number;
-  playing: boolean;
-}
-
-export interface MapStatus {
-  radar: LayerState;
-  satellite: LayerState;
-  cyclones: LayerState;
-  /** Cyclones drawn. */
-  cycloneCount: number;
-  /** Frame on screen; undefined when nothing animates. */
-  frame?: MapFrame;
-}
-
-export const INITIAL_STATUS: MapStatus = { radar: "off", satellite: "off", cyclones: "off", cycloneCount: 0 };
 
 const FRAME_MS = 500;
 const LAST_FRAME_HOLD_MS = 1500;

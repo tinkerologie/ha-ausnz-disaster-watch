@@ -21,7 +21,8 @@ import { LEVEL_LABELS } from "./incidents";
 // Small, Leaflet-free helpers: the Leaflet chunk still loads lazily.
 import { cycloneRefs } from "./map/gdacs";
 import { defaultViirsDay, SATELLITE_LAYERS, type SatelliteOption, VIIRS_DAYS, type ViirsDay, viirsDate } from "./map/gibs";
-import type { IncidentMap, MapStatus, MapViewOptions } from "./map/leaflet-map";
+import type { IncidentMap, MapViewOptions } from "./map/leaflet-map";
+import { INITIAL_STATUS, type MapStatus } from "./map/status";
 
 export interface MapCardConfig extends BaseCardConfig {
   zoom?: number;
@@ -32,7 +33,6 @@ export interface MapCardConfig extends BaseCardConfig {
 }
 
 const DEFAULT_RADAR_OPACITY = 0.7;
-const INITIAL_STATUS: MapStatus = { radar: "off", satellite: "off", cyclones: "off", cycloneCount: 0 };
 
 /** Card state that feeds the map (besides `hass`). */
 const MAP_INPUTS = ["_config", "_satelliteHidden", "_cyclonesHidden", "_viirsDay"] as const;
