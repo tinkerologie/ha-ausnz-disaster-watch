@@ -224,6 +224,7 @@ This integration uses the following identifiers consistently:
 - `sensor.py`, `binary_sensor.py`, `geo_location.py`, `camera.py` - Entity platforms
 - `config_flow.py` - Config, options and reconfigure flows
 - `diagnostics.py` - Redacted diagnostics
+- `llm.py` - Read-only LLM tools for the Assist API (#72): read coordinator data only, offered per entry when an entity is exposed, always report feed health
 - `frontend.py` + `frontend/` - Serves and registers the bundled Lovelace cards (source in repo-root `frontend/src/`)
 
 The integration registers no service actions.
