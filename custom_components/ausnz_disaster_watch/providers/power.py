@@ -131,6 +131,8 @@ class PowerOutageSource(BaseHazardProvider):
         """Initialise the source with the entry config."""
         super().__init__(hass, session, config)
         self._cache: tuple[float, list[PowerOutageItem]] | None = None
+        # When the last fetch failed: failures are retried no sooner than min_interval either
+        self._failed_at: float | None = None
 
     @property
     def state_code(self) -> str:
@@ -170,6 +172,7 @@ class PowerOutageSource(BaseHazardProvider):
         """Use the new point; a moved point invalidates the cached outages."""
         if (latitude, longitude) != (self.config.get("latitude"), self.config.get("longitude")):
             self._cache = None
+            self._failed_at = None
         super().set_location(latitude, longitude)
 
     def reaches_service_area(self) -> bool:
@@ -197,7 +200,14 @@ class PowerOutageSource(BaseHazardProvider):
         now = time.monotonic()
         if self._cache is not None and now - self._cache[0] < self.min_interval:
             return self._cache[1]
-        outages = await self._async_fetch_outages()
+        if self._failed_at is not None and now - self._failed_at < self.min_interval:
+            raise ProviderUnavailableError(f"{self.distributor} outages unavailable (retry pending)")
+        try:
+            outages = await self._async_fetch_outages()
+        except ProviderUnavailableError:
+            self._failed_at = now
+            raise
+        self._failed_at = None
         self._cache = (now, outages)
         return outages
 

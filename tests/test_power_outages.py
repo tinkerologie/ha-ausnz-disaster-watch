@@ -400,6 +400,23 @@ async def test_fetch_interval_and_location(
     await source.async_fetch_power_outages()
     assert len(feed_routes.requested) == 3
 
+    # A failed fetch is not retried before the interval either
+    feed_routes.routes[f"{POWERCO_OUTAGES_URL}/query"] = 404
+    freezer.tick(301)
+    with pytest.raises(ProviderUnavailableError):
+        await source.async_fetch_power_outages()
+    requested = len(feed_routes.requested)
+    with pytest.raises(ProviderUnavailableError, match="retry pending"):
+        await source.async_fetch_power_outages()
+    assert len(feed_routes.requested) == requested
+    freezer.tick(301)
+    with pytest.raises(ProviderUnavailableError):
+        await source.async_fetch_power_outages()
+    assert len(feed_routes.requested) > requested
+    source.set_location(-39.8, 175.1)  # a moved point is fetched straight away
+    with pytest.raises(ProviderUnavailableError, match="unavailable:"):
+        await source.async_fetch_power_outages()
+
 
 async def test_source_basics(hass: HomeAssistant) -> None:
     """Sources publish no hazards and describe their licence."""
