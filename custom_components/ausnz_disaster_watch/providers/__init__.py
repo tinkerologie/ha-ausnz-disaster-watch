@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 import aiohttp
 
 from custom_components.ausnz_disaster_watch.const import (
+    CONF_INCLUDE_EARTHQUAKES,
     STATE_ACT,
     STATE_NSW,
     STATE_NT,
@@ -21,6 +22,7 @@ from custom_components.ausnz_disaster_watch.const import (
 from .act import ACTHazardProvider
 from .base import BaseHazardProvider
 from .bom import BoMHazardProvider
+from .ga_earthquakes import GAEarthquakeProvider
 from .nsw import NSWHazardProvider
 from .nt import NTHazardProvider
 from .nz import NZHazardProvider
@@ -65,6 +67,9 @@ def get_providers_for_config(
     # Always include Bureau of Meteorology weather warnings for Australian jurisdictions
     if state != STATE_NZ:
         providers.append(BoMHazardProvider(hass, session, config))
+        # Geoscience Australia earthquakes are opt-in (#23); NZ quakes come from GeoNet
+        if config.get(CONF_INCLUDE_EARTHQUAKES):
+            providers.append(GAEarthquakeProvider(hass, session, config))
 
     return providers
 
@@ -73,6 +78,7 @@ __all__ = [
     "ACTHazardProvider",
     "BaseHazardProvider",
     "BoMHazardProvider",
+    "GAEarthquakeProvider",
     "NSWHazardProvider",
     "NTHazardProvider",
     "NZHazardProvider",
