@@ -631,6 +631,11 @@ test("cards show the council area by default for local services and the radius f
 
   const status = await mount(page, "ausnz-disaster-status-card", { device: QLD, area: "council" }, { states });
   await expect(status.getByText("2 hazards in City of Moreton Bay")).toBeVisible();
+  // An unknown level (incidents without a known level) still counts the council's incidents
+  const level = Object.keys(states).find((k) => k.includes("qld_dev_highest_warning_level"))!;
+  const unknownLevel = { ...states, [level]: { ...(states[level] as object), state: "unknown" } };
+  const statusUnknown = await mount(page, "ausnz-disaster-status-card", { device: QLD, area: "council" }, { states: unknownLevel });
+  await expect(statusUnknown.getByText("2 hazards in City of Moreton Bay")).toBeVisible();
   const statusRadius = await mount(page, "ausnz-disaster-status-card", { device: QLD }, { states });
   await expect(statusRadius.getByText("in City of Moreton Bay", { exact: false })).toHaveCount(0);
 

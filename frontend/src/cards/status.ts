@@ -117,9 +117,10 @@ export class StatusCard extends DisasterCard {
     const device = this.deviceId;
     const levelState = stateFor(hass, device, KEY.highestWarningLevel);
     const area = this.areaFilter(hass);
-    // Filtered to the council (#94): the headline of the incidents in it, while the sensors are available
+    // Filtered to the council (#94): the headline of the incidents in it, while the sensor is available
+    // (an `unknown` level, from incidents without a known level, still counts the council's incidents)
     const council =
-      area.council && !isUnavailable(levelState)
+      area.council && levelState && levelState.state !== "unavailable"
         ? summariseIncidents(
             geoLocationsFor(hass, this.entryId)
               .filter((s) => area.keep(s.attributes.in_council_area))
