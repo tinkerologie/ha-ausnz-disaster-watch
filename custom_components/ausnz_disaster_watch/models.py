@@ -403,6 +403,9 @@ class FireDangerDay(BaseModel):
     )
     fire_behaviour_index: int | None = Field(default=None, description="AFDRS Fire Behaviour Index")
     total_fire_ban: bool | None = Field(default=None, description="Total fire ban declared; None when not published")
+    source: str | None = Field(
+        default=None, description="Agency that supplied this day when the BoM forecast does not cover it (#89)"
+    )
 
 
 class FireDangerOutlook(BaseModel):

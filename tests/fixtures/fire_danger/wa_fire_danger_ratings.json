@@ -1,0 +1,75 @@
+{
+  "fireDangerRatings": [
+    {
+      "description": "North Kimberley",
+      "area": "WA_FW041",
+      "issueDateTime": "2026-10-15T20:35:00Z",
+      "forecasts": {
+        "0": {
+          "behaviourIndex": "23",
+          "fireDanger": "Moderate"
+        },
+        "1": {
+          "behaviourIndex": "18",
+          "fireDanger": "Moderate"
+        },
+        "2": {
+          "behaviourIndex": "17",
+          "fireDanger": "Moderate"
+        },
+        "3": {
+          "behaviourIndex": "18",
+          "fireDanger": "Moderate"
+        }
+      }
+    },
+    {
+      "description": "Mid West",
+      "area": "WA_FW053",
+      "issueDateTime": "2026-10-15T20:35:00Z",
+      "forecasts": {
+        "0": {
+          "behaviourIndex": "22",
+          "fireDanger": "Moderate"
+        },
+        "1": {
+          "behaviourIndex": "20",
+          "fireDanger": "Moderate"
+        },
+        "2": {
+          "behaviourIndex": "19",
+          "fireDanger": "Moderate"
+        },
+        "3": {
+          "behaviourIndex": "20",
+          "fireDanger": "Moderate"
+        }
+      }
+    },
+    {
+      "description": "Perth Inner",
+      "area": "WA_FW091",
+      "issueDateTime": "2026-10-15T20:35:00Z",
+      "forecasts": {
+        "0": {
+          "behaviourIndex": "7",
+          "fireDanger": "No Rating"
+        },
+        "1": {
+          "behaviourIndex": "7",
+          "fireDanger": "No Rating"
+        },
+        "2": {
+          "behaviourIndex": "8",
+          "fireDanger": "No Rating"
+        },
+        "3": {
+          "behaviourIndex": "7",
+          "fireDanger": "No Rating"
+        }
+      }
+    }
+  ],
+  "web-message-fdr-today": "\n  <div>\n    <p><strong>The following alert has been issued by the Department of Fire and Emergency Services\n        (DFES).</strong></p>\n    <p>\n      Time of issue: 04:35 AM\n      <br />Date of issue: 16 October 2026\n    </p>\n    \n      <p><strong>\n          High Fire Danger Ratings have been forecast for the following Fire Weather Districts for 16 October 2026:\n        </strong></p>\n  \n      <ul>\n        <li>Central Pilbara</li>\n<li>Hedland</li>\n<li>Burrup</li>\n<li>Ashburton Coast</li>\n<li>Exmouth Gulf Coast</li>\n      </ul>\n      \n        <p>\n          <strong>\n            Moderate Fire Danger Ratings have been forecast for the following Fire Weather Districts for 16 October 2026:\n          </strong>\n        </p>\n  \n        <ul>\n          <li>North Kimberley</li>\n<li>Dampier Derby Coast</li>\n<li>South Kimberley Coast</li>\n<li>Kimberley Inland North</li>\n<li>Kimberley Inland South</li>\n<li>North Interior</li>\n<li>Ashburton Inland</li>\n<li>West Interior</li>\n<li>Gascoyne Inland</li>\n<li>South Murchison</li>\n<li>Gascoyne Coast</li>\n<li>Mid West</li>\n<li>North Midlands</li>\n<li>Watheroo</li>\n<li>Central Interior</li>\n<li>South Interior</li>\n<li>Karroun</li>\n<li>Lockwood</li>\n<li>Mortlock</li>\n<li>Avon</li>\n<li>Swan Inland North</li>\n<li>Swan Inland South</li>\n<li>Brockman</li>\n<li>Blackwood</li>\n<li>Capes</li>\n<li>Southern Forests</li>\n<li>Roe</li>\n<li>Arthur</li>\n<li>Lakes</li>\n        </ul>\n      \n      <p><strong>\n          No Fire Danger Ratings have been forecast for the following Fire Weather Districts for 16 October 2026:\n        </strong></p>\n  \n      <ul>\n        <li>Lesueur</li>\n<li>Eucla</li>\n<li>North Goldfields</li>\n<li>South Goldfields</li>\n<li>Swan Coastal North</li>\n<li>Perth Inner</li>\n<li>Swan Coastal South</li>\n<li>Rottnest</li>\n<li>Geographe</li>\n<li>Stirling North</li>\n<li>Stirling West</li>\n<li>Stirling Coast</li>\n<li>Fitzgerald</li>\n<li>Esperance Coast</li>\n<li>Esperance Inland</li>\n      </ul>\n      \n    <br />\n    <p>\n      You can find the four-day Fire Danger Rating forecast, which Local Government Authorities are affected\n      and relevant\n      community safety messages on <a href=\"/fire-danger-ratings\">Emergency\n        WA</a>\n    </p>\n    <p>END Media Contact: DFES Media on 9395 9543.</p>\n  </div>\n    ",
+  "web-message-fdr-tomorrow": "\n  <div>\n    <p><strong>The following alert has been issued by the Department of Fire and Emergency Services\n        (DFES).</strong></p>\n    <p>\n      Time of issue: 04:35 AM\n      <br />Date of issue: 16 October 2026\n    </p>\n    \n      <p><strong>\n          High Fire Danger Ratings have been forecast for the following Fire Weather Districts for 17 October 2026:\n        </strong></p>\n  \n      <ul>\n        <li>Hedland</li>\n<li>Burrup</li>\n<li>Ashburton Inland</li>\n<li>Ashburton Coast</li>\n<li>Exmouth Gulf Coast</li>\n<li>Gascoyne Inland</li>\n<li>South Murchison</li>\n      </ul>\n      \n        <p>\n          <strong>\n            Moderate Fire Danger Ratings have been forecast for the following Fire Weather Districts for 17 October 2026:\n          </strong>\n        </p>\n  \n        <ul>\n          <li>North Kimberley</li>\n<li>Dampier Derby Coast</li>\n<li>South Kimberley Coast</li>\n<li>Kimberley Inland North</li>\n<li>Kimberley Inland South</li>\n<li>North Interior</li>\n<li>Central Pilbara</li>\n<li>West Interior</li>\n<li>Gascoyne Coast</li>\n<li>Mid West</li>\n<li>North Midlands</li>\n<li>Watheroo</li>\n<li>Central Interior</li>\n<li>South Interior</li>\n<li>Eucla</li>\n<li>North Goldfields</li>\n<li>South Goldfields</li>\n<li>Karroun</li>\n<li>Lockwood</li>\n<li>Mortlock</li>\n<li>Avon</li>\n<li>Swan Inland North</li>\n<li>Swan Inland South</li>\n<li>Brockman</li>\n<li>Blackwood</li>\n<li>Capes</li>\n<li>Roe</li>\n<li>Arthur</li>\n<li>Lakes</li>\n        </ul>\n      \n      <p><strong>\n          No Fire Danger Ratings have been forecast for the following Fire Weather Districts for 17 October 2026:\n        </strong></p>\n  \n      <ul>\n        <li>Lesueur</li>\n<li>Swan Coastal North</li>\n<li>Perth Inner</li>\n<li>Swan Coastal South</li>\n<li>Rottnest</li>\n<li>Geographe</li>\n<li>Southern Forests</li>\n<li>Stirling North</li>\n<li>Stirling West</li>\n<li>Stirling Coast</li>\n<li>Fitzgerald</li>\n<li>Esperance Coast</li>\n<li>Esperance Inland</li>\n      </ul>\n      \n    <br />\n    <p>\n      You can find the four-day Fire Danger Rating forecast, which Local Government Authorities are affected\n      and relevant\n      community safety messages on <a href=\"/fire-danger-ratings\">Emergency\n        WA</a>\n    </p>\n    <p>END Media Contact: DFES Media on 9395 9543.</p>\n  </div>\n    "
+}

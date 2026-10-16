@@ -33,6 +33,7 @@ from custom_components.ausnz_disaster_watch.models import (
     FireDangerOutlook,
     FireSeasonStatus,
 )
+from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from . import fire_bans
@@ -42,6 +43,9 @@ from .sources import DataSource, sources_for_fire
 _LOGGER = logging.getLogger(__name__)
 
 FIRE_REFRESH_INTERVAL = timedelta(minutes=30)
+# Persisted outlook, so a restart after the afternoon issue keeps today's rating (#89)
+FIRE_STORAGE_VERSION = 1
+FIRE_STORAGE_KEY = "ausnz_disaster_watch.fire_outlook.{entry_id}"
 FIRE_RETRY_INTERVAL = timedelta(minutes=5)
 
 BOM_FIRE_DANGER_URL = "https://www.bom.gov.au/fwo/{product}.xml"
@@ -184,6 +188,78 @@ def merge_outlooks(previous: FireDangerOutlook | None, current: FireDangerOutloo
     return current
 
 
+type AgencyReport = tuple[dict[date, bool | None], dict[date, str | None]]
+
+
+def fill_from_agency(outlook: FireDangerOutlook, ratings: dict[date, str | None], label: str) -> None:
+    """Use the agency's rating for today when the BoM forecast has no day for today (#89).
+
+    BoM's afternoon issue starts tomorrow. With no earlier issue known (for example after a
+    restart), the agency that publishes today's rating fills that one day; BoM's own days
+    always win and the agency never extends the outlook beyond them.
+    """
+    today = local_today(outlook.time_zone)
+    if outlook.day(today) is not None or (rating := normalise_rating(ratings.get(today))) is None:
+        return
+    outlook.days = sorted([*outlook.days, FireDangerDay(date=today, rating=rating, source=label)], key=lambda d: d.date)
+
+
+def outlook_to_dict(outlook: FireDangerOutlook) -> dict[str, Any]:
+    """Return a JSON-safe dict of an outlook for the Store."""
+    return {
+        "district_number": outlook.district_number,
+        "district_name": outlook.district_name,
+        "time_zone": outlook.time_zone,
+        "issued_at": outlook.issued_at.isoformat() if outlook.issued_at else None,
+        "source": outlook.source,
+        "total_fire_ban_source": outlook.total_fire_ban_source,
+        "days": [
+            {
+                "date": day.date.isoformat(),
+                "rating": day.rating,
+                "fire_behaviour_index": day.fire_behaviour_index,
+                "total_fire_ban": day.total_fire_ban,
+                "source": day.source,
+            }
+            for day in outlook.days
+        ],
+    }
+
+
+def outlook_from_dict(data: Any) -> FireDangerOutlook | None:
+    """Rebuild a stored outlook; None when the data is missing or not a stored outlook."""
+    if not isinstance(data, dict):
+        return None
+    try:
+        issued = data.get("issued_at")
+        return FireDangerOutlook(
+            district_number=str(data["district_number"]),
+            district_name=str(data["district_name"]),
+            time_zone=str(data["time_zone"]),
+            issued_at=datetime.fromisoformat(issued) if issued else None,
+            source=str(data["source"]),
+            total_fire_ban_source=data.get("total_fire_ban_source"),
+            days=[
+                FireDangerDay(
+                    date=date.fromisoformat(day["date"]),
+                    rating=day.get("rating"),
+                    fire_behaviour_index=day.get("fire_behaviour_index"),
+                    total_fire_ban=day.get("total_fire_ban"),
+                    source=day.get("source"),
+                )
+                for day in data["days"]
+            ],
+        )
+    except MALFORMED_ITEM_ERRORS as err:
+        _LOGGER.debug("Ignoring a malformed stored fire danger outlook: %s", err)
+        return None
+
+
+async def async_remove_stored_outlook(hass: Any, entry_id: str) -> None:
+    """Delete an entry's persisted outlook when the entry is removed."""
+    await Store(hass, FIRE_STORAGE_VERSION, FIRE_STORAGE_KEY.format(entry_id=entry_id)).async_remove()
+
+
 def parse_nz_fire_season(season_payload: Any, section_52_payload: Any) -> FireSeasonStatus:
     """Parse the FENZ fire season zone and Section 52 point query results."""
     features = season_payload.get("features") if isinstance(season_payload, dict) else None
@@ -223,10 +299,18 @@ class FireDangerService(BaseHazardProvider):
     it separately and it publishes no hazards.
     """
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Initialise with empty state; nothing is fetched until the first update."""
+    def __init__(self, *args: Any, entry_id: str | None = None, **kwargs: Any) -> None:
+        """Initialise with empty state; nothing is fetched until the first update.
+
+        With ``entry_id`` the last outlook is kept in a Home Assistant Store, so a restart
+        after BoM's afternoon issue (which starts tomorrow) still has today's rating (#89).
+        """
         super().__init__(*args, **kwargs)
         self.outlook: FireDangerOutlook | None = None
+        self._store: Store[dict[str, Any]] | None = (
+            Store(self.hass, FIRE_STORAGE_VERSION, FIRE_STORAGE_KEY.format(entry_id=entry_id)) if entry_id else None
+        )
+        self._restored = False
         self.season: FireSeasonStatus | None = None
         self._next_refresh: datetime | None = None
         # ((lat, lon), district) and ((lat, lon), LGA name) for the last resolved location
@@ -272,12 +356,36 @@ class FireDangerService(BaseHazardProvider):
             if self.state_code == STATE_NZ:
                 self.season = await self._async_fetch_season()
             else:
-                self.outlook = merge_outlooks(self.outlook, await self._async_fetch_outlook())
+                await self._async_restore()
+                self.outlook = await self._async_fetch_outlook()
+                await self._async_persist()
         except Exception as err:  # noqa: BLE001 - a fire source must never break hazard updates
             _LOGGER.debug("Fire danger update failed; keeping the last good data: %s", err)
             self._next_refresh = now + FIRE_RETRY_INTERVAL
             return
         self._next_refresh = now + FIRE_REFRESH_INTERVAL
+
+    async def _async_restore(self) -> None:
+        """Load the persisted outlook once, before the first fetch (#89)."""
+        if self._restored or self._store is None:
+            return
+        self._restored = True
+        try:
+            stored = await self._store.async_load()
+        except Exception as err:  # noqa: BLE001 - a damaged store must not block fire data
+            _LOGGER.debug("Ignoring the stored fire danger outlook: %s", err)
+            return
+        if self.outlook is None and (restored := outlook_from_dict(stored)) is not None:
+            self.outlook = restored
+
+    async def _async_persist(self) -> None:
+        """Save the current outlook, or drop the stored one when there is none."""
+        if self._store is None:
+            return
+        if self.outlook is None:
+            await self._store.async_remove()
+        else:
+            await self._store.async_save(outlook_to_dict(self.outlook))
 
     async def _async_district(self, location: tuple[float, float]) -> FireDistrict | None:
         """Resolve (once per location, in an executor) the location's fire weather district."""
@@ -304,25 +412,32 @@ class FireDangerService(BaseHazardProvider):
         outlook = parse_bom_fire_danger(text, aac, name)
         if outlook is None:
             return None
+        # An afternoon issue starts tomorrow: keep today from the earlier (possibly persisted) issue
+        outlook = merge_outlooks(self.outlook, outlook) or outlook
 
-        fetch_bans = self._ban_source(outlook, location)
-        if fetch_bans is not None:
-            label, coro_factory = fetch_bans
+        agency = self._agency_source(outlook, location)
+        if agency is not None:
+            label, fetch = agency
             try:
-                bans = await coro_factory()
+                bans, ratings = await fetch()
             except (ProviderUnavailableError, *MALFORMED_ITEM_ERRORS) as err:
                 # Ratings are still useful without bans; unknown bans stay None, never False
                 _LOGGER.debug("Total fire ban source %s failed: %s", label, err)
             else:
+                fill_from_agency(outlook, ratings, label)
                 outlook.total_fire_ban_source = label
                 for day in outlook.days:
                     day.total_fire_ban = bans.get(day.date)
         return outlook
 
-    def _ban_source(
+    def _agency_source(
         self, outlook: FireDangerOutlook, location: tuple[float, float]
-    ) -> tuple[str, Callable[[], Awaitable[dict[date, bool | None]]]] | None:
-        """Return (source name, fetch) for the agency that declares bans in this district."""
+    ) -> tuple[str, Callable[[], Awaitable[AgencyReport]]] | None:
+        """Return (source name, fetch) for the agency that declares bans in this district.
+
+        The fetch returns that agency's bans and its own ratings per day. The ratings fill days
+        the BoM forecast does not cover, such as today after BoM's afternoon issue (#89).
+        """
         aac = outlook.district_number
         prefix = aac.split("_", 1)[0]
         tz = dt_util.get_time_zone(outlook.time_zone) or UTC
@@ -337,43 +452,67 @@ class FireDangerService(BaseHazardProvider):
 
         if aac == ACT_DISTRICT:
 
-            async def _act() -> dict[date, bool | None]:
+            async def _act() -> AgencyReport:
                 root = await _xml(fire_bans.ACT_ESA_FDR_URL, "ACT ESA fire danger")
-                return fire_bans.parse_fdr_toban_xml(root, aac, today, tz)
+                return (
+                    fire_bans.parse_fdr_toban_xml(root, aac, today, tz),
+                    fire_bans.parse_fdr_toban_ratings(root, aac, today, tz),
+                )
 
             return "ACT Emergency Services Agency", _act
         if prefix == "NSW":
 
-            async def _nsw() -> dict[date, bool | None]:
+            async def _nsw() -> AgencyReport:
                 try:
                     payload = await self.async_fetch_feed_json(fire_bans.NSW_RFS_FDR_URL, "NSW RFS fire danger")
-                    return fire_bans.parse_nsw_rfs_v2(payload, aac, today)
+                    return (
+                        fire_bans.parse_nsw_rfs_v2(payload, aac, today),
+                        fire_bans.parse_nsw_rfs_v2_ratings(payload, aac, today),
+                    )
                 except ProviderUnavailableError as err:
                     _LOGGER.debug("NSW RFS 4-day feed failed, using fdrToban.xml: %s", err)
                 root = await _xml(fire_bans.NSW_RFS_TOBAN_URL, "NSW RFS fire bans")
-                return fire_bans.parse_fdr_toban_xml(root, aac, today, tz)
+                return (
+                    fire_bans.parse_fdr_toban_xml(root, aac, today, tz),
+                    fire_bans.parse_fdr_toban_ratings(root, aac, today, tz),
+                )
 
             return "NSW Rural Fire Service", _nsw
         if prefix == "VIC":
 
-            async def _vic() -> dict[date, bool | None]:
+            async def _vic() -> AgencyReport:
                 root = await _xml(fire_bans.VIC_CFA_TFB_URL, "CFA fire bans")
-                return fire_bans.parse_vic_cfa_rss(root, outlook.district_name)
+                return (
+                    fire_bans.parse_vic_cfa_rss(root, outlook.district_name),
+                    fire_bans.parse_vic_cfa_ratings(root, outlook.district_name),
+                )
 
             return "Country Fire Authority", _vic
         if prefix == "SA":
 
-            async def _sa() -> dict[date, bool | None]:
+            async def _sa() -> AgencyReport:
                 root = await _xml(fire_bans.SA_CFS_FDR_URL, "SA CFS fire bans")
-                return fire_bans.parse_sa_cfs_xml(root, outlook.district_name)
+                return (
+                    fire_bans.parse_sa_cfs_xml(root, outlook.district_name),
+                    fire_bans.parse_sa_cfs_ratings(root, outlook.district_name),
+                )
 
             return "SA Country Fire Service", _sa
         if prefix == "WA":
 
-            async def _wa() -> dict[date, bool | None]:
+            async def _wa() -> AgencyReport:
+                ratings: dict[date, str | None] = {}
+                # Emergency WA publishes ratings in a separate feed: read it only when BoM lacks today
+                if outlook.day(today) is None:
+                    try:
+                        fdr = await self.async_fetch_feed_json(fire_bans.WA_FDR_URL, "Emergency WA fire danger")
+                        ratings = fire_bans.parse_wa_fdr_ratings(fdr, aac, tz)
+                    except ProviderUnavailableError as err:
+                        _LOGGER.debug("Emergency WA fire danger ratings failed: %s", err)
                 lga = await self._async_lga(location)
                 payload = await self.async_fetch_feed_json(fire_bans.WA_TFB_URL, "Emergency WA total fire bans")
-                return fire_bans.parse_wa_total_fire_bans(payload, lga, [d.date for d in outlook.days])
+                days = sorted({d.date for d in outlook.days} | ({today} if today in ratings else set()))
+                return fire_bans.parse_wa_total_fire_bans(payload, lga, days), ratings
 
             return "Department of Fire and Emergency Services WA", _wa
         return None

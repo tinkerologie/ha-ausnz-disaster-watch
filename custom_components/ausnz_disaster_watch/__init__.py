@@ -25,6 +25,7 @@ from .dam_coordinator import DamStorageCoordinator
 from .dams import sites_from_options as storages_from_options
 from .forecast_coordinator import async_setup_forecasts
 from .frontend import async_register_frontend, async_unregister_frontend
+from .providers.fire_danger import async_remove_stored_outlook
 from .river_coordinator import RiverGaugeCoordinator
 from .rivers import sites_from_options
 
@@ -120,7 +121,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: AusNZDisasterWatchConfi
 
 
 async def async_remove_entry(hass: HomeAssistant, entry: AusNZDisasterWatchConfigEntry) -> None:
-    """Remove the dashboard card resource when the last config entry is deleted (#22)."""
+    """Remove the entry's stored fire outlook, and the card resource with the last entry (#22, #89)."""
+    await async_remove_stored_outlook(hass, entry.entry_id)
     remaining = [other for other in hass.config_entries.async_entries(DOMAIN) if other.entry_id != entry.entry_id]
     if not remaining:
         await async_unregister_frontend(hass)

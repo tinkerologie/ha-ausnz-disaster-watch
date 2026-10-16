@@ -344,23 +344,33 @@ class FireDangerRatingSensor(AustralianDisasterWatchEntity, SensorEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return fire danger rating attributes."""
         fd = self.coordinator.fire_danger
-        if not fd:
-            return {}
-        attrs: dict[str, Any] = {
-            "district_name": fd.district_name,
-            "district_number": fd.district_number,
-            "total_fire_ban": fd.total_fire_ban,
-            "day": fd.day,
-        }
         outlook = self.coordinator.fire_outlook
-        if outlook is not None and outlook.district_number == fd.district_number:
+        if fd:
+            attrs: dict[str, Any] = {
+                "district_name": fd.district_name,
+                "district_number": fd.district_number,
+                "total_fire_ban": fd.total_fire_ban,
+                "day": fd.day,
+            }
+        elif outlook is not None:
+            # No rating for today: still show the district and the coming days (#89)
+            attrs = {
+                "district_name": outlook.district_name,
+                "district_number": outlook.district_number,
+                "total_fire_ban": None,
+                "day": None,
+            }
+        else:
+            return {}
+        if outlook is not None and outlook.district_number == attrs["district_number"]:
             today = local_today(outlook.time_zone)
             current = outlook.day(today)
             attrs["date"] = today.isoformat()
             attrs["fire_behaviour_index"] = current.fire_behaviour_index if current else None
             attrs["forecast"] = [day.model_dump(mode="json") for day in outlook.days if day.date >= today]
             attrs["issued_at"] = outlook.issued_at.isoformat() if outlook.issued_at else None
-            attrs["source"] = outlook.source
+            # Today's rating may come from the state agency when BoM's issue starts tomorrow (#89)
+            attrs["source"] = (current.source if current else None) or outlook.source
             attrs["total_fire_ban_source"] = outlook.total_fire_ban_source
         return attrs
 

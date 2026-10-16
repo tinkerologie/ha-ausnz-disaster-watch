@@ -212,7 +212,7 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         self.power_sources: list[PowerOutageSource] = [p for p in providers if isinstance(p, PowerOutageSource)]
         self.providers = [p for p in providers if not isinstance(p, PowerOutageSource)]
         # Fire danger outlook / NZ fire season on its own 30-minute schedule (#28)
-        self.fire_service = FireDangerService(hass, session, provider_config)
+        self.fire_service = FireDangerService(hass, session, provider_config, entry_id=entry.entry_id)
         # Statewide road feeds (#29), kept apart so they never count towards hazard feed health
         self.road_providers = get_road_providers_for_config(hass, session, provider_config)
         self._update_location()
