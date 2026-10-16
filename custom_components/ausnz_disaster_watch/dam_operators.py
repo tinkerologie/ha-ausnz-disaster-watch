@@ -113,6 +113,11 @@ class HydroLake:
     spilling: bool
 
 
+# An operator feed is optional: an outage or an answer in an unexpected shape is skipped,
+# never allowed to fail the Bureau's readings.
+FEED_ERRORS: Final = (RiverSourceError, AttributeError, KeyError, TypeError, ValueError)
+
+
 # --- WaterNSW --------------------------------------------------------------------------
 
 
@@ -363,7 +368,7 @@ async def async_fetch_operator_readings(
             by_station = await async_waternsw_readings(
                 session, list(dict.fromkeys(str(site.operator_id) for site in nsw)), now
             )
-        except RiverSourceError as err:
+        except FEED_ERRORS as err:
             _LOGGER.debug("WaterNSW storages unavailable: %s", err)
         else:
             readings.update(
@@ -372,7 +377,7 @@ async def async_fetch_operator_readings(
     if tas:
         try:
             lakes, updated = await async_hydro_lakes(session)
-        except RiverSourceError as err:
+        except FEED_ERRORS as err:
             _LOGGER.debug("Hydro Tasmania lakes unavailable: %s", err)
         else:
             by_lake = hydro_readings(lakes, updated, now)
@@ -403,7 +408,7 @@ async def async_attach_operators(
                 )
             ]
             gauge_readings = await async_waternsw_readings(session, [gauge.station for gauge in nearby], now)
-        except RiverSourceError as err:
+        except FEED_ERRORS as err:
             _LOGGER.debug("WaterNSW storages unavailable for matching: %s", err)
         else:
             for reading in nsw:
@@ -412,7 +417,7 @@ async def async_attach_operators(
     if any(reading.site.owner == HYDRO_TASMANIA_OWNER for reading in readings):
         try:
             lakes, _updated = await async_hydro_lakes(session)
-        except RiverSourceError as err:
+        except FEED_ERRORS as err:
             _LOGGER.debug("Hydro Tasmania lakes unavailable for matching: %s", err)
         else:
             for reading in readings:

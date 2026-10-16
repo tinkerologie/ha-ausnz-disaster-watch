@@ -350,6 +350,15 @@ async def test_fetch_operator_readings_outages(hass: HomeAssistant, aioclient_mo
     assert await async_fetch_operator_readings(async_get_clientsession(hass), _matched(), NOW) == {}
 
 
+async def test_fetch_operator_readings_unexpected_answer(hass: HomeAssistant) -> None:
+    """An operator answer in an unexpected shape is skipped like an outage."""
+    with (
+        patch.object(dam_operators, "async_waternsw_readings", AsyncMock(side_effect=TypeError("bad"))),
+        patch.object(dam_operators, "async_hydro_lakes", AsyncMock(side_effect=KeyError("bad"))),
+    ):
+        assert await async_fetch_operator_readings(async_get_clientsession(hass), _matched(), NOW) == {}
+
+
 async def test_attach_operators(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) -> None:
     """Discovered NSW and Tasmanian storages are matched and get the operator's fresher data."""
     route(aioclient_mock)
