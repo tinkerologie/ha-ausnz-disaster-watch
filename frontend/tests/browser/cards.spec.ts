@@ -391,3 +391,41 @@ test("a single transient basemap tile error does not switch to OpenStreetMap", a
   expect(srcs.length).toBeGreaterThan(0);
   expect(srcs.every((src) => src.includes("/api/map_tiles/"))).toBe(true);
 });
+
+test("scattered radar tile failures do not hide the radar; only consecutive ones do", async ({ page }) => {
+  await setup(page, { reducedMotion: true });
+  await page.unroute("https://tilecache.rainviewer.com/**");
+  let n = 0;
+  let failures = 0;
+  let pending = 0;
+  // Answer one tile at a time, alternating success and failure, so load and error events
+  // interleave (a 503 would otherwise settle before a PNG decodes and errors would bunch).
+  let queue = Promise.resolve();
+  await page.route("https://tilecache.rainviewer.com/**", (route) => {
+    n += 1;
+    pending += 1;
+    const fail = n % 2 === 0;
+    queue = queue.then(async () => {
+      if (fail) failures += 1;
+      await (fail ? route.fulfill({ status: 503, body: "" }) : route.fulfill({ body: PNG, contentType: "image/png" }));
+      await new Promise((r) => setTimeout(r, 10));
+      pending -= 1;
+    });
+    return queue;
+  });
+  const el = await mount(page, "ausnz-disaster-map-card", { device: QLD });
+  await expect.poll(() => n).toBeGreaterThan(0);
+  // A closer view makes every frame layer request several tiles.
+  await el.evaluate((card) => {
+    (card as unknown as { _map: { map: { setView: (c: [number, number], z: number) => void } } })._map.map.setView(
+      [-27.47, 153.02],
+      7,
+    );
+  });
+  await expect.poll(() => pending, { timeout: 15000 }).toBe(0);
+  // Far more failures in total than the limit of 8, but never two in a row.
+  expect(failures).toBeGreaterThan(12);
+  await page.waitForTimeout(200);
+  await expect(el.getByText("Rain radar is unavailable right now.")).toHaveCount(0);
+  await expect(el.locator(".radar-bar ha-icon-button")).toBeVisible();
+});

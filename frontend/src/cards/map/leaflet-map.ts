@@ -325,6 +325,8 @@ export class IncidentMap {
         zIndex: 3 + i,
         attribution: RAINVIEWER_ATTRIBUTION,
       });
+      // Only consecutive failures hide the radar: a loaded tile resets the count.
+      layer.on("tileload", () => (this.radarErrors = 0));
       layer.on("tileerror", () => {
         this.radarErrors += 1;
         if (this.radarErrors >= RADAR_ERROR_LIMIT) this.radarUnavailable();
