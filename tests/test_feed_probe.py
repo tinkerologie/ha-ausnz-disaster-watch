@@ -198,3 +198,26 @@ async def test_reconfigure_shows_cannot_connect(
     assert result["type"] == data_entry_flow.FlowResultType.ABORT
     assert result["reason"] == "reconfigure_successful"
     assert mock_config_entry.data[CONF_LOCATION_NAME] == "Updated Moreton Bay"
+
+
+@pytest.mark.real_feed_probe
+async def test_first_answer_is_enough(hass: HomeAssistant) -> None:
+    """One answering feed passes at once; a hanging feed is cancelled, not waited for."""
+    cancelled = asyncio.Event()
+
+    class Hanging(FakeProvider):
+        async def async_fetch_hazards(self) -> list[CanonicalHazard]:
+            try:
+                await asyncio.sleep(10)
+            except asyncio.CancelledError:
+                cancelled.set()
+                raise
+            return []  # pragma: no cover - cancelled once the other feed answers
+
+    with (
+        patch(PROVIDERS, return_value=[Hanging([]), FakeProvider([])]),
+        patch("custom_components.ausnz_disaster_watch.config_flow.FEED_PROBE_TIMEOUT", 5),
+    ):
+        async with asyncio.timeout(1):
+            assert await async_feeds_reachable(hass, {}) is True
+    assert cancelled.is_set()

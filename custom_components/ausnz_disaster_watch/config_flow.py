@@ -239,20 +239,26 @@ async def async_feeds_reachable(hass: HomeAssistant, data: dict[str, Any]) -> bo
         for provider in get_providers_for_config(hass, async_get_clientsession(hass), provider_config)
         if provider.provides_hazards and not isinstance(provider, PowerOutageSource)
     ]
+    if not providers:
+        return True
+    tasks = [asyncio.ensure_future(provider.async_fetch_hazards()) for provider in providers]
     try:
         async with asyncio.timeout(FEED_PROBE_TIMEOUT):
-            results = await asyncio.gather(
-                *(provider.async_fetch_hazards() for provider in providers), return_exceptions=True
-            )
+            # The first feed that answers is enough; the others are not waited for
+            for finished in asyncio.as_completed(tasks):
+                try:
+                    await finished
+                except Exception as err:  # noqa: BLE001 - any failure only means this feed is down
+                    _LOGGER.debug("Hazard feed is unavailable: %r", err)
+                    continue
+                return True
     except TimeoutError:
         _LOGGER.debug("Hazard feeds did not answer within %s s", FEED_PROBE_TIMEOUT)
-        return False
-    for provider, result in zip(providers, results, strict=True):
-        if isinstance(result, BaseException):
-            if not isinstance(result, Exception):
-                raise result  # e.g. CancelledError
-            _LOGGER.debug("Hazard feed %s is unavailable: %r", type(provider).__name__, result)
-    return not providers or any(not isinstance(result, BaseException) for result in results)
+    finally:
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+    return False
 
 
 def is_valid_config(data: dict[str, Any]) -> bool:
