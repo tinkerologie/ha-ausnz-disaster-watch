@@ -291,12 +291,23 @@ async def test_restart_keeps_the_morning_issue(
     assert (today.rating, today.fire_behaviour_index, today.source) == ("No Rating", 9, None)
     assert hass_storage[key]["data"]["days"][0]["date"] == "2026-10-16"
 
+    # An unchanged outlook is not written again
+    with patch("homeassistant.helpers.storage.Store.async_save", AsyncMock()) as save:
+        restarted._next_refresh = None
+        await restarted.async_update()
+    save.assert_not_awaited()
+
     # A location outside every district has no outlook, and the stored one is dropped
     offshore = _service(hass, "NSW", (-36.85, 174.76), "entry1")
     offshore._restored = True
     await offshore.async_update()
     assert offshore.outlook is None
     assert key not in hass_storage
+    # Removed once, not on every refresh
+    with patch("homeassistant.helpers.storage.Store.async_remove", AsyncMock()) as remove:
+        offshore._next_refresh = None
+        await offshore.async_update()
+    remove.assert_not_awaited()
 
 
 @pytest.mark.real_fire_service

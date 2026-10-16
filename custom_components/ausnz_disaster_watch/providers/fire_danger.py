@@ -188,6 +188,10 @@ def merge_outlooks(previous: FireDangerOutlook | None, current: FireDangerOutloo
     return current
 
 
+# Marks the Store's content as not yet known (distinct from None: nothing stored)
+_UNKNOWN = object()
+
+
 type AgencyReport = tuple[dict[date, bool | None], dict[date, str | None]]
 
 
@@ -311,6 +315,8 @@ class FireDangerService(BaseHazardProvider):
             Store(self.hass, FIRE_STORAGE_VERSION, FIRE_STORAGE_KEY.format(entry_id=entry_id)) if entry_id else None
         )
         self._restored = False
+        # What the Store holds: _UNKNOWN until it is read or written, None once removed
+        self._saved: dict[str, Any] | None | object = _UNKNOWN
         self.season: FireSeasonStatus | None = None
         self._next_refresh: datetime | None = None
         # ((lat, lon), district) and ((lat, lon), LGA name) for the last resolved location
@@ -375,17 +381,27 @@ class FireDangerService(BaseHazardProvider):
         except Exception as err:  # noqa: BLE001 - a damaged store must not block fire data
             _LOGGER.debug("Ignoring the stored fire danger outlook: %s", err)
             return
+        self._saved = stored if isinstance(stored, dict) else None
         if self.outlook is None and (restored := outlook_from_dict(stored)) is not None:
             self.outlook = restored
 
     async def _async_persist(self) -> None:
-        """Save the current outlook, or drop the stored one when there is none."""
+        """Save the outlook when it changed, or drop the stored one when there is none.
+
+        The outlook is refreshed every 30 minutes but changes about twice a day, so an
+        unchanged outlook is not written again (fewer writes on SD-card installs).
+        """
         if self._store is None:
             return
         if self.outlook is None:
-            await self._store.async_remove()
-        else:
-            await self._store.async_save(outlook_to_dict(self.outlook))
+            if self._saved is not None:
+                await self._store.async_remove()
+                self._saved = None
+            return
+        data = outlook_to_dict(self.outlook)
+        if data != self._saved:
+            await self._store.async_save(data)
+            self._saved = data
 
     async def _async_district(self, location: tuple[float, float]) -> FireDistrict | None:
         """Resolve (once per location, in an executor) the location's fire weather district."""
