@@ -50,6 +50,7 @@ if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
 
+    from .dam_coordinator import DamStorageCoordinator
     from .river_coordinator import RiverGaugeCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -165,6 +166,8 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         self.forecasts = ForecastCoordinators()
         # Polls the river gauges chosen in the options flow; None when none are selected (#31)
         self.river_coordinator: RiverGaugeCoordinator | None = None
+        # Polls the dam storages chosen in the options flow; None when none are selected
+        self.dam_coordinator: DamStorageCoordinator | None = None
         self._road_feed_healthy: dict[str, bool] = {}
         self.road_feeds_failed: list[str] = []
         self._update_config_values()

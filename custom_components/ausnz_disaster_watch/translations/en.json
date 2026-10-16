@@ -65,7 +65,8 @@
           "river_gauges": "River and creek level gauges",
           "national_feeds": "National and regional feeds (optional)",
           "cameras": "Road and flood cameras (optional)",
-          "emergency_broadcaster": "Emergency broadcaster radio"
+          "emergency_broadcaster": "Emergency broadcaster radio",
+          "dam_storages": "Dam and weir storage levels"
         }
       },
       "settings": {
@@ -229,6 +230,16 @@
         "data_description": {
           "emergency_broadcaster": "Off, the station nearest the monitored location (it follows the Home Assistant home location for home-zone entries), or a station you choose."
         }
+      },
+      "dam_storages": {
+        "title": "Dam and weir storage levels",
+        "description": "Choose dams and weirs to add as sensors: percent full, volume, level, and an \"above full supply\" sensor that turns on when a storage is spilling or holding flood water. The list shows the nearest storages within the monitoring radius (at least 150 km, because the dams that flood a town are often well upstream) that reported in the last 7 days. Data comes from Bureau of Meteorology Water Data Online, which water agencies update about once a day, so readings are usually 12 to 48 hours old. These sensors do not warn of dam releases: follow the dam operator's release notifications and the Bureau's flood warnings for that. Leave all unticked for no storage sensors. Searching can take up to a minute the first time.",
+        "data": {
+          "dam_storages": "Storages"
+        },
+        "data_description": {
+          "dam_storages": "Percent full is the volume as a share of full supply volume and can go above 100%. Storages of owners that do not license their data openly (such as Snowy Hydro) are not listed."
+        }
       }
     },
     "error": {
@@ -238,7 +249,9 @@
       "no_river_cell": "No river cell with data was found near this point. Pick a point on or next to a larger river.",
       "invalid_threshold": "The threshold must be greater than 0.",
       "rivers_unavailable": "The gauge services could not be reached, so only the gauges you already selected are listed. Try again later.",
-      "no_river_gauges": "No gauge within the monitoring radius reported a level in the last 6 hours. Increase the radius to search further."
+      "no_river_gauges": "No gauge within the monitoring radius reported a level in the last 6 hours. Increase the radius to search further.",
+      "dams_unavailable": "Water Data Online could not be reached, so only the storages you already selected are listed. Try again later.",
+      "no_dam_storages": "No storage within the search radius reported in the last 7 days. Increase the radius to search further."
     },
     "abort": {
       "too_many_river_points": "You can add up to 10 river points. Remove one first.",
@@ -297,6 +310,9 @@
       },
       "flooded_road_nearby": {
         "name": "Flooded Road Nearby"
+      },
+      "dam_above_full_supply": {
+        "name": "{storage} above full supply"
       }
     },
     "sensor": {
@@ -397,6 +413,15 @@
       },
       "emergency_broadcaster": {
         "name": "Emergency broadcaster"
+      },
+      "dam_percent_full": {
+        "name": "{storage} percent full"
+      },
+      "dam_volume": {
+        "name": "{storage} volume"
+      },
+      "dam_level": {
+        "name": "{storage} level"
       }
     }
   },
@@ -412,6 +437,9 @@
     },
     "broadcaster_unavailable": {
       "message": "No emergency broadcaster is available for {identifier}. Turn it on in the integration options, or check that the entry is loaded."
+    },
+    "dam_storages_unavailable": {
+      "message": "Water Data Online could not be reached and no recent storage readings remain"
     }
   },
   "issues": {

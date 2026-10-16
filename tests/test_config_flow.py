@@ -436,6 +436,7 @@ async def test_options_flow(
         "emergency_broadcaster",
         "add_river_point",
         "river_gauges",
+        "dam_storages",
     ]
 
     result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "settings"})

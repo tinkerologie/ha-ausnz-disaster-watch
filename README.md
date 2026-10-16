@@ -21,6 +21,7 @@ Directly integrates official emergency feeds—including the **Queensland Fire D
   - **National / Federal**: Bureau of Meteorology (BoM) weather warnings (severe thunderstorms, tropical cyclones, flood warnings).
   - **Earthquakes (optional)**: Geoscience Australia earthquakes of magnitude 3 or more from the last 48 hours, within your radius (M6+ Watch and Act, M4.5+ Advice, smaller Information). Turn it on under **Configure > Earthquakes** (Australian entries; New Zealand entries use GeoNet). Earthquake data © Commonwealth of Australia (Geoscience Australia), from [earthquakes.ga.gov.au](https://earthquakes.ga.gov.au/), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 - **River and Creek Levels** (opt-in): pick nearby water level gauges in Queensland, New South Wales, the ACT and New Zealand and get one sensor per gauge, polled every 15 minutes. See [River and creek level gauges](#river-and-creek-level-gauges).
+- **Dam and Weir Storage Levels** (opt-in): pick dams and weirs anywhere in Australia and get percent full (above 100% when a dam holds flood water), volume, level and an "above full supply" binary sensor per storage. See [Dam and weir storage levels](#dam-and-weir-storage-levels).
   - **Roads (NSW, QLD, VIC, SA, WA, NT, TAS)**: road closures, flooded roads and road hazards from each state's official open road feed (see [Road closures and flooded roads](#road-closures-and-flooded-roads)).
 - **Australian Warning System (AWS) Normalization**:
   - 🚨 **Emergency Warning** (Level 3 - Red)
@@ -117,6 +118,39 @@ found), Southland and Gisborne (server errors), Victoria and the other states (n
 Groundwater bores on the Hilltop servers are not offered.
 
 The `…_air_quality` sensor reports the nearest station first. With **State air quality stations** enabled (NSW, QLD and ACT), it uses the state environment agency's stations and adds `distance_km`, `observed_at` and `source` attributes. A station with no current reading has an unknown rating, never "Good".
+
+### Dam and weir storage levels
+
+Storage sensors are off until you choose storages. Open **Configure** on the integration and pick
+**Dam and weir storage levels** from the menu. The form lists up to 15 of the nearest storages that
+reported in the last 7 days, with distance and percent full. It searches the monitoring radius, but
+at least 150 km, because the dams that flood a town are often well upstream (Wivenhoe is 65 km from
+Brisbane). The first search can take up to a minute; the storage list is then cached for 24 hours.
+Tick the storages you want and submit.
+
+Each storage gets these entities, named after the storage, for example
+`sensor.australia_and_new_zealand_disaster_watch_qld_home_wivenhoe_percent_full`:
+
+- `sensor.…_percent_full`: volume as a share of full supply volume, in %. It goes **above 100%** when a dam holds more than its full supply, for example when Wivenhoe or Somerset are using their flood storage compartment.
+- `sensor.…_volume`: volume in megalitres (ML).
+- `sensor.…_level`: water level in metres, usually above sea level (AHD).
+- `binary_sensor.…_above_full_supply`: on while the storage is above 100% of full supply volume (or, for a storage without volume data, above full supply level). An ungated dam above full supply is spilling; a gated flood-mitigation dam above full supply is holding flood water that it will release.
+- **Attributes** (on all four): `site_id`, `latitude`, `longitude`, `distance_km`, `full_supply_volume_ml`, `full_supply_level_m`, `observed_at` (time of the reading, UTC), `percent_full`, `volume_ml`, `level_m`, `change_24h_ml` (volume change since the reading closest to 24 hours earlier, taken 18 to 36 hours before the latest; `null` without one) and `above_full_supply`. The attribution names the data owner.
+- **Availability**: storages are polled hourly. A storage without a reading in the last 7 days is unavailable; if Water Data Online cannot be reached, the last readings are kept until they are 7 days old. Storages stay selected until you untick them.
+
+| Region | Source | Licence |
+| ------ | ------ | ------- |
+| All Australian states and territories | [Bureau of Meteorology Water Data Online](https://www.bom.gov.au/waterdata/) (KiWIS web service), with data supplied by Seqwater, WaterNSW, Sunwater, Melbourne Water, Goulburn-Murray Water, SA Water, Water Corporation, Hydro Tasmania, Icon Water, Power and Water and other water agencies | CC BY 3.0 AU per data owner ([owner list](https://www.bom.gov.au/waterdata/wiski-web-public/copyright.htm)). Storages of owners with other terms (Snowy Hydro, Gosford City Council) are not offered |
+
+> **These sensors are not a dam release warning.** Water agencies send their data to the Bureau
+> about once a day, so readings are usually **12 to 48 hours old**. During a flood, a dam can start
+> releasing well before its storage sensors change. For releases, sign up to the dam operator's
+> notifications (for example the [Seqwater Dam Release Notification Service](https://www.seqwater.com.au/dam-release-notification-service))
+> and follow the Bureau's flood warnings, which this integration already reports as hazards.
+> No dam operator publishes release or gate-operation notices in a form the integration may
+> read, and the operators' own live levels (Seqwater, Sunwater, Melbourne Water) are not
+> licensed for reuse. Permission requests are tracked in #80. New Zealand has no openly licensed
+> live source yet.
 
 ### Optional national and regional feeds
 These feeds are off by default. Turn them on under **Configure** > **National and regional feeds (optional)**. Each one adds its entity when enabled. An entity is unavailable while its source cannot confirm a state, so a failed feed never shows as all clear. None of these feeds add hazards, so they do not change the hazard counts, warning levels, map pins or polling rate.
@@ -240,6 +274,7 @@ Click **Configure** on the integration card to open the options menu:
 - **Road and flood cameras (optional)** (Queensland, New South Wales and New Zealand): camera networks, camera radius and maximum number of cameras (see [Cameras](#cameras-camera)).
 - **Add / edit / remove river points**: river flood forecast points.
 - **River and creek level gauges**: the [river gauge picker](#river-and-creek-level-gauges) and optional alert levels (Queensland, New South Wales, the ACT and New Zealand).
+- **Dam and weir storage levels**: the [storage picker](#dam-and-weir-storage-levels) (all Australian states and territories).
 
 Saving any options page reloads the entry; no Home Assistant restart is needed.
 
@@ -609,6 +644,29 @@ actions:
         media_content_type: music
 ```
 
+### 5. Dam above full supply
+
+Notify when Somerset holds flood water or Wivenhoe goes over 100%:
+
+```yaml
+alias: "Dams: above full supply"
+triggers:
+  - trigger: state
+    entity_id: binary_sensor.australia_and_new_zealand_disaster_watch_qld_home_somerset_above_full_supply
+    to: "on"
+  - trigger: numeric_state
+    entity_id: sensor.australia_and_new_zealand_disaster_watch_qld_home_wivenhoe_percent_full
+    above: 100
+actions:
+  - action: notify.notify
+    data:
+      title: "Dam above full supply"
+      message: >-
+        {{ trigger.to_state.name }}: {{ trigger.to_state.state }}
+        (reading of {{ trigger.to_state.attributes.observed_at }}).
+        Check the dam operator's release notices and the Bureau's flood warnings.
+```
+
 ---
 
 ## Data sources & licences
@@ -643,6 +701,7 @@ The integration reads public feeds published by emergency services, weather agen
 | QLD | Water Monitoring Information Portal river gauges (opt-in) | CC BY 4.0 |
 | NSW, ACT | WaterNSW real-time river gauges (opt-in) | CC BY (data.gov.au lists 3.0 and 4.0) |
 | NZ | Regional council Hilltop river gauges (opt-in) | Hawke's Bay CC BY; other councils unverified |
+| AU | Bureau of Meteorology Water Data Online dam and weir storages (opt-in) | CC BY 3.0 AU per data owner; other owners excluded |
 
 GeoNet and NSW RFS feeds are read with the maintained `aio_geojson_geonetnz_quakes`, `aio_geojson_geonetnz_volcano` and `aio_geojson_nsw_rfs_incidents` libraries (Apache-2.0), the same ones Home Assistant core uses.
 

@@ -425,6 +425,15 @@ _SOURCES = (
         terms_url="https://hilltop.gw.govt.nz/Data.hts",
         status=LicenceStatus.UNVERIFIED,
     ),
+    # Opt-in dam and weir storages; each entity shows its data owner's attribution
+    DataSource(
+        key="bom_water_storages",
+        owner="Water agencies reporting to the Bureau of Meteorology (Water Data Online)",
+        attribution="Data owner's credit, CC BY 3.0 AU, via Bureau of Meteorology Water Data Online",
+        licence="CC BY 3.0 AU, per data owner (owners with other terms are excluded)",
+        terms_url="https://www.bom.gov.au/waterdata/wiski-web-public/copyright.htm",
+        status=LicenceStatus.OPEN,
+    ),
     # Opt-in national and regional feeds (#37)
     DataSource(
         key="bom_ftp",
