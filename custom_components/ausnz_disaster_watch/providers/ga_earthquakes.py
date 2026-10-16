@@ -34,12 +34,13 @@ GA_QUAKE_MAX_AGE = timedelta(hours=48)
 def quake_level(magnitude: float) -> WarningLevel:
     """Return the warning level for a quake that is within the monitored radius.
 
-    GA publishes no felt intensity, so the level follows magnitude (issue #23): M4.5 or more
-    is Watch and Act, M4 or more is Advice, anything smaller is Information.
+    GA publishes no felt intensity, so the level follows magnitude (maintainer decision on
+    #23): M6 or more is Watch and Act, M4.5 or more is Advice, anything smaller is
+    Information. A quake that has already happened is never an Emergency Warning.
     """
-    if magnitude >= 4.5:
+    if magnitude >= 6.0:
         return WarningLevel.WATCH_AND_ACT
-    if magnitude >= 4.0:
+    if magnitude >= 4.5:
         return WarningLevel.ADVICE
     return WarningLevel.INFORMATION
 

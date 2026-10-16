@@ -54,11 +54,12 @@ def _provider(hass: HomeAssistant, payload: Any) -> GAEarthquakeProvider:
 @pytest.mark.parametrize(
     ("magnitude", "level"),
     [
-        (6.2, WarningLevel.WATCH_AND_ACT),
-        (4.5, WarningLevel.WATCH_AND_ACT),
-        (4.4, WarningLevel.ADVICE),
-        (4.0, WarningLevel.ADVICE),
-        (3.9, WarningLevel.INFORMATION),
+        (9.1, WarningLevel.WATCH_AND_ACT),
+        (6.0, WarningLevel.WATCH_AND_ACT),
+        (5.9, WarningLevel.ADVICE),
+        (4.5, WarningLevel.ADVICE),
+        (4.4, WarningLevel.INFORMATION),
+        (3.0, WarningLevel.INFORMATION),
     ],
 )
 def test_quake_level(magnitude: float, level: WarningLevel) -> None:
@@ -77,8 +78,8 @@ async def test_ga_earthquakes_parse_recent_significant_quakes(
     freezer.move_to("2026-10-15T14:00:00+00:00")
     payload = _payload()
     by_id = {f["properties"]["event_id"]: f for f in payload["features"]}
-    # A small quake in WA, recent enough, made M4.2 to check the Advice level
-    by_id["ga2026uhunoc"]["properties"]["preferred_magnitude"] = 4.2
+    # A small quake in WA, recent enough, made M4.7 to check the Advice level
+    by_id["ga2026uhunoc"]["properties"]["preferred_magnitude"] = 4.7
     payload["features"].append({"type": "Feature"})  # malformed: skipped, not fatal
     provider = _provider(hass, payload)
     assert provider.state_code == "AU"
@@ -92,7 +93,7 @@ async def test_ga_earthquakes_parse_recent_significant_quakes(
         "ga_quake_ga2026ukndhi",
     ]
     wa = hazards["ga_quake_ga2026uhunoc"]
-    assert wa.title == "M4.2 Earthquake - Great Victoria Desert, WA"
+    assert wa.title == "M4.7 Earthquake - Great Victoria Desert, WA"
     assert wa.hazard_type is HazardType.EARTHQUAKE
     assert wa.warning_level is WarningLevel.ADVICE
     assert wa.source == wa.responsible_agency == "Geoscience Australia"
@@ -100,9 +101,9 @@ async def test_ga_earthquakes_parse_recent_significant_quakes(
     assert wa.updated_at is not None
     assert wa.updated_at.isoformat() == "2026-10-13T18:08:04.410000+00:00"
     assert wa.raw_properties["located_in_australia"] is True
-    assert wa.raw_properties["magnitude"] == 4.2
+    assert wa.raw_properties["magnitude"] == 4.7
     assert wa.raw_properties["depth_km"] == 6.9
-    assert hazards["ga_quake_ga2026ukndhi"].warning_level is WarningLevel.WATCH_AND_ACT
+    assert hazards["ga_quake_ga2026ukndhi"].warning_level is WarningLevel.ADVICE  # M5.1
     assert hazards["ga_quake_ga2026ukndhi"].status == "Confirmed"
 
 
