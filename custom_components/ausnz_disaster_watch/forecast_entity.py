@@ -70,6 +70,11 @@ class ForecastEntity[CoordinatorT: OpenMeteoCoordinator[Any]](CoordinatorEntity[
         self._attr_unique_id = f"{main.entry.entry_id}_{key}"
         self._attr_device_info = entry_device_info(main)
 
+    @property
+    def available(self) -> bool:
+        """Return False until the first forecast has arrived (it is fetched after setup, #75)."""
+        return super().available and self.coordinator.data is not None
+
 
 # --- Weather hazard signals (#39) ---
 
