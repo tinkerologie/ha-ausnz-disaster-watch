@@ -6,5 +6,7 @@
 aio-geojson-geonetnz-quakes>=0.16
 aio-geojson-geonetnz-volcano>=0.9
 aio-geojson-nsw-rfs-incidents>=0.7
+# GDACS feed library (#37); lower bound matches Home Assistant core's gdacs integration.
+aio-georss-gdacs>=0.10
 defusedxml>=0.7.1
 pydantic>=2.10

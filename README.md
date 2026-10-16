@@ -114,6 +114,32 @@ behind a bot wall), Waikato (times out), Bay of Plenty, Otago and Nelson (no pub
 found), Southland and Gisborne (server errors), Victoria and the other states (no source yet).
 Groundwater bores on the Hilltop servers are not offered.
 
+The `…_air_quality` sensor reports the nearest station first. With **State air quality stations** enabled (NSW, QLD and ACT), it uses the state environment agency's stations and adds `distance_km`, `observed_at` and `source` attributes. A station with no current reading has an unknown rating, never "Good".
+
+### Optional national and regional feeds
+These feeds are off by default. Turn them on under **Configure** > **National and regional feeds (optional)**. Each one adds its entity when enabled. An entity is unavailable while its source cannot confirm a state, so a failed feed never shows as all clear. None of these feeds add hazards, so they do not change the hazard counts, warning levels, map pins or polling rate.
+
+| Entity (suffix) | Description | States / Unit | Jurisdictions |
+| ------ | ----------- | ------------- | ------------- |
+| `binary_sensor.…_tsunami_warning` | `on` while a tsunami watch or warning applies, or a tsunami hazard is in range. Attributes: `threat_level` (`no_threat`, `watch`, `marine`, `land`), headline, expiry and the products checked | `safety` | AU: JATWC. NZ: PTWC guidance (official NZ warnings come from NEMA) |
+| `sensor.…_satellite_hotspots_nearby` | Satellite heat detections in the last 24 hours within the radius, with confidence of at least 50. Hotspots are not fire warnings | `hotspots` | AU |
+| `sensor.…_heatwave_severity` | Highest current BoM heatwave warning in your state, with each district's severity as an attribute | `none`, `low_intensity`, `severe`, `extreme` | AU |
+| `sensor.…_uv_index` | UV index at the nearest ARPANSA station, with the BoM sun protection forecast for that station | UV index | AU |
+| `sensor.…_regional_disaster_alerts` | Current GDACS Orange and Red alerts around Australia and New Zealand. These alerts are context only and never count as local warnings | `alerts` | AU, NZ |
+
+#### Data sources and licences
+| Feed | Source | Licence and conditions |
+| ---- | ------ | ---------------------- |
+| Tsunami (AU) | Joint Australian Tsunami Warning Centre CAP products `IDY680nn`, BoM anonymous FTP | © Bureau of Meteorology. Personal, non-commercial use |
+| Tsunami (NZ) | NOAA Pacific Tsunami Warning Center Atom and CAP feed | US Government work, public domain. Credit NOAA. No endorsement is implied |
+| Satellite hotspots | Digital Earth Australia Hotspots (Geoscience Australia) WFS, queried by bounding box | CC BY 4.0. Not for safety-of-life decisions |
+| Heatwave, UV forecast | BoM products `IDx21013`/`IDN21014` and `IDZ00107`–`IDZ00113`, BoM anonymous FTP | © Bureau of Meteorology. Personal, non-commercial use |
+| UV observations | ARPANSA real-time UV (`uvvalues.xml`) | Attribution "UV observations courtesy of ARPANSA". Developers must notify ARPANSA that the data is used. No retransmission or commercial use without permission |
+| Regional alerts | GDACS RSS (European Commission JRC), read with `aio-georss-gdacs` | © European Union. The feed is marked public domain. Indicative only |
+| Air quality (NSW) | NSW DCCEEW air quality API | CC BY 4.0 |
+| Air quality (QLD) | Queensland Government air quality XML feed | CC BY 4.0 |
+| Air quality (ACT) | ACT Government open data, dataset `94a5-zqnn` | CC BY 4.0 |
+
 ### Cameras (`camera`)
 Flood and traffic camera snapshots near the monitored location, where the jurisdiction provides them.
 
@@ -175,6 +201,7 @@ Click **Configure** on the integration card to open the options menu:
 - **Monitoring settings**: radius, emergency override, planned burns and council dashboard URL.
 - **Forecast signals and AI rain outlook**: the opt-in Open-Meteo features below.
 - **Earthquakes** (Australian entries): include Geoscience Australia earthquakes (off by default).
+- **National and regional feeds (optional)**: tsunami, satellite hotspots, heatwave, UV, state air quality and GDACS (see [Optional national and regional feeds](#optional-national-and-regional-feeds)).
 - **Add / edit / remove river points**: river flood forecast points.
 - **River and creek level gauges**: the [river gauge picker](#river-and-creek-level-gauges) and optional alert levels (Queensland, New South Wales, the ACT and New Zealand).
 

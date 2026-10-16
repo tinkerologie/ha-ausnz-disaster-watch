@@ -21,6 +21,29 @@ CONF_COUNCIL_DASHBOARD_URL: Final = "council_dashboard_url"
 CONF_INCLUDE_EARTHQUAKES: Final = "include_earthquakes"
 CONF_RIVER_GAUGES: Final = "river_gauges"
 
+# Opt-in national and regional hazard feeds (#37). All default to off.
+CONF_ENABLE_TSUNAMI: Final = "enable_tsunami"
+CONF_ENABLE_SATELLITE_HOTSPOTS: Final = "enable_satellite_hotspots"
+CONF_ENABLE_HEATWAVE: Final = "enable_heatwave"
+CONF_ENABLE_UV: Final = "enable_uv"
+CONF_ENABLE_AIR_QUALITY: Final = "enable_state_air_quality"
+CONF_ENABLE_REGIONAL_ALERTS: Final = "enable_regional_alerts"
+NATIONAL_FEED_OPTIONS: Final = (
+    CONF_ENABLE_TSUNAMI,
+    CONF_ENABLE_SATELLITE_HOTSPOTS,
+    CONF_ENABLE_HEATWAVE,
+    CONF_ENABLE_UV,
+    CONF_ENABLE_AIR_QUALITY,
+    CONF_ENABLE_REGIONAL_ALERTS,
+)
+# Feeds that only cover Australia; they are not offered for New Zealand entries
+AU_ONLY_FEED_OPTIONS: Final = (
+    CONF_ENABLE_SATELLITE_HOTSPOTS,
+    CONF_ENABLE_HEATWAVE,
+    CONF_ENABLE_UV,
+    CONF_ENABLE_AIR_QUALITY,
+)
+
 # Location modes
 LOCATION_MODE_HOME: Final = "home"
 LOCATION_MODE_CUSTOM: Final = "custom"

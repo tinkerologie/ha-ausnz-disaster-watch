@@ -1,0 +1,44 @@
+[
+ {
+  "Site_Id": 33,
+  "SiteName": "RANDWICK",
+  "Longitude": 151.24278,
+  "Latitude": -33.93175,
+  "Region": "Sydney East"
+ },
+ {
+  "Site_Id": 39,
+  "SiteName": "ROZELLE",
+  "Longitude": 151.16395,
+  "Latitude": -33.86433,
+  "Region": "Sydney East"
+ },
+ {
+  "Site_Id": 1001,
+  "SiteName": "COOK AND PHILLIP",
+  "Longitude": 151.21323,
+  "Latitude": -33.87288,
+  "Region": "Sydney East"
+ },
+ {
+  "Site_Id": 70,
+  "SiteName": "LINDFIELD",
+  "Longitude": 151.1509,
+  "Latitude": -33.78113,
+  "Region": "Sydney East"
+ },
+ {
+  "Site_Id": 107,
+  "SiteName": "LIVERPOOL",
+  "Longitude": 150.90727,
+  "Latitude": -33.93132,
+  "Region": "Sydney South-west"
+ },
+ {
+  "Site_Id": 171,
+  "SiteName": "BRINGELLY",
+  "Longitude": 150.76192,
+  "Latitude": -33.91766,
+  "Region": "Sydney South-west"
+ }
+]

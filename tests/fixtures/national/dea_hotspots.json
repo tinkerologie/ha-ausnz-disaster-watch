@@ -1,0 +1,150 @@
+{
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "type": "Feature",
+   "id": "hotspots_three_days.fid--47dac52_1a141a857ef_-60fe",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     128.9121,
+     -20.2549
+    ]
+   },
+   "geometry_name": "location",
+   "properties": {
+    "id": 124577218,
+    "satellite": "HIMAWARI-9",
+    "satellite_nssdc_id": "2016-064A",
+    "satellite_operating_agency": "JMA",
+    "sensor": "AHI",
+    "orbit": null,
+    "start_dt": "2026-10-15T03:20:00Z",
+    "stop_dt": null,
+    "filename": "AHI20261015T032000Zhotspots.txt",
+    "process_dt": "2026-10-15T03:39:36Z",
+    "process_algorithm": "BRIGHT AHI",
+    "process_algorithm_version": "1.86",
+    "product": "BRIGHT AHI",
+    "load_dt": "2026-10-15T03:39:44.068Z",
+    "latitude": -20.2549,
+    "longitude": 128.9121,
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      128.9121,
+      -20.2549
+     ]
+    },
+    "temp_kelvin": 356.9,
+    "datetime": "2026-10-15T03:27:31Z",
+    "power": -999,
+    "confidence": 100,
+    "australian_state": "WA ",
+    "fire_category_name": null,
+    "hours_since_hotspot": 18.91713243555556,
+    "accuracy": "± 2km"
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "hotspots_three_days.fid--47dac52_1a141a857ef_-60fd",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     165.27087402,
+     -21.26466179
+    ]
+   },
+   "geometry_name": "location",
+   "properties": {
+    "id": 124577221,
+    "satellite": "NOAA 21",
+    "satellite_nssdc_id": "2022-150A",
+    "satellite_operating_agency": "NOAA",
+    "sensor": "VIIRS",
+    "orbit": 20356,
+    "start_dt": "2026-10-15T03:05:11Z",
+    "stop_dt": "2026-10-15T03:20:47Z",
+    "filename": "J0220261015T030511Z20261015T032047Zhotspots.txt",
+    "process_dt": "2026-10-15T03:42:42Z",
+    "process_algorithm": "AFMOD",
+    "process_algorithm_version": "6",
+    "product": "AFMOD",
+    "load_dt": "2026-10-15T03:43:46.130Z",
+    "latitude": -21.2647,
+    "longitude": 165.2709,
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      165.27087402,
+      -21.26466179
+     ]
+    },
+    "temp_kelvin": 326.54,
+    "datetime": "2026-10-15T03:15:07Z",
+    "power": 19.2,
+    "confidence": 82,
+    "australian_state": null,
+    "fire_category_name": null,
+    "hours_since_hotspot": 19.123799102222222,
+    "accuracy": "± 0.375km"
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "hotspots_three_days.fid--47dac52_1a141a857ef_-60fc",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     165.26370239,
+     -21.26620865
+    ]
+   },
+   "geometry_name": "location",
+   "properties": {
+    "id": 124577222,
+    "satellite": "NOAA 21",
+    "satellite_nssdc_id": "2022-150A",
+    "satellite_operating_agency": "NOAA",
+    "sensor": "VIIRS",
+    "orbit": 20356,
+    "start_dt": "2026-10-15T03:05:11Z",
+    "stop_dt": "2026-10-15T03:20:47Z",
+    "filename": "J0220261015T030511Z20261015T032047Zhotspots.txt",
+    "process_dt": "2026-10-15T03:42:42Z",
+    "process_algorithm": "AFMOD",
+    "process_algorithm_version": "6",
+    "product": "AFMOD",
+    "load_dt": "2026-10-15T03:43:46.130Z",
+    "latitude": -21.2662,
+    "longitude": 165.2637,
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      165.26370239,
+      -21.26620865
+     ]
+    },
+    "temp_kelvin": 309.74,
+    "datetime": "2026-10-15T03:15:07Z",
+    "power": 5.2,
+    "confidence": 61,
+    "australian_state": null,
+    "fire_category_name": null,
+    "hours_since_hotspot": 19.123799102222222,
+    "accuracy": "± 0.375km"
+   }
+  }
+ ],
+ "totalFeatures": 70110,
+ "numberMatched": 70110,
+ "numberReturned": 3,
+ "timeStamp": "2026-10-15T22:22:32.729Z",
+ "crs": {
+  "type": "name",
+  "properties": {
+   "name": "urn:ogc:def:crs:EPSG::4326"
+  }
+ }
+}

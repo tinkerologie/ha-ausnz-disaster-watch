@@ -1,0 +1,137 @@
+<?xml version="1.0"?>
+<!-- Recorded from https://apps.des.qld.gov.au/air-quality/xml/feed.php?category=1&amp;region=ALL on 2026-10-16 (live). Trimmed to three regions. -->
+<airdata provider="Department of Environment and Science" state="Queensland" country="Australia">
+  <category name="Air Quality" measurementhour="7" measurementdate="2026-10-16">
+   <region name="North Queensland" information="https://apps.des.qld.gov.au/air-quality/region/?region=ayr">
+     <station name="Ayr" information="https://apps.des.qld.gov.au/air-quality/stations/?station=ayr1" longitude="147.4059" latitude="-19.5839" measurementhour="7" measurementdate="2026-10-16">
+       <measurement name="Particle PM10" rating_name="Good" rating="2" index="-2222">-1111</measurement>
+       <measurement name="Particle PM2.5" rating_name="Good" rating="2" index="-5555">-1111</measurement>
+     </station>
+   </region>
+   <region name="Whitsunday" information="https://apps.des.qld.gov.au/air-quality/region/?region=bow">
+     <station name="West Mackay" information="https://apps.des.qld.gov.au/air-quality/stations/?station=mac" longitude="149.1549" latitude="-21.1595" measurementhour="7" measurementdate="2026-10-16">
+       <measurement name="Visibility" rating_name="Very Good" rating="1" index="14">33</measurement>
+       <measurement name="Particle PM10" rating_name="Good" rating="2" index="35.8">17.9</measurement>
+       <measurement name="Particle PM2.5" rating_name="Good" rating="2" index="33.5">6.7</measurement>
+     </station>
+   </region>
+   <region name="South East Queensland" information="https://www.qld.gov.au/environment/pollution/monitoring/air-monitoring/seq/">
+     <station name="Mutdapilly" information="https://apps.des.qld.gov.au/air-quality/stations/?station=mut" longitude="152.6509" latitude="-27.7528" measurementhour="7" measurementdate="2026-10-16">
+       <measurement name="Ozone" rating_name="Very Good" rating="1" index="30.8">0.02</measurement>
+       <measurement name="Nitrogen dioxide" rating_name="Very Good" rating="1" index="3.8">0.003</measurement>
+       <measurement name="Particle PM10" rating_name="Very Good" rating="1" index="30">15</measurement>
+       <measurement name="Particle PM2.5" rating_name="Very Good" rating="1" index="18">3.6</measurement>
+     </station>
+     <station name="Raceview" information="https://apps.des.qld.gov.au/air-quality/stations/?station=rac" longitude="152.7862" latitude="-27.6448" measurementhour="7" measurementdate="2026-10-16">
+       <measurement name="Ozone" rating_name="Very Good" rating="1" index="29.2">0.019</measurement>
+       <measurement name="Visibility" rating_name="Very Good" rating="1" index="5.1">12</measurement>
+       <measurement name="Sulfur dioxide" rating_name="Very Good" rating="1" index="1.3">0.001</measurement>
+       <measurement name="Nitrogen dioxide" rating_name="Very Good" rating="1" index="22.5">0.018</measurement>
+       <measurement name="Particle PM10" rating_name="Good" rating="2" index="45.2">22.6</measurement>
+       <measurement name="Particle PM2.5" rating_name="Very Good" rating="1" index="20">4</measurement>
+     </station>
+     <station name="North Maclean" information="https://apps.des.qld.gov.au/air-quality/stations/?station=nmc" longitude="153.03" latitude="-27.7708" measurementhour="7" measurementdate="2026-10-16">
+       <measurement name="Ozone" rating_name="Very Good" rating="1" index="27.7">0.018</measurement>
+       <measurement name="Nitrogen dioxide" rating_name="Very Good" rating="1" index="3.8">0.003</measurement>
+       <measurement name="Particle PM10" rating_name="Very Good" rating="1" index="17">8.5</measurement>
+       <measurement name="Particle PM2.5" rating_name="Very Good" rating="1" index="14.5">2.9</measurement>
+     </station>
+     <station name="Parkwood" information="https://apps.des.qld.gov.au/air-quality/stations/?station=pwd" longitude="153.3475" latitude="-27.9535" measurementhour="7" measurementdate="2026-10-16">
+       <measurement name="Carbon monoxide" rating_name="Very Good" rating="1" index="0">0</measurement>
+       <measurement name="Nitrogen dioxide" rating_name="Very Good" rating="1" index="17.5">0.014</measurement>
+       <measurement name="Particle PM10" rating_name="Good" rating="2" index="34.6">17.3</measurement>
+       <measurement name="Particle PM2.5" rating_name="Very Good" rating="1" index="20">4</measurement>
+     </station>
+     <station name="Nambour" information="https://apps.des.qld.gov.au/air-quality/stations/?station=nam" longitude="152.9397" latitude="-26.6429" measurementhour="7" measurementdate="2026-10-16">
+       <measurement name="Particle PM10" rating_name="Very Good" rating="1" index="18.6">9.3</measurement>
+       <measurement name="Particle PM2.5" rating_name="Very Good" rating="1" index="17">3.4</measurement>
+     </station>
+     <station name="Rocklea" information="https://apps.des.qld.gov.au/air-quality/stations/?station=roc" longitude="152.9934" latitude="-27.5358" measurementhour="7" measurementdate="2026-10-16">
+       <measurement name="Ozone" rating_name="Very Good" rating="1" index="16.9">0.011</measurement>
+       <measurement name="Visibility" rating_name="Very Good" rating="1" index="6.8">16</measurement>
+       <measurement name="Nitrogen dioxide" rating_name="Very Good" rating="1" index="23.8">0.019</measurement>
+       <measurement name="Particle PM10" rating_name="Very Good" rating="1" index="29.6">14.8</measurement>
+       <measurement name="Particle PM2.5" rating_name="Very Good" rating="1" index="25.5">5.1</measurement>
+     </station>
+     <station name="Wynnum West" information="https://apps.des.qld.gov.au/air-quality/stations/?station=wyw" longitude="153.1495" latitude="-27.4296" measurementhour="7" measurementdate="2026-10-16">
+       <measurement name="Sulfur dioxide" rating_name="Very Good" rating="1" index="0">0</measurement>
+       <measurement name="Particle PM10" rating_name="Very Good" rating="1" index="22.8">11.4</measurement>
+       <measurement name="Particle PM2.5" rating_name="Very Good" rating="1" index="6.5">1.3</measurement>
+     </station>
+     <station name="Wynnum" information="https://apps.des.qld.gov.au/air-quality/stations/?station=wyn" longitude="153.1581" latitude="-27.4296" measurementhour="7" measurementdate="2026-10-16">
+       <measurement name="Sulfur dioxide" rating_name="Very Good" rating="1" index="2.7">0.002</measurement>
+       <measurement name="Nitrogen dioxide" rating_name="Very Good" rating="1" index="3.8">0.003</measurement>
+       <measurement name="Particle PM10" rating_name="Very Good" rating="1" index="14.4">7.2</measurement>
+       <measurement name="Particle PM2.5" rating_name="Very Good" rating="1" index="4.5">0.9</measurement>
+     </station>
+     <station name="Woolloongabba" information="https://apps.des.qld.gov.au/air-quality/stations/?station=woo" longitude="153.035" latitude="-27.4975" measurementhour="7" measurementdate="2026-10-16">
+       <measurement name="Carbon monoxide" rating_name="Very Good" rating="1" index="0.7">0.06</measurement>
+       <measurement name="Nitrogen dioxide" rating_name="Very Good" rating="1" index="28.7">0.023</measurement>
+       <measurement name="Particle PM10" rating_name="Very Good" rating="1" index="28.6">14.3</measurement>
+       <measurement name="Particle PM2.5" rating_name="Very Good" rating="1" index="21">4.2</measurement>
+     </station>
+     <station name="Southport" information="https://apps.des.qld.gov.au/air-quality/stations/?station=ssh" longitude="153.4024" latitude="-27.9612" measurementhour="7" measurementdate="2026-10-16">
+       <measurement name="Ozone" rating_name="Good" rating="2" index="36.9">0.024</measurement>
+       <measurement name="Nitrogen dioxide" rating_name="Very Good" rating="1" index="7.5">0.006</measurement>
+       <measurement name="Particle PM10" rating_name="Very Good" rating="1" index="24">12</measurement>
+       <measurement name="Particle PM2.5" rating_name="Very Good" rating="1" index="18.5">3.7</measurement>
+     </station>
+     <station name="Springwood" information="https://apps.des.qld.gov.au/air-quality/stations/?station=spr" longitude="153.1359" latitude="-27.6125" measurementhour="7" measurementdate="2026-10-16">
+       <measurement name="Ozone" rating_name="Good" rating="2" index="-15383076.9">-9999</measurement>
+       <measurement name="Sulfur dioxide" rating_name="Very Good" rating="1" index="0">0</measurement>
+       <measurement name="Nitrogen dioxide" rating_name="Very Good" rating="1" index="16.2">0.013</measurement>
+       <measurement name="Particle PM10" rating_name="Very Good" rating="1" index="25.2">12.6</measurement>
+       <measurement name="Particle PM2.5" rating_name="Very Good" rating="1" index="19">3.8</measurement>
+     </station>
+     <station name="South Brisbane" information="https://apps.des.qld.gov.au/air-quality/stations/?station=sbr" longitude="153.0321" latitude="-27.4848" measurementhour="7" measurementdate="2026-10-16">
+       <measurement name="Carbon monoxide" rating_name="Very Good" rating="1" index="0">0</measurement>
+       <measurement name="Nitrogen dioxide" rating_name="Very Good" rating="1" index="30">0.024</measurement>
+       <measurement name="Particle PM10" rating_name="Very Good" rating="1" index="29.8">14.9</measurement>
+       <measurement name="Particle PM2.5" rating_name="Very Good" rating="1" index="23">4.6</measurement>
+     </station>
+     <station name="Cannon Hill" information="https://apps.des.qld.gov.au/air-quality/stations/?station=can" longitude="153.0872" latitude="-27.4654" measurementhour="7" measurementdate="2026-10-16">
+       <measurement name="Ozone" rating_name="Good" rating="2" index="36.9">0.024</measurement>
+       <measurement name="Nitrogen dioxide" rating_name="Very Good" rating="1" index="7.5">0.006</measurement>
+       <measurement name="Particle PM10" rating_name="Very Good" rating="1" index="25">12.5</measurement>
+       <measurement name="Particle PM2.5" rating_name="Very Good" rating="1" index="20">4</measurement>
+       <measurement name="Particles TSP" rating_name="Very Good" rating="1" index="23.5">18.8</measurement>
+     </station>
+     <station name="Brisbane CBD" information="https://apps.des.qld.gov.au/air-quality/stations/?station=cbd" longitude="153.0281" latitude="-27.4774" measurementhour="7" measurementdate="2026-10-16">
+       <measurement name="Visibility" rating_name="Very Good" rating="1" index="3.5">8.3</measurement>
+       <measurement name="Particle PM10" rating_name="Very Good" rating="1" index="25.2">12.6</measurement>
+       <measurement name="Particle PM2.5" rating_name="Very Good" rating="1" index="20.5">4.1</measurement>
+     </station>
+     <station name="Coomera" information="https://apps.des.qld.gov.au/air-quality/stations/?station=coo" longitude="153.3257" latitude="-27.8634" measurementhour="7" measurementdate="2026-10-16">
+       <measurement name="Carbon monoxide" rating_name="Very Good" rating="1" index="1">0.09</measurement>
+       <measurement name="Nitrogen dioxide" rating_name="Very Good" rating="1" index="3.8">0.003</measurement>
+       <measurement name="Particle PM10" rating_name="Very Good" rating="1" index="24.2">12.1</measurement>
+       <measurement name="Particle PM2.5" rating_name="Very Good" rating="1" index="18.5">3.7</measurement>
+     </station>
+     <station name="Deception Bay" information="https://apps.des.qld.gov.au/air-quality/stations/?station=dcb" longitude="153.0348" latitude="-27.1935" measurementhour="7" measurementdate="2026-10-16">
+       <measurement name="Ozone" rating_name="Good" rating="2" index="41.5">0.027</measurement>
+       <measurement name="Nitrogen dioxide" rating_name="Very Good" rating="1" index="6.2">0.005</measurement>
+       <measurement name="Particle PM10" rating_name="Very Good" rating="1" index="21.8">10.9</measurement>
+       <measurement name="Particle PM2.5" rating_name="Very Good" rating="1" index="18.5">3.7</measurement>
+     </station>
+     <station name="Deagon" information="https://apps.des.qld.gov.au/air-quality/stations/?station=dea" longitude="153.0478" latitude="-27.3292" measurementhour="7" measurementdate="2026-10-16">
+       <measurement name="Ozone" rating_name="Good" rating="2" index="36.9">0.024</measurement>
+       <measurement name="Visibility" rating_name="Very Good" rating="1" index="2.6">6.2</measurement>
+       <measurement name="Nitrogen dioxide" rating_name="Very Good" rating="1" index="8.8">0.007</measurement>
+       <measurement name="Particle PM10" rating_name="Very Good" rating="1" index="25.6">12.8</measurement>
+       <measurement name="Particle PM2.5" rating_name="Very Good" rating="1" index="20">4</measurement>
+     </station>
+     <station name="Mountain Creek" information="https://apps.des.qld.gov.au/air-quality/stations/?station=mar" longitude="153.1038" latitude="-26.6917" measurementhour="7" measurementdate="2026-10-16">
+       <measurement name="Ozone" rating_name="Good" rating="2" index="40">0.026</measurement>
+       <measurement name="Visibility" rating_name="Very Good" rating="1" index="4.3">10</measurement>
+       <measurement name="Nitrogen dioxide" rating_name="Very Good" rating="1" index="5">0.004</measurement>
+       <measurement name="Particle PM10" rating_name="Very Good" rating="1" index="31.4">15.7</measurement>
+       <measurement name="Particle PM2.5" rating_name="Very Good" rating="1" index="24">4.8</measurement>
+     </station>
+     <station name="Lytton" information="https://apps.des.qld.gov.au/air-quality/stations/?station=lyt" longitude="153.1527" latitude="-27.4065" measurementhour="7" measurementdate="2026-10-16">
+       <measurement name="Sulfur dioxide" rating_name="Very Good" rating="1" index="2.7">0.002</measurement>
+       <measurement name="Particle PM10" rating_name="Very Good" rating="1" index="17.4">8.7</measurement>
+       <measurement name="Particle PM2.5" rating_name="Very Good" rating="1" index="9.5">1.9</measurement>
+     </station>
+   </region>
+  </category>
+</airdata>

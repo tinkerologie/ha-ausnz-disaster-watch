@@ -61,6 +61,7 @@ from .const import (
 from .coordinator import nearest_council_dashboard
 from .hazard_options import HazardOptionsFlow
 from .models import DisasterWatchConfigModel
+from .national_options import NationalFeedsOptionsFlow
 from .rivers import (
     RIVER_DISCOVERY_TIMEOUT,
     STATE_RIVER_SOURCES,
@@ -605,7 +606,7 @@ def gauge_field_names(sites: list[GaugeSite]) -> list[str]:
     return [f"{site.name} ({site.site_id})" if names.count(site.name) > 1 else site.name for site in sites]
 
 
-class AustralianDisasterWatchOptionsFlowHandler(HazardOptionsFlow):
+class AustralianDisasterWatchOptionsFlowHandler(HazardOptionsFlow, NationalFeedsOptionsFlow):
     """Handle options flow for Australia and New Zealand Disaster Watch."""
 
     def __init__(self) -> None:
@@ -625,7 +626,7 @@ class AustralianDisasterWatchOptionsFlowHandler(HazardOptionsFlow):
         River point edit/remove only appear once a point exists; the river gauge picker only
         where a gauge service covers the state (#31).
         """
-        menu = ["settings", "forecasts", "add_river_point"]
+        menu = ["settings", "forecasts", "national_feeds", "add_river_point"]
         if self._offers_earthquakes:
             menu.insert(2, "earthquakes")
         if self._points:

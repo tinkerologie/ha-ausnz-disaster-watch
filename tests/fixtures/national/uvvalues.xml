@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Recorded from https://uvdata.arpansa.gov.au/xml/uvvalues.xml on 2026-10-16 (live). Trimmed to five stations; Perth status set to NA. -->
+<stations>
+  <location id="Brisbane">
+    <name>bri</name>
+    <index>2.3</index>
+    <time>8:21 AM</time>
+    <date>16/10/2026</date>
+    <fulldate>Friday, 16 October 2026</fulldate>
+    <utcdatetime>2026/10/15 22:21</utcdatetime>
+    <status>ok</status>
+  </location>
+  <location id="Casey">
+    <name>cas</name>
+    <index>0.3</index>
+    <time>6:21 AM</time>
+    <date>16/10/2026</date>
+    <fulldate>Friday, 16 October 2026</fulldate>
+    <utcdatetime>2026/10/15 22:21</utcdatetime>
+    <status>ok</status>
+  </location>
+  <location id="Darwin">
+    <name>dar</name>
+    <index>0.8</index>
+    <time>7:51 AM</time>
+    <date>16/10/2026</date>
+    <fulldate>Friday, 16 October 2026</fulldate>
+    <utcdatetime>2026/10/15 22:21</utcdatetime>
+    <status>ok</status>
+  </location>
+  <location id="Perth">
+    <name>per</name>
+    <index>0.2</index>
+    <time>6:22 AM</time>
+    <date>16/10/2026</date>
+    <fulldate>Friday, 16 October 2026</fulldate>
+    <utcdatetime>2026/10/15 22:22</utcdatetime>
+    <status>NA</status>
+  </location>
+  <location id="Sydney">
+    <name>syd</name>
+    <index>2.2</index>
+    <time>8:22 AM</time>
+    <date>16/10/2026</date>
+    <fulldate>Friday, 16 October 2026</fulldate>
+    <utcdatetime>2026/10/15 22:22</utcdatetime>
+    <status>ok</status>
+  </location>
+</stations>

@@ -75,6 +75,19 @@ attribution to show, and what we decided where the terms are restrictive (#34).
 | `river_hbrc_hilltop` | `https://data.hbrc.govt.nz/Envirodata/EMAR.hts` (Hilltop `SiteList`/`GetData`, measurement `Stage`; `rivers.py`, #31) | Hawke's Bay Regional Council | "Data on this site is licensed under a Creative Commons Attribution 3.0 or 4.0 New Zealand License": https://www.hbrc.govt.nz/our-council/open-data/ | Hawke's Bay Regional Council, CC BY | Allowed | As `river_qld_wmip`; one `GetData` request per selected gauge | `open` |
 | `river_nz_hilltop` | `https://hilltop.gw.govt.nz/Data.hts`, `https://hilltopserver.horizons.govt.nz/data.hts`, `https://envdata.tasman.govt.nz/data.hts`, `https://hilltop.nrc.govt.nz/Data.hts`, `https://hilltop.wcrc.govt.nz/Data.hts`, `https://extranet.trc.govt.nz/getdata/merged.hts`, `https://hydro.marlborough.govt.nz/data.hts` (Hilltop, measurement `Stage`; `rivers.py`, #31) | Greater Wellington, Horizons, Tasman, Northland, West Coast, Taranaki and Marlborough councils | None found for the Hilltop servers themselves. They are public and keyless, and several councils publish other datasets as CC BY 4.0 on data.govt.nz | The council's name | Unverified | As `river_hbrc_hilltop` | `unverified` |
 
+Opt-in national and regional feeds (#37). All are off by default; each is enabled by its own option. Checked 2026-10-16.
+
+| Key | Endpoint(s) | Owner | Licence / terms | Attribution shown | Commercial use | Rate limits / access | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `bom_ftp` | `ftp://ftp.bom.gov.au/anon/gen/fwo/`: JATWC tsunami `IDY680nn` CAP (`NLST IDY68*` each poll, only matching `*cap.xml` files downloaded), heatwave `IDx21013.cap.xml` / ACT `IDN21014.cap.xml` (hourly), UV forecast `IDZ00107`-`IDZ00113.xml` (hourly) (`NationalHazardProvider` via `providers/bom_ftp.py`) | Bureau of Meteorology (JATWC with Geoscience Australia) | BoM default terms: personal or in-organisation use, no supply to others, no commercial use (https://www.bom.gov.au/copyright). Anonymous FTP is BoM's documented product channel. | Australian Government Bureau of Meteorology (www.bom.gov.au) | Not allowed under BoM terms | Anonymous FTP; one connection per refresh, listing by pattern only | `restricted` |
+| `ptwc` | `https://www.tsunami.gov/events/xml/PHEBAtom.xml` and the CAP documents its entries link (NZ entries only) | NOAA NWS Pacific Tsunami Warning Center | US Government work, public domain; credit NOAA, no endorsement implied (https://www.weather.gov/disclaimer). International guidance, not an official NZ warning. | NOAA Pacific Tsunami Warning Center (US Government work, public domain; no licence needed) | Allowed | None published | `open` |
+| `dea_hotspots` | `https://hotspots.dea.ga.gov.au/geoserver/public/wfs` `GetFeature` on `public:hotspots_three_days`, always with `hours_since_hotspot<24`, `confidence>=50`, `BBOX(location,…,'CRS:84')` around the radius and a `count` cap (never `recent-hotspots.json`) | Geoscience Australia (Digital Earth Australia) | CC BY 4.0 (https://www.ga.gov.au/copyright). Hotspots are not for safety-of-life decisions. | Digital Earth Australia Hotspots, Geoscience Australia, CC BY 4.0 | Allowed | None published; refreshed every 30 min | `open` |
+| `arpansa_uv` | `https://uvdata.arpansa.gov.au/xml/uvvalues.xml` | ARPANSA | Developer conditions (https://www.arpansa.gov.au/our-services/monitoring/ultraviolet-radiation-monitoring/ultraviolet-radation-data-information): acknowledge ARPANSA ("UV observations courtesy of ARPANSA") **and notify ARPANSA that the data is used in the application**. Site copyright: no retransmission, distribution or commercial use without written approval. | UV observations courtesy of ARPANSA | Not allowed | Updated about every minute; read every poll | `restricted` (notification required, see [Permission requests](#permission-requests)) |
+| `gdacs` | GDACS RSS `https://www.gdacs.org/xml/rss.xml` (through `aio-georss-gdacs`); report links `https://www.gdacs.org/report.aspx?eventtype=…&eventid=…` | European Commission Joint Research Centre | No GDACS licence found: https://www.gdacs.org/About/termofuse.aspx has a disclaimer only ("purely indicative") and links the EC legal notice (https://commission.europa.eu/legal-notice_en). The RSS `<copyright>` element says "public domain". | Global Disaster Alert and Coordination System (GDACS), European Union / JRC; indicative only | Unknown | None published; refreshed every 15 min | `unverified` |
+| `nsw_air_quality` | `https://data.airquality.nsw.gov.au/api/Data/get_SiteDetails` (GET, daily), `https://data.airquality.nsw.gov.au/api/Data/get_Observations` (POST, 3 nearest sites, every 30 min) | NSW Department of Climate Change, Energy, the Environment and Water | CC BY 4.0 (data licence statement; https://data.nsw.gov.au/data/dataset/nsw-air-quality-data-services). Catalogue mirrors list CC BY 3.0 AU. | NSW Department of Climate Change, Energy, the Environment and Water, CC BY 4.0 | Allowed | None published; no key | `open` |
+| `qld_air_quality` | `https://apps.des.qld.gov.au/air-quality/xml/feed.php?category=1&region=ALL` | Queensland Government | CC BY 4.0 (https://www.data.qld.gov.au/dataset/air-quality-monitoring-live-data-feed) | © State of Queensland, CC BY 4.0 | Allowed | Hourly feed; read every 30 min | `open` |
+| `act_air_quality` | `https://www.data.act.gov.au/resource/94a5-zqnn.json?$order=datetime%20DESC&$limit=50` | ACT Government | CC BY 4.0 (dataset metadata, https://www.data.act.gov.au/d/94a5-zqnn) | ACT Government, CC BY 4.0 | Allowed | Socrata; read every 30 min | `open` |
+
 ## Council disaster dashboards (Guardian IMS)
 
 Key `guardian_ims`, status `restricted`. QLD and NSW read JSON from the configured council
@@ -195,6 +208,7 @@ The maintainer makes these contacts; record only replies the maintainer supplies
 | DFES (WA) | Use of `/v1/fire-danger-ratings` and `/v1/total-fire-bans` (warnings and incidents moved to RSS, #61) or SLIP | statepublicinfo@dfes.wa.gov.au | not yet | — |
 | Bureau of Meteorology | Terms for CAP warnings via WMO | — | not yet | — |
 | NSW SES / HazardWatch | Feed reuse | — | not yet | — |
+| ARPANSA | Notify that real-time UV data is used (a condition of use, #37) | info@arpansa.gov.au | not yet | — |
 
 ## Proposed sources with restrictive terms
 
@@ -215,7 +229,7 @@ None. A PR that adds a source must add it to [Runtime feeds](#runtime-feeds) and
 
 Not used yet; licences as reported in #34 and its comments, to be rechecked when a source is added.
 
-- Live Traffic NSW (CC BY), QLDTraffic GeoJSON API (CC BY 4.0, key), Main Roads WA (CC BY 4.0), Traffic SA (CC BY), VIC DTP (CC BY 4.0, key), DEA Hotspots (CC BY 4.0), Brisbane open data (CC BY 4.0), CFA feeds (CC BY 4.0, CFA only), TFS feeds (CC BY 4.0 with display conditions).
+- Live Traffic NSW (CC BY), QLDTraffic GeoJSON API (CC BY 4.0, key), Main Roads WA (CC BY 4.0), Traffic SA (CC BY), VIC DTP (CC BY 4.0, key), Brisbane open data (CC BY 4.0), CFA feeds (CC BY 4.0, CFA only), TFS feeds (CC BY 4.0 with display conditions).
 - MET Norway (https://api.met.no/doc/TermsOfService): NLOD 2.0 and CC BY 4.0, credit "Data from MET Norway"; requires an identifying User-Agent that does not start with "HomeAssistant".
 
 ## Out of scope

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Recorded from https://www.tsunami.gov/events/xml/PHEBAtom.xml (NOAA PTWC) on 2026-10-16 (live). -->
+    <feed xmlns="http://www.w3.org/2005/Atom" xmlns:geo="http://www.w3.org/2003/01/geo/wgs84_pos#" xmlns:georss="http://www.georss.org/georss">
+    <id>urn:uuid:59ee47c7-2be5-4fa4-8b8f-6758d3980fd1</id><title>        TSUNAMI INFORMATION STATEMENT NUMBER   1        </title>
+    <updated>2026-10-13T12:34:39Z</updated>
+    <author>
+      <name>NWS PACIFIC TSUNAMI WARNING CENTER HONOLULU HI</name>
+<uri>https://www.tsunami.gov/</uri>
+     <email>ntwc@noaa.gov</email>
+    </author>
+<icon>https://www.tsunami.gov/images/favicon.ico</icon>
+<link type="application/atom+xml" rel="self" title="self" href="https://www.tsunami.gov/events/xml/PAAQAtom.xml"/>
+ <link rel="related" title="Energy Map" href="https://www.tsunami.gov/events/PHEB/2026/10/13/26286001/1/WECA42/ " type="image/jpeg" />
+
+   <entry>
+
+    <title>CENTRAL MID-ATLANTIC RIDGE</title><updated>2026-10-13T12:34:39Z</updated>
+<geo:lat>-0.196</geo:lat>
+<geo:long>-19.231</geo:long>
+<summary type="xhtml"><div xmlns="http://www.w3.org/1999/xhtml">
+     <strong>Category:</strong> Information<br/><strong>Bulletin Issue Time: </strong> 2026.10.13 12:34:39 UTC <br/><strong>Preliminary Magnitude: </strong>6.8(Mwp)<br/><strong>Lat/Lon: </strong>-0.196 / -19.231<br/><strong>Affected Region: </strong>CENTRAL MID-ATLANTIC RIDGE<br/><b>Note:</b>  <br/><strong>Definition: </strong><a href="https://www.tsunami.gov/events/PHEB/2026/10/13/26286001/1/WECA42/WECA42.txt">View bulletin</a><img src="https://www.tsunami.gov/events/PHEB/2026/10/13/26286001/1/WECA42/ " alt="Energy Map" />
+ </div></summary>
+    <id>urn:uuid:ab382467-73a8-4fd2-bd72-8e2e7e1d78a5</id><link rel="related" title="CapXML document" href="https://www.tsunami.gov/events/PHEB/2026/10/13/26286001/1/WECA42/PHEBCAP.xml" type="application/cap+xml" />
+<link rel="alternate" title="Bulletin" href="https://www.tsunami.gov/events/PHEB/2026/10/13/26286001/1/WECA42/WECA42.txt" type="application/xml" />
+</entry>
+</feed>
