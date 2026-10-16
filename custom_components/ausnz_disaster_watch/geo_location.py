@@ -180,6 +180,11 @@ class AustralianDisasterWatchGeolocationEvent(CoordinatorEntity[AustralianDisast
         super()._handle_coordinator_update()
 
     @property
+    def attribution(self) -> str | None:
+        """Return the attribution of the feed this hazard came from (#34)."""
+        return self.hazard.attribution or self.coordinator.attribution
+
+    @property
     def distance(self) -> float | None:
         """Return distance in kilometres from configured home / center point."""
         if self._hazard.distance_km is not None:

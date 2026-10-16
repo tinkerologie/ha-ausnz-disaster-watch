@@ -42,6 +42,8 @@ async def async_get_config_entry_diagnostics(
             "override_emergency": coordinator.override_emergency,
             "exclude_hazard_reduction": coordinator.exclude_hazard_reduction,
             "providers": [p.__class__.__name__ for p in coordinator.providers],
+            "attribution": coordinator.attribution,
+            "data_sources": [source.as_dict() for source in coordinator.data_sources],
             "active_hazards_count": len(coordinator.active_hazards),
             "highest_warning_level": coordinator.highest_warning_level.value,
             "has_emergency_warning_nearby": coordinator.has_emergency_warning_nearby,

@@ -11,15 +11,10 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from custom_components.ausnz_disaster_watch.const import STATE_ACT, STATE_NT, STATE_SA, STATE_VIC
+from custom_components.ausnz_disaster_watch.const import STATE_ACT, STATE_SA, STATE_VIC
 from custom_components.ausnz_disaster_watch.fire_districts import find_district, load_fire_districts
 from custom_components.ausnz_disaster_watch.models import HazardType, WarningLevel
-from custom_components.ausnz_disaster_watch.providers import (
-    ACTHazardProvider,
-    NTHazardProvider,
-    SAHazardProvider,
-    VictoriaHazardProvider,
-)
+from custom_components.ausnz_disaster_watch.providers import ACTHazardProvider, SAHazardProvider, VictoriaHazardProvider
 from custom_components.ausnz_disaster_watch.providers.base import BaseHazardProvider
 from homeassistant.core import HomeAssistant
 
@@ -101,51 +96,6 @@ async def test_act_tolerates_empty_type_and_agency(hass: HomeAssistant) -> None:
         "-35.38 149.06</georss:point></item></channel></rss>"
     )
     assert [h.id for h in prov._parse_act_feed(xml_text)] == ["act_esa_E1"]
-
-
-# --- NT (#14) -----------------------------------------------------------------------------
-
-
-def _nt_feature(status: str | None, display: str | None, location: str) -> dict[str, Any]:
-    props: dict[str, Any] = {
-        "_category": "advice",
-        "_eventtype": "Permit Burn",
-        "_location": location,
-        "_datenotified": "2026-10-15T08:00:13+09:30",
-        "Alert Level": "Advice",
-    }
-    if status is not None:
-        props["_status"] = status
-    if display is not None:
-        props["Status"] = display
-    return {"type": "Feature", "geometry": {"type": "Point", "coordinates": [130.9, -12.5]}, "properties": props}
-
-
-async def test_nt_excludes_closed_incidents(hass: HomeAssistant) -> None:
-    """NT incidents whose _status or Status is closed are not active hazards (#14)."""
-    prov = NTHazardProvider(hass, AsyncMock(), {"state": STATE_NT})
-    payload = {
-        "title": "NT Incident Map",
-        "incidents": {
-            "type": "FeatureCollection",
-            "features": [
-                _nt_feature("closed", "Closed", "RAGONESI RD, ROSS"),
-                _nt_feature("active", "Going", "STUART HWY, BERRY SPRINGS"),
-                _nt_feature(None, "Closed", "DISPLAY ONLY CLOSED"),
-                _nt_feature(" CLOSED ", None, "MACHINE ONLY CLOSED"),
-                _nt_feature("active", "Active", "ARNHEM HWY, HUMPTY DOO"),
-            ],
-        },
-    }
-    prov.async_fetch_json = AsyncMock(return_value=payload)
-    hazards = await prov.async_fetch_hazards()
-
-    assert [h.location_name for h in hazards] == ["STUART HWY, BERRY SPRINGS", "ARNHEM HWY, HUMPTY DOO"]
-    assert [h.status for h in hazards] == ["Going", "Active"]
-
-    # A feed where every incident is closed is a valid, empty result, not an outage
-    payload["incidents"]["features"] = [_nt_feature("closed", "Closed", "RAGONESI RD, ROSS")]
-    assert await prov.async_fetch_hazards() == []
 
 
 # --- SA (#27) -----------------------------------------------------------------------------

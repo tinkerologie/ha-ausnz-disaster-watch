@@ -17,6 +17,7 @@ Directly integrates official emergency feeds—including the **Queensland Fire D
   - **New South Wales**: NSW RFS Major Incidents & SES data feeds.
   - **Victoria**: Emergency Management Victoria (EMV OSOM) feed covering fires, floods, storms, and health hazards.
   - **New Zealand**: GeoNet earthquakes (with GeoNet's CAP quake alerts) and volcanic alert levels, NEMA Civil Defence alerts, MetService warnings, and NZTA state highway closures and hazards.
+  - **Northern Territory**: Bushfires NT and NT Fire and Rescue Service incidents from the NT Government Fire_Incidents service.
   - **National / Federal**: Bureau of Meteorology (BoM) weather warnings (severe thunderstorms, tropical cyclones, flood warnings).
 - **Australian Warning System (AWS) Normalization**:
   - 🚨 **Emergency Warning** (Level 3 - Red)
@@ -201,19 +202,34 @@ actions:
 
 ---
 
-## Data Sources & Attribution
+## Data sources & licences
 
-Hazard data comes from the official agencies below. Each item carries its agency in the `source` or `responsible_agency` attribute.
+The integration reads public feeds published by emergency services, weather agencies and local councils. Every entity has an `attribution` attribute that credits the sources behind it, and map pins credit the feed the incident came from. Diagnostics list each source with its owner, licence and terms link.
 
 | Region | Source | Terms |
 | ------ | ------ | ----- |
-| New Zealand | [GeoNet](https://www.geonet.org.nz) quakes, volcanic alert levels and quake CAP alerts, Earth Sciences New Zealand | [CC BY 3.0 NZ](https://www.geonet.org.nz/disclaimer) |
-| New Zealand | [NEMA](https://www.civildefence.govt.nz) Civil Defence Emergency Mobile Alerts (AlertHub CAP feed) | Public alerting feed |
-| New Zealand | [MetService](https://www.metservice.com/warnings/home) severe weather warnings (CAP) | MetService public CAP alerts |
-| New Zealand | [NZ Transport Agency Waka Kotahi](https://www.journeys.nzta.govt.nz) road events (Traffic Application Server, `trafficnz.info`) | NZTA open data, no key required |
-| New South Wales | [NSW Rural Fire Service](https://www.rfs.nsw.gov.au) major incidents | State of New South Wales (NSW RFS) |
+| QLD | Queensland Fire Department | CC BY 4.0 |
+| QLD, NSW | Council disaster dashboards (Guardian IMS) | Council terms; vary by council |
+| NSW | NSW Rural Fire Service | CC BY 4.0 |
+| VIC | VicEmergency (Emergency Management Victoria) | Prior written permission required; permission not yet obtained |
+| WA | Emergency WA (DFES) | CC BY-ND 4.0; JSON API not a designated feed |
+| SA | SA CFS / SES CAP-AU feed | Catalogued CFS feeds are CC BY-NC-ND 4.0 |
+| ACT | ACT Emergency Services Agency | No licence published |
+| TAS | TasALERT | Feed access by request; not yet granted |
+| NT | NT Government Fire_Incidents service (Bushfires NT, NTFRS) | No licence published |
+| AU | Bureau of Meteorology warnings via WMO SWIC | Personal, non-commercial use under BoM terms |
+| NZ | GeoNet | CC BY 3.0 NZ |
+| NZ | NEMA (Civil Defence) alerts | CC BY 4.0 |
+| NZ | MetService CAP warnings | CC BY 4.0, CAP Code of Practice |
+| NZ | NZ Transport Agency Waka Kotahi road events (`trafficnz.info`) | No licence stated on data.govt.nz; open data, unverified |
 
 GeoNet and NSW RFS feeds are read with the maintained `aio_geojson_geonetnz_quakes`, `aio_geojson_geonetnz_volcano` and `aio_geojson_nsw_rfs_incidents` libraries (Apache-2.0), the same ones Home Assistant core uses.
+
+Several publishers restrict reuse to personal, non-commercial use or require permission. This integration is for personal home automation. Do not use it to republish these feeds or for commercial purposes without checking each publisher's terms.
+
+The full register, with every endpoint, terms evidence, rate limits and the decisions taken for restricted sources, is in [docs/development/DATA_SOURCES.md](docs/development/DATA_SOURCES.md).
+
+---
 
 ## Quality Scale & Standards
 
