@@ -257,6 +257,15 @@ def test_nsw_rfs_v2_bans() -> None:
     assert bans[date(2026, 10, 17)] is True
     assert bans[date(2026, 10, 19)] is None
     assert fire_bans.parse_nsw_rfs_v2(payload, "NSW_FW099", today) == {}
+
+    # Polled after midnight, before RFS rolled the feed over: days follow lastUpdatedIso
+    stale = {**payload, "lastUpdatedIso": "2026-10-15T17:05:00+11:00"}
+    bans = fire_bans.parse_nsw_rfs_v2(stale, "NSW_FW004", today)
+    assert min(bans) == date(2026, 10, 15)
+    assert bans[date(2026, 10, 16)] is True  # the feed's "tomorrow"
+    # Missing, unreadable or naive timestamps fall back to the poll date
+    for value in (None, "soon", "2026-10-15T17:05:00"):
+        assert min(fire_bans.parse_nsw_rfs_v2({**payload, "lastUpdatedIso": value}, "NSW_FW004", today)) == today
     with pytest.raises(ProviderUnavailableError):
         fire_bans.parse_nsw_rfs_v2({"fireWeatherAreaRatings": None}, "NSW_FW004", today)
     with pytest.raises(ProviderUnavailableError):
@@ -342,6 +351,7 @@ def test_wa_total_fire_bans() -> None:
         "junk",
         {"fire-ban-lga": "MINGENEW, SHIRE OF", "ban-level": "No ban", "date-of-ban": "2025-04-04"},
         {"fire-ban-lga": "MINGENEW, SHIRE OF", "ban-level": "Ban", "date-of-ban": "soon"},
+        {"fire-ban-lga": "MINGENEW, SHIRE OF", "ban-level": "Ban", "date-of-ban": "2025-04-09"},
     ]
     days = [date(2025, 4, 3), date(2025, 4, 4)]
     assert fire_bans.parse_wa_total_fire_bans(payload, "Mingenew", days) == {

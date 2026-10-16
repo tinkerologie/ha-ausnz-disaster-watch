@@ -62,12 +62,15 @@ def district_number(aac: str) -> int | None:
 def parse_nsw_rfs_v2(payload: Any, aac: str, today: date) -> dict[date, bool | None]:
     """Parse the NSW RFS 4-day fire danger and total fire ban feed.
 
-    ``areaId`` equals the BoM district number. The feed has no dates: ``today`` is the NSW
-    local date (RFS rolls the feed over just after midnight).
+    ``areaId`` equals the BoM district number. The days are relative to the feed's
+    ``lastUpdatedIso`` (NSW local time), so a poll after midnight but before RFS rolls the
+    feed over does not shift every day by one. ``today`` (the NSW local date) is used only
+    when that field is missing or unreadable.
     """
     areas = payload.get("fireWeatherAreaRatings") if isinstance(payload, dict) else None
     if not isinstance(areas, list):
         raise ProviderUnavailableError("NSW RFS fire danger feed returned an unexpected payload")
+    today = _iso_local_date(payload.get("lastUpdatedIso"), today)
     number = district_number(aac)
     for area in areas:
         if not isinstance(area, dict) or str(area.get("areaId", "")).strip() != str(number):
@@ -77,6 +80,15 @@ def parse_nsw_rfs_v2(payload: Any, aac: str, today: date) -> dict[date, bool | N
             for offset, key in enumerate(_NSW_DAY_KEYS)
         }
     return {}
+
+
+def _iso_local_date(value: Any, fallback: date) -> date:
+    """Return the local calendar date of an ISO timestamp with an offset, else the fallback."""
+    try:
+        stamp = datetime.fromisoformat(str(value))
+    except ValueError:
+        return fallback
+    return stamp.date() if stamp.tzinfo is not None else fallback
 
 
 def _toban_today(root: Element, fallback: date, tz: Any) -> date:
@@ -193,5 +205,7 @@ def parse_wa_total_fire_bans(payload: Any, lga: str, days: list[date]) -> dict[d
             day = date.fromisoformat(str(ban.get("date-of-ban") or "")[:10])
         except ValueError:
             continue
-        result[day] = True
+        # Only the forecast days: the result is a complete per-day map
+        if day in result:
+            result[day] = True
     return result
