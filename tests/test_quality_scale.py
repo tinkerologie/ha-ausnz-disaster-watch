@@ -168,6 +168,6 @@ def test_enum_states_are_translated_and_have_icons() -> None:
         ("fire_danger_rating", FIRE_DANGER_OPTIONS),
     ):
         assert set(translations["sensor"][key]["state"]) == set(options), key
-        # Every state has its own icon; the neutral default is left for unknown (#21)
+        # Every state has its own icon; the neutral default is left for unknown (#21).
         assert set(icons[key]["state"]) == set(options), key
         assert icons[key]["default"] == "mdi:help-circle-outline", key
