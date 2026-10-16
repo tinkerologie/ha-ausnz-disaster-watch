@@ -66,6 +66,8 @@ DAM_MAX_CANDIDATES: Final = 60
 # Upstream dams are often outside the hazard radius (Wivenhoe is 65 km from Brisbane), so
 # storages are searched at least this far out.
 DAM_MIN_SEARCH_KM: Final = 150.0
+# Series IDs per getTimeseriesValues request; about 1 kB of URL, well under server limits.
+TS_IDS_PER_REQUEST: Final = 100
 # Series tried per parameter: some listed series have no values for months.
 MAX_CANDIDATES: Final = 3
 # A storage counts as above full supply once it holds more than this share of its full
@@ -437,22 +439,23 @@ def build_reading(site: StorageSite, series: dict[str, list[tuple[datetime, floa
 async def async_fetch_readings(
     session: aiohttp.ClientSession, sites: list[StorageSite], now: datetime
 ) -> dict[str, StorageReading]:
-    """Fetch the latest reading of each storage in one request, keyed by ``StorageSite.key``.
+    """Fetch the latest reading of each storage, keyed by ``StorageSite.key``.
 
-    Raises DamSourceError when Water Data Online cannot be reached. A storage without a
-    reading in the last DAM_READING_WINDOW is absent.
+    Series are requested TS_IDS_PER_REQUEST at a time (one request for a typical selection),
+    so a long selection cannot make the URL too long for the server. Raises DamSourceError
+    when Water Data Online cannot be reached. A storage without a reading in the last
+    DAM_READING_WINDOW is absent.
     """
-    ts_ids = [ts for site in sites for ts in site.ts_ids]
-    if not ts_ids:
-        return {}
-    days = DAM_READING_WINDOW.days
-    url = kiwis_url(
-        "getTimeseriesValues",
-        ts_id=",".join(ts_ids),
-        period=f"P{days}D",
-        returnfields="Timestamp,Value,Quality Code",
-    )
-    series = parse_values(await _async_get_json(session, url))
+    ts_ids = list(dict.fromkeys(ts for site in sites for ts in site.ts_ids))
+    series: dict[str, list[tuple[datetime, float]]] = {}
+    for start in range(0, len(ts_ids), TS_IDS_PER_REQUEST):
+        url = kiwis_url(
+            "getTimeseriesValues",
+            ts_id=",".join(ts_ids[start : start + TS_IDS_PER_REQUEST]),
+            period=f"P{DAM_READING_WINDOW.days}D",
+            returnfields="Timestamp,Value,Quality Code",
+        )
+        series.update(parse_values(await _async_get_json(session, url)))
     cutoff = now - DAM_READING_WINDOW
     readings: dict[str, StorageReading] = {}
     for site in sites:

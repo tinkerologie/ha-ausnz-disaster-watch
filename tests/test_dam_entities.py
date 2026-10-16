@@ -21,6 +21,7 @@ from custom_components.ausnz_disaster_watch.const import (
 )
 from custom_components.ausnz_disaster_watch.dam_options import offers_dam_storages, storage_label
 from custom_components.ausnz_disaster_watch.dams import DAM_SCAN_INTERVAL, DamSourceError, StorageReading, StorageSite
+from custom_components.ausnz_disaster_watch.diagnostics import async_get_config_entry_diagnostics
 from homeassistant.const import ATTR_ATTRIBUTION, ATTR_UNIT_OF_MEASUREMENT, STATE_OFF, STATE_ON, STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
@@ -366,3 +367,28 @@ def test_storage_label() -> None:
     assert storage_label(_reading(no_full, volume=12345.6, level=None), -27.3916, 152.6090) == (
         "Wivenhoe (0.0 km, 12,346 ML)"
     )
+
+
+async def test_diagnostics_list_the_storage_source(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    mock_providers: AsyncMock,
+    mock_fetch: AsyncMock,
+) -> None:
+    """With storages selected, diagnostics list Water Data Online; the entry attribution does not change."""
+    mock_fetch.return_value = {}
+    mock_config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+    diagnostics = await async_get_config_entry_diagnostics(hass, mock_config_entry)
+    assert "bom_water_storages" not in [s["key"] for s in diagnostics["coordinator"]["data_sources"]]
+    attribution = mock_config_entry.runtime_data.attribution
+
+    hass.config_entries.async_update_entry(mock_config_entry, options={CONF_DAM_STORAGES: [WIVENHOE.as_dict()]})
+    assert await hass.config_entries.async_reload(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+    diagnostics = await async_get_config_entry_diagnostics(hass, mock_config_entry)
+    keys = [s["key"] for s in diagnostics["coordinator"]["data_sources"]]
+    assert keys.count("bom_water_storages") == 1
+    assert mock_config_entry.runtime_data.attribution == attribution
+    assert "Water Data Online" not in (attribution or "")

@@ -53,7 +53,7 @@ from .providers.fire_danger import FireDangerService, local_today
 from .providers.geometry import area_distance
 from .providers.power import PowerOutageSource
 from .providers.roads import get_road_providers_for_config, merge_road_items
-from .providers.sources import DataSource, attribution_for, sources_for_provider
+from .providers.sources import DataSource, attribution_for, sources_for_feature, sources_for_provider
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
@@ -871,6 +871,17 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
                 for source in sources_for_provider(type(provider).__name__)
             )
         )
+
+    @property
+    def diagnostic_sources(self) -> list[DataSource]:
+        """Return ``data_sources`` plus the sources of enabled opt-in features with their own coordinator.
+
+        Dam storages are polled by their own coordinator and each storage entity credits its
+        data owner, so their source is listed here (for diagnostics) but kept out of the
+        entry-wide attribution.
+        """
+        extra = sources_for_feature("dam_storages") if self.dam_coordinator is not None else ()
+        return list(dict.fromkeys([*self.data_sources, *extra]))
 
     @property
     def attribution(self) -> str | None:

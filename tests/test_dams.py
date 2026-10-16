@@ -57,7 +57,10 @@ def respond(url: URL, body: Any = None, status: int = 200) -> AiohttpClientMockR
 
 
 def route(aioclient_mock: AiohttpClientMocker, **bodies: Any) -> None:
-    """Answer KiWIS requests by request name; a body that is an int is an HTTP status."""
+    """Answer KiWIS requests by request name.
+
+    A body that is an int is an HTTP status; a callable is called with the URL for the body.
+    """
     answers = {
         "getTimeseriesList": load("storage_list.json"),
         "getStationList": load("station_attributes.json"),
@@ -67,6 +70,8 @@ def route(aioclient_mock: AiohttpClientMocker, **bodies: Any) -> None:
 
     async def _side_effect(method: str, url: URL, data: Any) -> AiohttpClientMockResponse:
         body = answers[url.query["request"]]
+        if callable(body):
+            body = body(url)
         if isinstance(body, int):
             return respond(url, status=body)
         return respond(url, body)
@@ -294,6 +299,32 @@ async def test_fetch_readings(hass: HomeAssistant, aioclient_mock: AiohttpClient
     later = await async_fetch_readings(session, sites, NOW + timedelta(days=9))
     assert later == {}
     assert await async_fetch_readings(session, [], NOW) == {}
+
+
+async def test_fetch_readings_in_chunks(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) -> None:
+    """A long selection is read TS_IDS_PER_REQUEST series at a time and the batches are merged."""
+    values = load("storage_values.json")
+    # Each request answers only the series it asked for
+    route(
+        aioclient_mock,
+        getTimeseriesValues=lambda url: [item for item in values if item["ts_id"] in url.query["ts_id"].split(",")],
+    )
+    first, *rest = _sites().values()
+    filler = [
+        StorageSite(f"f{i}", f"Filler {i}", -27.0, 152.0, "w00191", (f"x{i}",), (), 100.0, None)
+        for i in range(dams.TS_IDS_PER_REQUEST - len(first.ts_ids))
+    ]
+    # A series shared by two storages is requested once
+    shared = StorageSite("dup", "Duplicate", -27.0, 152.0, "w00191", first.volume_ts, (), 100.0, None)
+    readings = await async_fetch_readings(async_get_clientsession(hass), [first, *filler, *rest, shared], NOW)
+    ts_lists = [call[1].query["ts_id"].split(",") for call in aioclient_mock.mock_calls]
+    assert [len(ids) for ids in ts_lists] == [dams.TS_IDS_PER_REQUEST, sum(len(site.ts_ids) for site in rest)]
+    assert set(first.ts_ids) <= set(ts_lists[0])
+    assert not set(first.ts_ids) & set(ts_lists[1])
+    # Readings come from both requests
+    assert first.key in readings
+    assert {site.key for site in rest} <= set(readings)
+    assert "bom:dup" in readings
 
 
 @pytest.mark.parametrize("body", [503, {"type": "error", "message": "bad"}, "not json"])
