@@ -14,6 +14,7 @@ from custom_components.ausnz_disaster_watch.models import HazardType, WarningLev
 from custom_components.ausnz_disaster_watch.providers.base import ProviderUnavailableError
 from custom_components.ausnz_disaster_watch.providers.geonet import GEONET_QUAKE_URL, GEONET_VOLCANO_URL
 from custom_components.ausnz_disaster_watch.providers.nz import (
+    _METSERVICE_LAST,
     METSERVICE_ALERTS_URL,
     METSERVICE_WEB_URL,
     NEMA_ALERTHUB_URL,
@@ -254,7 +255,13 @@ async def test_metservice_cap_colour_area_and_lifecycle(hass: HomeAssistant, mak
         await provider.async_fetch_hazards()
     assert [call.args[0] for call in fetch.await_args_list].count(METSERVICE_ALERTS_URL) == rss_calls + 1
     assert [call.args[0] for call in fetch.await_args_list].count("https://ms/red") == 1
-    provider._metservice_last = None
+
+    # A new provider (entry reload or a second NZ entry) shares the recent result
+    other, other_fetch = make_provider(hass, docs)
+    with patch(nz_now, return_value=NOW + timedelta(minutes=3)):
+        await other._async_fetch_metservice()
+    assert METSERVICE_ALERTS_URL not in [call.args[0] for call in other_fetch.await_args_list]
+    _METSERVICE_LAST.clear()
 
     # A CAP document that cannot be downloaded makes the MetService poll incomplete: the source
     # fails (instead of reporting fresh partial data) and the download is retried next poll

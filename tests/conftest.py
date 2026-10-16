@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from datetime import UTC, datetime
 import re
 from typing import Any
@@ -27,6 +27,7 @@ from custom_components.ausnz_disaster_watch.const import (
     STATE_QLD,
 )
 from custom_components.ausnz_disaster_watch.models import CanonicalHazard, HazardType, WarningLevel
+from custom_components.ausnz_disaster_watch.providers.nz import _METSERVICE_LAST
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -215,3 +216,11 @@ class _Routes(dict[str, Any]):
 def feed_routes(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) -> FeedRoutes:
     """Route requests made through the shared aiohttp session."""
     return FeedRoutes(hass, aioclient_mock)
+
+
+@pytest.fixture(autouse=True)
+def fresh_metservice_poll_cache() -> Generator[None]:
+    """The MetService poll cache is module-wide (#62); every test starts without it."""
+    _METSERVICE_LAST.clear()
+    yield
+    _METSERVICE_LAST.clear()
