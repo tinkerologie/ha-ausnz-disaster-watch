@@ -77,7 +77,7 @@ def _to_bool(value: Any) -> bool:
     if isinstance(value, (int, float)) and value in (0, 1):
         return bool(value)
     if isinstance(value, str):
-        text = value.strip().lower()
+        text = value.lower()  # case-insensitive, but surrounding spaces are rejected like before
         if text in _TRUE_STRINGS:
             return True
         if text in _FALSE_STRINGS:

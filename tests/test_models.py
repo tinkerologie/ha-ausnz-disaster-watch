@@ -314,7 +314,7 @@ def test_models_convert_values_like_the_pydantic_models() -> None:
     assert type(hazard.title) is str  # a StrEnum member is stored as its value
     assert _hazard(is_hazard_reduction="yes").is_hazard_reduction is True
     assert _hazard(is_hazard_reduction=0).is_hazard_reduction is False
-    assert _hazard(inside_area=" Off ").inside_area is False
+    assert _hazard(inside_area="Off").inside_area is False
     assert _hazard(area=[[(-27, 153), ("-27.1", 153.1)]]).area == (((-27.0, 153.0), (-27.1, 153.1)),)
 
     assert PowerOutageItem(customers_affected="12").customers_affected == 12
@@ -368,6 +368,7 @@ def test_models_copy_containers() -> None:
         (lambda: _hazard(warning_level="Extreme"), "warning_level"),
         (lambda: _hazard(is_hazard_reduction="maybe"), "is_hazard_reduction"),
         (lambda: _hazard(is_hazard_reduction=2), "is_hazard_reduction"),
+        (lambda: _hazard(inside_area=" off"), "inside_area"),
         (lambda: _hazard(raw_properties=[1]), "raw_properties"),
         (lambda: PowerOutageItem(customers_affected=2.5), "customers_affected"),
         (lambda: PowerOutageItem(customers_affected="many"), "customers_affected"),
