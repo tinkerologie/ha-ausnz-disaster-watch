@@ -209,7 +209,7 @@ MAX_RIVER_POINTS: Final = 10
 WEATHER_SIGNALS_INTERVAL: Final = timedelta(hours=1)
 RIVER_FORECAST_INTERVAL: Final = timedelta(hours=6)  # GloFAS updates daily
 AI_ENSEMBLE_INTERVAL: Final = timedelta(hours=6)  # AIFS runs every 6 h
-AI_WEATHERNEXT_MIN_AGE: Final = timedelta(hours=11, minutes=30)  # WeatherNext 2 runs every 12 h
+AI_WEATHERNEXT_MIN_AGE: Final = timedelta(hours=12)  # WeatherNext 2 runs every 12 h
 FORECAST_RETRY_INTERVAL: Final = timedelta(minutes=30)
 
 ATTRIBUTION_OPEN_METEO: Final = "Weather data by Open-Meteo.com (CC BY 4.0)"

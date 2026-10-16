@@ -150,17 +150,28 @@ def parse_forecast(payload: Any) -> WeatherForecast:
     )
 
 
-def parse_river(payload: Any) -> list[RiverForecast]:
-    """Parse a flood response for one or more locations, in request order."""
+def parse_river(payload: Any, requested: Sequence[tuple[float, float]]) -> list[RiverForecast]:
+    """Parse a flood response for the requested points, in request order.
+
+    Open-Meteo answers a multi-location request in request order, so a location without
+    grid coordinates falls back to the point it was requested for; coordinates are never
+    invented.
+    """
+    items = _locations(payload, "flood")
+    if len(items) != len(requested):
+        raise OpenMeteoError(f"Open-Meteo flood returned {len(items)} locations for {len(requested)} points")
     forecasts: list[RiverForecast] = []
-    for item in _locations(payload, "flood"):
+    for item, (req_lat, req_lon) in zip(items, requested, strict=True):
         days = _times(item.get("daily"), "flood")
         daily = item["daily"]
         columns = [_series(daily, key, len(days)) for key in RIVER_VARIABLES]
+        lat, lon = _number(item.get("latitude")), _number(item.get("longitude"))
+        if lat is None or lon is None:
+            lat, lon = req_lat, req_lon
         forecasts.append(
             RiverForecast(
-                latitude=_number(item.get("latitude")) or 0.0,
-                longitude=_number(item.get("longitude")) or 0.0,
+                latitude=lat,
+                longitude=lon,
                 days=[
                     RiverDay(day=when.date(), mean=mean, maximum=maximum, p75=p75)
                     for when, mean, maximum, p75 in zip(days, *columns, strict=True)
@@ -250,10 +261,7 @@ class OpenMeteoClient:
                 "timeformat": "unixtime",
             },
         )
-        forecasts = parse_river(payload)
-        if len(forecasts) != len(points):
-            raise OpenMeteoError(f"Open-Meteo flood returned {len(forecasts)} locations for {len(points)} points")
-        return forecasts
+        return parse_river(payload, points)
 
     async def async_get_river_history(
         self, latitude: float, longitude: float, start: date, end: date

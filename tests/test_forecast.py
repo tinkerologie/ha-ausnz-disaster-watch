@@ -65,7 +65,9 @@ def client() -> Generator[MagicMock]:
     instance.async_get_forecast = AsyncMock(return_value=parse_forecast(_load("forecast_brisbane.json")))
     # The first point gets the Brisbane River sample, any further point an off-grid (null) cell
     instance.async_get_river_forecasts = AsyncMock(
-        side_effect=lambda points: parse_river([_load("flood_brisbane.json")] + [_null_river()] * (len(points) - 1))
+        side_effect=lambda points: parse_river(
+            [_load("flood_brisbane.json")] + [_null_river()] * (len(points) - 1), points
+        )
     )
     instance.async_get_ensemble = AsyncMock(
         side_effect=lambda lat, lon, models: {
@@ -348,3 +350,73 @@ async def test_switching_features_off_removes_entities(
     await hass.config_entries.async_reload(entry.entry_id)
     await hass.async_block_till_done()
     assert not any(key.startswith("river_") for key in unique_ids())
+
+
+async def test_ai_ensemble_due_model_without_members_drops_its_run(
+    hass: HomeAssistant, mock_config_entry: MockConfigEntry, client: MagicMock, freezer: FrozenDateTimeFactory
+) -> None:
+    """A due model missing from the response stops serving its old run; with none left it is unavailable."""
+    freezer.move_to(FIXTURE_NOW)
+    entry = await _setup(hass, mock_config_entry, {CONF_AI_ENSEMBLE: True, CONF_AI_WEATHERNEXT: True})
+    outlook = _state(hass, entry, "sensor", "ai_rain_outlook")
+    assert set(outlook.attributes["models"]) == {MODEL_AIFS, MODEL_WEATHERNEXT}
+
+    # 12 h later both models are due but WeatherNext 2 comes back without members
+    full = client.async_get_ensemble.side_effect
+    client.async_get_ensemble.side_effect = lambda lat, lon, models: {
+        m: r for m, r in full(lat, lon, models).items() if m == MODEL_AIFS
+    }
+    freezer.tick(timedelta(hours=12))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert client.async_get_ensemble.await_args.args[2] == [MODEL_AIFS, MODEL_WEATHERNEXT]
+    outlook = _state(hass, entry, "sensor", "ai_rain_outlook")
+    assert set(outlook.attributes["models"]) == {MODEL_AIFS}
+
+    # Next poll: AIFS is due and also comes back empty, so nothing current is left
+    client.async_get_ensemble.side_effect = lambda lat, lon, models: {}
+    freezer.tick(timedelta(hours=6))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert _state(hass, entry, "sensor", "ai_rain_outlook").state == STATE_UNAVAILABLE
+
+
+async def test_forecasts_follow_home_location(
+    hass: HomeAssistant, mock_config_entry: MockConfigEntry, client: MagicMock, freezer: FrozenDateTimeFactory
+) -> None:
+    """Home-mode entries move weather and ensemble forecasts with Home Assistant's location."""
+    freezer.move_to(FIXTURE_NOW)
+    await hass.config.async_update(latitude=-27.47, longitude=153.02)
+    home = MockConfigEntry(
+        domain=DOMAIN,
+        title=mock_config_entry.title,
+        data={**mock_config_entry.data, "location_mode": "home"},
+    )
+    entry = await _setup(
+        hass, home, {CONF_WEATHER_SIGNALS: True, CONF_AI_ENSEMBLE: True, CONF_RIVER_POINTS: [BRISBANE]}
+    )
+    forecasts = entry.runtime_data.forecasts
+    assert forecasts.weather is not None
+    assert forecasts.ensemble is not None
+    client.async_get_forecast.assert_awaited_once_with(-27.47, 153.02)
+    client.async_get_ensemble.reset_mock()
+
+    await hass.config.async_update(latitude=-28.0, longitude=153.4)
+    await entry.runtime_data.async_refresh()
+    freezer.tick(timedelta(seconds=11))  # past the request_refresh debounce
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+
+    assert (forecasts.weather.latitude, forecasts.weather.longitude) == (-28.0, 153.4)
+    assert client.async_get_forecast.await_args.args == (-28.0, 153.4)
+    # Cached runs for the old point are discarded, so the model is fetched again at once
+    client.async_get_ensemble.assert_awaited_once_with(-28.0, 153.4, [MODEL_AIFS])
+    # River points are fixed coordinates and do not move
+    assert forecasts.river is not None
+    assert client.async_get_river_forecasts.await_args.args[0] == [(-27.47, 153.02)]
+
+    # An unchanged location does not trigger another fetch
+    calls = client.async_get_forecast.await_count
+    await entry.runtime_data.async_refresh()
+    await hass.async_block_till_done()
+    assert client.async_get_forecast.await_count == calls

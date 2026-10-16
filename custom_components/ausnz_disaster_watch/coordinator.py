@@ -188,6 +188,10 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         for provider in self.providers:
             if isinstance(provider, BaseHazardProvider):
                 provider.set_location(self.latitude, self.longitude)
+        # Location-based forecasts follow too; river points are user-picked coordinates and stay
+        for forecast in (self.forecasts.weather, self.forecasts.ensemble):
+            if forecast is not None:
+                forecast.set_location(self.latitude, self.longitude)
 
     async def _async_fetch_all_hazards(self) -> list[CanonicalHazard]:
         """Fetch all hazards from active providers concurrently, tracking each feed's health (#16).

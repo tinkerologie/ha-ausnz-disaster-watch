@@ -138,13 +138,19 @@ async def test_river_location_count_mismatch(client: OpenMeteoClient, aioclient_
         await client.async_get_river_forecasts([(-27.47, 153.02), (-41.29, 174.78)])
 
 
-def test_parse_river_bad_coordinates() -> None:
-    """Non-numeric grid coordinates do not break parsing."""
-    (forecast,) = parse_river({"latitude": "x", "daily": {"time": [0], "river_discharge": [1.0]}})
-    assert forecast.latitude == 0.0
-    assert forecast.longitude == 0.0
-    assert forecast.days[0].mean == 1.0
-    assert forecast.days[0].maximum is None
+def test_parse_river_missing_coordinates_use_the_requested_point() -> None:
+    """Missing or non-numeric grid coordinates fall back to the requested point, never to 0.0."""
+    payload = [
+        {"latitude": "x", "longitude": 153.0, "daily": {"time": [0], "river_discharge": [1.0]}},
+        {"daily": {"time": [0], "river_discharge": [2.0]}},
+        {"latitude": 0.0, "longitude": 0.0, "daily": {"time": [0], "river_discharge": [3.0]}},
+    ]
+    first, second, third = parse_river(payload, [(-27.47, 153.02), (-41.21, 174.92), (5.0, 6.0)])
+    assert (first.latitude, first.longitude) == (-27.47, 153.02)
+    assert (second.latitude, second.longitude) == (-41.21, 174.92)
+    assert (third.latitude, third.longitude) == (0.0, 0.0)  # a real grid coordinate of 0 is kept
+    assert first.days[0].mean == 1.0
+    assert first.days[0].maximum is None
 
 
 async def test_river_history(client: OpenMeteoClient, aioclient_mock: AiohttpClientMocker) -> None:

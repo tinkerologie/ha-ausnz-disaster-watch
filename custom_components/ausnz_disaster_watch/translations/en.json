@@ -101,7 +101,7 @@
       },
       "river_suggestion": {
         "title": "Use a nearby river cell?",
-        "description": "The selected point is not on the GloFAS river grid. The nearest cell with the largest discharge is {distance} km away at {latitude}, {longitude} (mean forecast discharge {discharge} m³/s).",
+        "description": "The selected point is not on the GloFAS river grid. The nearby cell with the largest discharge is {distance} km away at {latitude}, {longitude} (mean forecast discharge {discharge} m³/s).",
         "data": {
           "use_suggestion": "Use this cell"
         }

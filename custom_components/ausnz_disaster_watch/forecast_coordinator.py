@@ -161,6 +161,23 @@ class OpenMeteoCoordinator[DataT](DataUpdateCoordinator[DataT]):
     async def _async_fetch(self) -> DataT:
         """Fetch and derive this feature's data."""
 
+    @callback
+    def set_location(self, latitude: float, longitude: float) -> None:
+        """Follow a moved monitoring point (home-mode entries track Home Assistant's location).
+
+        Data for the old point is discarded and a refresh is scheduled.
+        """
+        if (latitude, longitude) == (self.latitude, self.longitude):
+            return
+        self.latitude, self.longitude = latitude, longitude
+        self._discard_cached()
+        self.config_entry.async_create_background_task(
+            self.hass, self.async_request_refresh(), f"{DOMAIN}_{self.feature}_location_changed"
+        )
+
+    def _discard_cached(self) -> None:
+        """Drop cached upstream data that belongs to the old location."""
+
 
 class WeatherSignalsCoordinator(OpenMeteoCoordinator[WeatherSignals]):
     """Hourly weather hazard signals (#39)."""
@@ -217,13 +234,22 @@ class EnsembleOutlookCoordinator(OpenMeteoCoordinator[EnsembleOutlook]):
         self.threshold = float(config.get(CONF_HEAVY_RAIN_THRESHOLD, DEFAULT_HEAVY_RAIN_THRESHOLD))
         self._runs: dict[str, tuple[datetime, EnsembleRun]] = {}
 
+    def _discard_cached(self) -> None:
+        """Runs fetched for the old location must not be reused."""
+        self._runs.clear()
+
     async def _async_fetch(self) -> EnsembleOutlook:
         now = dt_util.utcnow()
         due = [m for m in self.models if m not in self._runs or now - self._runs[m][0] >= MODEL_MIN_AGE[m]]
         if due:
             runs = await self.client.async_get_ensemble(self.latitude, self.longitude, due)
-            for model, run in runs.items():
-                self._runs[model] = (now, run)
+            for model in due:
+                if model in runs:
+                    self._runs[model] = (now, runs[model])
+                else:
+                    # A due model without members must not keep serving its previous run
+                    _LOGGER.warning("Open-Meteo ensemble returned no members for %s", model)
+                    self._runs.pop(model, None)
             self.fetched_at = now
         outlooks = {
             model: model_outlook(run, now, self.threshold, fetched)
