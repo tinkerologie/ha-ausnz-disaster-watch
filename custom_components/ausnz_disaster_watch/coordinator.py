@@ -577,8 +577,14 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
                     continue
                 seen.add((item.distributor, item.id))
             if item.distance_km is None and item.latitude is not None and item.longitude is not None:
-                item.distance_km = round(
-                    calculate_haversine_distance(self.latitude, self.longitude, item.latitude, item.longitude), 2
+                # A copy: the item may be a feed's cached or last good outage
+                item = item.model_copy(
+                    update={
+                        "distance_km": round(
+                            calculate_haversine_distance(self.latitude, self.longitude, item.latitude, item.longitude),
+                            2,
+                        )
+                    }
                 )
             if item.distance_km is not None and item.distance_km > self.radius_km:
                 continue
