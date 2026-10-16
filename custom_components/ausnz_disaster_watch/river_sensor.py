@@ -61,7 +61,6 @@ class RiverLevelSensor(CoordinatorEntity[RiverGaugeCoordinator], SensorEntity):
     _attr_native_unit_of_measurement = UnitOfLength.METERS
     _attr_suggested_display_precision = 2
     _attr_translation_key = "river_level"
-    _attr_icon = "mdi:waves"
 
     def __init__(
         self,

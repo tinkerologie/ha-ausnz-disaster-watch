@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from collections.abc import Callable, Generator, Iterator
 from datetime import UTC, datetime
+import json
+from pathlib import Path
 import re
 from typing import Any
 from unittest.mock import AsyncMock, patch
@@ -29,6 +31,7 @@ from custom_components.ausnz_disaster_watch.const import (
 )
 from custom_components.ausnz_disaster_watch.models import CanonicalHazard, HazardType, WarningLevel
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 
@@ -58,6 +61,45 @@ def no_statewide_road_feeds() -> Iterator[None]:
     """Keep the statewide road feeds (#29) off the network; road tests patch in their own providers."""
     with patch("custom_components.ausnz_disaster_watch.coordinator.get_road_providers_for_config", return_value=[]):
         yield
+
+
+@pytest.fixture(autouse=True)
+def feeds_reachable(request: pytest.FixtureRequest) -> Iterator[AsyncMock]:
+    """Let the config flow's feed check (#21) pass without the network.
+
+    Tests of the check itself opt out with ``@pytest.mark.real_feed_probe``; the others can
+    set ``feeds_reachable.return_value = False`` to see cannot_connect.
+    """
+    if request.node.get_closest_marker("real_feed_probe"):
+        yield AsyncMock()
+        return
+    with patch(
+        "custom_components.ausnz_disaster_watch.config_flow.async_feeds_reachable",
+        AsyncMock(return_value=True),
+    ) as probe:
+        yield probe
+
+
+ICONS: dict[str, Any] = json.loads(
+    (Path(__file__).parent.parent / "custom_components" / DOMAIN / "icons.json").read_text(encoding="utf-8")
+)
+
+
+@pytest.fixture
+def entity_icon(hass: HomeAssistant) -> Callable[[str], str | None]:
+    """Return the icon the frontend shows for an entity: its icons.json icon for its state (#21)."""
+
+    def _icon(entity_id: str) -> str | None:
+        entry = er.async_get(hass).async_get(entity_id)
+        state = hass.states.get(entity_id)
+        if entry is None or entry.translation_key is None or state is None:
+            return None
+        icons = ICONS["entity"].get(entry.domain, {}).get(entry.translation_key)
+        if icons is None:
+            return None
+        return icons.get("state", {}).get(state.state, icons["default"])
+
+    return _icon
 
 
 @pytest.fixture

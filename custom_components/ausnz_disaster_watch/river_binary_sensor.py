@@ -61,7 +61,6 @@ class RiverAlertBinarySensor(CoordinatorEntity[RiverGaugeCoordinator], BinarySen
     _attr_has_entity_name = True
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
     _attr_translation_key = "river_alert"
-    _attr_icon = "mdi:waves-arrow-up"
 
     def __init__(self, coordinator: RiverGaugeCoordinator, site: GaugeSite, device_info: Any) -> None:
         """Initialize the alert sensor."""

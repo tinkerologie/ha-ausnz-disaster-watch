@@ -44,7 +44,6 @@ DAM_SENSORS: tuple[DamSensorDescription, ...] = (
         native_unit_of_measurement=PERCENTAGE,
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=1,
-        icon="mdi:water-percent",
         value_fn=lambda reading: reading.percent_full,
     ),
     DamSensorDescription(
@@ -53,7 +52,6 @@ DAM_SENSORS: tuple[DamSensorDescription, ...] = (
         native_unit_of_measurement=UNIT_MEGALITRES,
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=0,
-        icon="mdi:water",
         value_fn=lambda reading: reading.volume_ml,
     ),
     DamSensorDescription(
@@ -63,7 +61,6 @@ DAM_SENSORS: tuple[DamSensorDescription, ...] = (
         native_unit_of_measurement=UnitOfLength.METERS,
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=2,
-        icon="mdi:waves",
         value_fn=lambda reading: reading.level_m,
     ),
 )
@@ -224,7 +221,6 @@ class DamAboveFullSupplyBinarySensor(DamEntity, BinarySensorEntity):
     """
 
     _attr_translation_key = "dam_above_full_supply"
-    _attr_icon = "mdi:waves-arrow-up"
 
     def __init__(
         self, coordinator: DamStorageCoordinator, site: StorageSite, device_info: Any, home: tuple[float, float]

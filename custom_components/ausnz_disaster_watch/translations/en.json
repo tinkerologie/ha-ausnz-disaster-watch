@@ -10,6 +10,13 @@
           "radius": "Monitoring Radius (km)",
           "override_emergency": "Statewide / National Emergency Warning Override (alert on Level 3 warnings across region regardless of radius)",
           "exclude_hazard_reduction": "Exclude Hazard Reduction / Planned Burns"
+        },
+        "data_description": {
+          "state": "The state, territory or New Zealand whose emergency services feeds are read. Pick the jurisdiction the monitored location is in.",
+          "location_mode": "Follow the Home Assistant home location, or monitor a fixed location such as a council area or another address.",
+          "radius": "Distance from the monitored location within which incidents, warnings, outages and road closures are reported (5 to 300 km).",
+          "override_emergency": "Also report every Emergency Warning anywhere in the state (or New Zealand), whatever its distance.",
+          "exclude_hazard_reduction": "Leave out planned burns and other hazard reduction burns, so they do not raise alerts."
         }
       },
       "location": {
@@ -21,6 +28,13 @@
           "latitude": "Latitude",
           "longitude": "Longitude",
           "council_dashboard_url": "Council Disaster Dashboard URL (Guardian IMS / Open API)"
+        },
+        "data_description": {
+          "preset_council": "Pick a council to fill in its location and disaster dashboard, or keep the manual choice and enter them below. A council marked \"no readable dashboard\" only sets the location.",
+          "location_name": "Name used in the entry and device name, for example the suburb or council.",
+          "latitude": "Latitude of the monitored location in decimal degrees (south is negative).",
+          "longitude": "Longitude of the monitored location in decimal degrees.",
+          "council_dashboard_url": "Optional. A Guardian IMS council disaster dashboard to read local incidents, road closures and relief centres from. Leave empty for none."
         }
       },
       "reconfigure": {
@@ -36,13 +50,24 @@
           "exclude_hazard_reduction": "Exclude Hazard Reduction / Planned Burns",
           "council_dashboard_url": "Council Disaster Dashboard URL",
           "location_mode": "Location Source"
+        },
+        "data_description": {
+          "state": "The state, territory or New Zealand whose emergency services feeds are read. Pick the jurisdiction the monitored location is in.",
+          "location_mode": "Follow the Home Assistant home location, or keep the coordinates below as a fixed location. Changing the coordinates of a home-zone entry makes it a fixed location.",
+          "location_name": "Name used in the entry and device name, for example the suburb or council.",
+          "latitude": "Latitude of the monitored location in decimal degrees (south is negative).",
+          "longitude": "Longitude of the monitored location in decimal degrees.",
+          "radius": "Distance from the monitored location within which incidents, warnings, outages and road closures are reported (5 to 300 km).",
+          "override_emergency": "Also report every Emergency Warning anywhere in the state (or New Zealand), whatever its distance.",
+          "exclude_hazard_reduction": "Leave out planned burns and other hazard reduction burns, so they do not raise alerts.",
+          "council_dashboard_url": "Optional. A Guardian IMS council disaster dashboard to read local incidents, road closures and relief centres from. Leave empty for none."
         }
       }
     },
     "error": {
       "invalid_coordinates": "Invalid latitude or longitude provided.",
       "invalid_config": "The settings are out of range. Check the radius, coordinates and state, then try again.",
-      "cannot_connect": "Failed to connect to emergency data feeds."
+      "cannot_connect": "None of the emergency feeds for this state answered. Check that Home Assistant can reach the internet, then try again."
     },
     "abort": {
       "already_configured": "This jurisdiction and location is already configured.",
@@ -77,6 +102,12 @@
           "override_emergency": "Statewide Emergency Warning Override",
           "exclude_hazard_reduction": "Exclude Hazard Reduction / Planned Burns",
           "council_dashboard_url": "Council Disaster Dashboard URL"
+        },
+        "data_description": {
+          "radius": "Distance from the monitored location within which incidents, warnings, outages and road closures are reported (5 to 300 km).",
+          "override_emergency": "Also report every Emergency Warning anywhere in the state (or New Zealand), whatever its distance.",
+          "exclude_hazard_reduction": "Leave out planned burns and other hazard reduction burns, so they do not raise alerts.",
+          "council_dashboard_url": "Optional. A Guardian IMS council disaster dashboard to read local incidents, road closures and relief centres from. Leave empty for none."
         }
       },
       "roads": {
@@ -129,6 +160,10 @@
         "data": {
           "name": "Name",
           "location": "Location"
+        },
+        "data_description": {
+          "name": "Name of the river point, used in its sensor names.",
+          "location": "Point on the river to forecast."
         }
       },
       "river_suggestion": {
@@ -136,6 +171,9 @@
         "description": "The selected point is not on the GloFAS river grid. The nearby cell with the largest discharge is {distance} km away at {latitude}, {longitude} (mean forecast discharge {discharge} m³/s).",
         "data": {
           "use_suggestion": "Use this cell"
+        },
+        "data_description": {
+          "use_suggestion": "Use the suggested river cell instead of the point you picked."
         }
       },
       "river_threshold": {
@@ -144,12 +182,19 @@
         "data": {
           "threshold": "Threshold",
           "horizon_days": "Forecast horizon"
+        },
+        "data_description": {
+          "threshold": "Discharge above which the flood risk sensor turns on.",
+          "horizon_days": "How many days ahead the forecast is checked against the threshold."
         }
       },
       "edit_river_point": {
         "title": "Edit a river point",
         "data": {
           "point": "River point"
+        },
+        "data_description": {
+          "point": "The river flood forecast point to edit."
         }
       },
       "edit_river_point_details": {
@@ -158,12 +203,19 @@
         "data": {
           "threshold": "Threshold",
           "horizon_days": "Forecast horizon"
+        },
+        "data_description": {
+          "threshold": "Discharge above which the flood risk sensor turns on.",
+          "horizon_days": "How many days ahead the forecast is checked against the threshold."
         }
       },
       "remove_river_point": {
         "title": "Remove river points",
         "data": {
           "point": "River points to remove"
+        },
+        "data_description": {
+          "point": "The river flood forecast points to remove, with their sensors."
         }
       },
       "earthquakes": {
@@ -171,6 +223,9 @@
         "description": "Optional earthquake hazards from Geoscience Australia (CC BY 4.0). Quakes of magnitude 3 or more from the last 48 hours within the monitoring radius are shown: M6 or more as Watch and Act, M4.5 or more as Advice, smaller ones as Information.",
         "data": {
           "include_earthquakes": "Include Geoscience Australia earthquakes"
+        },
+        "data_description": {
+          "include_earthquakes": "Add Geoscience Australia earthquakes within the monitoring radius as hazards."
         }
       },
       "river_gauges": {
@@ -270,6 +325,23 @@
       "options": {
         "off": "Off",
         "nearest": "Nearest station"
+      }
+    },
+    "location_mode": {
+      "options": {
+        "home": "Use the Home Assistant home location",
+        "custom": "Specify a custom location (council or coordinates)"
+      }
+    },
+    "reconfigure_location_mode": {
+      "options": {
+        "home": "Follow the Home Assistant home location",
+        "custom": "Fixed location (the coordinates below)"
+      }
+    },
+    "preset_council": {
+      "options": {
+        "custom": "Manual coordinates / custom URL"
       }
     }
   },

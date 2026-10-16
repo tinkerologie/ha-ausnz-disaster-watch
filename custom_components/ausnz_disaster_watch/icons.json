@@ -1,0 +1,169 @@
+{
+  "entity": {
+    "binary_sensor": {
+      "emergency_warning_nearby": {
+        "default": "mdi:shield-check",
+        "state": {
+          "on": "mdi:alert-octagon"
+        }
+      },
+      "inside_warning_area": {
+        "default": "mdi:map-marker-check",
+        "state": {
+          "on": "mdi:map-marker-alert"
+        }
+      },
+      "active_hazards_nearby": {
+        "default": "mdi:check-circle",
+        "state": {
+          "on": "mdi:alert"
+        }
+      },
+      "power_outage_active": {
+        "default": "mdi:transmission-tower",
+        "state": {
+          "on": "mdi:transmission-tower-off"
+        }
+      },
+      "road_closure_nearby": {
+        "default": "mdi:road-variant",
+        "state": {
+          "on": "mdi:traffic-cone"
+        }
+      },
+      "flooded_road_nearby": {
+        "default": "mdi:road-variant",
+        "state": {
+          "on": "mdi:home-flood"
+        }
+      },
+      "total_fire_ban": {
+        "default": "mdi:fire-off",
+        "state": {
+          "on": "mdi:fire-alert"
+        }
+      },
+      "tsunami_warning": {
+        "default": "mdi:waves",
+        "state": {
+          "on": "mdi:tsunami"
+        }
+      },
+      "river_alert": {
+        "default": "mdi:waves-arrow-up"
+      },
+      "dam_above_full_supply": {
+        "default": "mdi:waves-arrow-up"
+      }
+    },
+    "camera": {
+      "disaster_camera": {
+        "default": "mdi:cctv"
+      }
+    },
+    "geo_location": {
+      "bushfire": {
+        "default": "mdi:fire"
+      },
+      "grass_fire": {
+        "default": "mdi:grass"
+      },
+      "metropolitan_fire": {
+        "default": "mdi:fire-alert"
+      },
+      "flood": {
+        "default": "mdi:water-alert"
+      },
+      "severe_storm": {
+        "default": "mdi:weather-lightning"
+      },
+      "cyclone": {
+        "default": "mdi:weather-hurricane"
+      },
+      "earthquake": {
+        "default": "mdi:pulse"
+      },
+      "volcano": {
+        "default": "mdi:volcano"
+      },
+      "tsunami": {
+        "default": "mdi:tsunami"
+      },
+      "hazmat": {
+        "default": "mdi:biohazard"
+      },
+      "road_incident": {
+        "default": "mdi:car-emergency"
+      },
+      "other": {
+        "default": "mdi:alert-decagram"
+      }
+    },
+    "sensor": {
+      "nearest_hazard_distance": {
+        "default": "mdi:map-marker-distance"
+      },
+      "active_hazards_count": {
+        "default": "mdi:shield-alert"
+      },
+      "nearest_hazard_title": {
+        "default": "mdi:text-box-search"
+      },
+      "power_outages_count": {
+        "default": "mdi:transmission-tower-off"
+      },
+      "power_outages_customers_affected": {
+        "default": "mdi:account-alert"
+      },
+      "road_closures_count": {
+        "default": "mdi:traffic-cone"
+      },
+      "weather_warnings_count": {
+        "default": "mdi:weather-lightning-rainy"
+      },
+      "fire_season": {
+        "default": "mdi:fire",
+        "state": {
+          "restricted": "mdi:fire-alert",
+          "prohibited": "mdi:fire-off"
+        }
+      },
+      "air_quality_rating": {
+        "default": "mdi:air-filter"
+      },
+      "primary_weather_observation": {
+        "default": "mdi:thermometer"
+      },
+      "relief_facilities_count": {
+        "default": "mdi:home-heart"
+      },
+      "satellite_hotspots_nearby": {
+        "default": "mdi:satellite-variant"
+      },
+      "heatwave_severity": {
+        "default": "mdi:thermometer-alert"
+      },
+      "uv_index": {
+        "default": "mdi:sun-wireless"
+      },
+      "regional_disaster_alerts": {
+        "default": "mdi:earth"
+      },
+      "emergency_broadcaster": {
+        "default": "mdi:radio"
+      },
+      "river_level": {
+        "default": "mdi:waves"
+      },
+      "dam_percent_full": {
+        "default": "mdi:water-percent"
+      },
+      "dam_volume": {
+        "default": "mdi:water"
+      },
+      "dam_level": {
+        "default": "mdi:waves"
+      }
+    }
+  }
+}

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock, patch
@@ -116,7 +117,9 @@ async def setup_entry(hass: HomeAssistant, entry: MockConfigEntry, providers: li
 ALL_OPTIONS_ON = dict.fromkeys(NATIONAL_FEED_OPTIONS, True)
 
 
-async def test_national_entities(hass: HomeAssistant, mock_config_entry: MockConfigEntry) -> None:
+async def test_national_entities(
+    hass: HomeAssistant, mock_config_entry: MockConfigEntry, entity_icon: Callable[[str], str | None]
+) -> None:
     """Each enabled feed has an entity with its state, attributes and attribution."""
     national = national_mock(tsunami=TSUNAMI, hotspots=HOTSPOTS, heatwave=HEATWAVE, uv=UV, regional=GDACS)
     await setup_entry(hass, mock_config_entry, [hazard_mock(), national])
@@ -126,7 +129,8 @@ async def test_national_entities(hass: HomeAssistant, mock_config_entry: MockCon
     assert tsunami.state == STATE_ON
     assert tsunami.attributes["threat_level"] == "land"
     assert tsunami.attributes["products"] == ["IDY68027"]
-    assert tsunami.attributes["icon"] == "mdi:tsunami"
+    assert "icon" not in tsunami.attributes
+    assert entity_icon(tsunami.entity_id) == "mdi:tsunami"
 
     hotspots = hass.states.get(f"sensor.{PREFIX}_satellite_hotspots_nearby")
     assert hotspots is not None

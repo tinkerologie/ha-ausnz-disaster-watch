@@ -56,7 +56,6 @@ class EmergencyBroadcasterSensor(AustralianDisasterWatchEntity, SensorEntity):
     """
 
     _attr_translation_key = ENTITY_KEY
-    _attr_icon = "mdi:radio"
     _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator, stations: dict[str, Broadcaster]) -> None:

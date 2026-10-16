@@ -10,7 +10,7 @@ from pydantic import ValidationError
 import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult, OptionsFlow
-from homeassistant.core import callback
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
     BooleanSelector,
@@ -73,7 +73,8 @@ from .dam_options import DamOptionsFlow, offers_dam_storages
 from .hazard_options import HazardOptionsFlow
 from .models import DisasterWatchConfigModel
 from .national_options import NationalFeedsOptionsFlow
-from .providers import POWER_OUTAGE_SOURCES
+from .providers import POWER_OUTAGE_SOURCES, get_providers_for_config
+from .providers.power import PowerOutageSource
 from .rivers import (
     RIVER_DISCOVERY_TIMEOUT,
     STATE_RIVER_SOURCES,
@@ -161,6 +162,9 @@ RECONFIGURE_OPTION_KEYS: Final = (
 # Coordinates closer than this (degrees, about 10 m) count as the same location.
 _SAME_LOCATION_TOLERANCE: Final = 0.0001
 
+# Longest the setup form waits for the hazard feeds before showing cannot_connect (seconds)
+FEED_PROBE_TIMEOUT: Final = 60
+
 
 def point_in_polygon(lat: float, lon: float, polygon: tuple[tuple[float, float], ...]) -> bool:
     """Return True if the point lies inside the polygon (even-odd ray casting)."""
@@ -216,6 +220,45 @@ def build_unique_id(state: str, location_mode: str, location_name: str | None) -
 def build_title(state: str, location_name: str) -> str:
     """Return the config entry title for a state and location."""
     return f"Australia and New Zealand Disaster Watch ({state} - {location_name})"
+
+
+async def async_feeds_reachable(hass: HomeAssistant, data: dict[str, Any]) -> bool:
+    """Return True if at least one hazard feed of the entry answers (test-before-configure).
+
+    It fetches the same hazard feeds the coordinator's first refresh does (the state's
+    jurisdiction feed and, in Australia, BoM), with the same rule: setup fails only when
+    every hazard feed fails, so the form refuses only when none of them answers.
+    """
+    provider_config = {
+        **data,
+        CONF_LATITUDE: data.get(CONF_LATITUDE, hass.config.latitude),
+        CONF_LONGITUDE: data.get(CONF_LONGITUDE, hass.config.longitude),
+    }
+    providers = [
+        provider
+        for provider in get_providers_for_config(hass, async_get_clientsession(hass), provider_config)
+        if provider.provides_hazards and not isinstance(provider, PowerOutageSource)
+    ]
+    if not providers:
+        return True
+    tasks = [asyncio.ensure_future(provider.async_fetch_hazards()) for provider in providers]
+    try:
+        async with asyncio.timeout(FEED_PROBE_TIMEOUT):
+            # The first feed that answers is enough; the others are not waited for
+            for finished in asyncio.as_completed(tasks):
+                try:
+                    await finished
+                except Exception as err:  # noqa: BLE001 - any failure only means this feed is down
+                    _LOGGER.debug("Hazard feed is unavailable: %r", err)
+                    continue
+                return True
+    except TimeoutError:
+        _LOGGER.debug("Hazard feeds did not answer within %s s", FEED_PROBE_TIMEOUT)
+    finally:
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+    return False
 
 
 def is_valid_config(data: dict[str, Any]) -> bool:
@@ -276,9 +319,12 @@ class AustralianDisasterWatchConfigFlow(ConfigFlow, domain=DOMAIN):
                 await self.async_set_unique_id(build_unique_id(state, LOCATION_MODE_HOME, None))
                 self._abort_if_unique_id_configured()
 
-                title = build_title(state, entry_data[CONF_LOCATION_NAME])
-                return self.async_create_entry(title=title, data=entry_data)
-            errors["base"] = "invalid_config"
+                if await async_feeds_reachable(self.hass, entry_data):
+                    title = build_title(state, entry_data[CONF_LOCATION_NAME])
+                    return self.async_create_entry(title=title, data=entry_data)
+                errors["base"] = "cannot_connect"
+            else:
+                errors["base"] = "invalid_config"
 
         state_options = [SelectOptionDict(value=s, label=s) for s in SUPPORTED_STATES]
 
@@ -305,6 +351,7 @@ class AustralianDisasterWatchConfigFlow(ConfigFlow, domain=DOMAIN):
                     SelectSelectorConfig(
                         options=location_mode_options,
                         mode=SelectSelectorMode.LIST,
+                        translation_key="location_mode",
                     )
                 ),
                 vol.Required(CONF_RADIUS, default=DEFAULT_RADIUS): NumberSelector(
@@ -370,9 +417,12 @@ class AustralianDisasterWatchConfigFlow(ConfigFlow, domain=DOMAIN):
                     )
                     self._abort_if_unique_id_configured()
 
-                    title = build_title(state, entry_data[CONF_LOCATION_NAME])
-                    return self.async_create_entry(title=title, data=entry_data)
-                errors["base"] = "invalid_config"
+                    if await async_feeds_reachable(self.hass, entry_data):
+                        title = build_title(state, entry_data[CONF_LOCATION_NAME])
+                        return self.async_create_entry(title=title, data=entry_data)
+                    errors["base"] = "cannot_connect"
+                else:
+                    errors["base"] = "invalid_config"
 
         # Councils of the selected state from the generated registry, sorted by name (#32)
         preset_options = [SelectOptionDict(value="custom", label="Manual Coordinates / Custom URL")]
@@ -393,6 +443,8 @@ class AustralianDisasterWatchConfigFlow(ConfigFlow, domain=DOMAIN):
                     SelectSelectorConfig(
                         options=preset_options,
                         mode=SelectSelectorMode.DROPDOWN,
+                        # Translates the "custom" choice; council names are proper nouns
+                        translation_key="preset_council",
                     )
                 ),
                 vol.Required(CONF_LOCATION_NAME, default=default_name): TextSelector(
@@ -482,13 +534,15 @@ class AustralianDisasterWatchConfigFlow(ConfigFlow, domain=DOMAIN):
                         # data_updates would merge into the stored data and keep an old fixed point
                         new_data.pop(CONF_LATITUDE, None)
                         new_data.pop(CONF_LONGITUDE, None)
-                    return self.async_update_reload_and_abort(
-                        entry,
-                        unique_id=unique_id,
-                        title=build_title(state, location_name),
-                        data=new_data,
-                        options=options,
-                    )
+                    if await async_feeds_reachable(self.hass, {**new_data, **options}):
+                        return self.async_update_reload_and_abort(
+                            entry,
+                            unique_id=unique_id,
+                            title=build_title(state, location_name),
+                            data=new_data,
+                            options=options,
+                        )
+                    errors["base"] = "cannot_connect"
 
         current = {**entry.data, **entry.options}
         if current.get(CONF_LOCATION_MODE, LOCATION_MODE_HOME) == LOCATION_MODE_HOME:
@@ -511,7 +565,13 @@ class AustralianDisasterWatchConfigFlow(ConfigFlow, domain=DOMAIN):
                 ),
                 vol.Required(
                     CONF_LOCATION_MODE, default=current.get(CONF_LOCATION_MODE, LOCATION_MODE_HOME)
-                ): SelectSelector(SelectSelectorConfig(options=location_mode_options, mode=SelectSelectorMode.LIST)),
+                ): SelectSelector(
+                    SelectSelectorConfig(
+                        options=location_mode_options,
+                        mode=SelectSelectorMode.LIST,
+                        translation_key="reconfigure_location_mode",
+                    )
+                ),
                 vol.Required(CONF_LOCATION_NAME, default=current.get(CONF_LOCATION_NAME, "Home")): TextSelector(
                     TextSelectorConfig(type=TextSelectorType.TEXT)
                 ),

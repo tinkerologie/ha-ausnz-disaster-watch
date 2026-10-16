@@ -36,6 +36,19 @@ async def test_diagnostics_redaction(
     # Check redaction in entry data
     assert diag["entry"]["data"]["latitude"] == "**REDACTED**"
     assert diag["entry"]["data"]["longitude"] == "**REDACTED**"
+    # The location name, its council dashboard and the title naming it are redacted too (#21)
+    assert diag["entry"]["data"]["location_name"] == "**REDACTED**"
+    assert diag["entry"]["data"]["council_dashboard_url"] == "**REDACTED**"
+    assert diag["entry"]["title"] == "**REDACTED**"
+    assert "Moreton Bay" not in str(diag["entry"])
+
+    # Update health (#21)
+    assert diag["coordinator"]["last_update_success"] is True
+    assert diag["coordinator"]["last_exception"] is None
+    assert diag["coordinator"]["update_interval_seconds"] == 60  # an Emergency Warning is active
+    health = diag["coordinator"]["feed_health"]
+    assert [entry["status"] for entry in health.values()] == ["ok"]
+    assert next(iter(health.values()))["last_success"] is not None
 
     # Check coordinator info
     assert diag["coordinator"]["state_code"] == "QLD"

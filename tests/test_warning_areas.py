@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 import json
 import math
@@ -232,7 +233,10 @@ async def test_coordinator_uses_area_for_distance_and_expiry(
 
 
 async def test_inside_warning_area_entities(
-    hass: HomeAssistant, mock_config_entry: MockConfigEntry, mock_hazard_advice: CanonicalHazard
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    mock_hazard_advice: CanonicalHazard,
+    entity_icon: Callable[[str], str | None],
 ) -> None:
     """The binary sensor and the highest-level sensor report the containing warnings."""
     mock_config_entry.add_to_hass(hass)
@@ -252,7 +256,8 @@ async def test_inside_warning_area_entities(
     assert state.attributes["warning_level"] == "Watch and Act"
     assert state.attributes["warning_title"] == "Watch and Act - test"
     assert state.attributes["call_to_action"] == "Prepare to leave"
-    assert state.attributes["icon"] == "mdi:map-marker-alert"
+    assert "icon" not in state.attributes
+    assert entity_icon(state.entity_id) == "mdi:map-marker-alert"
     highest = hass.states.get(f"sensor.{ENTITY}_highest_warning_level")
     assert highest is not None
     assert highest.attributes["inside_warning_area"] is True
@@ -275,7 +280,8 @@ async def test_inside_warning_area_entities(
     assert state.attributes["warning_count"] == 0
     assert state.attributes["warning_level"] is None
     assert state.attributes["call_to_action"] is None
-    assert state.attributes["icon"] == "mdi:map-marker-check"
+    assert "icon" not in state.attributes
+    assert entity_icon(state.entity_id) == "mdi:map-marker-check"
     highest = hass.states.get(f"sensor.{ENTITY}_highest_warning_level")
     assert highest is not None
     assert highest.attributes["inside_warning_area"] is False

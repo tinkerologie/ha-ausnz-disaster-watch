@@ -624,6 +624,24 @@ def sources_for_feature(feature: str) -> tuple[DataSource, ...]:
     return tuple(DATA_SOURCES[key] for key in FEATURE_SOURCES[feature])
 
 
+# River gauge services (rivers.GaugeSite.source) -> register keys. Hawke's Bay has its own
+# licence; the other Hilltop servers share one unverified entry.
+RIVER_GAUGE_SOURCES: dict[str, str] = {
+    "qld": "river_qld_wmip",
+    "nsw": "river_waternsw",
+    "hilltop_hbrc": "river_hbrc_hilltop",
+}
+
+
+def sources_for_river_gauges(gauge_sources: Iterable[str]) -> tuple[DataSource, ...]:
+    """Return the register entries of the gauge services in use, once each, in order (#21)."""
+    keys = (
+        RIVER_GAUGE_SOURCES.get(source, "river_nz_hilltop" if source.startswith("hilltop_") else "")
+        for source in gauge_sources
+    )
+    return tuple(DATA_SOURCES[key] for key in dict.fromkeys(keys) if key)
+
+
 def sources_for_forecast(*features: str) -> tuple[DataSource, ...]:
     """Return the register entries for forecast features, in order."""
     return tuple(DATA_SOURCES[key] for feature in features for key in FORECAST_SOURCES[feature])

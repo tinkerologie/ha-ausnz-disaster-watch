@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from homeassistant.components.diagnostics import async_redact_data
+from homeassistant.components.diagnostics import REDACTED, async_redact_data
 from homeassistant.core import HomeAssistant
 
 from . import AusNZDisasterWatchConfigEntry
-from .const import CONF_LATITUDE, CONF_LONGITUDE, CONF_VIC_API_KEY
+from .const import CONF_COUNCIL_DASHBOARD_URL, CONF_LATITUDE, CONF_LOCATION_NAME, CONF_LONGITUDE, CONF_VIC_API_KEY
 
 TO_REDACT = {
     CONF_LATITUDE,
@@ -19,6 +19,9 @@ TO_REDACT = {
     "created_user",
     "last_edited_user",
     CONF_VIC_API_KEY,
+    # The monitored location's name and its council dashboard tell where the user lives (#21)
+    CONF_LOCATION_NAME,
+    CONF_COUNCIL_DASHBOARD_URL,
 }
 
 
@@ -36,11 +39,21 @@ async def async_get_config_entry_diagnostics(
             "entry_id": entry.entry_id,
             "version": entry.version,
             "domain": entry.domain,
-            "title": entry.title,
+            # The title holds the location name
+            "title": REDACTED,
             "data": async_redact_data(dict(entry.data), TO_REDACT),
             "options": async_redact_data(dict(entry.options), TO_REDACT),
         },
         "coordinator": {
+            "last_update_success": coordinator.last_update_success,
+            "last_exception": repr(coordinator.last_exception) if coordinator.last_exception else None,
+            "update_interval_seconds": (
+                coordinator.update_interval.total_seconds() if coordinator.update_interval else None
+            ),
+            "feed_health": {
+                key: {"status": status, "last_success": last.isoformat() if last else None}
+                for key, (status, last) in coordinator.feed_health.items()
+            },
             "state_code": coordinator.state_code,
             "radius_km": coordinator.radius_km,
             "override_emergency": coordinator.override_emergency,

@@ -32,6 +32,9 @@ from .providers.fire_danger import local_today
 from .providers.sources import attribution_for, national_feed_attribution
 from .river_binary_sensor import async_setup_river_alert_sensors
 
+# Entities only read coordinator data; the coordinator does all fetching
+PARALLEL_UPDATES = 0
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -75,11 +78,6 @@ class EmergencyWarningNearbyBinarySensor(AustralianDisasterWatchEntity, BinarySe
         return self.coordinator.has_emergency_warning_nearby
 
     @property
-    def icon(self) -> str:
-        """Return icon depending on alert state."""
-        return "mdi:alert-octagon" if self.is_on else "mdi:shield-check"
-
-    @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return alert attributes for automation logic."""
         nearest = self.coordinator.nearest_hazard
@@ -113,11 +111,6 @@ class InsideWarningAreaBinarySensor(AustralianDisasterWatchEntity, BinarySensorE
         return self.coordinator.is_inside_warning_area
 
     @property
-    def icon(self) -> str:
-        """Return icon depending on state."""
-        return "mdi:map-marker-alert" if self.is_on else "mdi:map-marker-check"
-
-    @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the number of containing warnings and the most severe one."""
         inside = self.coordinator.inside_warning_hazards
@@ -146,11 +139,6 @@ class ActiveHazardsNearbyBinarySensor(AustralianDisasterWatchEntity, BinarySenso
         return len(self.coordinator.active_hazards) > 0
 
     @property
-    def icon(self) -> str:
-        """Return icon depending on state."""
-        return "mdi:alert" if self.is_on else "mdi:check-circle"
-
-    @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return attributes."""
         return {
@@ -173,11 +161,6 @@ class PowerOutageActiveBinarySensor(AustralianDisasterWatchEntity, BinarySensorE
     def is_on(self) -> bool:
         """Return True if any power outages exist."""
         return len(self.coordinator.power_outages) > 0
-
-    @property
-    def icon(self) -> str:
-        """Return icon depending on state."""
-        return "mdi:transmission-tower-off" if self.is_on else "mdi:transmission-tower"
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -213,11 +196,6 @@ class RoadClosureNearbyBinarySensor(AustralianDisasterWatchEntity, BinarySensorE
         return any(not item.is_planned for item in self.coordinator.road_closures)
 
     @property
-    def icon(self) -> str:
-        """Return icon depending on state."""
-        return "mdi:traffic-cone" if self.is_on else "mdi:road-variant"
-
-    @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return closure counts by category."""
         items = self.coordinator.road_closures
@@ -251,11 +229,6 @@ class FloodedRoadNearbyBinarySensor(AustralianDisasterWatchEntity, BinarySensorE
     def is_on(self) -> bool:
         """Return True if any flooded road is reported nearby."""
         return bool(self._flooded)
-
-    @property
-    def icon(self) -> str:
-        """Return icon depending on state."""
-        return "mdi:home-flood" if self.is_on else "mdi:road-variant"
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -307,11 +280,6 @@ class TotalFireBanBinarySensor(AustralianDisasterWatchEntity, BinarySensorEntity
         return today.total_fire_ban if today else None
 
     @property
-    def icon(self) -> str:
-        """Return icon depending on state."""
-        return "mdi:fire-alert" if self.is_on else "mdi:fire-off"
-
-    @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the district, tomorrow's ban and the ban outlook."""
         outlook = self.coordinator.fire_outlook
@@ -355,11 +323,6 @@ class TsunamiWarningBinarySensor(AustralianDisasterWatchEntity, BinarySensorEnti
         """Return True for an active tsunami status or a tsunami hazard in range."""
         status = self.coordinator.tsunami
         return bool(status is not None and status.active) or bool(self.coordinator.tsunami_hazards)
-
-    @property
-    def icon(self) -> str:
-        """Return icon depending on state."""
-        return "mdi:tsunami" if self.is_on else "mdi:waves"
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
