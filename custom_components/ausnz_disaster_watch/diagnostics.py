@@ -52,6 +52,7 @@ async def async_get_config_entry_diagnostics(
             "include_roadworks": coordinator.include_roadworks,
             "road_closures_count": len(coordinator.road_closures),
             "road_feeds_failed": coordinator.road_feeds_failed,
+            "power_outage_sources": [p.__class__.__name__ for p in coordinator.power_sources],
             "active_hazards_count": len(coordinator.active_hazards),
             "highest_warning_level": coordinator.highest_warning_level.value,
             "has_emergency_warning_nearby": coordinator.has_emergency_warning_nearby,

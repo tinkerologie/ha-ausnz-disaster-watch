@@ -1,0 +1,110 @@
+{
+  "planned_jobs": {},
+  "current_outages": {
+    "J.90.10.0001": {
+      "JobId": "J.90.10.0001",
+      "Type": "Outage-Planned",
+      "Updates": null,
+      "State": "",
+      "CrewState": "On-Site",
+      "Reason": "Network Upgrade",
+      "Area": "1 Example Road, Kaiapoi",
+      "CustomersOff": 5,
+      "CustomersRestored": 0,
+      "StartTime": "16/10/2026 09:23",
+      "EndTime": "16/10/2026 17:00",
+      "steps": {
+        "OS.90.10.00001": {
+          "type": "Feature",
+          "properties": {
+            "Type": "Outage-Planned",
+            "JobId": "J.90.10.0001",
+            "CustomersOff": 5,
+            "Lat": -43.334,
+            "Lon": 172.658
+          },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  172.657,
+                  -43.333
+                ],
+                [
+                  172.659,
+                  -43.334
+                ],
+                [
+                  172.658,
+                  -43.335
+                ],
+                [
+                  172.656,
+                  -43.334
+                ],
+                [
+                  172.657,
+                  -43.333
+                ]
+              ]
+            ]
+          }
+        }
+      }
+    },
+    "J.90.10.0002": {
+      "JobId": "J.90.10.0002",
+      "Type": "Outage-Unplanned",
+      "CrewState": "",
+      "Reason": "",
+      "Area": "Rangiora",
+      "CustomersOff": 12,
+      "StartTime": "16/10/2026 13:05",
+      "EndTime": "",
+      "steps": {
+        "OS.90.10.00002": {
+          "type": "Feature",
+          "properties": {
+            "Lat": -43.305,
+            "Lon": 172.595
+          },
+          "geometry": null
+        }
+      }
+    },
+    "J.90.10.0003": "not a job",
+    "J.90.10.0004": {
+      "JobId": "J.90.10.0004",
+      "Type": "Outage-Planned",
+      "CrewState": "",
+      "Reason": "Network Upgrade",
+      "Area": "Oxford",
+      "CustomersOff": 3,
+      "StartTime": "19/10/2026 09:00",
+      "EndTime": "19/10/2026 17:00",
+      "steps": {}
+    },
+    "J.90.10.0005": {
+      "JobId": "J.90.10.0005",
+      "Type": "Outage-Unplanned",
+      "Area": "Amberley",
+      "CustomersOff": 2,
+      "StartTime": "16/10/2026 12:00",
+      "steps": {
+        "OS.1": {
+          "type": "Feature",
+          "properties": {
+            "Lat": "unknown",
+            "Lon": 172.7
+          },
+          "geometry": null
+        }
+      }
+    }
+  },
+  "icps": {},
+  "stats": {
+    "jobs": 2
+  }
+}

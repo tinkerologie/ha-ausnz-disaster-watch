@@ -32,6 +32,10 @@ attribution to show, and what we decided where the terms are restrictive (#34).
   not have is asked again only after six hours. BoM and MetService CAP documents are cached
   by URL, so only new documents are downloaded.
 - Camera snapshots are fetched on demand when a camera entity is viewed (redirects followed).
+- Electricity distributor outage feeds (#36) are fetched at most every 5 minutes (Unison every
+  15), also during 60 s threat polling, and asked for outages within the radius where the feed
+  supports it (ArcGIS `distance`, Opendatasoft `within_distance`). Feeds without a spatial
+  query are skipped when the radius cannot reach the distributor's network.
 - The opt-in Open-Meteo forecast features (#38, #39, #40) are off by default and poll on their own
   coordinators, one request per poll and a single attempt (a retry costs quota), retried after
   30 minutes on failure: weather signals hourly, river points every 6 hours (all points in one
@@ -73,6 +77,13 @@ attribution to show, and what we decided where the terms are restrictive (#34).
 | `abs_lga` | `https://geo.abs.gov.au/arcgis/rest/services/ASGS2021/LGA/MapServer/0/query?geometry={lon},{lat}&...` (`FireDangerService`, one point query per location to match Emergency WA's per-LGA total fire bans, #28) | Australian Bureau of Statistics | CC BY 4.0: https://www.abs.gov.au/website-privacy-copyright-and-disclaimer. The service notes that ABS LGAs approximate gazetted boundaries. | © Australian Bureau of Statistics, CC BY 4.0 | Allowed | One request per configured location | `open` |
 | `fenz_fire_season` | `https://utility.arcgis.com/usrsvcs/servers/b381ba9bdd4046c2b71a6b1a1e39da78/rest/services/FENZ/MapServer/27/query?geometry={lon},{lat}&...` (fire season zone) and `https://services1.arcgis.com/dcVyucRsXCQAi3GL/arcgis/rest/services/Section_52_Localities_v2_view/FeatureServer/0/query?geometry={lon},{lat}&...` (Section 52 prohibitions) (`FireDangerService`, NZ entries, #28) | Fire and Emergency New Zealand | No licence found for the layers; the services carry no licence or copyright text and https://www.fireandemergency.nz/about-us/copyright/ states none for data. | Fire and Emergency New Zealand | Unknown | Polled at most every 30 min | `unverified` |
 | `ga_earthquakes` | `https://earthquakes.ga.gov.au/geoserver/earthquakes/wfs?service=WFS&request=getfeature&typeNames=earthquakes:earthquakes_seven_days&outputFormat=application/json` (`GAEarthquakeProvider.async_fetch_hazards`, opt-in, #23); hazards link to `https://earthquakes.ga.gov.au/event/{event_id}` | Geoscience Australia | CC BY 4.0: "All material on this website is licensed under the Creative Commons Attribution 4.0 International Licence" (https://www.ga.gov.au/copyright). The WFS capabilities list `Fees: NONE`, `AccessConstraints: NONE`. | © Commonwealth of Australia (Geoscience Australia), CC BY 4.0 | Allowed | None published; no key | `open` |
+| `endeavour_outages` | `https://data.endeavourenergy.com.au/api/explore/v2.1/catalog/datasets` `/outagecustomerlive/records` and `/plannedoutagecustomer/records` (planned only when the entry includes planned outages), with `where=within_distance(geom, …, <radius>km)` and `group_by` incident (`EndeavourOutageSource`, #36) | Endeavour Energy | Open Database Licence (ODbL) 1.0, from each dataset's catalog metadata (`license`, `license_url` https://www.opendatacommons.org/licenses/odbl/1.0/; `attributions` is empty). Dataset pages: https://data.endeavourenergy.com.au/explore/dataset/outagecustomerlive/information/. The portal's generic T&C (https://data.endeavourenergy.com.au/terms/terms-and-conditions/) is a bespoke licence for infrastructure data supplied on request, not these datasets. The portal's robots.txt has `Disallow: /api/` for crawlers (the Opendatasoft default); the Explore API is the documented way to read the datasets. Records are per street address; the query groups them by incident and averages the coordinates, so no address is fetched or stored. ODbL share-alike applies to a publicly used derived database; outages stay in the user's own Home Assistant and nothing is redistributed (test fixtures are synthetic). | Contains information from Endeavour Energy Open Data, made available under the Open Database Licence (ODbL) v1.0 | Allowed (ODbL) | `limit` 100 per request, paged (max 10 pages); live data refreshes every 10 min, planned every 60 min | `open` |
+| `essential_outages` | `https://www.essentialenergy.com.au/Assets/kmz/current.kml` (`EssentialEnergyOutageSource`, #36) | Essential Energy | No website terms or copyright page exist (the footer only has "© Essential Energy"). robots.txt allows `/Assets/`. The website is behind Cloudflare; the KML is not. | Outage data: Essential Energy | Unknown | About 100 kB for the whole network, no spatial query; skipped unless the radius reaches regional NSW | `unverified` |
+| `tasnetworks_outages` | `https://www.tasnetworks.com.au/api/odata/GetPowerOutages` (`TasNetworksOutageSource`, #36) | TasNetworks | https://www.tasnetworks.com.au/disclaimer: "TasNetworks retains copyright for all of the content on this site"; nothing on reuse or automated access. robots.txt only disallows `/config/admin/`. | Outage data: TasNetworks | Unknown | A few kB; skipped unless the radius reaches Tasmania | `unverified` |
+| `mainpower_outages` | `https://outages.mainpower.co.nz/jobs?source=pcc&view=external` (`MainPowerOutageSource`, #36) | MainPower New Zealand | No website terms found (footer "© MainPower"). | Outage data: MainPower | Unknown | About 300 kB (includes upcoming planned jobs, which are ignored); skipped unless the radius reaches North Canterbury | `unverified` |
+| `unison_outages` | `https://www.unison.co.nz/api/outages` (`UnisonOutageSource`, #36; opt-in: extra outage feeds) | Unison Networks | No terms found (footer "Copyright © 2026"). | Outage data: Unison Networks | Unknown | About 2.6 MB (recent, scheduled and cancelled outages too), so opt-in and fetched at most every 15 min; skipped unless the radius reaches Hawke's Bay, Taupō or Rotorua | `unverified` |
+| `western_power_outages` | `https://services2.arcgis.com/tBLxde4cxSlNUxsM/ArcGIS/rest/services/WP_Outage_Prod/FeatureServer/0` `/query` within the radius (`WesternPowerOutageSource`, #36; opt-in: extra outage feeds) | Western Power | https://www.westernpower.com.au/terms--conditions/: "no part of this website and its contents may be reproduced … without the specific written permission of Western Power"; "The use of the information must be for your own personal and non-commercial use relating to your own energy consumption … you must not repackage the information, sell it, or provide it to others for commercial purposes"; "Western Power may revoke this permission at any time". The ArcGIS item (`34231924fe1d43f2a8792da7abe597b7`) has no `licenseInfo`. The website's `/api/` routes are disallowed by robots.txt and not used. | Outage data: Western Power | Not allowed | `maxRecordCount` 2000; outlines generalised (`maxAllowableOffset` 0.0005) | `restricted` |
+| `powerco_outages` | `https://outages.powerco.co.nz/server/rest/services/Hosted/Outages/FeatureServer/1` `/query` within the radius (`PowercoOutageSource`, #36; opt-in: extra outage feeds) | Powerco | https://www.powerco.co.nz/terms-of-use: users "must not: • Use the information for a public purpose or commercial gain". Layer `copyrightText` "Powerco". | Outage data: Powerco | Not allowed | `maxRecordCount` 2000 | `restricted` |
 | `open_meteo_forecast` | `https://api.open-meteo.com/v1/forecast` (`OpenMeteoClient.async_get_forecast`, weather hazard signals #39) | Open-Meteo | CC BY 4.0 (https://open-meteo.com/en/licence; credit "Weather data by Open-Meteo.com" with a link). Free API terms (https://open-meteo.com/en/terms): non-commercial use only. Best-match model; `lightning_potential` is not used (empty for AU/NZ). | Weather data by Open-Meteo.com, CC BY 4.0 | Not allowed on the free API (commercial plan needed) | Under 10,000 calls a day, 5,000 an hour, 600 a minute per IP; large requests count as several calls; no key | `open` |
 | `open_meteo_flood` | `https://flood-api.open-meteo.com/v1/flood` (`OpenMeteoClient.async_get_river_forecasts`, `async_get_river_history`, river flood forecast #38) | Open-Meteo, with GloFAS v4 data from the Copernicus Emergency Management Service | CC BY 4.0 (https://open-meteo.com/en/licence; credit "Weather data by Open-Meteo.com" with a link). Free API terms (https://open-meteo.com/en/terms): non-commercial use only. GloFAS is listed on the Open-Meteo licence page. | Flood data by Open-Meteo.com (GloFAS), CC BY 4.0 | Not allowed on the free API | As `open_meteo_forecast`; each location in a multi-location request counts | `open` |
 | `ecmwf_aifs` | `https://ensemble-api.open-meteo.com/v1/ensemble` with `models=ecmwf_aifs025_ensemble` (`OpenMeteoClient.async_get_ensemble`, AI rain outlook #40) | ECMWF, served by Open-Meteo | ECMWF open data, CC BY 4.0 (https://www.ecmwf.int/en/forecasts/datasets/open-data); Open-Meteo free API terms as above | ECMWF AIFS, CC BY 4.0 (with the Open-Meteo credit) | Not allowed on the free Open-Meteo API | As `open_meteo_forecast`; ensemble requests count per member set | `open` |
@@ -203,6 +214,22 @@ Dated 2026-10-16 (#34).
   `131940.qld.gov.au` webcam images (personal, non-commercial terms at
   https://qldtraffic.qld.gov.au/more/Disclaimer/index.html; the URLs had started redirecting
   to the QLDTraffic home page) were replaced by the dashboard's own `getCameras` list (#25).
+- **Electricity distributor outages (#36).** Default on: Endeavour Energy (ODbL), Essential
+  Energy, TasNetworks and MainPower, which publish no terms restricting the feeds. Opt-in
+  ("Extra Power Outage Feeds", off by default): Western Power and Powerco, whose website terms
+  allow personal, non-commercial use only (each user's own installation polling for their own
+  supply), and Unison (no terms found, but a 2.6 MB download). Not used:
+  - Energex and Ergon's own ArcGIS services (`VwEnergexOutages`, `VwErgonOutages`):
+    https://www.energex.com.au/contact-us/terms-of-use † "Unless the EQL Group Member has
+    agreed in writing, the EQL Group prohibits any activity which uses intellectual property
+    owned by, or licensed to an EQL Group Member". Their outages still come from the council
+    dashboards (`ergonOutages`, `energexOutages`). Follow-up: ask Energy Queensland.
+  - Wellington Electricity (`/api/outages`): its disclaimer says users "will not: … distribute
+    to third parties, reproduce, repurpose or commercialise the Data in any way without the
+    express permission".
+  - Ausgrid: its outage route returns counts only, and its disclaimer forbids reproduction on
+    another website without written permission.
+  - See [Proposed sources with restrictive terms](#proposed-sources-with-restrictive-terms) for the others.
 - **MetService polling: open.** The CAP Code of Practice asks for polls no more often than
   every 2 minutes; the coordinator's 60 s threat interval breaks that for NZ entries while a
   threat is active. Follow-up: throttle the MetService RSS to 120 s or more.
@@ -222,6 +249,9 @@ The maintainer makes these contacts; record only replies the maintainer supplies
 | Bureau of Meteorology | Terms for CAP warnings via WMO | — | not yet | — |
 | NSW SES / HazardWatch | Feed reuse | — | not yet | — |
 | ARPANSA | Notify that real-time UV data is used (a condition of use, #37) | info@arpansa.gov.au | not yet | — |
+| Energy Queensland | Use of the Energex and Ergon outage ArcGIS services (#36) | via energex.com.au | not yet | — |
+| Western Power | Outage map service reuse beyond personal use (#36) | via westernpower.com.au | not yet | — |
+| Powerco | Outage map service reuse (#36) | via powerco.co.nz | not yet | — |
 
 ## Proposed sources with restrictive terms
 
@@ -232,6 +262,15 @@ Not used. Do not add them without permission.
 - BoM `api.weather.bom.gov.au`: the API response says "You must not use, copy or share it."
 - NIWA fireweather: terms forbid redistribution (from the issue; not rechecked).
 - Demonz council dashboards: "Unauthorised use is not permitted" (from the issue; not rechecked).
+- Electricity distributor outage feeds checked for #36 on 2026-10-16 (keyless feed found unless noted):
+  - SA Power Networks (`outage.apps.sapowernetworks.com.au/Outages/GetPublicisedCurrentOutages/`): "You must not reproduce any content on this site without first obtaining SA Power Networks' permission."
+  - CitiPower and Powercor (`cppc-outage` S3 JSON): "must not reproduce any content … without first obtaining … permission".
+  - United Energy (CloudFront `outages-v2.json`): "personal or internal business use … All other use … prohibited".
+  - Jemena (`poweroutages.jemena.com.au/data/all-outages.json`): "personal and non-commercial use only".
+  - AusNet (`outagetrackerservice.ausnetservices.com.au`): terms ban access "using any robot, spider, scraper or other automated means"; `outagetracker.com.au` robots.txt disallows `/api/*`.
+  - Evoenergy (`/api/sitecore/Outage/ExportOutages`, CSV without locations): "only for private purposes".
+  - Horizon Power (no feed found, Cloudflare) and Power and Water (no routine feed; "your own private use").
+  - Vector (API key required), Orion (robots.txt disallows `/outages-and-support/outages`), Aurora Energy (HTML only; no reproduction without permission), the Waikato distributor (third-party POST API; no public or commercial use).
 
 ## Sources in open pull requests
 

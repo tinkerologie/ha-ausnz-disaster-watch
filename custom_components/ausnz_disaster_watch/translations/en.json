@@ -56,6 +56,7 @@
         "menu_options": {
           "settings": "Monitoring settings",
           "roads": "Road closures",
+          "power_outages": "Power outages",
           "forecasts": "Forecast signals and AI rain outlook",
           "earthquakes": "Earthquakes (Geoscience Australia)",
           "add_river_point": "Add a river flood forecast point",
@@ -85,6 +86,18 @@
         "data_description": {
           "include_roadworks": "List planned roadworks and special events from the state road feed in the road closures sensor. They never turn on Road Closure Nearby or Flooded Road Nearby.",
           "vic_api_key": "Optional. Victorian road closures need a free API key: register at opendata.transport.vic.gov.au, subscribe to the \"Unplanned Disruptions - Road\" API and paste the key here. Leave empty to skip Victorian road data."
+        }
+      },
+      "power_outages": {
+        "title": "Power outages",
+        "description": "Power outages come from your electricity distributor's outage feed and, in Queensland and NSW, your council dashboard. Only outages in effect now are counted.",
+        "data": {
+          "include_planned_outages": "Include planned power outages",
+          "extra_outage_feeds": "Extra power outage feeds"
+        },
+        "data_description": {
+          "include_planned_outages": "Also count planned maintenance outages while they are under way. Unplanned outages are always counted.",
+          "extra_outage_feeds": "Also read Western Power and Powerco, whose terms allow personal, non-commercial use only, and Unison, a 2.6 MB download every 15 minutes."
         }
       },
       "forecasts": {

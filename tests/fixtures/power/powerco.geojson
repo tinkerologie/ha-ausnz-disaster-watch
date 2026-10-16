@@ -1,0 +1,86 @@
+{
+  "features": [
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          175.0579,
+          -39.9127
+        ]
+      },
+      "id": 1,
+      "type": "Feature",
+      "properties": {
+        "planned_outage": 0,
+        "town": "Whanganui",
+        "feeder": "EXAMPLE RD",
+        "interruption_restore_date": 1792122300000,
+        "distributor_event_number": "JE90000001",
+        "interruption_reason": "Site Investigation Underway",
+        "number_of_detail_records": 4,
+        "suburb": "Wanganui East",
+        "objectid": 1,
+        "interruption_start_date": 1792107300000,
+        "crew_status": "Job assigned, field crew en route (Stage 2 of 5)",
+        "communication_type": "UPU",
+        "last_update_date": 1792110600000,
+        "napaid": null
+      }
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          174.3082,
+          -39.5529
+        ]
+      },
+      "id": 2,
+      "type": "Feature",
+      "properties": {
+        "planned_outage": 1,
+        "town": "Hāwera",
+        "feeder": "EXAMPLE RD",
+        "interruption_restore_date": 1792118700000,
+        "distributor_event_number": "JE90000002",
+        "interruption_reason": "\"Network Project Work\"",
+        "number_of_detail_records": 112,
+        "suburb": "Hāwera",
+        "objectid": 2,
+        "interruption_start_date": 1792097340000,
+        "crew_status": "N/A",
+        "communication_type": "UPU",
+        "last_update_date": 1792110600000,
+        "napaid": null
+      }
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          174.3082,
+          -39.5529
+        ]
+      },
+      "id": 3,
+      "type": "Feature",
+      "properties": {
+        "planned_outage": 1,
+        "town": "Hāwera",
+        "feeder": "EXAMPLE RD",
+        "interruption_restore_date": 1792562400000,
+        "distributor_event_number": "JE90000003",
+        "interruption_reason": "\"Network Project Work\"",
+        "number_of_detail_records": 112,
+        "suburb": "Hāwera",
+        "objectid": 3,
+        "interruption_start_date": 1792540800000,
+        "crew_status": "N/A",
+        "communication_type": "UPU",
+        "last_update_date": 1792110600000,
+        "napaid": null
+      }
+    }
+  ],
+  "type": "FeatureCollection"
+}

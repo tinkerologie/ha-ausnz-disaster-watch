@@ -283,6 +283,66 @@ _SOURCES = (
         terms_url="https://www.fireandemergency.nz/about-us/copyright/",
         status=LicenceStatus.UNVERIFIED,
     ),
+    # Electricity distributor outage feeds (#36); opt-in ones need the extra outage feeds option
+    DataSource(
+        key="endeavour_outages",
+        owner="Endeavour Energy",
+        attribution=(
+            "Contains information from Endeavour Energy Open Data, made available under the "
+            "Open Database Licence (ODbL) v1.0"
+        ),
+        licence="ODbL 1.0",
+        terms_url="https://data.endeavourenergy.com.au/explore/dataset/outagecustomerlive/information/",
+        status=LicenceStatus.OPEN,
+    ),
+    DataSource(
+        key="essential_outages",
+        owner="Essential Energy",
+        attribution="Outage data: Essential Energy",
+        licence="None published; the website has no terms of use",
+        terms_url="https://www.essentialenergy.com.au",
+        status=LicenceStatus.UNVERIFIED,
+    ),
+    DataSource(
+        key="tasnetworks_outages",
+        owner="TasNetworks",
+        attribution="Outage data: TasNetworks",
+        licence="None published; TasNetworks retains copyright of the site content",
+        terms_url="https://www.tasnetworks.com.au/disclaimer",
+        status=LicenceStatus.UNVERIFIED,
+    ),
+    DataSource(
+        key="mainpower_outages",
+        owner="MainPower New Zealand",
+        attribution="Outage data: MainPower",
+        licence="None published",
+        terms_url="https://outages.mainpower.co.nz",
+        status=LicenceStatus.UNVERIFIED,
+    ),
+    DataSource(
+        key="unison_outages",
+        owner="Unison Networks",
+        attribution="Outage data: Unison Networks",
+        licence="None published",
+        terms_url="https://www.unison.co.nz",
+        status=LicenceStatus.UNVERIFIED,
+    ),
+    DataSource(
+        key="western_power_outages",
+        owner="Western Power",
+        attribution="Outage data: Western Power",
+        licence="Website terms: personal, non-commercial use relating to your own energy consumption",
+        terms_url="https://www.westernpower.com.au/terms--conditions/",
+        status=LicenceStatus.RESTRICTED,
+    ),
+    DataSource(
+        key="powerco_outages",
+        owner="Powerco",
+        attribution="Outage data: Powerco",
+        licence="Website terms: no public purpose or commercial gain",
+        terms_url="https://www.powerco.co.nz/terms-of-use",
+        status=LicenceStatus.RESTRICTED,
+    ),
     # Opt-in Open-Meteo forecast features (#38, #39, #40); the free API is non-commercial only
     DataSource(
         key="open_meteo_forecast",
@@ -450,6 +510,13 @@ PROVIDER_SOURCES: dict[str, tuple[str, ...]] = {
     "WARoadProvider": ("mrwa_webeoc",),
     "NTRoadProvider": ("nt_road_report",),
     "TasmaniaRoadProvider": ("tasalert",),
+    "EndeavourOutageSource": ("endeavour_outages",),
+    "EssentialEnergyOutageSource": ("essential_outages",),
+    "TasNetworksOutageSource": ("tasnetworks_outages",),
+    "MainPowerOutageSource": ("mainpower_outages",),
+    "UnisonOutageSource": ("unison_outages",),
+    "WesternPowerOutageSource": ("western_power_outages",),
+    "PowercoOutageSource": ("powerco_outages",),
 }
 
 

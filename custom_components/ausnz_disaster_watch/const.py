@@ -45,6 +45,8 @@ AU_ONLY_FEED_OPTIONS: Final = (
 )
 CONF_INCLUDE_ROADWORKS: Final = "include_roadworks"
 CONF_VIC_API_KEY: Final = "vic_api_key"
+CONF_INCLUDE_PLANNED_OUTAGES: Final = "include_planned_outages"
+CONF_EXTRA_OUTAGE_FEEDS: Final = "extra_outage_feeds"
 
 # Location modes
 LOCATION_MODE_HOME: Final = "home"
@@ -59,6 +61,8 @@ DEFAULT_OVERRIDE_EMERGENCY: Final = True
 DEFAULT_EXCLUDE_HAZARD_REDUCTION: Final = True
 DEFAULT_INCLUDE_EARTHQUAKES: Final = False
 DEFAULT_INCLUDE_ROADWORKS: Final = False
+DEFAULT_INCLUDE_PLANNED_OUTAGES: Final = False
+DEFAULT_EXTRA_OUTAGE_FEEDS: Final = False
 DEFAULT_SCAN_INTERVAL: Final = 300  # 5 minutes in seconds
 THREAT_SCAN_INTERVAL: Final = 60  # 1 minute when active threat detected
 # How long a failed feed's last good hazards are kept before they are dropped (#16)

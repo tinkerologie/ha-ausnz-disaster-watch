@@ -1,0 +1,33 @@
+{
+  "total_count": 2,
+  "results": [
+    {
+      "incident_id": "SP 9000000101",
+      "outage_type": "PLANNED",
+      "incident_status": "PREPARED",
+      "cause": "Maintenance Work",
+      "cityname": "KINGSWOOD",
+      "start_date_time": "2026-10-16 09:00",
+      "est_restore_time": "2026-10-16 15:00",
+      "end_date_time": "2026-10-16 15:00",
+      "customers": 30,
+      "lat": -33.7733,
+      "lon": 150.7148,
+      "records": 30
+    },
+    {
+      "incident_id": "SP 9000000102",
+      "outage_type": "PLANNED",
+      "incident_status": "LODGED",
+      "cause": "Maintenance Work",
+      "cityname": "GLENMORE PARK",
+      "start_date_time": "2026-10-29 21:30",
+      "est_restore_time": "2026-10-30 01:30",
+      "end_date_time": "2026-10-30 01:30",
+      "customers": 11,
+      "lat": -33.7817,
+      "lon": 150.6654,
+      "records": 11
+    }
+  ]
+}

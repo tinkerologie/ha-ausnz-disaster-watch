@@ -30,6 +30,8 @@ from homeassistant.util import dt as dt_util
 from .const import (
     CONF_COUNCIL_DASHBOARD_URL,
     CONF_EXCLUDE_HAZARD_REDUCTION,
+    CONF_EXTRA_OUTAGE_FEEDS,
+    CONF_INCLUDE_PLANNED_OUTAGES,
     CONF_INCLUDE_ROADWORKS,
     CONF_LATITUDE,
     CONF_LOCATION_MODE,
@@ -41,6 +43,8 @@ from .const import (
     CONF_STATE,
     CONF_VIC_API_KEY,
     DEFAULT_EXCLUDE_HAZARD_REDUCTION,
+    DEFAULT_EXTRA_OUTAGE_FEEDS,
+    DEFAULT_INCLUDE_PLANNED_OUTAGES,
     DEFAULT_INCLUDE_ROADWORKS,
     DEFAULT_OVERRIDE_EMERGENCY,
     DEFAULT_RADIUS,
@@ -65,6 +69,7 @@ from .coordinator import nearest_council_dashboard
 from .hazard_options import HazardOptionsFlow
 from .models import DisasterWatchConfigModel
 from .national_options import NationalFeedsOptionsFlow
+from .providers import POWER_OUTAGE_SOURCES
 from .rivers import (
     RIVER_DISCOVERY_TIMEOUT,
     STATE_RIVER_SOURCES,
@@ -632,6 +637,33 @@ def road_option_fields(current_config: dict[str, Any]) -> dict[Any, Any]:
     return fields
 
 
+def power_option_fields(current_config: dict[str, Any]) -> dict[Any, Any]:
+    """Return the power outage option fields (#36) for the entry's state.
+
+    Only states with a distributor outage feed get the page; the extra feeds toggle only
+    where an opt-in feed exists (Western Power, Powerco, Unison).
+    """
+    state = str(current_config.get(CONF_STATE, STATE_QLD)).upper()
+    sources = POWER_OUTAGE_SOURCES.get(state, ())
+    fields: dict[Any, Any] = {}
+    if not sources:
+        return fields
+    fields[
+        vol.Required(
+            CONF_INCLUDE_PLANNED_OUTAGES,
+            default=current_config.get(CONF_INCLUDE_PLANNED_OUTAGES, DEFAULT_INCLUDE_PLANNED_OUTAGES),
+        )
+    ] = BooleanSelector()
+    if any(source.opt_in for source in sources):
+        fields[
+            vol.Required(
+                CONF_EXTRA_OUTAGE_FEEDS,
+                default=current_config.get(CONF_EXTRA_OUTAGE_FEEDS, DEFAULT_EXTRA_OUTAGE_FEEDS),
+            )
+        ] = BooleanSelector()
+    return fields
+
+
 def clean_road_options(options: dict[str, Any], user_input: dict[str, Any]) -> dict[str, Any]:
     """Merge the road step into the saved options; a cleared or blank VIC key removes the key.
 
@@ -670,6 +702,8 @@ class AustralianDisasterWatchOptionsFlowHandler(HazardOptionsFlow, NationalFeeds
             menu.insert(2, "earthquakes")
         if road_option_fields({**self.config_entry.data, **self.config_entry.options}):
             menu.insert(1, "roads")
+        if power_option_fields({**self.config_entry.data, **self.config_entry.options}):
+            menu.insert(menu.index("roads") + 1 if "roads" in menu else 1, "power_outages")
         if self._points:
             menu += ["edit_river_point", "remove_river_point"]
         state = str({**self.config_entry.data, **self.config_entry.options}.get(CONF_STATE, "")).upper()
@@ -812,6 +846,19 @@ class AustralianDisasterWatchOptionsFlowHandler(HazardOptionsFlow, NationalFeeds
         return self.async_show_form(
             step_id="river_alert_levels",
             data_schema=vol.Schema(schema),  # type: ignore[arg-type]
+        )
+
+    async def async_step_power_outages(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> ConfigFlowResult:
+        """Manage the power outage options (#36)."""
+        if user_input is not None:
+            return self._save(user_input)
+        current_config = {**self.config_entry.data, **self.config_entry.options}
+        return self.async_show_form(
+            step_id="power_outages",
+            data_schema=vol.Schema(power_option_fields(current_config)),  # type: ignore[arg-type]
         )
 
     async def async_step_roads(

@@ -7,7 +7,9 @@ from typing import TYPE_CHECKING, Any
 import aiohttp
 
 from custom_components.ausnz_disaster_watch.const import (
+    CONF_EXTRA_OUTAGE_FEEDS,
     CONF_INCLUDE_EARTHQUAKES,
+    DEFAULT_EXTRA_OUTAGE_FEEDS,
     NATIONAL_FEED_OPTIONS,
     STATE_ACT,
     STATE_NSW,
@@ -28,6 +30,12 @@ from .national import NationalHazardProvider
 from .nsw import NSWHazardProvider
 from .nt import NTHazardProvider
 from .nz import NZHazardProvider
+from .power import PowerOutageSource
+from .power_endeavour import EndeavourOutageSource
+from .power_essential import EssentialEnergyOutageSource
+from .power_nz import MainPowerOutageSource, PowercoOutageSource, UnisonOutageSource
+from .power_tasnetworks import TasNetworksOutageSource
+from .power_western_power import WesternPowerOutageSource
 from .qld import QueenslandHazardProvider
 from .sa import SAHazardProvider
 from .tas import TasmaniaHazardProvider
@@ -36,6 +44,16 @@ from .wa import WAHazardProvider
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
+
+# Electricity distributor outage feeds per configured state (#36). Opt-in feeds are only
+# used when the entry turns on extra outage feeds (see PowerOutageSource.opt_in).
+POWER_OUTAGE_SOURCES: dict[str, tuple[type[PowerOutageSource], ...]] = {
+    STATE_NSW: (EndeavourOutageSource, EssentialEnergyOutageSource),
+    STATE_ACT: (EssentialEnergyOutageSource,),
+    STATE_TAS: (TasNetworksOutageSource,),
+    STATE_WA: (WesternPowerOutageSource,),
+    STATE_NZ: (MainPowerOutageSource, PowercoOutageSource, UnisonOutageSource),
+}
 
 
 def get_providers_for_config(
@@ -73,6 +91,12 @@ def get_providers_for_config(
         if config.get(CONF_INCLUDE_EARTHQUAKES):
             providers.append(GAEarthquakeProvider(hass, session, config))
 
+    # Distributor outage feeds; the coordinator keeps them apart from the hazard feeds (#36)
+    extra = bool(config.get(CONF_EXTRA_OUTAGE_FEEDS, DEFAULT_EXTRA_OUTAGE_FEEDS))
+    providers.extend(
+        source(hass, session, config) for source in POWER_OUTAGE_SOURCES.get(state, ()) if extra or not source.opt_in
+    )
+
     # Opt-in national and regional feeds (#37)
     if any(config.get(option) for option in NATIONAL_FEED_OPTIONS):
         providers.append(NationalHazardProvider(hass, session, config))
@@ -81,18 +105,26 @@ def get_providers_for_config(
 
 
 __all__ = [
+    "POWER_OUTAGE_SOURCES",
     "ACTHazardProvider",
     "BaseHazardProvider",
     "BoMHazardProvider",
+    "EndeavourOutageSource",
+    "EssentialEnergyOutageSource",
     "GAEarthquakeProvider",
+    "MainPowerOutageSource",
     "NSWHazardProvider",
     "NTHazardProvider",
     "NZHazardProvider",
     "NationalHazardProvider",
+    "PowercoOutageSource",
     "QueenslandHazardProvider",
     "SAHazardProvider",
+    "TasNetworksOutageSource",
     "TasmaniaHazardProvider",
+    "UnisonOutageSource",
     "VictoriaHazardProvider",
     "WAHazardProvider",
+    "WesternPowerOutageSource",
     "get_providers_for_config",
 ]

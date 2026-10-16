@@ -1,0 +1,40 @@
+[
+  {
+    "messageId": 1,
+    "jobId": "J9000000001",
+    "dispatchStatus": "Enroute",
+    "reason": "Emergency repairs",
+    "affectedAreas": " Mountain River",
+    "postcodes": " 7109",
+    "affectedRegions": " South",
+    "customersAffected": "37",
+    "createdOn": "2026-10-16T09:20:59.423+11:00",
+    "modifiedOn": "2026-10-16T09:53:15.44+11:00",
+    "estimatedTimeOfRestoration": "This Afternoon",
+    "sortValue": 37,
+    "outagePolygon_WKT": "POLYGON ((147.13 -42.91, 147.15 -42.91, 147.15 -42.93, 147.13 -42.93, 147.13 -42.91))",
+    "outageCentroid_WKT": "POINT (147.14 -42.92)",
+    "canFollow": true
+  },
+  {
+    "messageId": 2,
+    "jobId": "J9000000002",
+    "dispatchStatus": "Dispatch assigned",
+    "reason": "Planned maintenance work",
+    "affectedAreas": " Launceston, South Launceston",
+    "postcodes": " 7249",
+    "affectedRegions": " North",
+    "customersAffected": "50",
+    "createdOn": "2026-10-16T08:31:15.223+11:00",
+    "modifiedOn": "2026-10-16T08:31:15.223+11:00",
+    "estimatedTimeOfRestoration": "Friday 4:00 PM",
+    "sortValue": 50,
+    "outagePolygon_WKT": "",
+    "outageCentroid_WKT": "POINT (147.1394 -41.4498)",
+    "canFollow": false
+  },
+  {
+    "messageId": 3,
+    "dispatchStatus": "Enroute"
+  }
+]
