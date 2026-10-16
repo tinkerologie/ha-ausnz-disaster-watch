@@ -11,6 +11,7 @@ from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,  # pyright: ignore[reportPrivateImportUsage]
     BinarySensorEntity,
 )
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -26,6 +27,7 @@ from .const import (
 from .coordinator import AustralianDisasterWatchCoordinator
 from .dam_sensor import async_setup_dam_binary_sensors
 from .entity import AustralianDisasterWatchEntity
+from .entity_lifecycle import tracks_entities
 from .forecast_entity import forecast_binary_sensors
 from .models import CALL_TO_ACTION_MAX_LENGTH, RoadEventCategory
 from .providers.fire_danger import local_today
@@ -36,6 +38,7 @@ from .river_binary_sensor import async_setup_river_alert_sensors
 PARALLEL_UPDATES = 0
 
 
+@tracks_entities(Platform.BINARY_SENSOR)
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: AusNZDisasterWatchConfigEntry,

@@ -24,6 +24,7 @@ from .const import (
     THREAT_SCAN_INTERVAL,
 )
 from .council_registry import nearest_council, nearest_readable_dashboard, usable_url
+from .entity_lifecycle import EntityTracker
 from .forecast_coordinator import ForecastCoordinators
 from .models import (
     AirQualityStationData,
@@ -49,7 +50,7 @@ from .models import (
     WeatherWarningItem,
 )
 from .providers import get_providers_for_config
-from .providers.base import BaseHazardProvider, ProviderUnavailableError
+from .providers.base import BaseHazardProvider, PartialFeedError, ProviderUnavailableError
 from .providers.fire_danger import FireDangerService, local_today
 from .providers.geometry import area_distance
 from .providers.power import PowerOutageSource
@@ -188,6 +189,8 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         self.river_coordinator: RiverGaugeCoordinator | None = None
         # Polls the dam storages chosen in the options flow; None when none are selected
         self.dam_coordinator: DamStorageCoordinator | None = None
+        # Unique IDs the sensor platforms created, for the registry cleanup at setup (#92)
+        self.entity_tracker = EntityTracker()
         self._road_feed_healthy: dict[str, bool] = {}
         self.road_feeds_failed: list[str] = []
         # Optional (non-hazard) feed calls that outlived their timeout, their last good results,
@@ -599,16 +602,29 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         provider: Any,
         cameras: list[DisasterCameraItem],
         nearby_councils: list[dict[str, str]],
+        cameras_failed: list[str],
     ) -> None:
-        """Collect cameras and nearby council links from a provider concurrently."""
+        """Collect cameras and nearby council links from a provider concurrently.
+
+        A provider whose camera source failed is listed in ``cameras_failed``, so its missing
+        cameras are not taken as delisted (#92); a partial failure keeps the cameras it did get.
+        """
+
+        def _add(items: list[Any]) -> None:
+            cameras.extend([item for item in items if isinstance(item, DisasterCameraItem) and self._near(item)])
 
         async def _fetch_cam() -> None:
             try:
                 cam = await self._async_optional(provider, "async_fetch_cameras")
                 if isinstance(cam, list):
-                    cameras.extend([item for item in cam if isinstance(item, DisasterCameraItem) and self._near(item)])
+                    _add(cam)
+            except PartialFeedError as err:
+                _LOGGER.debug("Some cameras of %s are unavailable: %s", provider.__class__.__name__, err)
+                _add(err.items)
+                cameras_failed.append(provider.__class__.__name__)
             except Exception as err:  # noqa: BLE001
                 _LOGGER.debug("Error updating cameras from %s: %s", provider.__class__.__name__, err)
+                cameras_failed.append(provider.__class__.__name__)
 
         async def _fetch_councils() -> None:
             try:
@@ -703,6 +719,7 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         air_quality_stations: list[AirQualityStationData] = []
         relief_facilities: list[ReliefFacilityItem] = []
         cameras: list[DisasterCameraItem] = []
+        cameras_failed: list[str] = []
         nearby_councils: list[dict[str, str]] = []
 
         statewide_roads: list[RoadClosureItem] = []
@@ -718,7 +735,7 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
                     provider, weather_warnings, emergency_news, weather_stations, air_quality_stations
                 )
             )
-            coros.append(self._collect_cameras_and_councils(provider, cameras, nearby_councils))
+            coros.append(self._collect_cameras_and_councils(provider, cameras, nearby_councils, cameras_failed))
 
         coros.append(self._collect_distributor_outages(power_outages))
 
@@ -783,6 +800,7 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
             "air_quality_stations": self._nearest_first(air_quality_stations),
             "relief_facilities": relief_facilities,
             "cameras": unique_cameras,
+            "cameras_failed": cameras_failed,
             "nearby_councils": nearby_councils,
         }
 
@@ -860,6 +878,7 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
             air_quality_stations=aux["air_quality_stations"],
             relief_facilities=aux["relief_facilities"],
             cameras=aux["cameras"],
+            cameras_failed=aux.get("cameras_failed", []),
             nearby_councils=aux["nearby_councils"],
             feeds_ok=self._feeds_ok,
             feeds_failed=self._feeds_failed,

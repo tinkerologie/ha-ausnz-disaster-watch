@@ -33,6 +33,11 @@ class AusNZDisasterWatchEntity(CoordinatorEntity[AustralianDisasterWatchCoordina
         self._attr_device_info = entry_device_info(coordinator)
 
 
+def camera_unique_id(entry_id: str, camera_id: str) -> str:
+    """Return the unique ID of the camera entity for upstream camera ``camera_id``."""
+    return f"{entry_id}_camera_{camera_id}"
+
+
 def entry_device_info(coordinator: AustralianDisasterWatchCoordinator) -> DeviceInfo:
     """Return the one service device every entity of an entry belongs to."""
     state = coordinator.state_code

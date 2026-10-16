@@ -50,7 +50,7 @@ from custom_components.ausnz_disaster_watch.models import (
     WeatherWarningItem,
 )
 
-from .base import MALFORMED_ITEM_ERRORS, as_dict, stable_id
+from .base import MALFORMED_ITEM_ERRORS, ProviderUnavailableError, as_dict, stable_id
 
 if TYPE_CHECKING:
     from .base import BaseHazardProvider
@@ -567,10 +567,17 @@ class GuardianDashboard:
         return news
 
     async def cameras(self) -> list[DisasterCameraItem]:
-        """Return the dashboard's flood and traffic cameras (``getCameras``)."""
+        """Return the dashboard's flood and traffic cameras (``getCameras``).
+
+        Raises ProviderUnavailableError if the request failed, so the cameras are not taken as
+        delisted (#92); a dashboard without the endpoint has no cameras.
+        """
         cameras: list[DisasterCameraItem] = []
         host = urlsplit(self.base_url).hostname
-        for feat in _features(await self.fetch("getCameras")):
+        payload = await self.fetch("getCameras")
+        if payload is None and "getCameras" not in self._unavailable:
+            raise ProviderUnavailableError(f"{self.base_url} cameras unavailable")
+        for feat in _features(payload):
             with contextlib.suppress(*MALFORMED_ITEM_ERRORS):
                 props = feat["properties"]
                 # Some cameras list several snapshot URLs separated by commas

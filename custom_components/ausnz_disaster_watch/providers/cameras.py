@@ -39,7 +39,14 @@ from custom_components.ausnz_disaster_watch.const import (
 )
 from custom_components.ausnz_disaster_watch.models import CanonicalHazard, DisasterCameraItem
 
-from .base import MALFORMED_ITEM_ERRORS, BaseHazardProvider, FeedCache, ProviderUnavailableError, as_float
+from .base import (
+    MALFORMED_ITEM_ERRORS,
+    BaseHazardProvider,
+    FeedCache,
+    PartialFeedError,
+    ProviderUnavailableError,
+    as_float,
+)
 from .cap import haversine_km
 from .sources import DATA_SOURCES, DataSource
 
@@ -258,19 +265,30 @@ class CameraCatalogueProvider(BaseHazardProvider):
         return network.parse(payload, network.key)
 
     async def async_fetch_cameras(self) -> list[DisasterCameraItem]:
-        """Return the nearest cameras of every enabled network; a failed network adds none."""
+        """Return the nearest cameras of every enabled network.
+
+        A network without a catalogue (failed, and no recent copy) adds none and makes the call
+        raise ``PartialFeedError`` with the other networks' cameras, so its cameras are not
+        taken as delisted (#92).
+        """
         lat, lon = as_float(self.config.get("latitude")), as_float(self.config.get("longitude"))
         if lat is None or lon is None:
             return []
         radius = as_float(self.config.get(CONF_CAMERA_RADIUS)) or DEFAULT_CAMERA_RADIUS
         cap = int(as_float(self.config.get(CONF_CAMERA_MAX)) or DEFAULT_CAMERA_MAX)
         nearby: list[DisasterCameraItem] = []
+        failed: list[str] = []
         for network in self.networks:
             catalogue = await self._caches[network.key].async_get(lambda n=network: self._async_fetch_catalogue(n))
-            for camera in catalogue or []:
+            if catalogue is None:
+                failed.append(network.key)
+                continue
+            for camera in catalogue:
                 # The parsers only keep located cameras
                 distance = haversine_km(lat, lon, float(camera.latitude or 0.0), float(camera.longitude or 0.0))
                 if distance <= radius:
                     nearby.append(replace(camera, distance_km=round(distance, 1)))
         nearby.sort(key=lambda camera: camera.distance_km or 0.0)
+        if failed:
+            raise PartialFeedError(f"camera catalogue unavailable: {', '.join(failed)}", nearby[:cap])
         return nearby[:cap]

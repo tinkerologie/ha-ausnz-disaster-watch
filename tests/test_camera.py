@@ -76,7 +76,7 @@ async def test_camera_entities_follow_coordinator_data(
     # only after that removal finishes (otherwise HA rejects the duplicate unique ID)
     removal_done = asyncio.Event()
 
-    async def slow_remove() -> None:
+    async def slow_remove(**_: object) -> None:
         await removal_done.wait()
 
     second.hass = hass

@@ -109,10 +109,12 @@ rules:
     status: done
     comment: A repair issue is raised when the dashboard card resource cannot be removed.
   stale-devices:
-    status: exempt
+    status: done
     comment: |
-      Each entry has one service device, removed with its entry. Stale entities (ended
-      incidents, delisted cameras, deselected gauges and storages) are removed.
+      Each entry has one service device, removed with its entry. Other devices of the entry
+      are removed at setup once they have no entities, and can be deleted from the device page
+      (async_remove_config_entry_device). Stale entities (ended incidents, delisted cameras,
+      features switched off, deselected gauges and storages) are removed (#92).
 
   # Platinum
   async-dependency: done

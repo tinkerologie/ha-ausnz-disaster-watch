@@ -7,7 +7,7 @@ import logging
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import config_validation as cv, entity_registry as er
+from homeassistant.helpers import config_validation as cv, device_registry as dr, entity_registry as er
 
 from .const import (
     CONF_COUNCIL_DASHBOARD_URL,
@@ -23,6 +23,8 @@ from .const import (
 from .coordinator import AustralianDisasterWatchCoordinator, nearest_council_dashboard
 from .dam_coordinator import DamStorageCoordinator
 from .dams import sites_from_options as storages_from_options
+from .entity import camera_unique_id
+from .entity_lifecycle import async_setup_registry_cleanup
 from .forecast_coordinator import async_setup_forecasts
 from .frontend import async_register_frontend, async_unregister_frontend
 from .providers.fire_danger import async_remove_stored_outlook
@@ -74,7 +76,7 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             )
         registry = er.async_get(hass)
         for camera_id in LEGACY_CAMERA_IDS:
-            if entity_id := registry.async_get_entity_id("camera", DOMAIN, f"{entry.entry_id}_camera_{camera_id}"):
+            if entity_id := registry.async_get_entity_id("camera", DOMAIN, camera_unique_id(entry.entry_id, camera_id)):
                 registry.async_remove(entity_id)
         hass.config_entries.async_update_entry(entry, data=data, minor_version=2)
         _LOGGER.debug("Migrated %s to version 1.2", entry.entry_id)
@@ -112,7 +114,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: AusNZDisasterWatchConfig
 
     entry.runtime_data = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    # Existing installs heal on upgrade: entities and devices the configuration no longer
+    # creates are removed once a refresh hears from every feed (#92)
+    async_setup_registry_cleanup(hass, entry, PLATFORMS)
     return True
+
+
+async def async_remove_config_entry_device(
+    hass: HomeAssistant, entry: AusNZDisasterWatchConfigEntry, device_entry: dr.DeviceEntry
+) -> bool:
+    """Allow deleting any device of the entry except its service device, which holds every entity (#92)."""
+    return (DOMAIN, entry.entry_id) not in device_entry.identifiers
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: AusNZDisasterWatchConfigEntry) -> bool:
