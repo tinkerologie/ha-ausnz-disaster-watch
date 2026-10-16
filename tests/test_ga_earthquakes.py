@@ -121,6 +121,17 @@ async def test_ga_earthquakes_edge_cases(hass: HomeAssistant, freezer: FrozenDat
 
     with pytest.raises(ProviderUnavailableError):
         await _provider(hass, ["not", "a", "dict"]).async_fetch_hazards()
+
+    # Every displayed event malformed (e.g. a renamed field) is a feed failure, not an all-clear
+    broken = _payload()
+    for feature in broken["features"]:
+        feature["properties"].pop("preferred_magnitude")
+    with pytest.raises(ProviderUnavailableError, match="malformed"):
+        await _provider(hass, broken).async_fetch_hazards()
+    # Only hidden rows, or nothing at all: a genuinely quiet feed
+    hidden = {"features": [f for f in _payload()["features"] if f["properties"]["display_flag"] == "N"]}
+    assert await _provider(hass, hidden).async_fetch_hazards() == []
+    assert await _provider(hass, {"features": []}).async_fetch_hazards() == []
     with pytest.raises(ProviderUnavailableError):
         await _provider(hass, {"features": None}).async_fetch_hazards()
 

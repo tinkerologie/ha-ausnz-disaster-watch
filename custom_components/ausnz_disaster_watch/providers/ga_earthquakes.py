@@ -15,7 +15,7 @@ from typing import Any
 from custom_components.ausnz_disaster_watch.models import CanonicalHazard, HazardType, WarningLevel
 from homeassistant.util import dt as dt_util
 
-from .base import MALFORMED_ITEM_ERRORS, BaseHazardProvider
+from .base import MALFORMED_ITEM_ERRORS, BaseHazardProvider, ProviderUnavailableError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -62,12 +62,19 @@ class GAEarthquakeProvider(BaseHazardProvider):
         )
         hazards: list[CanonicalHazard] = []
         now = dt_util.utcnow()
+        usable = malformed = 0
         for feature in self.require_list(payload, "features", "GA earthquakes"):
             try:
-                hazard = self._parse_feature(feature)
+                props: dict[str, Any] = feature["properties"]
+                # Rows GA does not display (display_flag "N") are placeholders without an event ID
+                if props.get("display_flag") != "Y" or not props.get("event_id"):
+                    continue
+                hazard = self._parse_feature(props)
             except MALFORMED_ITEM_ERRORS as err:
+                malformed += 1
                 _LOGGER.debug("Skipping malformed GA earthquake: %s", err)
                 continue
+            usable += 1
             # The layer also carries placeholder rows dated 2100; a future time is never current
             if (
                 hazard is None
@@ -76,14 +83,13 @@ class GAEarthquakeProvider(BaseHazardProvider):
             ):
                 continue
             hazards.append(hazard)
+        if malformed and not usable:
+            # Every displayed event failed to parse: the format changed, which is not an all-clear
+            raise ProviderUnavailableError(f"GA earthquakes: all {malformed} events were malformed")
         return hazards
 
-    def _parse_feature(self, feature: dict[str, Any]) -> CanonicalHazard | None:
-        """Return the hazard for one GA feature, or None for hidden rows and quakes below M3."""
-        props: dict[str, Any] = feature["properties"]
-        # Rows GA does not display (display_flag "N") are placeholders without an event ID
-        if props.get("display_flag") != "Y" or not props.get("event_id"):
-            return None
+    def _parse_feature(self, props: dict[str, Any]) -> CanonicalHazard | None:
+        """Return the hazard for one displayed GA event's properties, or None below M3."""
         magnitude = float(props["preferred_magnitude"])
         if magnitude < GA_MIN_MAGNITUDE:
             return None
