@@ -230,7 +230,7 @@
       },
       "river_gauges": {
         "title": "River and creek level gauges",
-        "description": "Choose gauges to add as water level sensors. The list shows the nearest gauges within the monitoring radius that reported a level in the last 6 hours, with their distance and current level. Leave all unticked for no gauge sensors. Gauges are polled every 15 minutes. Searching can take up to a minute the first time.",
+        "description": "Choose gauges to add as water level sensors. The list shows the nearest gauges within the monitoring radius that reported a level in the last 6 hours, with their distance and current level. Leave all unticked for no gauge sensors. Gauges are polled every 15 minutes.",
         "data": {
           "river_gauges": "Gauges"
         },
@@ -288,13 +288,19 @@
       },
       "dam_storages": {
         "title": "Dam and weir storage levels",
-        "description": "Choose dams and weirs to add as sensors: percent full, volume, level, and an \"above full supply\" sensor that turns on when a storage is spilling or holding flood water. The list shows the nearest storages within the monitoring radius (at least 150 km, because the dams that flood a town are often well upstream) that reported in the last 7 days. Data comes from Bureau of Meteorology Water Data Online, which water agencies update about once a day, so readings are usually 12 to 48 hours old. These sensors do not warn of dam releases: follow the dam operator's release notifications and the Bureau's flood warnings for that. Leave all unticked for no storage sensors. Searching can take up to a minute the first time.",
+        "description": "Choose dams and weirs to add as sensors: percent full, volume, level, and an \"above full supply\" sensor that turns on when a storage is spilling or holding flood water. The list shows the nearest storages within the monitoring radius (at least 150 km, because the dams that flood a town are often well upstream) that reported in the last 7 days. Data comes from Bureau of Meteorology Water Data Online, which water agencies update about once a day, so readings are usually 12 to 48 hours old. WaterNSW and Hydro Tasmania storages are matched to their operator feeds, which add a current level (WaterNSW) and spill data. These sensors do not warn of dam releases: follow the dam operator's release notifications and the Bureau's flood warnings for that. Leave all unticked for no storage sensors.",
         "data": {
           "dam_storages": "Storages"
         },
         "data_description": {
           "dam_storages": "Percent full is the volume as a share of full supply volume and can go above 100%. Storages of owners that do not license their data openly (such as Snowy Hydro) are not listed."
         }
+      },
+      "river_gauges_search": {
+        "title": "River and creek level gauges"
+      },
+      "dam_storages_search": {
+        "title": "Dam and weir storage levels"
       }
     },
     "error": {
@@ -311,6 +317,10 @@
     "abort": {
       "too_many_river_points": "You can add up to 10 river points. Remove one first.",
       "river_point_not_found": "This river point no longer exists."
+    },
+    "progress": {
+      "river_gauges_search": "Searching the gauge services for gauges near this location that reported a level in the last 6 hours. This can take up to a minute the first time.",
+      "dam_storages_search": "Searching Bureau of Meteorology Water Data Online for storages near this location, then matching WaterNSW and Hydro Tasmania storages to their own feeds. This can take up to two minutes the first time."
     }
   },
   "selector": {

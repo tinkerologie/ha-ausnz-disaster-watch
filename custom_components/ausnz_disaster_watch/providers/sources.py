@@ -434,6 +434,22 @@ _SOURCES = (
         terms_url="https://www.bom.gov.au/waterdata/wiski-web-public/copyright.htm",
         status=LicenceStatus.OPEN,
     ),
+    DataSource(
+        key="waternsw_storages",
+        owner="WaterNSW (real-time storage gauges)",
+        attribution="© State Government of NSW and WaterNSW, CC BY",
+        licence="CC BY (3.0 or 4.0; listings differ), as river_waternsw",
+        terms_url="https://data.gov.au/data/dataset/nsw-real-time-water",
+        status=LicenceStatus.OPEN,
+    ),
+    DataSource(
+        key="hydro_tasmania_lakes",
+        owner="Hydro Tasmania (Hydro-electric Corporation)",
+        attribution="© Hydro Tasmania, CC BY 3.0 AU",
+        licence="CC BY 3.0 AU",
+        terms_url="https://www.hydro.com.au/water/water-information#terms",
+        status=LicenceStatus.OPEN,
+    ),
     # Opt-in national and regional feeds (#37)
     DataSource(
         key="bom_ftp",
@@ -616,6 +632,9 @@ def sources_for_broadcaster(country: str) -> tuple[DataSource, ...]:
 # own attribution, so these are listed in diagnostics but not in the entry's attribution.
 FEATURE_SOURCES: dict[str, tuple[str, ...]] = {
     "dam_storages": ("bom_water_storages",),
+    # Operator feeds matched to selected storages
+    "waternsw": ("waternsw_storages",),
+    "hydro_tasmania": ("hydro_tasmania_lakes",),
 }
 
 

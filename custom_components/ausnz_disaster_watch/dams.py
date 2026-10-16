@@ -13,7 +13,9 @@ asks for. Only those owners' storages are offered (``OWNER_ATTRIBUTIONS``); stor
 owners with other terms (e.g. Snowy Hydro) are skipped.
 
 Agencies send data to the Bureau about once a day, so a reading is usually 12 to 48 hours
-old. Storages are a slow signal: they say a dam is above full supply (spilling, or using
+old. Where an operator publishes its own open data (WaterNSW, Hydro Tasmania), the storage
+is matched to it in the options flow and ``dam_operators.py`` adds the fresher level and
+spill data (``OperatorReading``, ``merge_operator``). Storages are a slow signal: they say a dam is above full supply (spilling, or using
 its flood storage), not that a release has started. No open source publishes dam release
 or gate operation notices in a machine-readable form under an open licence (#80).
 """
@@ -21,7 +23,7 @@ or gate operation notices in a machine-readable form under an open licence (#80)
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
 import logging
 import math
@@ -116,6 +118,14 @@ OWNER_ATTRIBUTIONS: Final[dict[str, str]] = {
     "w00285": "© Livingstone Shire Council",
 }
 
+# Operator feeds that add fresher readings, spill and release data to a BoM storage.
+OPERATOR_WATERNSW: Final = "waternsw"
+OPERATOR_HYDRO_TASMANIA: Final = "hydro_tasmania"
+OPERATOR_ATTRIBUTIONS: Final[dict[str, str]] = {
+    OPERATOR_WATERNSW: "© State Government of NSW and WaterNSW, CC BY",
+    OPERATOR_HYDRO_TASMANIA: "© Hydro Tasmania, CC BY 3.0 AU",
+}
+
 # Discovered storages: (fetched at, storages).
 _SITE_CACHE: dict[str, tuple[datetime, list[StorageSite]]] = {}
 
@@ -154,6 +164,9 @@ class StorageSite:
     level_ts: tuple[str, ...]
     full_volume_ml: float | None
     full_level_m: float | None
+    # Operator feed matched to this storage (OPERATOR_*) and its ID there, if any
+    operator: str | None = None
+    operator_id: str | None = None
 
     @property
     def key(self) -> str:
@@ -162,8 +175,9 @@ class StorageSite:
 
     @property
     def attribution(self) -> str:
-        """Return the data owner's attribution and the licence."""
-        return f"{OWNER_ATTRIBUTIONS[self.owner]}, {ATTRIBUTION_SUFFIX}"
+        """Return the data owner's attribution and the licence, after the operator feed's."""
+        bom = f"{OWNER_ATTRIBUTIONS[self.owner]}, {ATTRIBUTION_SUFFIX}"
+        return f"{OPERATOR_ATTRIBUTIONS[self.operator]}; {bom}" if self.operator else bom
 
     @property
     def ts_ids(self) -> list[str]:
@@ -172,7 +186,7 @@ class StorageSite:
 
     def as_dict(self) -> dict[str, Any]:
         """Return a JSON-serialisable form for the config entry options."""
-        return {
+        data: dict[str, Any] = {
             "site_id": self.site_id,
             "name": self.name,
             "latitude": self.latitude,
@@ -183,6 +197,14 @@ class StorageSite:
             "full_volume_ml": self.full_volume_ml,
             "full_level_m": self.full_level_m,
         }
+        if self.operator:
+            data["operator"] = self.operator
+            data["operator_id"] = self.operator_id
+        return data
+
+    def with_operator(self, operator: str | None, operator_id: str | None) -> StorageSite:
+        """Return this storage with a different operator feed."""
+        return replace(self, operator=operator, operator_id=operator_id)
 
     @classmethod
     def from_dict(cls, data: Any) -> StorageSite | None:
@@ -203,7 +225,28 @@ class StorageSite:
             return None
         if site.owner not in OWNER_ATTRIBUTIONS or not site.ts_ids:
             return None
+        operator, operator_id = data.get("operator"), data.get("operator_id")
+        # An unknown or incomplete operator entry is dropped; the BoM storage still works
+        if operator in OPERATOR_ATTRIBUTIONS and operator_id:
+            return site.with_operator(str(operator), str(operator_id))
         return site
+
+
+@dataclass(frozen=True, slots=True)
+class OperatorReading:
+    """The latest data from a storage operator's own feed."""
+
+    operator: str
+    observed_at: datetime | None
+    level_m: float | None = None
+    volume_ml: float | None = None
+    # WaterNSW 24 h totals to 9 am: spillway discharge and total releases (ML)
+    spill_24h_ml: float | None = None
+    release_24h_ml: float | None = None
+    totals_date: str | None = None
+    # Hydro Tasmania: metres below full supply and its "Spilling" comment
+    metres_below_full: float | None = None
+    spilling: bool | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -215,6 +258,20 @@ class StorageReading:
     volume_ml: float | None
     level_m: float | None
     change_24h_ml: float | None
+    operator: OperatorReading | None = None
+    # Which feed the level and volume come from: "bom" or the operator
+    source: str = "bom"
+
+    @property
+    def spilling(self) -> bool | None:
+        """Return the operator's spill signal: Hydro Tasmania's comment or WaterNSW spillway flow."""
+        if (op := self.operator) is None:
+            return None
+        if op.spilling is not None:
+            return op.spilling
+        if op.spill_24h_ml is not None:
+            return op.spill_24h_ml > 0
+        return None
 
     @property
     def percent_full(self) -> float | None:
@@ -229,13 +286,50 @@ class StorageReading:
         """Return True when the storage is above full supply volume or level.
 
         An ungated dam above full supply is spilling; a gated flood-mitigation dam such as
-        Wivenhoe is holding water in its flood storage compartment.
+        Wivenhoe is holding water in its flood storage compartment. Any of the signals
+        counts: volume over full supply volume, level over full supply level, or an
+        operator's spill signal (see ``spilling``). None when none of them is known.
         """
+        signals: list[bool] = []
         if (percent := self.percent_full) is not None:
-            return percent > FULL_SUPPLY_PERCENT
+            signals.append(percent > FULL_SUPPLY_PERCENT)
         if self.level_m is not None and self.site.full_level_m is not None:
-            return self.level_m > self.site.full_level_m
+            signals.append(self.level_m > self.site.full_level_m)
+        if (spilling := self.spilling) is not None:
+            signals.append(spilling)
+        return any(signals) if signals else None
+
+
+def merge_operator(
+    site: StorageSite, reading: StorageReading | None, operator: OperatorReading | None
+) -> StorageReading | None:
+    """Return the storage reading with the operator's data attached.
+
+    When the operator's reading is newer than the Bureau's, its level is used: both are in
+    metres AHD, and matching checked they agree. The volume stays the Bureau's, because it
+    is measured against the Bureau's full supply volume (WaterNSW's storage tables differ
+    by a few per cent, which would put a full dam over 100%); the operator's volume is used
+    only without a BoM volume. The operator's spill and release data is always attached.
+    Without a BoM reading the operator's alone is used.
+    """
+    if operator is None:
+        return reading
+    observed = operator.observed_at
+    has_values = operator.level_m is not None or operator.volume_ml is not None
+    if observed is not None and has_values and (reading is None or observed > reading.observed_at):
+        bom_volume, bom_level = (reading.volume_ml, reading.level_m) if reading else (None, None)
+        return StorageReading(
+            site=site,
+            observed_at=observed,
+            volume_ml=bom_volume if bom_volume is not None else operator.volume_ml,
+            level_m=operator.level_m if operator.level_m is not None else bom_level,
+            change_24h_ml=reading.change_24h_ml if reading else None,
+            operator=operator,
+            source=operator.operator,
+        )
+    if reading is None:
         return None
+    return replace(reading, operator=operator)
 
 
 def sites_from_options(value: Any) -> list[StorageSite]:

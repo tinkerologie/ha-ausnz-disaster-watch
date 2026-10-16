@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Generator
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -20,7 +21,14 @@ from custom_components.ausnz_disaster_watch.const import (
     STATE_NZ,
 )
 from custom_components.ausnz_disaster_watch.dam_options import offers_dam_storages, storage_label
-from custom_components.ausnz_disaster_watch.dams import DAM_SCAN_INTERVAL, DamSourceError, StorageReading, StorageSite
+from custom_components.ausnz_disaster_watch.dams import (
+    DAM_SCAN_INTERVAL,
+    OPERATOR_WATERNSW,
+    DamSourceError,
+    OperatorReading,
+    StorageReading,
+    StorageSite,
+)
 from custom_components.ausnz_disaster_watch.diagnostics import async_get_config_entry_diagnostics
 from homeassistant.const import ATTR_ATTRIBUTION, ATTR_UNIT_OF_MEASUREMENT, STATE_OFF, STATE_ON, STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant
@@ -98,6 +106,22 @@ def mock_fetch() -> Generator[AsyncMock]:
         "custom_components.ausnz_disaster_watch.dam_coordinator.async_fetch_readings",
         autospec=True,
     ) as fetch:
+        yield fetch
+
+
+@pytest.fixture(autouse=True)
+def mock_operators() -> Generator[AsyncMock]:
+    """Patch the operator feeds: no operator readings, and discovery returned unchanged."""
+    with (
+        patch(
+            "custom_components.ausnz_disaster_watch.dam_coordinator.async_fetch_operator_readings",
+            AsyncMock(return_value={}),
+        ) as fetch,
+        patch(
+            "custom_components.ausnz_disaster_watch.dam_options.async_attach_operators",
+            AsyncMock(side_effect=lambda session, readings, now: readings),
+        ),
+    ):
         yield fetch
 
 
@@ -249,7 +273,13 @@ async def _open_picker(hass: HomeAssistant, entry: MockConfigEntry) -> dict[str,
     result = await hass.config_entries.options.async_init(entry.entry_id)
     assert result["type"] is FlowResultType.MENU
     assert "dam_storages" in result["menu_options"]
-    return await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "dam_storages"})
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "dam_storages"})
+    # The search runs as a progress task; when it finishes the flow moves on to the form
+    assert result["type"] is FlowResultType.SHOW_PROGRESS
+    assert result["step_id"] == "dam_storages_search"
+    assert result["progress_action"] == "dam_storages_search"
+    await hass.async_block_till_done()
+    return await hass.config_entries.options.async_configure(result["flow_id"])
 
 
 async def test_options_flow_picks_storages(
@@ -392,3 +422,234 @@ async def test_diagnostics_list_the_storage_source(
     assert keys.count("bom_water_storages") == 1
     assert mock_config_entry.runtime_data.attribution == attribution
     assert "Water Data Online" not in (attribution or "")
+
+
+TOONUMBAR = StorageSite(
+    site_id="585899",
+    name="TOONUMBAR DAM",
+    latitude=-28.6185,
+    longitude=152.7936,
+    owner="w00077",
+    volume_ts=("132602010",),
+    level_ts=("363676010",),
+    full_volume_ml=11048.902,
+    full_level_m=129.626,
+    operator=OPERATOR_WATERNSW,
+    operator_id="203042",
+)
+TOONUMBAR_PERCENT = f"sensor.{PREFIX}_toonumbar_dam_percent_full"
+TOONUMBAR_ABOVE = f"binary_sensor.{PREFIX}_toonumbar_dam_above_full_supply"
+SPILL = OperatorReading(
+    OPERATOR_WATERNSW,
+    datetime(2026, 10, 16, 3, 30, tzinfo=UTC),
+    level_m=129.71,
+    volume_ml=11158.0,
+    spill_24h_ml=32.0,
+    release_24h_ml=29.0,
+    totals_date="2026-10-15",
+)
+
+
+async def test_operator_feed(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    mock_providers: AsyncMock,
+    mock_fetch: AsyncMock,
+    mock_operators: AsyncMock,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """A matched WaterNSW gauge gives a fresher level and the spill signal; diagnostics list the feed."""
+    freezer.move_to(datetime(2026, 10, 16, 4, 0, tzinfo=UTC))
+    mock_fetch.return_value = {TOONUMBAR.key: _reading(TOONUMBAR, volume=11000.0, level=129.5)}
+    mock_operators.return_value = {TOONUMBAR.key: SPILL}
+    mock_config_entry.add_to_hass(hass)
+    await _setup(hass, mock_config_entry, [TOONUMBAR])
+
+    percent = hass.states.get(TOONUMBAR_PERCENT)
+    assert percent.state == "99.6"
+    assert percent.attributes["level_m"] == 129.71
+    assert percent.attributes["source"] == "waternsw"
+    assert percent.attributes["spilling"] is True
+    assert percent.attributes["spillway_24h_ml"] == 32.0
+    assert percent.attributes["release_24h_ml"] == 29.0
+    assert percent.attributes["totals_date"] == "2026-10-15"
+    assert percent.attributes["operator_observed_at"] == "2026-10-16T03:30:00+00:00"
+    assert percent.attributes[ATTR_ATTRIBUTION].startswith("© State Government of NSW and WaterNSW, CC BY;")
+    # Spilling although the Bureau's volume is under full supply
+    assert hass.states.get(TOONUMBAR_ABOVE).state == STATE_ON
+
+    keys = [
+        s["key"]
+        for s in (await async_get_config_entry_diagnostics(hass, mock_config_entry))["coordinator"]["data_sources"]
+    ]
+    assert "bom_water_storages" in keys
+    assert "waternsw_storages" in keys
+    assert "hydro_tasmania_lakes" not in keys
+
+    # Water Data Online down: the operator reading alone keeps the storage current
+    mock_fetch.side_effect = DamSourceError("down")
+    freezer.tick(DAM_SCAN_INTERVAL)
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert hass.states.get(TOONUMBAR_PERCENT).state == "99.6"
+
+
+async def test_operator_only_when_bom_never_answered(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    mock_providers: AsyncMock,
+    mock_fetch: AsyncMock,
+    mock_operators: AsyncMock,
+) -> None:
+    """Without any Water Data Online reading, the operator's level and volume are used."""
+    mock_fetch.side_effect = DamSourceError("down")
+    mock_operators.return_value = {TOONUMBAR.key: SPILL}
+    mock_config_entry.add_to_hass(hass)
+    await _setup(hass, mock_config_entry, [TOONUMBAR])
+    assert hass.states.get(TOONUMBAR_PERCENT).state == "101.0"
+    assert hass.states.get(TOONUMBAR_ABOVE).state == STATE_ON
+
+
+async def test_operator_outage_does_not_keep_old_spill(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    mock_providers: AsyncMock,
+    mock_fetch: AsyncMock,
+    mock_operators: AsyncMock,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """Both feeds down: the Bureau's last reading is kept on its own, without the old spill signal."""
+    freezer.move_to(datetime(2026, 10, 16, 4, 0, tzinfo=UTC))
+    mock_fetch.return_value = {TOONUMBAR.key: _reading(TOONUMBAR, volume=11000.0, level=129.5)}
+    mock_operators.return_value = {TOONUMBAR.key: SPILL}
+    mock_config_entry.add_to_hass(hass)
+    await _setup(hass, mock_config_entry, [TOONUMBAR])
+    assert hass.states.get(TOONUMBAR_ABOVE).state == STATE_ON
+
+    mock_fetch.side_effect = DamSourceError("down")
+    mock_operators.return_value = {}
+    freezer.tick(DAM_SCAN_INTERVAL)
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    percent = hass.states.get(TOONUMBAR_PERCENT)
+    assert percent.attributes["source"] == "bom"
+    assert percent.attributes["level_m"] == 129.5
+    assert "spilling" not in percent.attributes
+    assert hass.states.get(TOONUMBAR_ABOVE).state == STATE_OFF
+
+    # A fresh operator level never makes the old Bureau reading outlive its window
+    mock_operators.return_value = {TOONUMBAR.key: SPILL}
+    freezer.move_to(OBSERVED + timedelta(days=7, hours=1))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    percent = hass.states.get(TOONUMBAR_PERCENT)
+    # Only the operator's own reading is left: its volume, not the expired Bureau one
+    assert percent.state == "101.0"
+
+
+@pytest.mark.parametrize("error", [TimeoutError, RuntimeError("bug")])
+async def test_options_flow_operator_match_timeout(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    error: BaseException | type[BaseException],
+) -> None:
+    """A slow or failing operator match leaves the Bureau's storages to choose from."""
+    mock_config_entry.add_to_hass(hass)
+    with (
+        patch(
+            "custom_components.ausnz_disaster_watch.dam_options.async_discover_storages",
+            return_value=[_reading(WIVENHOE)],
+        ),
+        patch(
+            "custom_components.ausnz_disaster_watch.dam_options.async_attach_operators",
+            AsyncMock(side_effect=error),
+        ),
+    ):
+        result = await _open_picker(hass, mock_config_entry)
+    assert result["errors"] == {}
+    options = result["data_schema"].schema[CONF_DAM_STORAGES].config["options"]
+    assert [option["value"] for option in options] == [WIVENHOE.key]
+
+
+async def test_options_flow_resave_adds_operator(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+) -> None:
+    """Saving the step again stores the operator match found for an already selected storage."""
+    plain = StorageSite(**{**TOONUMBAR.as_dict(), "operator": None, "operator_id": None})
+    mock_config_entry.add_to_hass(hass)
+    hass.config_entries.async_update_entry(mock_config_entry, options={CONF_DAM_STORAGES: [plain.as_dict()]})
+    with patch(
+        "custom_components.ausnz_disaster_watch.dam_options.async_discover_storages",
+        return_value=[_reading(TOONUMBAR)],
+    ):
+        result = await _open_picker(hass, mock_config_entry)
+    with patch("custom_components.ausnz_disaster_watch.async_setup_entry", return_value=True):
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], user_input={CONF_DAM_STORAGES: [TOONUMBAR.key]}
+        )
+    assert mock_config_entry.options[CONF_DAM_STORAGES] == [TOONUMBAR.as_dict()]
+
+
+async def test_storage_search_progress(hass: HomeAssistant, mock_config_entry: MockConfigEntry) -> None:
+    """The search shows progress while it runs, searches once, and keeps its result for the form."""
+    mock_config_entry.add_to_hass(hass)
+    release = asyncio.Event()
+
+    async def slow_discovery(*args: Any, **kwargs: Any) -> list[StorageReading]:
+        await release.wait()
+        return [_reading(WIVENHOE)]
+
+    with patch(
+        "custom_components.ausnz_disaster_watch.dam_options.async_discover_storages", side_effect=slow_discovery
+    ) as discover:
+        result = await hass.config_entries.options.async_init(mock_config_entry.entry_id)
+        flow_id = result["flow_id"]
+        result = await hass.config_entries.options.async_configure(flow_id, {"next_step_id": "dam_storages"})
+        assert result["type"] is FlowResultType.SHOW_PROGRESS
+        # Still running: the same search keeps showing progress
+        result = await hass.config_entries.options.async_configure(flow_id)
+        assert result["type"] is FlowResultType.SHOW_PROGRESS
+        release.set()
+        await hass.async_block_till_done()
+        result = await hass.config_entries.options.async_configure(flow_id)
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "dam_storages"
+        # Showing the form again reuses the search
+        result = await hass.config_entries.options.async_configure(flow_id)
+        assert result["type"] is FlowResultType.FORM
+    assert discover.call_count == 1
+    options = result["data_schema"].schema[CONF_DAM_STORAGES].config["options"]
+    assert [option["value"] for option in options] == [WIVENHOE.key]
+
+
+async def test_storage_search_times_out(hass: HomeAssistant, mock_config_entry: MockConfigEntry) -> None:
+    """A search that runs past DAM_DISCOVERY_TIMEOUT ends with the unavailable error."""
+    mock_config_entry.add_to_hass(hass)
+
+    async def hang(*args: Any, **kwargs: Any) -> list[StorageReading]:
+        await asyncio.sleep(3600)
+        return []
+
+    with (
+        patch("custom_components.ausnz_disaster_watch.dam_options.DAM_DISCOVERY_TIMEOUT", timedelta(seconds=0.01)),
+        patch("custom_components.ausnz_disaster_watch.dam_options.async_discover_storages", side_effect=hang),
+    ):
+        result = await _open_picker(hass, mock_config_entry)
+    assert result["errors"] == {"base": "dams_unavailable"}
+
+
+async def test_storage_search_task_crash(hass: HomeAssistant, mock_config_entry: MockConfigEntry) -> None:
+    """An unexpected error in the search ends in the unavailable error, not an endless spinner."""
+    mock_config_entry.add_to_hass(hass)
+    with patch(
+        "custom_components.ausnz_disaster_watch.dam_options.async_discover_storages",
+        side_effect=RuntimeError("bug"),
+    ):
+        result = await hass.config_entries.options.async_init(mock_config_entry.entry_id)
+        result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "dam_storages"})
+        assert result["type"] is FlowResultType.SHOW_PROGRESS
+        await hass.async_block_till_done()
+        result = await hass.config_entries.options.async_configure(result["flow_id"])
+    assert result["step_id"] == "dam_storages"
+    assert result["errors"] == {"base": "dams_unavailable"}

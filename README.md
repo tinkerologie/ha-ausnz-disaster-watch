@@ -134,23 +134,34 @@ Each storage gets these entities, named after the storage, for example
 - `sensor.…_percent_full`: volume as a share of full supply volume, in %. It goes **above 100%** when a dam holds more than its full supply, for example when Wivenhoe or Somerset are using their flood storage compartment.
 - `sensor.…_volume`: volume in megalitres (ML).
 - `sensor.…_level`: water level in metres, usually above sea level (AHD).
-- `binary_sensor.…_above_full_supply`: on while the storage is above 100% of full supply volume (or, for a storage without volume data, above full supply level). An ungated dam above full supply is spilling; a gated flood-mitigation dam above full supply is holding flood water that it will release.
+- `binary_sensor.…_above_full_supply`: on while the storage is above 100% of full supply volume, above full supply level, or reported spilling by its operator (WaterNSW spillway discharge in the last daily total, or Hydro Tasmania's "Spilling"). An ungated dam above full supply is spilling; a gated flood-mitigation dam above full supply is holding flood water that it will release.
 - **Attributes** (on all four): `site_id`, `latitude`, `longitude`, `distance_km`, `full_supply_volume_ml`, `full_supply_level_m`, `observed_at` (time of the reading, UTC), `percent_full`, `volume_ml`, `level_m`, `change_24h_ml` (volume change since the reading closest to 24 hours earlier, taken 18 to 36 hours before the latest; `null` without one) and `above_full_supply`. The attribution names the data owner.
-- **Availability**: storages are polled hourly. A storage without a reading in the last 7 days is unavailable; if Water Data Online cannot be reached, the last readings are kept until they are 7 days old. Storages stay selected until you untick them.
+- **Availability**: storages are polled hourly. A storage without a reading in the last 7 days is unavailable; if Water Data Online cannot be reached, the last readings are kept until they are 7 days old, and operator readings still update them. Storages stay selected until you untick them.
+
+- **Operator feeds (NSW, ACT and Tasmania)**: WaterNSW and Hydro Tasmania publish their own storage data under CC BY. When you pick a storage they operate, it is matched to their feed and the match is stored with it, so the sensors use the fresher data. Storages picked before this feature need the step opened and saved once to be matched.
+  - **WaterNSW** (NSW storages, including the Sydney dams, Hume and Blowering): the level comes from the WaterNSW gauge, updated every 15 to 60 minutes, instead of the Bureau's day-old value. Attributes `spillway_24h_ml` and `release_24h_ml` are the spillway discharge and total releases in ML for the last 24 hours to 9 am (`totals_date`), and `spilling` is on when the spillway discharged. Percent full and volume stay the Bureau's, because WaterNSW's own storage tables differ by a few per cent from the Bureau's full supply volume. A gauge is matched only when it is within 30 km and its level and volume agree with the Bureau's.
+  - **Hydro Tasmania** (its hydro lakes): `metres_below_full` and `spilling` from Hydro Tasmania's daily lake table, matched by lake name.
+  - Each storage's `source` attribute says where its level comes from: `waternsw` for a matched WaterNSW gauge with a newer reading, otherwise `bom`. Hydro Tasmania storages always report `bom`, because Hydro Tasmania publishes no level or volume; its data is in `metres_below_full` and `spilling`. `operator_observed_at` gives the operator's reading time. If an operator feed is down, the Bureau's data is used alone.
 
 | Region | Source | Licence |
 | ------ | ------ | ------- |
 | All Australian states and territories | [Bureau of Meteorology Water Data Online](https://www.bom.gov.au/waterdata/) (KiWIS web service), with data supplied by Seqwater, WaterNSW, Sunwater, Melbourne Water, Goulburn-Murray Water, SA Water, Water Corporation, Hydro Tasmania, Icon Water, Power and Water and other water agencies | CC BY 3.0 AU per data owner ([owner list](https://www.bom.gov.au/waterdata/wiski-web-public/copyright.htm)). Storages of owners with other terms (Snowy Hydro, Gosford City Council) are not offered |
+| New South Wales and ACT | [WaterNSW real-time data](https://realtimedata.waternsw.com.au/) storage gauges (level, daily spillway discharge and releases) | CC BY, as the river gauges |
+| Tasmania | [Hydro Tasmania lake levels](https://www.hydro.com.au/water/water-information) (metres from full, "Spilling") | CC BY 3.0 AU |
 
 > **These sensors are not a dam release warning.** Water agencies send their data to the Bureau
-> about once a day, so readings are usually **12 to 48 hours old**. During a flood, a dam can start
-> releasing well before its storage sensors change. For releases, sign up to the dam operator's
-> notifications (for example the [Seqwater Dam Release Notification Service](https://www.seqwater.com.au/dam-release-notification-service))
-> and follow the Bureau's flood warnings, which this integration already reports as hazards.
-> No dam operator publishes release or gate-operation notices in a form the integration may
-> read, and the operators' own live levels (Seqwater, Sunwater, Melbourne Water) are not
-> licensed for reuse. Permission requests are tracked in #80. New Zealand has no openly licensed
-> live source yet.
+> about once a day, so the Bureau's readings are usually **12 to 48 hours old**. WaterNSW levels are
+> current to within an hour, but its spill and release figures are daily totals to 9 am, and
+> Hydro Tasmania's table is daily. During a flood, a dam can start releasing well before these
+> sensors change. **The Bureau's flood warnings, which this integration already reports as
+> hazards, remain the release signal.** For releases, also sign up to the dam operator's
+> notifications (for example the [Seqwater Dam Release Notification Service](https://www.seqwater.com.au/dam-release-notification-service)).
+> Release notices are not read: none is published in a form the integration may reuse. Seqwater
+> (all rights reserved), the WaterNSW release notifications via the Early Warning Network (whose
+> terms ban automated tools), Sunwater (prior written consent) and the NZ operators Mercury and
+> Genesis are listed under permission requests in the data source register. Seqwater, Sunwater
+> and Melbourne Water live levels are not licensed for reuse, so their storages use the Bureau's
+> data. New Zealand has no openly licensed live source yet.
 
 ### Optional national and regional feeds
 These feeds are off by default. Turn them on under **Configure** > **National and regional feeds (optional)**. Each one adds its entity when enabled. An entity is unavailable while its source cannot confirm a state, so a failed feed never shows as all clear. None of these feeds add hazards, so they do not change the hazard counts, warning levels, map pins or polling rate.
@@ -782,6 +793,8 @@ The integration reads public feeds published by emergency services, weather agen
 | NSW, ACT | WaterNSW real-time river gauges (opt-in) | CC BY (data.gov.au lists 3.0 and 4.0) |
 | NZ | Regional council Hilltop river gauges (opt-in) | Hawke's Bay CC BY; other councils unverified |
 | AU | Bureau of Meteorology Water Data Online dam and weir storages (opt-in) | CC BY 3.0 AU per data owner; other owners excluded |
+| NSW, ACT | WaterNSW real-time storage gauges for matched dam storages (opt-in) | CC BY |
+| TAS | Hydro Tasmania lake levels for matched dam storages (opt-in) | CC BY 3.0 AU |
 
 GeoNet and NSW RFS feeds are read with the maintained `aio_geojson_geonetnz_quakes`, `aio_geojson_geonetnz_volcano` and `aio_geojson_nsw_rfs_incidents` libraries (Apache-2.0), the same ones Home Assistant core uses.
 
