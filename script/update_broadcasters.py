@@ -21,9 +21,10 @@ Inputs:
   from ``radionz.streamguys1.com`` (the directory's ``radionz-ice.streamguys.com`` URL is HTTP
   only; its HTTPS certificate does not match the host).
 
-Every stream is fetched once and must answer with an HLS playlist (``#EXTM3U``); a station
-whose stream does not answer is left out with a warning, unless it is already in the table
-(then it is kept), so one bad night does not drop it. The output is sorted; ``refreshed`` is
+Every stream is fetched once and must answer with an HLS playlist (``#EXTM3U``). A new
+station whose stream does not answer is left out. A station already in the table is kept
+through one failed run (its row records ``failed_checks``) and removed when the next run
+fails too; a station that left the directory is kept only while its stream still answers. The output is sorted; ``refreshed`` is
 the date of the run. Uses the standard library only.
 
 Usage: script/update-broadcasters [--dry-run]
@@ -59,6 +60,8 @@ ABC_TITLE_RE = re.compile(r'"title":"(ABC [^"]+?) Live Audio"')
 RNZ_NATIONAL_STREAM = "https://radionz.streamguys1.com/national/national/playlist.m3u8"
 RNZ_PLAYER_PAGE = "https://www.rnz.co.nz/national"
 HLS_MIME_TYPE = "application/vnd.apple.mpegurl"
+# Consecutive runs a stream may fail its check before its row is removed
+MAX_FAILED_CHECKS = 2
 
 STATES = {
     "new south wales": "NSW",
@@ -223,17 +226,25 @@ def main() -> int:
         live = dict(zip(rows, pool.map(stream_is_live, [row["stream_url"] for row in rows.values()]), strict=True))
 
     existing = load_existing()
-    for key, ok in live.items():
-        if not ok:
-            if key in existing:
-                print(f"warning: {key}: stream did not answer; keeping the existing row", file=sys.stderr)
-                rows[key] = existing[key]
-            else:
-                print(f"warning: {key}: stream did not answer; left out", file=sys.stderr)
-                del rows[key]
     for key in sorted(set(existing) - set(rows)):
-        print(f"warning: {key}: no longer in the directory; keeping the existing row", file=sys.stderr)
-        rows[key] = existing[key]
+        # Gone from the directory: keep it only while its stream still answers
+        if stream_is_live(existing[key]["stream_url"]):
+            print(f"warning: {key}: no longer in the directory; keeping it (its stream still answers)", file=sys.stderr)
+            rows[key] = {k: v for k, v in existing[key].items() if k != "failed_checks"}
+            live[key] = True
+        else:
+            print(f"warning: {key}: no longer in the directory and its stream is dead; removed", file=sys.stderr)
+    for key, ok in live.items():
+        if ok:
+            continue
+        failed = int(existing.get(key, {}).get("failed_checks", 0)) + 1
+        if key in existing and failed < MAX_FAILED_CHECKS:
+            # Bridge one bad run; a stream that fails again on the next run is removed
+            print(f"warning: {key}: stream did not answer; kept (failed check {failed})", file=sys.stderr)
+            rows[key] = {**existing[key], "failed_checks": failed}
+        else:
+            print(f"warning: {key}: stream did not answer; removed", file=sys.stderr)
+            del rows[key]
 
     added = sorted(set(rows) - set(existing))
     changed = sorted(key for key in set(rows) & set(existing) if rows[key] != existing[key])

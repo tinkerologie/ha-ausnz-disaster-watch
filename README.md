@@ -516,7 +516,11 @@ actions:
     data:
       media_player_entity_id: media_player.kitchen
       message: "Emergency warning nearby. Playing ABC emergency radio. Follow official advice."
-  - delay: "00:00:08"
+  # Let the announcement finish (at most 30 seconds) before the radio starts on the same player
+  - delay: "00:00:02"
+  - wait_template: "{{ not is_state('media_player.kitchen', 'playing') }}"
+    timeout: "00:00:30"
+    continue_on_timeout: true
   - action: media_player.play_media
     target:
       entity_id: media_player.kitchen
@@ -526,7 +530,7 @@ actions:
         media_content_type: music
 ```
 
-As a blueprint (save as `blueprints/automation/ausnz_disaster_watch/emergency_broadcaster.yaml`):
+As a blueprint (save as `blueprints/automation/ausnz_disaster_watch/emergency_broadcaster.yaml`; enable the emergency broadcaster sensor first, it is disabled by default):
 
 ```yaml
 blueprint:
@@ -566,6 +570,7 @@ triggers:
     to: "on"
 variables:
   broadcaster_sensor: !input broadcaster_sensor
+  speaker: !input speaker
 actions:
   - action: tts.speak
     target:
@@ -573,7 +578,11 @@ actions:
     data:
       media_player_entity_id: !input speaker
       message: "Emergency warning nearby. Playing {{ states(broadcaster_sensor) }}. Follow official advice."
-  - delay: "00:00:08"
+  # Let the announcement finish (at most 30 seconds) before the radio starts on the same player
+  - delay: "00:00:02"
+  - wait_template: "{{ not is_state(speaker, 'playing') }}"
+    timeout: "00:00:30"
+    continue_on_timeout: true
   - action: media_player.play_media
     target:
       entity_id: !input speaker
