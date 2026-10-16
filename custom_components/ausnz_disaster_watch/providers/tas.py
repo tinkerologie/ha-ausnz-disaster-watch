@@ -14,6 +14,7 @@ from custom_components.ausnz_disaster_watch.const import STATE_TAS
 from custom_components.ausnz_disaster_watch.models import CanonicalHazard, HazardType, WarningLevel
 
 from .base import MALFORMED_ITEM_ERRORS, BaseHazardProvider, stable_id
+from .geometry import rings_from_geojson, simplify_area
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -59,6 +60,9 @@ class TasmaniaHazardProvider(BaseHazardProvider):
         if status.lower() in _CLOSED_STATUSES:
             return None
 
+        # Polygons in the geometry are the warning area, or the fire ground for an incident (#30);
+        # ``burntAreaGeometry`` is not used
+        area = simplify_area(rings_from_geojson(feature.get("geometry")))
         point = _location_point(props.get("location"))
         if point is not None:
             lat, lon = point
@@ -75,8 +79,11 @@ class TasmaniaHazardProvider(BaseHazardProvider):
         address = str(props.get("address") or "").strip()
         text = f"{title} {type_name}".lower()
 
-        # Warnings name their Australian Warning System level; plain incidents are information
-        level = WarningLevel.from_str(text)
+        # Warnings carry ``alertLevel`` (emergency_warning, watch_and_act, advice) and name the
+        # level in the title; plain incidents are information
+        level = WarningLevel.from_str(str(props.get("alertLevel") or "").replace("_", " "))
+        if level is WarningLevel.UNKNOWN:
+            level = WarningLevel.from_str(text)
         if level is WarningLevel.UNKNOWN:
             level = WarningLevel.INFORMATION
 
@@ -95,6 +102,7 @@ class TasmaniaHazardProvider(BaseHazardProvider):
             status=status,
             responsible_agency="TasALERT",
             web_url=TAS_ALERT_WEB_URL,
+            area=area,
             raw_properties={
                 "feed_type": props.get("feedType"),
                 "type": type_name or None,

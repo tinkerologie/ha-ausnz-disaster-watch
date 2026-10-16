@@ -297,7 +297,7 @@ def _centroid(ring: tuple[LatLon, ...]) -> LatLon:
     return (sum(p[0] for p in points) / len(points), sum(p[1] for p in points) / len(points))
 
 
-def _interior_point(ring: tuple[LatLon, ...]) -> LatLon:
+def interior_point(ring: tuple[LatLon, ...]) -> LatLon:
     """Return a point inside the polygon.
 
     That is the vertex mean if it is inside, else the middle of the widest horizontal span
@@ -328,7 +328,7 @@ def representative_point(
     for area in areas:
         for ring in area.polygons:
             dist = distance_to_polygon_km(lat, lon, ring) if lat is not None and lon is not None else 0.0
-            candidates.append((dist, _interior_point(ring)))
+            candidates.append((dist, interior_point(ring)))
         for c_lat, c_lon, radius in area.circles:
             dist = (
                 max(0.0, haversine_km(lat, lon, c_lat, c_lon) - radius) if lat is not None and lon is not None else 0.0

@@ -25,6 +25,7 @@ from homeassistant.util import dt as dt_util
 
 from .base import MALFORMED_ITEM_ERRORS, BaseHazardProvider, ProviderUnavailableError, stable_id
 from .cap import CapAlert, CapDocumentCache, area_distance_km, representative_point
+from .geometry import rings_from_cap_areas, simplify_area
 
 if TYPE_CHECKING:
     from xml.etree.ElementTree import Element
@@ -178,6 +179,7 @@ class BoMHazardProvider(BaseHazardProvider):
             updated_at=alert.sent,
             location_name=alert.area_description[:120] or "Australia",
             distance_km=area_distance_km(lat, lon, alert.areas) if lat is not None and lon is not None else None,
+            area=simplify_area(rings_from_cap_areas(alert.areas)),
             responsible_agency="Bureau of Meteorology",
             web_url=_web_url(item, alert),
             raw_properties={

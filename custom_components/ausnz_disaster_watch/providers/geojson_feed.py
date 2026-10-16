@@ -70,6 +70,13 @@ class CheckedEntryMixin:
             return None
 
     @property
+    def raw_geometry(self) -> dict[str, Any]:
+        """Return the feature's original GeoJSON geometry (polygons included), or an empty dict."""
+        feature: Any = getattr(self, "_feature", None)
+        geometry = feature.get("geometry") if feature is not None else None
+        return geometry if isinstance(geometry, dict) else {}
+
+    @property
     def properties(self) -> dict[str, Any]:
         """Return the feature's original properties."""
         feature: Any = getattr(self, "_feature", None)

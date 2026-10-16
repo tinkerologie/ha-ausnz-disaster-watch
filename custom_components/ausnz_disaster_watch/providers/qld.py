@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 import logging
 import re
 from typing import Any
@@ -22,8 +23,10 @@ from custom_components.ausnz_disaster_watch.models import (
     WeatherWarningItem,
 )
 
-from .base import MALFORMED_ITEM_ERRORS, BaseHazardProvider, ProviderUnavailableError, as_dict
+from .base import MALFORMED_ITEM_ERRORS, BaseHazardProvider, ProviderUnavailableError, as_dict, as_float
+from .geometry import area_point, rings_from_geojson, simplify_area
 from .guardian_ims import GuardianDashboard, normalise_dashboard_url
+from .sources import DATA_SOURCES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -51,6 +54,58 @@ QLD_COUNCIL_LINKS: list[dict[str, str]] = [
 ]
 
 _TRAILING_DASH_RE = re.compile(r"\s*-\s*$")
+
+
+@dataclass(frozen=True, slots=True)
+class _WarningAreaLayer:
+    """An ArcGIS layer of warning-area polygons (#30)."""
+
+    label: str
+    url: str
+    # Explicit allowlist: the layers also have editor fields (created_user/last_edited_user)
+    # that hold staff email addresses, which are never requested
+    fields: tuple[str, ...]
+    id_prefix: str
+    agency: str
+    default_type: HazardType
+    web_url: str | None
+    source_key: str  # data source register key, for the hazard's attribution
+
+
+# QFD bushfire warnings (Public Safety Business Agency); the S3 feed has no polygons
+_QFD_WARNING_AREAS = _WarningAreaLayer(
+    label="QFD warning areas",
+    url=("https://services1.arcgis.com/vkTwD8kHw2woKBqV/ArcGIS/rest/services/OCSWarnings_PublicView/FeatureServer/0"),
+    fields=(
+        "UniqueID",
+        "WarningTitle",
+        "WarningLevel",
+        "WarningArea",
+        "CallToAction",
+        "MasterIncidentNum",
+        "ModifiedDate",
+    ),
+    id_prefix="QLD_QFD",
+    agency="Queensland Fire Department",
+    default_type=HazardType.BUSHFIRE,
+    web_url=QFD_WEB_URL,
+    source_key="qfd_warning_areas",
+)
+# QPS and council severe weather, flood and cyclone warnings. The matching point layer is
+# never read: it exposes editor email addresses
+_QPS_WARNING_AREAS = _WarningAreaLayer(
+    label="QPS warning areas",
+    url=(
+        "https://services-ap1.arcgis.com/4z1c8UDtmlbV0cw9/ArcGIS/rest/services"
+        "/Severe_Weather_Flood_Cyclone_Area_Public_View/FeatureServer/0"
+    ),
+    fields=("UniqueID", "WarningTitle", "WarningLevel", "last_edited_date"),
+    id_prefix="QLD_QPS",
+    agency="Queensland Police Service",
+    default_type=HazardType.OTHER,
+    web_url=None,
+    source_key="qps_warning_areas",
+)
 
 
 def _valid_point(lat: Any, lon: Any) -> tuple[float, float] | None:
@@ -85,6 +140,22 @@ class QueenslandHazardProvider(BaseHazardProvider):
         hazards: list[CanonicalHazard] = []
         seen_ids: set[str] = set()
 
+        # 0. Warning areas (#30): QFD bushfire warnings and QPS severe weather, flood and cyclone
+        # warnings as polygons. They come first so a QFD warning also in the S3 feed (same
+        # UniqueID, so the same ID) keeps its polygon. A failing layer skips only itself.
+        areas_ok = 0
+        for layer in (_QFD_WARNING_AREAS, _QPS_WARNING_AREAS):
+            try:
+                features = await self.async_fetch_arcgis_features(layer.url, "1=1", layer.fields, layer.label)
+            except ProviderUnavailableError as err:
+                _LOGGER.debug("%s failed: %s", layer.label, err)
+                continue
+            areas_ok += 1
+            for feature in features:
+                self._add_parsed(
+                    hazards, seen_ids, lambda f, layer=layer: self._parse_warning_area(f, layer), feature, layer.label
+                )
+
         # 1. State-wide QFD Public Warnings feed (primary source)
         qfd_error: str | None = None
         try:
@@ -105,9 +176,41 @@ class QueenslandHazardProvider(BaseHazardProvider):
             hazards.extend(council_hazards)
 
         # Unavailable only if nothing could be fetched at all (#16)
-        if qfd_error is not None and council_ok == 0:
+        if qfd_error is not None and council_ok == 0 and areas_ok == 0:
             raise ProviderUnavailableError(qfd_error)
         return hazards
+
+    def _parse_warning_area(self, feature: dict[str, Any], layer: _WarningAreaLayer) -> CanonicalHazard | None:
+        """Map a warning-area polygon from the QFD or QPS ArcGIS layer (#30)."""
+        props = as_dict(feature.get("properties"))
+        unique_id = str(props.get("UniqueID") or "").strip()
+        area = simplify_area(rings_from_geojson(feature.get("geometry")))
+        if not unique_id or area is None:
+            return None
+        lat, lon = area_point(area, as_float(self.config.get("latitude")), as_float(self.config.get("longitude")))
+        title = str(props.get("WarningTitle") or "").strip() or f"{layer.agency} warning"
+        level = WarningLevel.from_str(str(props.get("WarningLevel") or ""))
+        if level is WarningLevel.UNKNOWN:
+            level = WarningLevel.from_str(title)
+        hazard_type = HazardType.from_str(title)
+        return CanonicalHazard(
+            id=f"{layer.id_prefix}_{unique_id}",
+            source=layer.agency,
+            title=title,
+            hazard_type=layer.default_type if hazard_type is HazardType.OTHER else hazard_type,
+            warning_level=level,
+            latitude=lat,
+            longitude=lon,
+            updated_at=self.parse_datetime(props.get("ModifiedDate") or props.get("last_edited_date")),
+            location_name=str(props.get("WarningArea") or "").strip() or "Queensland",
+            status="Active",
+            responsible_agency=layer.agency,
+            web_url=layer.web_url,
+            area=area,
+            call_to_action=str(props.get("CallToAction") or "").strip() or None,
+            attribution=DATA_SOURCES[layer.source_key].attribution,
+            raw_properties={"unique_id": unique_id, "incident_number": props.get("MasterIncidentNum")},
+        )
 
     @staticmethod
     def _add_parsed(

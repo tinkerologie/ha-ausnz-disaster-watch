@@ -24,6 +24,7 @@ from .const import (
 from .coordinator import AustralianDisasterWatchCoordinator
 from .entity import AustralianDisasterWatchEntity
 from .forecast_entity import forecast_binary_sensors
+from .models import CALL_TO_ACTION_MAX_LENGTH
 from .providers.fire_danger import local_today
 from .providers.sources import attribution_for
 
@@ -38,6 +39,7 @@ async def async_setup_entry(
 
     entities: list[BinarySensorEntity] = [
         EmergencyWarningNearbyBinarySensor(coordinator),
+        InsideWarningAreaBinarySensor(coordinator),
         ActiveHazardsNearbyBinarySensor(coordinator),
         PowerOutageActiveBinarySensor(coordinator),
         RoadClosureNearbyBinarySensor(coordinator),
@@ -79,6 +81,43 @@ class EmergencyWarningNearbyBinarySensor(AustralianDisasterWatchEntity, BinarySe
             ATTR_NEAREST_INCIDENT_DISTANCE: (
                 round(nearest.distance_km, 2) if nearest and nearest.distance_km is not None else None
             ),
+        }
+
+
+class InsideWarningAreaBinarySensor(AustralianDisasterWatchEntity, BinarySensorEntity):
+    """Binary sensor that turns on while the monitored point is inside a warning area (#30).
+
+    Only warnings published with an area count (Advice or higher); a warning given only as a
+    point never turns it on. Attributes are scalars; the polygons are never exposed.
+    """
+
+    _attr_device_class = BinarySensorDeviceClass.SAFETY
+    _attr_translation_key = "inside_warning_area"
+
+    def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
+        """Initialize binary sensor."""
+        super().__init__(coordinator, "inside_warning_area")
+
+    @property
+    def is_on(self) -> bool:
+        """Return True if the monitored point is inside an Advice or higher warning area."""
+        return self.coordinator.is_inside_warning_area
+
+    @property
+    def icon(self) -> str:
+        """Return icon depending on state."""
+        return "mdi:map-marker-alert" if self.is_on else "mdi:map-marker-check"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the number of containing warnings and the most severe one."""
+        inside = self.coordinator.inside_warning_hazards
+        top = inside[0] if inside else None
+        return {
+            "warning_count": len(inside),
+            "warning_level": top.warning_level.value if top else None,
+            "warning_title": top.title if top else None,
+            "call_to_action": top.call_to_action[:CALL_TO_ACTION_MAX_LENGTH] if top and top.call_to_action else None,
         }
 
 

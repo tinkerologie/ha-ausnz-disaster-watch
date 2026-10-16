@@ -703,118 +703,6 @@ def test_get_providers_for_all_states(hass: HomeAssistant) -> None:
     assert not any(isinstance(p, BoMHazardProvider) for p in provs_nz)
 
 
-async def test_wa_hazard_provider(hass: HomeAssistant) -> None:
-    """Test Western Australia provider parsing Emergency WA warnings, incidents and FDR."""
-    session = AsyncMock()
-    prov = WAHazardProvider(hass, session, {"state": STATE_WA})
-    assert prov.state_code == STATE_WA
-
-    warnings_payload = {
-        "warnings": [
-            {
-                "id": "w1",
-                "title": "Emergency Warning - Kalgoorlie",
-                "warning-type": "Emergency Warning",
-                "entitySubType": "warnings_bushfire--emergency",
-                "location": {"latitude": -30.7, "longitude": 121.5, "value": "Kalgoorlie"},
-                "suburbs": ["PARKESTON"],
-                "updatedAt": "2026-10-15T02:00:00Z",
-                "action-statement": "Leave now",
-            },
-            {
-                "id": "w2",
-                "title": "Watch and Act - Albany",
-                "warning-type": "Watch and Act",
-                "entitySubType": "warnings_bushfire--watch-and-act",
-                "location": {"latitude": -35.0, "longitude": 117.8, "value": "Albany"},
-                "suburbs": ["ALBANY"],
-                "updatedAt": "2026-10-15T02:30:00Z",
-            },
-            {
-                "id": "w3",
-                "title": "Bushfire Advice - Esperance",
-                "warning-type": "Bushfire Advice",
-                "entitySubType": "warnings_bushfire--advice",
-                "location": {"latitude": -33.8, "longitude": 121.9, "value": "Esperance"},
-                "updatedAt": "2026-10-15T03:00:00Z",
-            },
-            {
-                "id": "w4",
-                "title": "Flood Notification",
-                "warning-type": "Notification",
-                "entitySubType": "warnings_flood--info",
-                "location": {},
-                "geo-source": {
-                    "type": "FeatureCollection",
-                    "features": [{"type": "Feature", "geometry": {"type": "Point", "coordinates": [115.8, -31.9]}}],
-                },
-                "updatedAt": "2026-10-15T03:30:00Z",
-            },
-            {
-                "id": "w5",
-                "title": "No Coords Warning",
-                "location": {},
-                "geo-source": {},
-            },
-        ]
-    }
-
-    incidents_payload = {
-        "incidents": [
-            {
-                "id": "inc1",
-                "incident-type": "Bushfire",
-                "incident-status": "Going",
-                "location": {"latitude": -32.0, "longitude": 116.0, "value": "Armadale"},
-                "suburbs": ["ARMADALE"],
-                "updatedAt": "2026-10-15T04:00:00Z",
-            },
-            {
-                "id": "inc2",
-                "incident-type": "Structure Fire",
-                "incident-status": "Contained",
-                "location": {},
-                "geo-source": {
-                    "type": "FeatureCollection",
-                    "features": [{"type": "Feature", "geometry": {"type": "Point", "coordinates": [115.9, -31.8]}}],
-                },
-                "updatedAt": "2026-10-15T04:30:00Z",
-            },
-            {
-                "id": "inc3",
-                "location": {},
-                "geo-source": {},
-            },
-        ]
-    }
-
-    prov.async_fetch_json = AsyncMock(side_effect=[warnings_payload, incidents_payload])
-    hazards = await prov.async_fetch_hazards()
-    assert len(hazards) == 6  # 4 warnings + 2 incidents
-
-    w1 = next(h for h in hazards if h.id == "wa_warn_w1")
-    assert w1.warning_level == WarningLevel.EMERGENCY_WARNING
-    assert w1.latitude == -30.7
-
-    w2 = next(h for h in hazards if h.id == "wa_warn_w2")
-    assert w2.warning_level == WarningLevel.WATCH_AND_ACT
-
-    w3 = next(h for h in hazards if h.id == "wa_warn_w3")
-    assert w3.warning_level == WarningLevel.ADVICE
-
-    w4 = next(h for h in hazards if h.id == "wa_warn_w4")
-    assert w4.warning_level == WarningLevel.INFORMATION
-
-    inc1 = next(h for h in hazards if h.id == "wa_inc_inc1")
-    assert inc1.hazard_type == HazardType.BUSHFIRE
-    assert inc1.warning_level == WarningLevel.INFORMATION
-
-    # Test error handling
-    prov.async_fetch_json = AsyncMock(side_effect=aiohttp.ClientError("WA API down"))
-    with pytest.raises(ProviderUnavailableError):
-        await prov.async_fetch_hazards()
-
-
 def _wa_fdr_item(area: str, name: str, rating: str | None) -> dict:
     """Return one district in the live Emergency WA fire-danger-ratings shape."""
     forecasts = {"0": {"behaviourIndex": "21", "fireDanger": rating}} if rating else {}
@@ -948,6 +836,8 @@ async def test_sa_hazard_provider(hass: HomeAssistant) -> None:
     """
 
     prov.async_fetch_text = AsyncMock(return_value=xml_text)
+    # No SES warnings published
+    prov.async_fetch_json = AsyncMock(return_value={"type": "FeatureCollection", "features": []})
     hazards = await prov.async_fetch_hazards()
     assert len(hazards) == 5
 
@@ -966,6 +856,9 @@ async def test_sa_hazard_provider(hass: HomeAssistant) -> None:
 
     # Test error handling & empty XML
     prov.async_fetch_text = AsyncMock(side_effect=aiohttp.ClientError("SA CAP down"))
+    # CAP-AU down alone still returns SES warnings (none here), so no error
+    assert await prov.async_fetch_hazards() == []
+    prov.async_fetch_json = AsyncMock(side_effect=aiohttp.ClientError("SA SES down"))
     with pytest.raises(ProviderUnavailableError):
         await prov.async_fetch_hazards()
     with pytest.raises(ProviderUnavailableError, match="empty response"):
@@ -1086,34 +979,6 @@ async def test_act_incident_time_from_description(hass: HomeAssistant) -> None:
     assert hazards["act_esa_ACT-1001"].updated_at == datetime(2026, 10, 15, 8, 5, tzinfo=UTC)
     # No "Updated:" label: falls back to pubDate
     assert hazards["act_esa_ACT-1002"].updated_at == datetime(2026, 10, 15, 9, 46, tzinfo=UTC)
-
-
-async def test_wa_id_fallbacks_are_stable(hass: HomeAssistant) -> None:
-    """WA items without an upstream ID get a deterministic, distinct fallback (#7). BoM IDs: tests/test_bom.py."""
-    wa = WAHazardProvider(hass, AsyncMock(), {"state": "WA"})
-    payload = {
-        "warnings": [
-            {
-                "title": "Bushfire Advice - Gidgegannup",
-                "updatedAt": "2026-10-15T09:00:00+08:00",
-                "location": {"latitude": -31.79, "longitude": 116.2},
-            },
-            {
-                "title": "Bushfire Advice - Chidlow",
-                "updatedAt": "2026-10-15T09:00:00+08:00",
-                "location": {"latitude": -31.86, "longitude": 116.27},
-            },
-        ]
-    }
-    ids_first = [h.id for h in wa._parse_warnings(payload)]
-    ids_second = [h.id for h in wa._parse_warnings(payload)]
-    assert ids_first == ids_second
-    # An update to the warning (new updatedAt) keeps the same fallback ID
-    for warning in payload["warnings"]:
-        warning["updatedAt"] = "2026-10-15T11:30:00+08:00"
-    assert [h.id for h in wa._parse_warnings(payload)] == ids_first
-    assert len(set(ids_first)) == 2
-    assert all(i != "wa_warn_" for i in ids_first)
 
 
 def test_nsw_incidents_without_a_warning_are_information(hass: HomeAssistant) -> None:

@@ -34,6 +34,7 @@ from homeassistant.util import dt as dt_util
 from .base import MALFORMED_ITEM_ERRORS, BaseHazardProvider, ProviderUnavailableError, stable_id
 from .cap import CapAlert, CapDocumentCache, area_distance_km, cap_from_element, parse_cap, representative_point
 from .geojson_feed import async_feed_entries
+from .geometry import rings_from_cap_areas, simplify_area
 from .geonet import (
     GEONET_AGENCY,
     GEONET_CAP_FEED_URL,
@@ -484,6 +485,7 @@ class NZHazardProvider(BaseHazardProvider):
             updated_at=updated_at,
             location_name=alert.area_description[:120] or "New Zealand",
             distance_km=area_distance_km(lat, lon, alert.areas) if lat is not None and lon is not None else None,
+            area=simplify_area(rings_from_cap_areas(alert.areas)),
             status=alert.msg_type or "Alert",
             responsible_agency=agency,
             web_url=web_url,

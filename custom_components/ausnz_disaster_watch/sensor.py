@@ -135,7 +135,10 @@ class HighestWarningLevelSensor(AustralianDisasterWatchEntity, SensorEntity):
         """Return attributes including active emergency news and nearby councils."""
         news = self.coordinator.emergency_news
         councils = self.coordinator.nearby_councils
+        inside = self.coordinator.inside_warning_hazards
         return {
+            "inside_warning_area": bool(inside),
+            "inside_warning_level": inside[0].warning_level.value if inside else None,
             "emergency_news": [n.model_dump(mode="json") for n in news[:20]],
             "nearby_councils": councils[:10],
         }

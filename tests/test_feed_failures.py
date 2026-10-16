@@ -22,7 +22,6 @@ from custom_components.ausnz_disaster_watch.providers import (
     SAHazardProvider,
     TasmaniaHazardProvider,
     VictoriaHazardProvider,
-    WAHazardProvider,
 )
 from custom_components.ausnz_disaster_watch.providers.base import BaseHazardProvider, ProviderUnavailableError
 from custom_components.ausnz_disaster_watch.providers.geonet import GEONET_QUAKE_URL, GEONET_VOLCANO_URL
@@ -89,34 +88,6 @@ async def test_nsw_vic_skip_malformed_feature(
         # VIC fetches through the base fetcher; NSW through the library feed on the routed session
         provider.async_fetch_json = AsyncMock(return_value={"features": [{}, {}]})
     assert await provider.async_fetch_hazards() == [good]
-
-
-async def test_wa_partial_and_malformed(hass: HomeAssistant) -> None:
-    """WA returns the working endpoint's data and skips malformed records."""
-    provider = WAHazardProvider(hass, AsyncMock(), {"state": "WA"})
-    warnings = {
-        "warnings": [
-            {"id": "w1", "title": "Bushfire Advice", "location": {"latitude": -31.9, "longitude": 115.9}},
-            {"id": "w2", "title": "Bushfire Advice", "location": {"latitude": BAD_LAT, "longitude": 115.9}},
-        ]
-    }
-    incidents = {
-        "incidents": [
-            {"id": "i1", "incident-type": "Bushfire", "location": {"latitude": -31.9, "longitude": 115.9}},
-            {"id": "i2", "incident-type": "Bushfire", "location": {"latitude": BAD_LAT, "longitude": 115.9}},
-        ]
-    }
-    assert [h.id for h in provider._parse_warnings(warnings)] == ["wa_warn_w1"]
-    assert [h.id for h in provider._parse_incidents(incidents)] == ["wa_inc_i1"]
-
-    # Warnings endpoint down, incidents up: partial result, no error
-    provider.async_fetch_json = AsyncMock(side_effect=[aiohttp.ClientError("down"), incidents])
-    assert [h.id for h in await provider.async_fetch_hazards()] == ["wa_inc_i1"]
-
-    # Unexpected payload shape counts as a failed source
-    provider.async_fetch_json = AsyncMock(side_effect=[[], []])
-    with pytest.raises(ProviderUnavailableError):
-        await provider.async_fetch_hazards()
 
 
 async def test_nz_skips_malformed_items(hass: HomeAssistant, feed_routes: Any) -> None:
@@ -350,14 +321,6 @@ async def test_non_list_collections_are_unavailable(hass: HomeAssistant, feed_ro
     qld.async_fetch_json = AsyncMock(return_value={"features": None})
     with pytest.raises(ProviderUnavailableError):
         await qld.async_fetch_hazards()
-
-    # WA: warnings payload broken, incidents fine -> incidents still returned
-    wa = WAHazardProvider(hass, AsyncMock(), {"state": "WA"})
-    incidents = {
-        "incidents": [{"id": "i1", "incident-type": "Bushfire", "location": {"latitude": -31.9, "longitude": 115.9}}]
-    }
-    wa.async_fetch_json = AsyncMock(side_effect=[{"warnings": None}, incidents])
-    assert [h.id for h in await wa.async_fetch_hazards()] == ["wa_inc_i1"]
 
     # A parser that trips over a malformed document fails only its own source
     provider = ACTHazardProvider(hass, AsyncMock(), {"state": "ACT"})

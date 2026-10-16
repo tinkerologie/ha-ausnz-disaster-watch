@@ -1,23 +1,68 @@
-"""Western Australia Emergency Hazard Provider (Emergency WA / DFES)."""
+"""Western Australia Emergency Hazard Provider (Emergency WA / DFES).
+
+Warnings and incidents come from Emergency WA's designated RSS feeds (#61): its terms exempt
+only the RSS, CAP-AU and SLIP feeds from the no-copying clause. The warnings feed carries the
+warning area as a ``georss:polygon`` of ``lat,lon`` pairs (#30). Fire danger ratings still come
+from ``/v1/fire-danger-ratings``, which has no designated alternative (see the data source
+register).
+
+The feeds declare non-standard namespace URIs (``https://www.ogc.org/standard/georss/``,
+``https://www.w3.org/2003/01/geo/wgs84_pos#``), so item children are matched by local name.
+"""
 
 from __future__ import annotations
 
+import html
 import logging
-from typing import Any
+import re
+from typing import TYPE_CHECKING, Any
 
 import aiohttp
+import defusedxml.ElementTree as ET
 
 from custom_components.ausnz_disaster_watch.const import STATE_WA
 from custom_components.ausnz_disaster_watch.fire_districts import FIRE_DISTRICTS, resolve_district
 from custom_components.ausnz_disaster_watch.models import CanonicalHazard, FireDangerRating, HazardType, WarningLevel
 
-from .base import MALFORMED_ITEM_ERRORS, BaseHazardProvider, stable_id
+from .base import MALFORMED_ITEM_ERRORS, BaseHazardProvider, ProviderUnavailableError, stable_id
+from .geometry import ring_from_latlon_text, simplify_area
+
+if TYPE_CHECKING:
+    from xml.etree.ElementTree import Element
 
 _LOGGER = logging.getLogger(__name__)
 
-WA_INCIDENTS_URL = "https://api.emergency.wa.gov.au/v1/incidents"
-WA_WARNINGS_URL = "https://api.emergency.wa.gov.au/v1/warnings"
+WA_INCIDENTS_URL = "https://api.emergency.wa.gov.au/v1/rss/incidents"
+WA_WARNINGS_URL = "https://api.emergency.wa.gov.au/v1/rss/warnings"
+# Not a designated feed; kept because nothing else publishes district ratings (register, #61)
 WA_FDR_URL = "https://api.emergency.wa.gov.au/v1/fire-danger-ratings"
+WA_WEB_URL = "https://www.emergency.wa.gov.au"
+
+# "Bushfire (BRIDGETOWN, SHIRE OF BRIDGETOWN-GREENBUSHES, LOWER SOUTH WEST, CAD-ID: 820504)"
+_INCIDENT_TITLE_RE = re.compile(r"^(?P<type>.+?)\s*\((?P<where>.*)\)\s*$")
+_CAD_ID_RE = re.compile(r",?\s*CAD-ID:\s*([\w-]+)", re.IGNORECASE)
+_WARNING_TYPE_RE = re.compile(r'data-warning-type="([^"]+)"')
+# Private and agency burn-offs are planned burns (hazard reduction, #14)
+_HAZARD_REDUCTION_TYPES = ("burn off", "prescribed burn", "planned burn", "hazard reduction")
+
+
+def _child_text(item: Element, name: str) -> str:
+    """Return the text of the first child with local name ``name``, whatever its namespace."""
+    for child in item:
+        if child.tag.rsplit("}", 1)[-1] == name:
+            return (child.text or "").strip()
+    return ""
+
+
+def _point(item: Element) -> tuple[float, float] | None:
+    """Return (lat, lon) from ``geo:lat``/``geo:long``, or None if absent or invalid."""
+    try:
+        lat, lon = float(_child_text(item, "lat")), float(_child_text(item, "long"))
+    except ValueError:
+        return None
+    if -90.0 <= lat <= 90.0 and -180.0 <= lon <= 180.0 and (lat, lon) != (0.0, 0.0):
+        return lat, lon
+    return None
 
 
 class WAHazardProvider(BaseHazardProvider):
@@ -37,18 +82,18 @@ class WAHazardProvider(BaseHazardProvider):
         return STATE_WA
 
     async def async_fetch_hazards(self) -> list[CanonicalHazard]:
-        """Fetch active warnings and CAD incidents from Emergency WA API."""
+        """Fetch active warnings and incidents from the Emergency WA RSS feeds."""
         return await self.async_collect_sources(
             [
                 (
                     "Emergency WA warnings",
-                    lambda: self.async_fetch_feed_json(WA_WARNINGS_URL, "Emergency WA warnings"),
-                    lambda payload: self._parse_warnings(self.require_dict(payload, "Emergency WA warnings")),
+                    lambda: self.async_fetch_feed_text(WA_WARNINGS_URL, "Emergency WA warnings"),
+                    self._parse_warnings,
                 ),
                 (
                     "Emergency WA incidents",
-                    lambda: self.async_fetch_feed_json(WA_INCIDENTS_URL, "Emergency WA incidents"),
-                    lambda payload: self._parse_incidents(self.require_dict(payload, "Emergency WA incidents")),
+                    lambda: self.async_fetch_feed_text(WA_INCIDENTS_URL, "Emergency WA incidents"),
+                    self._parse_incidents,
                 ),
             ]
         )
@@ -57,7 +102,8 @@ class WAHazardProvider(BaseHazardProvider):
         """Fetch today's Fire Danger Rating for the configured location's fire weather district.
 
         The feed lists every WA district (``area`` is the BoM AAC, ``description`` the name)
-        with forecasts keyed by day offset. It has no total fire ban field (#14).
+        with forecasts keyed by day offset. It has no total fire ban field (#14). It is not one
+        of Emergency WA's designated feeds; the data source register records it as restricted.
         """
         try:
             lat = float(self.config["latitude"])
@@ -99,135 +145,115 @@ class WAHazardProvider(BaseHazardProvider):
             )
         return None
 
-    def _parse_warnings(self, payload: dict[str, Any]) -> list[CanonicalHazard]:
-        """Parse Emergency WA warnings."""
+    def _items(self, xml_text: str, label: str) -> list[Element]:
+        """Return the RSS items; a blank body, invalid XML or a non-RSS document is a broken feed (#16)."""
+        if not xml_text.strip():
+            raise ProviderUnavailableError(f"{label} returned an empty response")
+        try:
+            root = ET.fromstring(xml_text)
+        except (ET.ParseError, ValueError) as err:
+            raise ProviderUnavailableError(f"{label} returned invalid XML: {err}") from err
+        self.require_xml_root(root, "rss", label)
+        return root.findall("./channel/item")
+
+    def _parse_warnings(self, xml_text: str) -> list[CanonicalHazard]:
+        """Parse the Emergency WA warnings RSS feed (closures on the same feed are skipped)."""
         hazards: list[CanonicalHazard] = []
-        warnings = self.require_list(payload, "warnings", "Emergency WA warnings")
-
-        for item in warnings:
+        for item in self._items(xml_text, "Emergency WA warnings"):
             try:
-                title = str(item.get("title") or item.get("name") or "Emergency Warning")
-                loc = item.get("location") or {}
-                # Fallback uses fields that do not change when the warning is updated (#7)
-                item_id = str(
-                    item.get("id")
-                    or stable_id("wa_warn", title, loc.get("value"), loc.get("latitude"), loc.get("longitude"))
-                )
-                sub_type = str(item.get("entitySubType", "")).lower()
-                warn_type = str(item.get("warning-type", "")).lower()
-
-                if "emergency" in sub_type or "emergency" in warn_type:
-                    level = WarningLevel.EMERGENCY_WARNING
-                elif "watch" in sub_type or "watch" in warn_type:
-                    level = WarningLevel.WATCH_AND_ACT
-                elif "advice" in sub_type or "advice" in warn_type:
-                    level = WarningLevel.ADVICE
-                else:
-                    level = WarningLevel.from_str(warn_type)
-
-                loc_data = item.get("location", {})
-                lat = loc_data.get("latitude")
-                lon = loc_data.get("longitude")
-
-                if lat is None or lon is None:
-                    # Try centroid from geo-source
-                    geo_source = item.get("geo-source", {})
-                    centroid = self.calculate_centroid(geo_source)
-                    if centroid:
-                        lat, lon = centroid
-
-                if lat is None or lon is None:
-                    continue
-
-                event_type = item.get("cap-category") or item.get("incident-type") or title
-                suburbs = item.get("suburbs", [])
-                locality = ", ".join(suburbs) if suburbs else str(loc_data.get("value", "WA"))
-
-                hazards.append(
-                    CanonicalHazard(
-                        id=f"wa_warn_{item_id}",
-                        source="Emergency WA / DFES",
-                        title=title,
-                        hazard_type=HazardType.from_str(str(event_type)),
-                        warning_level=level,
-                        latitude=float(lat),
-                        longitude=float(lon),
-                        updated_at=self.parse_datetime(item.get("updatedAt") or item.get("issued-date-time")),
-                        location_name=locality,
-                        status=str(item.get("action-statement", "Active")),
-                        responsible_agency="DFES Western Australia",
-                        web_url=f"https://www.emergency.wa.gov.au/#/warning/{item_id}",
-                        raw_properties={
-                            "urgency": item.get("cap-urgency"),
-                            "severity": item.get("cap-severity"),
-                            "headline": item.get("headline"),
-                        },
-                    )
-                )
+                hazard = self._parse_warning(item)
             except MALFORMED_ITEM_ERRORS as err:
                 _LOGGER.debug("Skipping malformed Emergency WA warning item: %s", err)
-
+                continue
+            if hazard is not None:
+                hazards.append(hazard)
         return hazards
 
-    def _parse_incidents(self, payload: dict[str, Any]) -> list[CanonicalHazard]:
-        """Parse Emergency WA active incidents."""
+    def _parse_warning(self, item: Element) -> CanonicalHazard | None:
+        """Map one warning item; its ``georss:polygon`` becomes the hazard area (#30)."""
+        link = _child_text(item, "link")
+        if "/closures/" in link:
+            # Facility and park closures share the feed but are not hazards
+            return None
+        title = _child_text(item, "title") or "Emergency WA Warning"
+        region = _child_text(item, "region")
+        ring = ring_from_latlon_text(_child_text(item, "polygon"))
+        area = simplify_area([ring]) if ring else None
+        point = _point(item) or (area[0][0] if area else None)
+        if point is None:
+            # Never invent a location: an unlocated warning would be counted as nearby
+            return None
+
+        # The warning type ("Bushfire Watch and Act", "Smoke Alert") names the AWS level; the
+        # title alone can mislead (a place called "Emergency Beach")
+        type_match = _WARNING_TYPE_RE.search(_child_text(item, "description"))
+        warning_type = html.unescape(type_match.group(1)) if type_match else ""
+        place = title.rsplit(" - ", 1)[1].strip() if " - " in title else ""
+        level = WarningLevel.from_str(_child_text(item, "alertLevel"))
+        if level is WarningLevel.UNKNOWN:
+            # Without a warning type, read the title without its place suffix
+            level = WarningLevel.from_str(warning_type or title.rsplit(" - ", 1)[0])
+        # Fallback uses fields that do not change when the warning is updated (#7)
+        item_id = _child_text(item, "guid") or stable_id("wa_warn", title, place or region, *point)
+        return CanonicalHazard(
+            id=f"wa_warn_{item_id}",
+            source="Emergency WA / DFES",
+            title=title,
+            hazard_type=HazardType.from_str(warning_type or title),
+            warning_level=level,
+            latitude=point[0],
+            longitude=point[1],
+            updated_at=self.parse_datetime(_child_text(item, "publicationTime") or _child_text(item, "pubDate")),
+            location_name=(place or region or "WA").title(),
+            status="Active",
+            responsible_agency="DFES Western Australia",
+            web_url=link or WA_WEB_URL,
+            area=area,
+            raw_properties={
+                "warning_type": warning_type or None,
+                "region": region or None,
+                "incident_number": _child_text(item, "incidentNumber") or None,
+            },
+        )
+
+    def _parse_incidents(self, xml_text: str) -> list[CanonicalHazard]:
+        """Parse the Emergency WA incidents RSS feed."""
         hazards: list[CanonicalHazard] = []
-        incidents = self.require_list(payload, "incidents", "Emergency WA incidents")
-
-        for item in incidents:
+        for item in self._items(xml_text, "Emergency WA incidents"):
             try:
-                inc_type = str(item.get("incident-type", "Incident"))
-                inc_loc = item.get("location") or {}
-                item_id = str(
-                    item.get("id")
-                    or stable_id(
-                        "wa_inc",
-                        inc_type,
-                        item.get("name"),
-                        inc_loc.get("value"),
-                        inc_loc.get("latitude"),
-                        inc_loc.get("longitude"),
-                    )
-                )
-                status = str(item.get("incident-status", "Monitoring"))
-                loc_data = item.get("location", {})
-                lat = loc_data.get("latitude")
-                lon = loc_data.get("longitude")
-
-                if lat is None or lon is None:
-                    geo_source = item.get("geo-source", {})
-                    centroid = self.calculate_centroid(geo_source)
-                    if centroid:
-                        lat, lon = centroid
-
-                if lat is None or lon is None:
-                    continue
-
-                suburbs = item.get("suburbs", [])
-                locality = ", ".join(suburbs) if suburbs else str(loc_data.get("value", "WA"))
-                title = f"{inc_type} - {locality}"
-
-                hazards.append(
-                    CanonicalHazard(
-                        id=f"wa_inc_{item_id}",
-                        source="Emergency WA / DFES",
-                        title=title,
-                        hazard_type=HazardType.from_str(inc_type),
-                        warning_level=WarningLevel.INFORMATION,
-                        latitude=float(lat),
-                        longitude=float(lon),
-                        updated_at=self.parse_datetime(item.get("updatedAt") or item.get("issued-date-time")),
-                        location_name=locality,
-                        status=status,
-                        responsible_agency="DFES Western Australia",
-                        web_url="https://www.emergency.wa.gov.au",
-                        raw_properties={
-                            "cad_id": item.get("cad-id"),
-                            "dfes_regions": item.get("dfes-regions"),
-                        },
-                    )
-                )
+                hazard = self._parse_incident(item)
             except MALFORMED_ITEM_ERRORS as err:
                 _LOGGER.debug("Skipping malformed Emergency WA incident item: %s", err)
-
+                continue
+            if hazard is not None:
+                hazards.append(hazard)
         return hazards
+
+    def _parse_incident(self, item: Element) -> CanonicalHazard | None:
+        """Map one incident item; its title is "Type (LOCALITY, LGA, REGION, CAD-ID: n)"."""
+        point = _point(item)
+        if point is None:
+            return None
+        raw_title = _child_text(item, "title")
+        match = _INCIDENT_TITLE_RE.match(raw_title)
+        inc_type = match.group("type").strip() if match else (raw_title or "Incident")
+        where = _CAD_ID_RE.sub("", match.group("where")) if match else ""
+        parts = [part.strip().title() for part in where.split(",") if part.strip()]
+        locality = parts[0] if parts else "WA"
+        cad = _CAD_ID_RE.search(raw_title)
+        item_id = _child_text(item, "guid") or stable_id("wa_inc", inc_type, raw_title, *point)
+        return CanonicalHazard(
+            id=f"wa_inc_{item_id}",
+            source="Emergency WA / DFES",
+            title=f"{inc_type} - {locality}",
+            hazard_type=HazardType.from_str(inc_type),
+            warning_level=WarningLevel.INFORMATION,
+            latitude=point[0],
+            longitude=point[1],
+            updated_at=self.parse_datetime(_child_text(item, "pubDate")),
+            location_name=", ".join(parts) or "WA",
+            is_hazard_reduction=any(kind in inc_type.lower() for kind in _HAZARD_REDUCTION_TYPES),
+            responsible_agency="DFES Western Australia",
+            web_url=_child_text(item, "link") or WA_WEB_URL,
+            raw_properties={"cad_id": cad.group(1) if cad else None, "region": parts[-1] if len(parts) > 1 else None},
+        )

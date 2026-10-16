@@ -42,6 +42,7 @@ from .models import (
 from .providers import get_providers_for_config
 from .providers.base import BaseHazardProvider, ProviderUnavailableError
 from .providers.fire_danger import FireDangerService, local_today
+from .providers.geometry import area_distance
 from .providers.sources import DataSource, attribution_for, sources_for_provider
 
 if TYPE_CHECKING:
@@ -275,12 +276,20 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         """Filter hazards by radius and active threat status."""
         filtered_hazards: dict[str, CanonicalHazard] = {}
         has_active_threat = False
+        now = dt_util.utcnow()
 
         for hazard in all_hazards:
             if self.exclude_hazard_reduction and hazard.is_hazard_reduction:
                 continue
+            if hazard.expires is not None and hazard.expires <= now:
+                continue
 
-            if hazard.distance_km is not None:
+            if hazard.area:
+                # Distance to the warning area, 0 when the monitored point is inside it (#30)
+                dist = area_distance(self.latitude, self.longitude, hazard.area)
+                hazard.distance_km = dist
+                hazard.inside_area = dist == 0.0
+            elif hazard.distance_km is not None:
                 # Provider-supplied distance to the warning *area* (0 when home is inside it);
                 # the centroid of a large district can be far away even when home is inside (#10)
                 dist = hazard.distance_km
@@ -615,6 +624,24 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
     def has_emergency_warning_nearby(self) -> bool:
         """Return True if any Emergency Warning or Watch and Act is active nearby."""
         return any(h.is_active_threat for h in self.active_hazards)
+
+    @property
+    def inside_warning_hazards(self) -> list[CanonicalHazard]:
+        """Return Advice-or-higher hazards whose area contains the monitored point, most severe first.
+
+        The monitored point is the configured location (the Home Assistant home for home-zone
+        entries). Hazards published only as a point never count (#30).
+        """
+        return sorted(
+            (h for h in self.active_hazards if h.is_inside_warning),
+            key=lambda h: h.warning_level.severity_rank,
+            reverse=True,
+        )
+
+    @property
+    def is_inside_warning_area(self) -> bool:
+        """Return True if the monitored point is inside an Advice-or-higher warning area."""
+        return any(h.is_inside_warning for h in self.active_hazards)
 
     @property
     def power_outages(self) -> list[Any]:
