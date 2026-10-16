@@ -3,7 +3,7 @@
 # Lower bounds only: exact pins can conflict with Home Assistant's package_constraints.txt.
 # GeoNet and NSW RFS feed libraries (#35). Lower bounds match the versions Home Assistant core
 # pins for its geonetnz_quakes, geonetnz_volcano and nsw_rural_fire_service_feed integrations.
-aio-geojson-geonetnz-quakes>=0.16
+aio-geojson-geonetnz-quakes>=2026.6.0
 aio-geojson-geonetnz-volcano>=0.9
 aio-geojson-nsw-rfs-incidents>=0.7
 # GDACS feed library (#37); lower bound matches Home Assistant core's gdacs integration.
