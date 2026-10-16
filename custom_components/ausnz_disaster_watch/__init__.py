@@ -96,7 +96,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: AusNZDisasterWatchConfig
     # refresh runs after setup and the gauge sensors start unavailable instead (#31, #75).
     if sites := sites_from_options(entry.options.get(CONF_RIVER_GAUGES)):
         coordinator.river_coordinator = RiverGaugeCoordinator(hass, entry, sites)
-        entry.async_create_task(hass, coordinator.river_coordinator.async_refresh(), "river gauges first refresh")
+        entry.async_create_background_task(
+            hass, coordinator.river_coordinator.async_refresh(), "river gauges first refresh"
+        )
 
     entry.runtime_data = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

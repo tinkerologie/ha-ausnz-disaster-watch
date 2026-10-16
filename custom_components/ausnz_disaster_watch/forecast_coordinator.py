@@ -278,7 +278,8 @@ async def async_setup_forecasts(
 ) -> ForecastCoordinators:
     """Create the enabled forecast coordinators and start their first refresh; nothing is fetched for a disabled one.
 
-    The first refresh runs as an entry task, so a slow or failing Open-Meteo request never
+    The first refresh runs as an entry background task (which Home Assistant startup does not
+    wait for), so a slow or failing Open-Meteo request never
     holds up entry setup (#75); the forecast entities are unavailable until it completes.
     """
     config = {**entry.data, **entry.options}
@@ -291,7 +292,7 @@ async def async_setup_forecasts(
     if config.get(CONF_AI_ENSEMBLE, False):
         forecasts.ensemble = EnsembleOutlookCoordinator(hass, entry, client, location)
     for coordinator in forecasts:
-        entry.async_create_task(hass, coordinator.async_refresh(), f"{coordinator.name} first refresh")
+        entry.async_create_background_task(hass, coordinator.async_refresh(), f"{coordinator.name} first refresh")
     async_remove_stale_forecast_entities(hass, entry, forecasts)
     return forecasts
 

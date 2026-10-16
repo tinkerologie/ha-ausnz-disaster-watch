@@ -256,6 +256,11 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         if previous not in {(None, None), (self.latitude, self.longitude)}:
             self._last_good_hazards.clear()
             self._last_good_outages.clear()
+            # Optional results, and calls still running, belong to the old point: forget them
+            # (a running call finishes in the background, but its result is no longer used, #75)
+            self._optional_last_good.clear()
+            self._optional_tasks.clear()
+            self._optional_timed_out.clear()
         for provider in [*self.providers, *self.road_providers, *self.power_sources, self.fire_service]:
             if isinstance(provider, BaseHazardProvider):
                 provider.set_location(self.latitude, self.longitude)
@@ -311,7 +316,7 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         self._optional_watched.discard(key)
         if task.cancelled() or task.exception() is not None or self._fresh_optional_result(key) is not None:
             return
-        self.config_entry.async_create_task(
+        self.config_entry.async_create_background_task(
             self.hass, self.async_request_refresh(), f"{DOMAIN} refresh after {type(key[0]).__name__}.{key[1]}"
         )
 

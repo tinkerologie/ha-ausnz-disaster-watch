@@ -200,3 +200,27 @@ async def test_slow_fire_outlook_does_not_block(hass: HomeAssistant, mock_config
     for task in coordinator._optional_tasks.values():
         task.cancel()
     await hass.async_block_till_done(wait_background_tasks=True)
+
+
+async def test_location_change_drops_optional_results(hass: HomeAssistant) -> None:
+    """After the home location moves, a slow feed's result for the old point is not used."""
+    entry = MockConfigEntry(
+        domain="ausnz_disaster_watch",
+        data={"state": "QLD", "location_mode": "home", "radius": 50},
+        unique_id="ausnz_disaster_watch_qld_home",
+    )
+    entry.add_to_hass(hass)
+    hass.config.latitude, hass.config.longitude = -27.47, 153.03
+    feed = SlowFeed([STATION])
+    feed.release.set()
+    with patch(PROVIDERS, return_value=[provider_with(feed)]):
+        coordinator = AustralianDisasterWatchCoordinator(hass, entry)
+    coordinator.data = await coordinator._async_update_data()
+    assert coordinator.data.air_quality_stations == [STATION]
+
+    feed.release.clear()
+    hass.config.latitude, hass.config.longitude = -33.87, 151.21
+    with patch.object(coordinator, "async_request_refresh"):
+        assert (await coordinator._async_update_data()).air_quality_stations == []
+        feed.release.set()
+        await hass.async_block_till_done(wait_background_tasks=True)
