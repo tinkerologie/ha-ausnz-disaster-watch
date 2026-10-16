@@ -4,12 +4,14 @@
  * variables) and every `ha-*` element the cards use must exist in the installed Home
  * Assistant frontend, so a future HA release cannot silently break styling.
  *
- * Looks for `hass_frontend` in HASS_FRONTEND, else in the repository's `.local/ha-venv`.
+ * Looks for `hass_frontend` in HASS_FRONTEND, else in the repository's `.local/ha-venv`,
+ * else in `~/.local/ha-venv` (the two virtualenv locations the scripts support).
  * An explicit HASS_FRONTEND that does not exist is an error. Without one, it skips (exit 0)
  * with a notice when no installed frontend is found, e.g. in the Node-only CI job, unless
  * LINT_DRIFT_REQUIRED=1 is set: `script/check` sets it, so a missing frontend fails there.
  */
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { homedir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -17,11 +19,13 @@ const root = fileURLToPath(new URL("..", import.meta.url));
 
 function findFrontend() {
   if (process.env.HASS_FRONTEND) return process.env.HASS_FRONTEND;
-  const lib = join(root, "..", ".local", "ha-venv", "lib");
-  if (!existsSync(lib)) return undefined;
-  for (const py of readdirSync(lib)) {
-    const candidate = join(lib, py, "site-packages", "hass_frontend", "frontend_latest");
-    if (existsSync(candidate)) return candidate;
+  for (const venv of [join(root, "..", ".local", "ha-venv"), join(homedir(), ".local", "ha-venv")]) {
+    const lib = join(venv, "lib");
+    if (!existsSync(lib)) continue;
+    for (const py of readdirSync(lib)) {
+      const candidate = join(lib, py, "site-packages", "hass_frontend", "frontend_latest");
+      if (existsSync(candidate)) return candidate;
+    }
   }
   return undefined;
 }

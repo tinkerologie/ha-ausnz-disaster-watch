@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -117,10 +117,29 @@ describe("lint:drift (#42)", () => {
     }
   });
 
+  it.skipIf(existsSync(venv))("finds hass_frontend in ~/.local/ha-venv", () => {
+    const home = mkdtempSync(join(tmpdir(), "adw-home-"));
+    try {
+      const frontend = join(home, ".local", "ha-venv", "lib", "python3.14", "site-packages", "hass_frontend", "frontend_latest");
+      mkdirSync(frontend, { recursive: true });
+      writeFileSync(join(frontend, "app.js"), "// no tokens here");
+      const result = run({ HOME: home });
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain(`not found in ${frontend}`);
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
+  });
+
   it.skipIf(existsSync(venv))("fails instead of skipping when required and no frontend is found", () => {
-    expect(run({}).status).toBe(0);
-    const result = run({ LINT_DRIFT_REQUIRED: "1" });
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain("no installed hass_frontend found");
+    const home = mkdtempSync(join(tmpdir(), "adw-home-"));
+    try {
+      expect(run({ HOME: home }).status).toBe(0);
+      const result = run({ HOME: home, LINT_DRIFT_REQUIRED: "1" });
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("no installed hass_frontend found");
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
   });
 });
