@@ -6,10 +6,12 @@ import { preloadHaElements } from "../ha/preload";
 import { t, type TranslationKey } from "../localize/localize";
 import { cardStyles } from "../styles";
 import type { BaseCardConfig, HomeAssistant, LovelaceConfigForm, LovelaceGridOptions } from "../types";
-import { assertList, baseSchema, computeHelper, computeLabel, DisasterCard, stubConfig } from "./base";
+import { assertBoolean, assertList, baseSchema, computeHelper, computeLabel, DisasterCard, stubConfig } from "./base";
 
 export interface AllInOneCardConfig extends BaseCardConfig {
   cards?: SectionKey[];
+  /** Passed to the relief section (#94). */
+  show_nearby_councils?: boolean;
 }
 
 const SECTION_NAMES: Record<SectionKey, TranslationKey> = {
@@ -65,6 +67,7 @@ export class AllInOneCard extends LitElement {
   static validateConfig(config: AllInOneCardConfig): void {
     DisasterCard.validateConfig(config);
     assertList(config as unknown as Record<string, unknown>, "cards", SECTION_KEYS);
+    assertBoolean(config as unknown as Record<string, unknown>, "show_nearby_councils");
   }
 
   static getConfigForm(): LovelaceConfigForm {
@@ -82,6 +85,7 @@ export class AllInOneCard extends LitElement {
             },
           },
         },
+        { name: "show_nearby_councils", selector: { boolean: {} } },
       ],
       computeLabel,
       computeHelper,
@@ -128,7 +132,8 @@ export class AllInOneCard extends LitElement {
           child.embedded = true;
           this._children.set(key, child);
         }
-        child.setConfig({ type: `custom:${CARD_TAGS[key]}`, device: this._config.device });
+        const extra = key === "relief" ? { show_nearby_councils: this._config.show_nearby_councils } : {};
+        child.setConfig({ type: `custom:${CARD_TAGS[key]}`, device: this._config.device, ...extra });
       }
     }
     if (this._hass) for (const child of this._children.values()) child.hass = this._hass;

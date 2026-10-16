@@ -23,7 +23,7 @@ from .const import (
     OPTIONAL_FEED_TIMEOUT,
     THREAT_SCAN_INTERVAL,
 )
-from .council_registry import nearest_council, nearest_readable_dashboard, usable_url
+from .council_registry import nearest_council, nearest_readable_dashboard, own_council_link, usable_url
 from .entity_lifecycle import EntityTracker
 from .forecast_coordinator import ForecastCoordinators
 from .models import (
@@ -53,6 +53,7 @@ from .providers import get_providers_for_config
 from .providers.base import BaseHazardProvider, PartialFeedError, ProviderUnavailableError
 from .providers.fire_danger import FireDangerService, local_today
 from .providers.geometry import area_distance
+from .providers.guardian_ims import GuardianDashboard
 from .providers.power import PowerOutageSource
 from .providers.roads import get_road_providers_for_config, merge_road_items
 from .providers.sources import (
@@ -1059,6 +1060,15 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
     def nearby_councils(self) -> list[dict[str, str]]:
         """Return nearby council dashboard links."""
         return getattr(self.data, "nearby_councils", []) if self.data is not None else []
+
+    @property
+    def council(self) -> dict[str, str] | None:
+        """Return the link to the council dashboard this entry reads, or None (#94)."""
+        for provider in self.providers:
+            dashboard = getattr(provider, "dashboard", None)
+            if isinstance(dashboard, GuardianDashboard):
+                return own_council_link(dashboard.base_url)
+        return None
 
     @property
     def tsunami(self) -> TsunamiStatus | None:

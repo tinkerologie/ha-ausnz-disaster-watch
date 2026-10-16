@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { awsPresentation, headlinePresentation, headlineStatus, parseAwsLevel } from "../../src/model/aws";
 import { hazardCategory, hazardIcon } from "../../src/model/hazards";
+import { councilLinks } from "../../src/model/councils";
 import { customersAffected } from "../../src/model/outages";
 import {
   AFDRS_SCALE,
@@ -150,5 +151,36 @@ describe("Power outages customers affected (#26)", () => {
   it("returns undefined, never 0, when both are missing", () => {
     expect(customersAffected(undefined, undefined)).toBeUndefined();
     expect(customersAffected(sensor("unavailable"), null)).toBeUndefined();
+  });
+});
+
+describe("council links (#94)", () => {
+  const own = { name: "City of Moreton Bay", url: "https://disaster.moretonbay.qld.gov.au" };
+  const nearby = [
+    { name: "Redland City", url: "https://dashboard.redland.qld.gov.au" },
+    { name: "Moreton Bay again", url: "http://disaster.moretonbay.qld.gov.au/" },
+    { name: "Evil", url: "javascript:alert(1)" },
+    { url: "" },
+    "junk",
+  ];
+
+  it("shows only the own council by default", () => {
+    expect(councilLinks(own, nearby, false)).toEqual({
+      own: { name: own.name, url: `${own.url}/` },
+      nearby: [],
+    });
+  });
+
+  it("adds the neighbours when asked, without repeating the own council or unsafe links", () => {
+    expect(councilLinks(own, nearby, true).nearby).toEqual([
+      { name: "Redland City", url: "https://dashboard.redland.qld.gov.au/" },
+      { name: "Evil", url: undefined },
+    ]);
+  });
+
+  it("has no own link when the entry has no council dashboard", () => {
+    expect(councilLinks(null, nearby, false)).toEqual({ own: undefined, nearby: [] });
+    expect(councilLinks(undefined, [], true)).toEqual({ own: undefined, nearby: [] });
+    expect(councilLinks(null, nearby.slice(0, 2), true).nearby).toHaveLength(2);
   });
 });

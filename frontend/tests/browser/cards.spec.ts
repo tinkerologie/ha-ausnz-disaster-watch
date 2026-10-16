@@ -32,7 +32,7 @@ const CARDS: { tag: string; text: string; config?: Record<string, unknown> }[] =
   { tag: "ausnz-disaster-outages-card", text: "KURWONGBAH" },
   { tag: "ausnz-disaster-roads-card", text: "Dugandan Road, BUNYA" },
   { tag: "ausnz-disaster-conditions-card", text: "Station: Burpengary" },
-  { tag: "ausnz-disaster-relief-card", text: "Brisbane City Council" },
+  { tag: "ausnz-disaster-relief-card", text: "City of Moreton Bay" },
   { tag: "ausnz-disaster-cameras-card", text: "Goodna - Ipswich Mwy East" },
   { tag: "ausnz-disaster-map-card", text: "Radar" },
   { tag: "ausnz-disaster-card", text: "Watch and Act" },
@@ -497,6 +497,63 @@ test("map config form offers satellite and cyclone options, both off by default 
   expect(form.errors[0]).toContain("satellite_layer");
   expect(form.errors[1]).toContain("show_cyclone_tracks");
   expect(form.errors[2]).toBe("");
+});
+
+test("relief card links only the entry's own council unless nearby councils are asked for (#94)", async ({ page }) => {
+  const { errors } = await setup(page);
+  const hrefs = (el: ReturnType<Page["locator"]>) =>
+    el.locator("ha-icon-button.link").evaluateAll((els) => els.map((e) => (e as HTMLElement & { href: string }).href));
+
+  const own = await mount(page, "ausnz-disaster-relief-card", { device: QLD });
+  await expect(own.getByText("Council dashboard", { exact: true })).toBeVisible();
+  await expect(own.getByText("City of Moreton Bay")).toBeVisible();
+  await expect(own.getByText("Nearby council dashboards")).toHaveCount(0);
+  await expect(own.getByText("Noosa Shire Council")).toHaveCount(0);
+  expect(await hrefs(own)).toEqual(["https://disaster.moretonbay.qld.gov.au/"]);
+
+  const all = await mount(page, "ausnz-disaster-relief-card", { device: QLD, show_nearby_councils: true });
+  await expect(all.getByText("City of Moreton Bay")).toBeVisible();
+  await expect(all.getByText("Nearby council dashboards")).toBeVisible();
+  await expect(all.getByText("Noosa Shire Council")).toBeVisible();
+  expect(await hrefs(all)).toHaveLength(6);
+
+  // No council dashboard: no council section, even with nearby links available
+  const level = Object.keys(fixture.states).find((id) => id.includes("qld_dev_highest_warning_level"))!;
+  const warnings = Object.keys(fixture.states).find((id) => id.includes("qld_dev_weather_warnings_count"))!;
+  const noCouncil = Object.fromEntries(
+    [level, warnings].map((id) => [id, { ...fixture.states[id], attributes: { ...fixture.states[id].attributes, council: null } }]),
+  );
+  const none = await mount(page, "ausnz-disaster-relief-card", { device: QLD }, { states: noCouncil });
+  await expect(none.getByText("Council dashboard", { exact: true })).toHaveCount(0);
+  await expect(none.getByText("Noosa Shire Council")).toHaveCount(0);
+  const noneAll = await mount(page, "ausnz-disaster-relief-card", { device: QLD, show_nearby_councils: true }, { states: noCouncil });
+  await expect(noneAll.getByText("Noosa Shire Council")).toBeVisible();
+
+  // The all-in-one card passes the option to its relief section (mounted last: its
+  // sections are relief cards too, which would shift the relief-card index above)
+  const stacked = await mount(page, "ausnz-disaster-card", { device: QLD, cards: ["relief"] });
+  await expect(stacked.getByText("City of Moreton Bay")).toBeVisible();
+  await expect(stacked.getByText("Noosa Shire Council")).toHaveCount(0);
+  const stackedAll = await mount(page, "ausnz-disaster-card", { device: QLD, cards: ["relief"], show_nearby_councils: true });
+  await expect(stackedAll.getByText("Noosa Shire Council")).toBeVisible();
+
+  const form = await page.evaluate(() => {
+    const cls = customElements.get("ausnz-disaster-relief-card") as unknown as {
+      getConfigForm: () => { schema: { name: string; selector: Record<string, unknown> }[]; computeLabel: (s: { name: string }) => string };
+      validateConfig: (c: unknown) => void;
+    };
+    const { schema, computeLabel } = cls.getConfigForm();
+    let error = "";
+    try {
+      cls.validateConfig({ show_nearby_councils: "yes" });
+    } catch (err) {
+      error = (err as Error).message;
+    }
+    return { fields: schema.map((s) => [s.name, computeLabel(s)]), error };
+  });
+  expect(form.fields).toContainEqual(["show_nearby_councils", "Show nearby councils"]);
+  expect(form.error).toContain("show_nearby_councils");
+  expect(errors).toEqual([]);
 });
 
 test("default map requests no satellite or GDACS data (#71)", async ({ page }) => {
