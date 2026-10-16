@@ -182,10 +182,11 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         self.road_feeds_failed: list[str] = []
         # Optional (non-hazard) feed calls that outlived their timeout, their last good results,
         # and the feeds whose timeout has been logged (#75)
-        self._optional_tasks: dict[str, asyncio.Task[Any]] = {}
-        self._optional_last_good: dict[str, tuple[datetime, Any]] = {}
-        self._optional_timed_out: set[str] = set()
-        self._optional_watched: set[str] = set()
+        # Keyed by (owner, hook): the owner object itself, so a key can never be reused by another owner
+        self._optional_tasks: dict[tuple[object, str], asyncio.Task[Any]] = {}
+        self._optional_last_good: dict[tuple[object, str], tuple[datetime, Any]] = {}
+        self._optional_timed_out: set[tuple[object, str]] = set()
+        self._optional_watched: set[tuple[object, str]] = set()
         self._update_config_values()
 
         session = async_get_clientsession(hass)
@@ -273,7 +274,7 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         feed with no data yet finishes late, a refresh is requested so its entities fill in.
         The first refresh waits less, so entry setup is not held up by optional feeds.
         """
-        key = f"{type(owner).__name__}#{id(owner)}.{hook}"
+        key = (owner, hook)
         name = f"{type(owner).__name__}.{hook}"
         task = self._optional_tasks.get(key)
         if task is None:
@@ -290,8 +291,7 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
             if key not in self._optional_watched:
                 self._optional_watched.add(key)
                 task.add_done_callback(lambda done: self._optional_finished_late(key, done))
-            cached = self._optional_last_good.get(key)
-            if cached is not None and dt_util.utcnow() - cached[0] <= LAST_GOOD_MAX_AGE:
+            if (cached := self._fresh_optional_result(key)) is not None:
                 return cached[1]
             raise OptionalFeedTimeoutError(f"{name} timed out after {timeout} s")
         self._optional_tasks.pop(key, None)
@@ -306,12 +306,21 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         return value
 
     @callback
-    def _optional_finished_late(self, key: str, task: asyncio.Task[Any]) -> None:
-        """Refresh once a timed-out feed that has no data yet finishes, so its entities fill in."""
+    def _optional_finished_late(self, key: tuple[object, str], task: asyncio.Task[Any]) -> None:
+        """Refresh once a timed-out feed without a usable result finishes, so its entities fill in."""
         self._optional_watched.discard(key)
-        if task.cancelled() or task.exception() is not None or key in self._optional_last_good:
+        if task.cancelled() or task.exception() is not None or self._fresh_optional_result(key) is not None:
             return
-        self.config_entry.async_create_task(self.hass, self.async_request_refresh(), f"{DOMAIN} refresh after {key}")
+        self.config_entry.async_create_task(
+            self.hass, self.async_request_refresh(), f"{DOMAIN} refresh after {type(key[0]).__name__}.{key[1]}"
+        )
+
+    def _fresh_optional_result(self, key: tuple[object, str]) -> tuple[datetime, Any] | None:
+        """Return the feed's last good result if it is recent enough to stand in for a timed-out call."""
+        cached = self._optional_last_good.get(key)
+        if cached is not None and dt_util.utcnow() - cached[0] <= LAST_GOOD_MAX_AGE:
+            return cached
+        return None
 
     async def _async_fetch_all_hazards(self) -> list[CanonicalHazard]:
         """Fetch all hazards from active providers concurrently, tracking each feed's health (#16).
@@ -690,28 +699,38 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
 
         coros.append(self._collect_distributor_outages(power_outages))
 
+        async def _update_fire_service() -> None:
+            try:
+                # The service keeps its last outlook, so a slow update only delays the new one
+                await self._async_optional(self.fire_service, "async_update")
+            except ProviderUnavailableError as err:
+                _LOGGER.debug("Fire danger outlook not updated: %s", err)
+
+        # Updated alongside the other feeds, so its timeout overlaps theirs instead of adding to it
+        coros.append(_update_fire_service())
         road_results, *_ = await asyncio.gather(*coros)
         self.road_feeds_failed = [
             type(provider).__name__ for provider, ok in zip(self.road_providers, road_results, strict=True) if not ok
         ]
 
-        try:
-            # The service keeps its last outlook, so a slow update only delays the new one
-            await self._async_optional(self.fire_service, "async_update")
-        except ProviderUnavailableError as err:
-            _LOGGER.debug("Fire danger outlook not updated: %s", err)
         fire_outlook = self.fire_service.outlook
         fire_danger = fire_danger_today(fire_outlook)
 
-        # Fall back to the providers' own (single-day) sources when there is no outlook for today
-        for provider in self.providers:
-            if fire_danger is None:
+        # Fall back to the providers' own (single-day) sources when there is no outlook for today.
+        # They are asked together, so their timeouts overlap; the first provider (in order) with a
+        # rating wins, as before.
+        if fire_danger is None:
+
+            async def _fallback(provider: Any) -> FireDangerRating | None:
                 try:
                     fd = await self._async_optional(provider, "async_fetch_fire_danger")
-                    if isinstance(fd, FireDangerRating):
-                        fire_danger = fd
                 except Exception as err:  # noqa: BLE001
                     _LOGGER.debug("Error updating fire danger from %s: %s", provider.__class__.__name__, err)
+                    return None
+                return fd if isinstance(fd, FireDangerRating) else None
+
+            ratings = await asyncio.gather(*(_fallback(provider) for provider in self.providers))
+            fire_danger = next((rating for rating in ratings if rating is not None), None)
 
         # One entity per camera ID: the first occurrence wins (#19). A council dashboard and a
         # road agency network can list the same camera image under different IDs (#70).

@@ -12,7 +12,6 @@ import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.ausnz_disaster_watch import coordinator as coordinator_module
-from custom_components.ausnz_disaster_watch.const import LAST_GOOD_MAX_AGE
 from custom_components.ausnz_disaster_watch.coordinator import (
     AustralianDisasterWatchCoordinator,
     OptionalFeedTimeoutError,
@@ -90,35 +89,42 @@ async def test_timeout_uses_last_good_and_logs_once(
     mock_config_entry: MockConfigEntry,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """A later timeout keeps the last good result for a while, then reads as unavailable."""
-    mock_config_entry.add_to_hass(hass)
+    """A later timeout keeps the last good reading, then reads as unknown once it is too old."""
     feed = SlowFeed([STATION])
     feed.release.set()
-    provider = provider_with(feed)
-    with patch(PROVIDERS, return_value=[provider]):
-        coordinator = AustralianDisasterWatchCoordinator(hass, mock_config_entry)
-    coordinator.data = await coordinator._async_update_data()
-    assert coordinator.data.air_quality_stations == [STATION]
+    mock_config_entry.add_to_hass(hass)
+    entity_id = f"sensor.{PREFIX}_air_quality"
 
-    feed.release.clear()
-    caplog.set_level(logging.WARNING)
-    assert (await coordinator._async_update_data()).air_quality_stations == [STATION]
-    # Still busy: the same call is awaited again (no second request), and nothing new is logged
-    assert (await coordinator._async_update_data()).air_quality_stations == [STATION]
-    assert feed.calls == 2
-    assert caplog.text.count("did not answer within") == 1
+    async def poll() -> str:
+        """Run a coordinator refresh (as the update interval would) and return the sensor state."""
+        await mock_config_entry.runtime_data.async_refresh()
+        await hass.async_block_till_done()
+        state = hass.states.get(entity_id)
+        assert state is not None
+        return state.state
 
-    # Once the last good result is too old, the feed reads as unavailable
-    coordinator._optional_last_good = {
-        key: (when - LAST_GOOD_MAX_AGE - timedelta(minutes=1), value)
-        for key, (when, value) in coordinator._optional_last_good.items()
-    }
-    assert (await coordinator._async_update_data()).air_quality_stations == []
+    with patch(PROVIDERS, return_value=[provider_with(feed)]):
+        assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+        await hass.async_block_till_done()
+        assert hass.states.get(entity_id).state == "Fair"
 
-    with patch.object(coordinator, "async_request_refresh"):
-        feed.release.set()
-        await hass.async_block_till_done(wait_background_tasks=True)
-    assert (await coordinator._async_update_data()).air_quality_stations == [STATION]
+        feed.release.clear()
+        caplog.set_level(logging.WARNING)
+        assert await poll() == "Fair"
+        # Still busy: the same call is waited on again (no second request), and nothing new is logged
+        assert await poll() == "Fair"
+        assert feed.calls == 2
+        assert caplog.text.count("did not answer within") == 1
+
+        # Once the last good reading is older than the stale age, the sensor reads as unknown
+        with patch.object(coordinator_module, "LAST_GOOD_MAX_AGE", timedelta(0)):
+            assert await poll() == "unknown"
+            # The late answer then requests a refresh, which fills the sensor in again
+            feed.release.set()
+            await hass.async_block_till_done(wait_background_tasks=True)
+        assert hass.states.get(entity_id).state == "Fair"
+        assert feed.calls == 2
+    assert await hass.config_entries.async_unload(mock_config_entry.entry_id)
 
 
 async def test_late_failure_is_reported_on_next_refresh(
