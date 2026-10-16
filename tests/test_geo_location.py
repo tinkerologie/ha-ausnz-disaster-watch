@@ -14,7 +14,7 @@ from custom_components.ausnz_disaster_watch.geo_location import (
     current_hazards,
     hazard_object_id,
 )
-from custom_components.ausnz_disaster_watch.models import CanonicalHazard
+from custom_components.ausnz_disaster_watch.models import CanonicalHazard, HazardType
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 
@@ -428,3 +428,24 @@ async def test_device_identifier_matches_incident_entry_id(
     geo_state = hass.states.get(EMERGENCY_ENTITY_ID)
     assert geo_state is not None
     assert geo_state.attributes["entry_id"] == entry_id
+
+
+async def test_hazard_type_change_updates_icon_key(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    mock_hazard_emergency_warning: CanonicalHazard,
+    entity_icon: Callable[[str], str | None],
+) -> None:
+    """A hazard that changes type moves its registry translation key, so the map icon follows (#21)."""
+    provider = await _setup_with_hazards(hass, mock_config_entry, [mock_hazard_emergency_warning])
+    registry = er.async_get(hass)
+    assert registry.async_get(EMERGENCY_ENTITY_ID).translation_key == "bushfire"
+
+    provider.async_fetch_hazards.return_value = [
+        mock_hazard_emergency_warning.model_copy(update={"hazard_type": HazardType.FLOOD})
+    ]
+    await mock_config_entry.runtime_data.async_refresh()
+    await hass.async_block_till_done()
+
+    assert registry.async_get(EMERGENCY_ENTITY_ID).translation_key == "flood"
+    assert entity_icon(EMERGENCY_ENTITY_ID) == "mdi:water-alert"

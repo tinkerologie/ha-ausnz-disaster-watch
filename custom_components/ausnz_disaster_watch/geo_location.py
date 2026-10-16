@@ -171,7 +171,12 @@ class AustralianDisasterWatchGeolocationEvent(CoordinatorEntity[AustralianDisast
         if (hazard := current_hazards(self.coordinator).get(self.hazard_id)) is not None:
             self._hazard = hazard
             self._attr_name = hazard.title
-            self._attr_translation_key = hazard_translation_key(hazard)
+            if (key := hazard_translation_key(hazard)) != self._attr_translation_key:
+                self._attr_translation_key = key
+                # The frontend reads the icon key from the registry, which keeps the key it was added with
+                registry = er.async_get(self.hass)
+                if registry.async_get(self.entity_id) is not None:
+                    registry.async_update_entity(self.entity_id, translation_key=key)
         super()._handle_coordinator_update()
 
     @property
