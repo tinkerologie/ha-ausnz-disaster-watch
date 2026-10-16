@@ -296,6 +296,27 @@ async def test_fetch_readings(hass: HomeAssistant, aioclient_mock: AiohttpClient
     assert await async_fetch_readings(session, [], NOW) == {}
 
 
+async def test_fetch_readings_in_chunks(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) -> None:
+    """A long selection is read TS_IDS_PER_REQUEST series at a time and the series are merged."""
+    route(aioclient_mock)
+    real = list(_sites().values())
+    filler = [
+        StorageSite(f"f{i}", f"Filler {i}", -27.0, 152.0, "w00191", (f"x{i}",), (), 100.0, None)
+        for i in range(dams.TS_IDS_PER_REQUEST)
+    ]
+    # A series shared by two storages is requested once
+    shared = StorageSite("dup", "Duplicate", -27.0, 152.0, "w00191", real[0].volume_ts, (), 100.0, None)
+    readings = await async_fetch_readings(async_get_clientsession(hass), [*filler, *real, shared], NOW)
+    ts_lists = [call[1].query["ts_id"].split(",") for call in aioclient_mock.mock_calls]
+    assert len(ts_lists) == 2
+    assert all(len(ids) <= dams.TS_IDS_PER_REQUEST for ids in ts_lists)
+    requested = [ts for ids in ts_lists for ts in ids]
+    assert len(requested) == len(set(requested))
+    # Every real storage is read whichever request carried its series
+    assert {site.key for site in real} <= set(readings)
+    assert "bom:dup" in readings
+
+
 @pytest.mark.parametrize("body", [503, {"type": "error", "message": "bad"}, "not json"])
 async def test_fetch_readings_failures(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, body: Any) -> None:
     """HTTP errors, KiWIS errors and bodies that are not a list raise DamSourceError."""

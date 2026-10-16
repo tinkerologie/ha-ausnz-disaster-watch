@@ -47,7 +47,7 @@ async def async_get_config_entry_diagnostics(
             "exclude_hazard_reduction": coordinator.exclude_hazard_reduction,
             "providers": [p.__class__.__name__ for p in coordinator.providers],
             "attribution": coordinator.attribution,
-            "data_sources": [source.as_dict() for source in coordinator.data_sources],
+            "data_sources": [source.as_dict() for source in coordinator.diagnostic_sources],
             "road_providers": [p.__class__.__name__ for p in coordinator.road_providers],
             "include_roadworks": coordinator.include_roadworks,
             "road_closures_count": len(coordinator.road_closures),

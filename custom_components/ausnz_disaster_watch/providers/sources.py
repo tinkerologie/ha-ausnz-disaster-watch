@@ -612,6 +612,18 @@ def sources_for_broadcaster(country: str) -> tuple[DataSource, ...]:
     return tuple(DATA_SOURCES[key] for key in BROADCASTER_SOURCES.get(country, ()))
 
 
+# Opt-in features with their own coordinator -> register keys. Their entities carry their
+# own attribution, so these are listed in diagnostics but not in the entry's attribution.
+FEATURE_SOURCES: dict[str, tuple[str, ...]] = {
+    "dam_storages": ("bom_water_storages",),
+}
+
+
+def sources_for_feature(feature: str) -> tuple[DataSource, ...]:
+    """Return the register entries an opt-in feature with its own coordinator reads."""
+    return tuple(DATA_SOURCES[key] for key in FEATURE_SOURCES[feature])
+
+
 def sources_for_forecast(*features: str) -> tuple[DataSource, ...]:
     """Return the register entries for forecast features, in order."""
     return tuple(DATA_SOURCES[key] for feature in features for key in FORECAST_SOURCES[feature])
