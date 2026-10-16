@@ -10,6 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import AusNZDisasterWatchConfigEntry
+from .broadcaster_sensor import async_setup_broadcaster_sensor
 from .const import (
     AU_ONLY_FEED_OPTIONS,
     CONF_ENABLE_HEATWAVE,
@@ -73,6 +74,7 @@ async def async_setup_entry(
         entities.append(RegionalDisasterAlertsSensor(coordinator))
     async_add_entities(entities)
     async_setup_river_sensors(hass, entry, async_add_entities)
+    await async_setup_broadcaster_sensor(hass, entry, async_add_entities)
 
 
 class NearestHazardDistanceSensor(AustralianDisasterWatchEntity, SensorEntity):

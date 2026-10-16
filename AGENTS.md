@@ -224,6 +224,7 @@ This integration uses the following identifiers consistently:
 - `sensor.py`, `binary_sensor.py`, `geo_location.py`, `camera.py` - Entity platforms
 - `config_flow.py` - Config, options and reconfigure flows
 - `diagnostics.py` - Redacted diagnostics
+- `broadcaster.py`, `broadcaster_sensor.py`, `broadcaster_options.py`, `media_source.py` - Opt-in emergency broadcaster (#73): bundled station table `data/emergency_broadcasters.json` (regenerate with `script/update-broadcasters`), nearest-station choice, sensor, options step and media source
 - `llm.py` - Read-only LLM tools for the Assist API (#72): read coordinator data only, offered per entry when an entity is exposed, always report feed health
 - `frontend.py` + `frontend/` - Serves and registers the bundled Lovelace cards (source in repo-root `frontend/src/`)
 

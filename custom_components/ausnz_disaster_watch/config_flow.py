@@ -27,6 +27,7 @@ from homeassistant.helpers.selector import (
 )
 from homeassistant.util import dt as dt_util
 
+from .broadcaster_options import BroadcasterOptionsFlow
 from .camera_options import CameraOptionsFlow
 from .const import (
     CONF_COUNCIL_DASHBOARD_URL,
@@ -674,7 +675,9 @@ def clean_road_options(options: dict[str, Any], user_input: dict[str, Any]) -> d
     return cleaned
 
 
-class AustralianDisasterWatchOptionsFlowHandler(HazardOptionsFlow, NationalFeedsOptionsFlow, CameraOptionsFlow):
+class AustralianDisasterWatchOptionsFlowHandler(
+    HazardOptionsFlow, NationalFeedsOptionsFlow, CameraOptionsFlow, BroadcasterOptionsFlow
+):
     """Handle options flow for Australia and New Zealand Disaster Watch."""
 
     def __init__(self) -> None:
@@ -694,7 +697,7 @@ class AustralianDisasterWatchOptionsFlowHandler(HazardOptionsFlow, NationalFeeds
         River point edit/remove only appear once a point exists; the river gauge picker only
         where a gauge service covers the state (#31).
         """
-        menu = ["settings", "forecasts", "national_feeds", "add_river_point"]
+        menu = ["settings", "forecasts", "national_feeds", "emergency_broadcaster", "add_river_point"]
         if self._offers_earthquakes:
             menu.insert(2, "earthquakes")
         if road_option_fields({**self.config_entry.data, **self.config_entry.options}):
