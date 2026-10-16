@@ -1,0 +1,214 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "crs": {
+          "type": "name",
+          "properties": {
+            "name": "EPSG:7844"
+          }
+        },
+        "coordinates": [
+          153.0381012,
+          -27.49511909
+        ]
+      },
+      "properties": {
+        "id": 137,
+        "url": "https://api.qldtraffic.qld.gov.au/v1/webcams/137",
+        "description": "Woolloongabba - Pacific Motorway & Arrow Street - Northwest",
+        "direction": "NorthWest",
+        "district": "Metropolitan",
+        "locality": "Woolloongabba",
+        "postcode": "4102",
+        "image_url": "https://cameras.qldtraffic.qld.gov.au/Metropolitan/MRMETRO-1214.jpg",
+        "image_sourced_from": null,
+        "isCustom": false,
+        "extra_info": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "crs": {
+          "type": "name",
+          "properties": {
+            "name": "EPSG:7844"
+          }
+        },
+        "coordinates": [
+          152.9848022,
+          -27.4782505
+        ]
+      },
+      "properties": {
+        "id": 38,
+        "url": "https://api.qldtraffic.qld.gov.au/v1/webcams/38",
+        "description": "Toowong - Mount Coot-Tha Road & Miskin Street - West",
+        "direction": "West",
+        "district": "Metropolitan",
+        "locality": "Toowong",
+        "postcode": "4066",
+        "image_url": "https://cameras.qldtraffic.qld.gov.au/Metropolitan/Toowong_MtCootha_West.jpg",
+        "image_sourced_from": null,
+        "isCustom": false,
+        "extra_info": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "crs": {
+          "type": "name",
+          "properties": {
+            "name": "EPSG:7844"
+          }
+        },
+        "coordinates": [
+          152.9904938,
+          -27.42270088
+        ]
+      },
+      "properties": {
+        "id": 87,
+        "url": "https://api.qldtraffic.qld.gov.au/v1/webcams/87",
+        "description": "Enoggera - Samford Road & Wardell Street - West",
+        "direction": "West",
+        "district": "Metropolitan",
+        "locality": "Enoggera",
+        "postcode": "4051",
+        "image_url": "https://cameras.qldtraffic.qld.gov.au/Metropolitan/MRMETRO-1456.jpg",
+        "image_sourced_from": null,
+        "isCustom": false,
+        "extra_info": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "crs": {
+          "type": "name",
+          "properties": {
+            "name": "EPSG:7844"
+          }
+        },
+        "coordinates": [
+          153.0337067,
+          -27.41150093
+        ]
+      },
+      "properties": {
+        "id": 35,
+        "url": "https://api.qldtraffic.qld.gov.au/v1/webcams/35",
+        "description": "Kedron - Gympie Road & Leckie Road - South",
+        "direction": "South",
+        "district": "Metropolitan",
+        "locality": "Kedron",
+        "postcode": "4031",
+        "image_url": "https://cameras.qldtraffic.qld.gov.au/Metropolitan/Gympie_Stafford_Rd_Sth.jpg",
+        "image_sourced_from": null,
+        "isCustom": false,
+        "extra_info": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "crs": {
+          "type": "name",
+          "properties": {
+            "name": "EPSG:7844"
+          }
+        },
+        "coordinates": [
+          152.9627075,
+          -27.50071907
+        ]
+      },
+      "properties": {
+        "id": 6,
+        "url": "https://api.qldtraffic.qld.gov.au/v1/webcams/6",
+        "description": "Indooroopilly - Western Freeway & Moggill Road - South",
+        "direction": "South",
+        "district": "Metropolitan",
+        "locality": "Indooroopilly",
+        "postcode": "4068",
+        "image_url": "https://cameras.qldtraffic.qld.gov.au/Metropolitan/Indooroopilly_Western_Fwy_Sth.jpg",
+        "image_sourced_from": null,
+        "isCustom": false,
+        "extra_info": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "crs": {
+          "type": "name",
+          "properties": {
+            "name": "EPSG:7844"
+          }
+        },
+        "coordinates": [
+          153.0852966,
+          -27.43504906
+        ]
+      },
+      "properties": {
+        "id": 132,
+        "url": "https://api.qldtraffic.qld.gov.au/v1/webcams/132",
+        "description": "Whinstanes - Gateway Mwy & Links Ave - East",
+        "direction": "East",
+        "district": "Metropolitan",
+        "locality": "Eagle Farm",
+        "postcode": "4009",
+        "image_url": "https://cameras.qldtraffic.qld.gov.au/Metropolitan/MRMETRO-1314d.jpg",
+        "image_sourced_from": null,
+        "isCustom": false,
+        "extra_info": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "crs": {
+          "type": "name",
+          "properties": {
+            "name": "EPSG:7844"
+          }
+        },
+        "coordinates": [
+          145.747406,
+          -16.95384979
+        ]
+      },
+      "properties": {
+        "id": 19,
+        "url": "https://api.qldtraffic.qld.gov.au/v1/webcams/19",
+        "description": "Woree - Ray Jones Drive & Rigg Street",
+        "direction": "South",
+        "district": "Far North",
+        "locality": "Woree",
+        "postcode": "4868",
+        "image_url": "https://cameras.qldtraffic.qld.gov.au/Far_North/bruce-ray_jones-south.jpg",
+        "image_sourced_from": null,
+        "isCustom": false,
+        "extra_info": null
+      }
+    }
+  ],
+  "published": "2026-10-01T09:03:03.8196642+10:00",
+  "rights": {
+    "owner": "As per the respective provided_by details contained in the feed: Department of Transport and Main Roads, Transport for NSW, or the respective Local Government Authority.",
+    "disclaimer": "The State of Queensland makes no statements, representations or warranties about the accuracy, currency, reliability or completeness of the information contained in this feed.",
+    "copyright": "Copyright in material within this feed is owned by the State of Queensland or other entities which provide material for the website by arrangement. Please consult the respective provided_by_url for each data owner or the QLDTraffic website for further information https://qldtraffic.qld.gov.au/More/Data.html."
+  }
+}

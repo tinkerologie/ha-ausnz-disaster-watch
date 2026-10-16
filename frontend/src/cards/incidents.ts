@@ -1,6 +1,6 @@
 import { html, nothing, type TemplateResult } from "lit";
 import { geoLocationsFor, incidentDistance, incidentTitle } from "../ha/entities";
-import { formatDistance, relativeTime, safeUrl, stringAttr } from "../ha/format";
+import { formatDistance, numberAttr, relativeTime, safeUrl, stringAttr } from "../ha/format";
 import { t, type TranslationKey } from "../localize/localize";
 import { awsPresentation } from "../model/aws";
 import { CATEGORY_ICONS, HAZARD_CATEGORIES, hazardCategory, hazardIcon, type HazardCategory } from "../model/hazards";
@@ -128,7 +128,21 @@ export class IncidentsCard extends DisasterCard<IncidentsCardConfig> {
       onActivate: () => this.moreInfo(stateObj.entity_id),
       link: safeUrl(a.web_url),
       linkLabel: `${t(hass, "action.open_link")}: ${title}`,
+      actions: this.renderNearestCamera(hass, stateObj),
     });
+  }
+
+  /** Button to the camera the integration found within 5 km of the incident (#70). */
+  private renderNearestCamera(hass: HomeAssistant, stateObj: HassEntity): TemplateResult | undefined {
+    const camera = stateObj.attributes.nearest_camera as { entity_id?: unknown; name?: unknown; distance_km?: unknown } | undefined;
+    const entityId = stringAttr(camera?.entity_id);
+    if (!entityId?.startsWith("camera.") || !hass.states[entityId]) return undefined;
+    const name = stringAttr(camera?.name) ?? String(hass.states[entityId]?.attributes.friendly_name ?? entityId);
+    const distance = formatDistance(hass, numberAttr(camera?.distance_km));
+    const label = t(hass, "incidents.nearest_camera", { name: distance ? `${name}, ${distance}` : name });
+    return html`<ha-icon-button class="link camera" .label=${label} @click=${() => this.moreInfo(entityId)}>
+      <ha-icon icon="mdi:cctv"></ha-icon>
+    </ha-icon-button>`;
   }
 
   protected renderBody(hass: HomeAssistant, config: IncidentsCardConfig): TemplateResult {

@@ -646,12 +646,15 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
                 except Exception as err:  # noqa: BLE001
                     _LOGGER.debug("Error updating fire danger from %s: %s", provider.__class__.__name__, err)
 
-        # One entity per camera ID: the first occurrence wins (#19)
+        # One entity per camera ID: the first occurrence wins (#19). A council dashboard and a
+        # road agency network can list the same camera image under different IDs (#70).
         unique_cameras: list[DisasterCameraItem] = []
         camera_ids: set[str] = set()
+        image_urls: set[str] = set()
         for camera in cameras:
-            if camera.id not in camera_ids:
+            if camera.id not in camera_ids and camera.image_url not in image_urls:
                 camera_ids.add(camera.id)
+                image_urls.add(camera.image_url)
                 unique_cameras.append(camera)
 
         return {

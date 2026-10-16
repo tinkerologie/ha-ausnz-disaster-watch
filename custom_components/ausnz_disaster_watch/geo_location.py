@@ -20,8 +20,8 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import slugify
 
 from . import AusNZDisasterWatchConfigEntry
-from .const import DOMAIN
-from .coordinator import AustralianDisasterWatchCoordinator
+from .const import DOMAIN, NEAREST_CAMERA_KM
+from .coordinator import AustralianDisasterWatchCoordinator, calculate_haversine_distance
 from .models import CanonicalHazard, HazardType
 
 _LOGGER = logging.getLogger(__name__)
@@ -219,7 +219,28 @@ class AustralianDisasterWatchGeolocationEvent(CoordinatorEntity[AustralianDisast
         attrs["agency"] = attrs.pop("source")
         attrs["integration"] = DOMAIN
         attrs["entry_id"] = self.coordinator.config_entry.entry_id
+        if (camera := self._nearest_camera()) is not None:
+            attrs["nearest_camera"] = camera
         return attrs
+
+    def _nearest_camera(self) -> dict[str, Any] | None:
+        """Return the nearest camera entity within NEAREST_CAMERA_KM of the hazard, or None (#70)."""
+        best: tuple[float, str, str] | None = None
+        for camera in self.coordinator.cameras:
+            if camera.latitude is None or camera.longitude is None:
+                continue
+            distance = calculate_haversine_distance(
+                self._hazard.latitude, self._hazard.longitude, camera.latitude, camera.longitude
+            )
+            if distance <= NEAREST_CAMERA_KM and (best is None or distance < best[0]):
+                best = (distance, camera.id, camera.name)
+        if best is None or self.hass is None:
+            return None
+        unique_id = f"{self.coordinator.config_entry.entry_id}_camera_{best[1]}"
+        entity_id = er.async_get(self.hass).async_get_entity_id("camera", DOMAIN, unique_id)
+        if entity_id is None:
+            return None
+        return {"entity_id": entity_id, "name": best[2], "distance_km": round(best[0], 1)}
 
 
 AusNZDisasterWatchGeolocationEvent = AustralianDisasterWatchGeolocationEvent

@@ -662,4 +662,36 @@ test("GDACS outage shows a notice (#71)", async ({ page }) => {
   const states = { [ALERTS_ID]: { ...alerts, attributes: { ...alerts.attributes, alerts: [{ title: "TC", geometry_url: GEOMETRY_URL }] } } };
   const el = await mount(page, "ausnz-disaster-map-card", { device: QLD, show_cyclone_tracks: true }, { states });
   await expect(el.getByText("Cyclone tracks are unavailable right now.")).toBeVisible();
+
+test("an incident with a camera within 5 km offers it next to the incident (#70)", async ({ page }) => {
+  const { errors } = await setup(page);
+  const incident = Object.keys(fixture.states).find(
+    (id) => id.startsWith("geo_location.") && fixture.states[id].attributes.entry_id === "entry-qld",
+  )!;
+  const camera = Object.keys(fixture.states).find((id) => id.startsWith("camera.") && id.includes("qld_dev"))!;
+  const withCamera = (cameraId: string) => ({
+    [incident]: {
+      ...fixture.states[incident],
+      attributes: {
+        ...fixture.states[incident].attributes,
+        nearest_camera: { entity_id: cameraId, name: "Goodna - Ipswich Mwy East", distance_km: 1.2 },
+      },
+    },
+  });
+  const el = await mount(page, "ausnz-disaster-incidents-card", { device: QLD, max_items: 50 }, { states: withCamera(camera) });
+  const button = el.locator("ha-icon-button.camera");
+  await expect(button).toHaveCount(1);
+  await expect(button).toHaveJSProperty("label", "Nearest camera: Goodna - Ipswich Mwy East, 1.2 km");
+  const detail = page.evaluate(
+    () => new Promise((resolve) => window.addEventListener("hass-more-info", (e) => resolve((e as CustomEvent).detail), { once: true })),
+  );
+  await button.click();
+  expect(((await detail) as { entityId: string }).entityId).toBe(camera);
+
+  // A camera entity that no longer exists, or a non-camera ID, shows no button
+  for (const id of ["camera.gone", "sensor.not_a_camera"]) {
+    const other = await mount(page, "ausnz-disaster-incidents-card", { device: QLD, max_items: 50 }, { states: withCamera(id) });
+    await expect(other.locator("ha-icon-button.camera")).toHaveCount(0);
+  }
+  expect(errors).toEqual([]);
 });

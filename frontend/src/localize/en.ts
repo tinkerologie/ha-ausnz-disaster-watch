@@ -66,6 +66,7 @@ export const en = {
   "incidents.planned_burns": "Planned burns",
   "incidents.planned_burn": "Planned burn",
   "incidents.updated": "updated {time}",
+  "incidents.nearest_camera": "Nearest camera: {name}",
 
   // Warnings
   "warnings.title": "Warnings",

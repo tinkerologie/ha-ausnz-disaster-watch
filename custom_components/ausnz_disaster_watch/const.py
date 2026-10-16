@@ -48,6 +48,19 @@ CONF_VIC_API_KEY: Final = "vic_api_key"
 CONF_INCLUDE_PLANNED_OUTAGES: Final = "include_planned_outages"
 CONF_EXTRA_OUTAGE_FEEDS: Final = "extra_outage_feeds"
 
+# Road and flood camera networks (#70): opt-in per entry, off by default
+CONF_CAMERA_NETWORKS: Final = "camera_networks"
+CONF_CAMERA_RADIUS: Final = "camera_radius"
+CONF_CAMERA_MAX: Final = "camera_max"
+DEFAULT_CAMERA_RADIUS: Final = 25  # km
+DEFAULT_CAMERA_MAX: Final = 12
+MAX_CAMERA_MAX: Final = 50
+CAMERA_NETWORK_QLDTRAFFIC_FLOOD: Final = "qldtraffic_flood"
+CAMERA_NETWORK_QLDTRAFFIC_WEB: Final = "qldtraffic_web"
+CAMERA_NETWORK_NZTA: Final = "nzta"
+# A hazard lists its nearest camera when one is this close (km)
+NEAREST_CAMERA_KM: Final = 5.0
+
 # Location modes
 LOCATION_MODE_HOME: Final = "home"
 LOCATION_MODE_CUSTOM: Final = "custom"

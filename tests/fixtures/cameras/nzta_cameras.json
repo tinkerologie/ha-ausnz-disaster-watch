@@ -1,0 +1,374 @@
+{
+  "response": {
+    "camera": [
+      {
+        "description": "South view from north of Terrace Tunnel SH1",
+        "direction": "Southbound",
+        "group": "SH1",
+        "highway": "SH1",
+        "id": 828,
+        "imageUrl": "/camera/828.jpg",
+        "journey": {
+          "id": 10,
+          "name": "SH1",
+          "startLatitude": -40.73309694375239,
+          "startLongitude": 175.20082410657048,
+          "endLatitude": -41.31209767763185,
+          "endLongitude": 174.7935942772393,
+          "time": "00:00:00"
+        },
+        "journeyLeg": {
+          "name": "Ngauranga to Terrace Tunnel",
+          "totalLength": 5.718,
+          "sequenceNumber": 0,
+          "time": "00:00:00",
+          "effectiveSpeedLimit": 0,
+          "coverage": 0,
+          "flow": 0,
+          "freeFlowTime": 0
+        },
+        "latitude": -41.283374,
+        "longitude": 174.773778,
+        "name": "SH1 Clifton Terrace",
+        "offline": false,
+        "region": {
+          "id": 9,
+          "name": "Wellington"
+        },
+        "sortOrder": 2147483647,
+        "thumbUrl": "/camera/thumb/828.jpg",
+        "underMaintenance": false,
+        "viewUrl": "/camera/view/828",
+        "way": {
+          "id": 1230,
+          "name": "01N"
+        }
+      },
+      {
+        "description": "North along Urban Mwy from Tinakori Rd On-ramp",
+        "direction": "Northbound",
+        "group": "SH1",
+        "highway": "SH1",
+        "id": 230,
+        "imageUrl": "/camera/230.jpg",
+        "journey": {
+          "id": 10,
+          "name": "SH1",
+          "startLatitude": -40.73309694375239,
+          "startLongitude": 175.20082410657048,
+          "endLatitude": -41.31209767763185,
+          "endLongitude": 174.7935942772393,
+          "time": "00:00:00"
+        },
+        "journeyLeg": {
+          "name": "Ngauranga to Terrace Tunnel",
+          "totalLength": 5.735,
+          "sequenceNumber": 0,
+          "time": "00:00:00",
+          "effectiveSpeedLimit": 0,
+          "coverage": 0,
+          "flow": 0,
+          "freeFlowTime": 0
+        },
+        "latitude": -41.276291,
+        "longitude": 174.773064,
+        "name": "SH1 Tinakori Rd On-ramp",
+        "offline": false,
+        "region": {
+          "id": 9,
+          "name": "Wellington"
+        },
+        "sortOrder": 13,
+        "thumbUrl": "/camera/thumb/230.jpg",
+        "underMaintenance": false,
+        "viewUrl": "/camera/view/230",
+        "way": {
+          "id": 1233,
+          "name": "01N"
+        }
+      },
+      {
+        "description": "South along Urban Mwy from SH1/SH2 Interchange",
+        "direction": "Southbound",
+        "group": "SH1",
+        "highway": "SH1",
+        "id": 282,
+        "imageUrl": "/camera/282.jpg",
+        "journey": {
+          "id": 9,
+          "name": "SH2",
+          "startLatitude": -40.74416077937096,
+          "startLongitude": 175.60916552019697,
+          "endLatitude": -41.22691362355584,
+          "endLongitude": 174.85002353262297,
+          "time": "00:00:00"
+        },
+        "journeyLeg": {
+          "name": "Petone to Nauranga",
+          "totalLength": 4.105083983014386,
+          "sequenceNumber": 0,
+          "time": "00:00:00",
+          "effectiveSpeedLimit": 0,
+          "coverage": 0,
+          "flow": 0,
+          "freeFlowTime": 0
+        },
+        "latitude": -41.248069,
+        "longitude": 174.813576,
+        "name": "SH1/SH2 Interchange",
+        "offline": false,
+        "region": {
+          "id": 9,
+          "name": "Wellington"
+        },
+        "sortOrder": 12,
+        "thumbUrl": "/camera/thumb/282.jpg",
+        "underMaintenance": false,
+        "viewUrl": "/camera/view/282",
+        "way": {
+          "id": 81,
+          "name": "002"
+        }
+      },
+      {
+        "description": "South along SH1 in the Ngauranga Gorge",
+        "direction": "Southbound",
+        "group": "SH1",
+        "highway": "SH1",
+        "id": 228,
+        "imageUrl": "/camera/228.jpg",
+        "journey": {
+          "id": 10,
+          "name": "SH1",
+          "startLatitude": -40.73309694375239,
+          "startLongitude": 175.20082410657048,
+          "endLatitude": -41.31209767763185,
+          "endLongitude": 174.7935942772393,
+          "time": "00:00:00"
+        },
+        "journeyLeg": {
+          "name": "Tawa to Ngauranga",
+          "totalLength": 8.265,
+          "sequenceNumber": 0,
+          "time": "00:00:00",
+          "effectiveSpeedLimit": 0,
+          "coverage": 0,
+          "flow": 0,
+          "freeFlowTime": 0
+        },
+        "latitude": -41.241,
+        "longitude": 174.809,
+        "name": "SH1 Ngauranga Gorge",
+        "offline": false,
+        "region": {
+          "id": 9,
+          "name": "Wellington"
+        },
+        "sortOrder": 11,
+        "thumbUrl": "/camera/thumb/228.jpg",
+        "underMaintenance": false,
+        "viewUrl": "/camera/view/228",
+        "way": {
+          "id": 1232,
+          "name": "01N"
+        }
+      },
+      {
+        "description": "South along SH1 from Newlands Rd",
+        "direction": "Southbound",
+        "group": "SH1",
+        "highway": "SH1",
+        "id": 227,
+        "imageUrl": "/camera/227.jpg",
+        "journey": {
+          "id": 10,
+          "name": "SH1",
+          "startLatitude": -40.73309694375239,
+          "startLongitude": 175.20082410657048,
+          "endLatitude": -41.31209767763185,
+          "endLongitude": 174.7935942772393,
+          "time": "00:00:00"
+        },
+        "journeyLeg": {
+          "name": "Tawa to Ngauranga",
+          "totalLength": 8.265,
+          "sequenceNumber": 0,
+          "time": "00:00:00",
+          "effectiveSpeedLimit": 0,
+          "coverage": 0,
+          "flow": 0,
+          "freeFlowTime": 0
+        },
+        "latitude": -41.231877,
+        "longitude": 174.809546,
+        "name": "SH1 Newlands",
+        "offline": false,
+        "region": {
+          "id": 9,
+          "name": "Wellington"
+        },
+        "sortOrder": 12,
+        "thumbUrl": "/camera/thumb/227.jpg",
+        "underMaintenance": false,
+        "viewUrl": "/camera/view/227",
+        "way": {
+          "id": 1232,
+          "name": "01N"
+        }
+      },
+      {
+        "description": "South along SH1 from Johnsonville Off-ramp",
+        "direction": "Southbound",
+        "group": "SH1",
+        "highway": "SH1",
+        "id": 226,
+        "imageUrl": "/camera/226.jpg",
+        "journey": {
+          "id": 10,
+          "name": "SH1",
+          "startLatitude": -40.73309694375239,
+          "startLongitude": 175.20082410657048,
+          "endLatitude": -41.31209767763185,
+          "endLongitude": 174.7935942772393,
+          "time": "00:00:00"
+        },
+        "journeyLeg": {
+          "name": "Tawa to Ngauranga",
+          "totalLength": 8.265,
+          "sequenceNumber": 0,
+          "time": "00:00:00",
+          "effectiveSpeedLimit": 0,
+          "coverage": 0,
+          "flow": 0,
+          "freeFlowTime": 0
+        },
+        "latitude": -41.227951,
+        "longitude": 174.808116,
+        "name": "SH1 Johnsonville",
+        "offline": false,
+        "region": {
+          "id": 9,
+          "name": "Wellington"
+        },
+        "sortOrder": 11,
+        "thumbUrl": "/camera/thumb/226.jpg",
+        "underMaintenance": false,
+        "viewUrl": "/camera/view/226",
+        "way": {
+          "id": 1232,
+          "name": "01N"
+        }
+      },
+      {
+        "description": "South along SH2 at Melling Interchange",
+        "direction": "Southbound",
+        "group": "SH2",
+        "highway": "SH2",
+        "id": 278,
+        "imageUrl": "/camera/278.jpg",
+        "journey": {
+          "id": 9,
+          "name": "SH2",
+          "startLatitude": -40.74416077937096,
+          "startLongitude": 175.60916552019697,
+          "endLatitude": -41.22691362355584,
+          "endLongitude": 174.85002353262297,
+          "time": "00:00:00"
+        },
+        "journeyLeg": {
+          "name": "Lower Hutt to Petone",
+          "totalLength": 12.85,
+          "sequenceNumber": 0,
+          "time": "00:00:00",
+          "effectiveSpeedLimit": 0,
+          "coverage": 0,
+          "flow": 0,
+          "freeFlowTime": 0
+        },
+        "latitude": -41.203,
+        "longitude": 174.907,
+        "name": "SH2 Melling",
+        "offline": true,
+        "region": {
+          "id": 9,
+          "name": "Wellington"
+        },
+        "sortOrder": 2,
+        "thumbUrl": "/camera/thumb/278.jpg",
+        "underMaintenance": false,
+        "viewUrl": "/camera/view/278",
+        "way": {
+          "id": 79,
+          "name": "002"
+        }
+      },
+      {
+        "description": "North along Johns Rd from Wilkinsons Rd",
+        "direction": "Northbound",
+        "group": "NA",
+        "highway": "SH1",
+        "id": 704,
+        "imageUrl": "/camera/704.jpg",
+        "journey": {
+          "id": 86,
+          "name": "SH1",
+          "startLatitude": -41.95451983830064,
+          "startLongitude": 174.0602710085141,
+          "endLatitude": -44.837365394582335,
+          "endLongitude": 171.07676518294429,
+          "time": "00:00:00"
+        },
+        "journeyLeg": {
+          "name": "Northwood to Harewood",
+          "totalLength": 5.493,
+          "sequenceNumber": 0,
+          "time": "00:00:00",
+          "effectiveSpeedLimit": 0,
+          "coverage": 0,
+          "flow": 0,
+          "freeFlowTime": 0
+        },
+        "latitude": -43.464903,
+        "longitude": 172.582345,
+        "name": "SH1 Wilkinsons Rd",
+        "offline": true,
+        "region": {
+          "id": 11,
+          "name": "Canterbury"
+        },
+        "sortOrder": 10,
+        "thumbUrl": "/camera/thumb/704.jpg",
+        "underMaintenance": true,
+        "viewUrl": "/camera/view/704",
+        "way": {
+          "id": 793,
+          "name": "01S"
+        }
+      },
+      {
+        "description": "East along Stanley St from Shotover St",
+        "direction": "Eastbound",
+        "group": "SH6A",
+        "highway": "SH6A",
+        "id": 622,
+        "imageUrl": "/camera/622.jpg",
+        "latitude": -45.030105,
+        "longitude": 168.661541,
+        "name": "SH6A Queenstown Nth",
+        "offline": false,
+        "region": {
+          "id": 13,
+          "name": "Otago"
+        },
+        "sortOrder": 1,
+        "thumbUrl": "/camera/thumb/622.jpg",
+        "underMaintenance": false,
+        "viewUrl": "/camera/view/622",
+        "way": {
+          "id": "06A",
+          "name": "06A"
+        }
+      }
+    ]
+  }
+}

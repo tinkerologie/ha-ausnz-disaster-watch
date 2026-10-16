@@ -195,6 +195,22 @@ _SOURCES = (
         status=LicenceStatus.OPEN,
     ),
     DataSource(
+        key="qldtraffic_cameras",
+        owner="Department of Transport and Main Roads (QLDTraffic); images by TMR, Transport for NSW or councils",
+        attribution="© State of Queensland (Department of Transport and Main Roads), QLDTraffic cameras, CC BY 4.0",
+        licence="CC BY 4.0 (QLDTraffic API specification); each image's owner is named in the feed",
+        terms_url="https://www.data.qld.gov.au/dataset/131940-traffic-and-travel-information-geojson-api",
+        status=LicenceStatus.OPEN,
+    ),
+    DataSource(
+        key="nzta_cameras",
+        owner="NZ Transport Agency Waka Kotahi",
+        attribution="NZ Transport Agency Waka Kotahi traffic cameras",
+        licence="No licence published (data.govt.nz: No License Provided)",
+        terms_url="https://www.nzta.govt.nz/about-us/about-this-site/copyright/",
+        status=LicenceStatus.UNVERIFIED,
+    ),
+    DataSource(
         key="qldtraffic_events",
         owner="Department of Transport and Main Roads (QLDTraffic)",
         attribution="© State of Queensland (Department of Transport and Main Roads), QLDTraffic, CC BY 4.0",
@@ -517,6 +533,8 @@ PROVIDER_SOURCES: dict[str, tuple[str, ...]] = {
     "UnisonOutageSource": ("unison_outages",),
     "WesternPowerOutageSource": ("western_power_outages",),
     "PowercoOutageSource": ("powerco_outages",),
+    # Road and flood camera catalogues (#70); the provider reports only its enabled networks
+    "CameraCatalogueProvider": ("qldtraffic_cameras", "nzta_cameras"),
 }
 
 

@@ -73,6 +73,8 @@ export interface RowOptions {
   /** Already validated with `safeUrl`; rendered as a separate link button. */
   link?: string;
   linkLabel?: string;
+  /** Extra action buttons after the link (e.g. the incident's nearest camera, #70). */
+  actions?: TemplateResult;
 }
 
 /**
@@ -104,6 +106,7 @@ export function row(options: RowOptions): TemplateResult {
           </ha-icon-button>`
         : nothing
     }
+    ${options.actions ?? nothing}
   </div>`;
 }
 

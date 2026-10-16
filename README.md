@@ -143,7 +143,16 @@ These feeds are off by default. Turn them on under **Configure** > **National an
 | Air quality (ACT) | ACT Government open data, dataset `94a5-zqnn` | CC BY 4.0 |
 
 ### Cameras (`camera`)
-Flood and traffic camera snapshots near the monitored location, where the jurisdiction provides them.
+Flood and traffic camera snapshots near the monitored location: the council dashboard's cameras (QLD and NSW council dashboards), and, when you turn them on under **Road and flood cameras** in the options, road agency cameras:
+
+- **QLDTraffic flood cameras** and **QLDTraffic web cameras** for Queensland entries (and NSW entries near the border), CC BY 4.0.
+- **NZ Transport Agency traffic cameras** for New Zealand entries; cameras that are offline or under maintenance are left out.
+
+The options set the **camera radius** (default 25 km, and cameras must also be inside the monitoring radius) and the **maximum number of cameras** (default 12, nearest first), so a city entry does not get hundreds of entities. Camera lists are downloaded at most every six hours; an image is fetched only when you view the camera. A camera's `attribution` names its network and, where the feed says, who supplies the image; its attributes include `direction`, `distance_km` and `network`.
+
+Only real images are shown: if a camera host answers with an error page instead of a picture, the camera keeps its last good image. Live Traffic NSW cameras are not available: their image server refuses requests that do not come from a web browser, and the integration does not pretend to be one.
+
+When a camera entity is within 5 km of an incident, the incident's map pin (`geo_location`) gets a `nearest_camera` attribute (`entity_id`, `name`, `distance_km`), and the incidents card shows a camera button next to the incident.
 
 ### Fire danger and total fire bans
 
@@ -225,6 +234,7 @@ Click **Configure** on the integration card to open the options menu:
 - **Forecast signals and AI rain outlook**: the opt-in Open-Meteo features below.
 - **Earthquakes** (Australian entries): include Geoscience Australia earthquakes (off by default).
 - **National and regional feeds (optional)**: tsunami, satellite hotspots, heatwave, UV, state air quality and GDACS (see [Optional national and regional feeds](#optional-national-and-regional-feeds)).
+- **Road and flood cameras (optional)** (Queensland, New South Wales and New Zealand): camera networks, camera radius and maximum number of cameras (see [Cameras](#cameras-camera)).
 - **Add / edit / remove river points**: river flood forecast points.
 - **River and creek level gauges**: the [river gauge picker](#river-and-creek-level-gauges) and optional alert levels (Queensland, New South Wales, the ACT and New Zealand).
 
@@ -502,6 +512,8 @@ The integration reads public feeds published by emergency services, weather agen
 | NZ | NEMA (Civil Defence) alerts | CC BY 4.0 |
 | NZ | MetService CAP warnings | CC BY 4.0, CAP Code of Practice |
 | NZ | NZ Transport Agency Waka Kotahi road events (`trafficnz.info`) | No licence stated on data.govt.nz; open data, unverified |
+| QLD, NSW | QLDTraffic flood and web cameras (opt-in) | CC BY 4.0; images credited to their supplier |
+| NZ | NZ Transport Agency traffic cameras (opt-in) | No licence stated on data.govt.nz; unverified |
 | QLD | Water Monitoring Information Portal river gauges (opt-in) | CC BY 4.0 |
 | NSW, ACT | WaterNSW real-time river gauges (opt-in) | CC BY (data.gov.au lists 3.0 and 4.0) |
 | NZ | Regional council Hilltop river gauges (opt-in) | Hawke's Bay CC BY; other councils unverified |
