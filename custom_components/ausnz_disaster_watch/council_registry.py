@@ -116,7 +116,7 @@ def usable_url(council: CouncilDashboard) -> str | None:
     return council["url"] if council["url"] and council["certificate_ok"] else None
 
 
-# How many neighbouring council dashboards the card links to
+# How many neighbouring council dashboards the card links to.
 NEARBY_COUNCIL_LINKS: Final = 6
 
 

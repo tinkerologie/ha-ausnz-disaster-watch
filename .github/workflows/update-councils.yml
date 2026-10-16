@@ -4,8 +4,8 @@ name: Update council registry
 # script/update-councils (#32) and opens (or updates) a pull request when it changed.
 # The generator keeps a council whose dashboard does not answer, so one bad night does not
 # drop it; a maintainer reviews the added/removed/changed summary in the pull request.
-# Pull requests opened with GITHUB_TOKEN do not start other workflows, so push an empty
-# commit or close and reopen the pull request to run CI on it.
+# Workflow runs on a pull request opened or updated with GITHUB_TOKEN need a maintainer's
+# approval: open the pull request's Checks and approve the pending runs.
 
 on:
   schedule:
@@ -33,6 +33,8 @@ jobs:
       - name: Checkout the repository
         # Credentials are kept (unlike the other workflows): this job pushes the update branch
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main # also for a manual run started from another branch
 
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0

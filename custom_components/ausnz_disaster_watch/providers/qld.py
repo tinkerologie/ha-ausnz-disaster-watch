@@ -428,8 +428,6 @@ class QueenslandHazardProvider(BaseHazardProvider):
 
         The links come from the generated council registry and are never polled.
         """
-        if not self.dashboard:
-            return []
         return nearby_council_links(
             "QLD",
             self.config.get("latitude"),
