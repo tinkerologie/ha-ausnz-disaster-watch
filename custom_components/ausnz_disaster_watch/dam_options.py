@@ -170,4 +170,7 @@ class DamOptionsFlow(OptionsFlowWithReload):
                 discovered = await async_attach_operators(session, discovered, now)
         except TimeoutError:
             _LOGGER.debug("Dam storage operator matching timed out")
+        except Exception:
+            # Matching is optional: a bug in it must not discard the Bureau's storages
+            _LOGGER.exception("Dam storage operator matching failed")
         return StorageSearch(discovered, error, latitude, longitude)

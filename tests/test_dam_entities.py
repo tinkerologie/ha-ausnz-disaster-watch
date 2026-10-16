@@ -547,11 +547,13 @@ async def test_operator_outage_does_not_keep_old_spill(
     assert percent.state == "101.0"
 
 
+@pytest.mark.parametrize("error", [TimeoutError, RuntimeError("bug")])
 async def test_options_flow_operator_match_timeout(
     hass: HomeAssistant,
     mock_config_entry: MockConfigEntry,
+    error: BaseException | type[BaseException],
 ) -> None:
-    """A slow operator feed leaves the Bureau's storages to choose from."""
+    """A slow or failing operator match leaves the Bureau's storages to choose from."""
     mock_config_entry.add_to_hass(hass)
     with (
         patch(
@@ -560,7 +562,7 @@ async def test_options_flow_operator_match_timeout(
         ),
         patch(
             "custom_components.ausnz_disaster_watch.dam_options.async_attach_operators",
-            AsyncMock(side_effect=TimeoutError),
+            AsyncMock(side_effect=error),
         ),
     ):
         result = await _open_picker(hass, mock_config_entry)
