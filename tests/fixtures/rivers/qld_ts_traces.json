@@ -1,0 +1,235 @@
+{
+ "error_num": 0,
+ "disclaimer": "https://www.qld.gov.au/legal/disclaimer",
+ "return": {
+  "traces": [
+   {
+    "error_num": 0,
+    "compressed": "0",
+    "site_details": {
+     "timezone": "10.0",
+     "short_name": "Brisbane_R Savages",
+     "longitude": "152.668941000",
+     "name": "Brisbane River at Savages Crossing",
+     "latitude": "-27.439727000",
+     "org_name": "DNR - Hydrographic"
+    },
+    "quality_codes": {
+     "130": "Not coded value"
+    },
+    "trace": [
+     {
+      "v": "1.327",
+      "t": 20261016030000,
+      "q": 130,
+      "d": 1
+     },
+     {
+      "v": "1.328",
+      "t": 20261016040000,
+      "q": 130,
+      "d": 1
+     },
+     {
+      "v": "1.328",
+      "t": 20261016044800,
+      "q": 130,
+      "d": 1
+     },
+     {
+      "v": "1.328",
+      "t": 20261016050000,
+      "q": 130,
+      "d": 1
+     },
+     {
+      "v": "1.330",
+      "t": 20261016053500,
+      "q": 130,
+      "d": 1
+     },
+     {
+      "v": "1.332",
+      "t": 20261016054800,
+      "q": 130,
+      "d": 1
+     },
+     {
+      "v": "1.330",
+      "t": 20261016060000,
+      "q": 130,
+      "d": 1
+     },
+     {
+      "v": "1.332",
+      "t": 20261016062300,
+      "q": 130,
+      "d": 1
+     },
+     {
+      "v": "1.333",
+      "t": 20261016070000,
+      "q": 130,
+      "d": 1
+     },
+     {
+      "v": "1.333",
+      "t": 20261016070100,
+      "q": 130,
+      "d": 1
+     },
+     {
+      "v": "1.333",
+      "t": 20261016080000,
+      "q": 130,
+      "d": 1
+     }
+    ],
+    "varfrom_details": {
+     "short_name": "Level (Metres)",
+     "precision": "0.001000",
+     "subdesc": "",
+     "variable": "100.00",
+     "units": "Metres",
+     "name": "Stream Water Level"
+    },
+    "site": "143001C",
+    "varto_details": {
+     "short_name": "Level (Metres)",
+     "precision": "0.001000",
+     "subdesc": "",
+     "variable": "100.00",
+     "units": "Metres",
+     "name": "Stream Water Level"
+    }
+   },
+   {
+    "error_num": 0,
+    "compressed": "0",
+    "site_details": {
+     "timezone": "10.0",
+     "short_name": "Sth Pine at Drapers",
+     "longitude": "152.923747220",
+     "name": "South Pine River at Drapers Crossing",
+     "latitude": "-27.346444440",
+     "org_name": "DNR - Hydrographic"
+    },
+    "quality_codes": {
+     "130": "Not coded value"
+    },
+    "trace": [
+     {
+      "v": "0.539",
+      "t": 20261016030000,
+      "q": 130,
+      "d": 1
+     },
+     {
+      "v": "0.539",
+      "t": 20261016040000,
+      "q": 130,
+      "d": 1
+     },
+     {
+      "v": "0.538",
+      "t": 20261016050000,
+      "q": 130,
+      "d": 1
+     },
+     {
+      "v": "0.539",
+      "t": 20261016055800,
+      "q": 130,
+      "d": 1
+     },
+     {
+      "v": "0.539",
+      "t": 20261016060000,
+      "q": 130,
+      "d": 1
+     },
+     {
+      "v": "0.540",
+      "t": 20261016060800,
+      "q": 130,
+      "d": 1
+     },
+     {
+      "v": "0.541",
+      "t": 20261016063000,
+      "q": 130,
+      "d": 1
+     },
+     {
+      "v": "0.542",
+      "t": 20261016070000,
+      "q": 130,
+      "d": 1
+     },
+     {
+      "v": "0.542",
+      "t": 20261016080000,
+      "q": 130,
+      "d": 1
+     },
+     {
+      "v": "0.543",
+      "t": 20261016080600,
+      "q": 130,
+      "d": 1
+     }
+    ],
+    "varfrom_details": {
+     "short_name": "Level (Metres)",
+     "precision": "0.001000",
+     "subdesc": "",
+     "variable": "100.00",
+     "units": "Metres",
+     "name": "Stream Water Level"
+    },
+    "site": "142202A",
+    "varto_details": {
+     "short_name": "Level (Metres)",
+     "precision": "0.001000",
+     "subdesc": "",
+     "variable": "100.00",
+     "units": "Metres",
+     "name": "Stream Water Level"
+    }
+   },
+   {
+    "error_num": 20,
+    "error_msg": "Invalid station/datasource",
+    "compressed": "0",
+    "site_details": {
+     "timezone": "10.0",
+     "short_name": "",
+     "longitude": "0.000000000",
+     "name": "",
+     "latitude": "0.000000000",
+     "org_name": ""
+    },
+    "trace": [],
+    "varfrom_details": {
+     "short_name": "Level (Metres)",
+     "precision": "0.001000",
+     "subdesc": "",
+     "variable": "100.00",
+     "units": "Metres",
+     "name": "Stream Water Level"
+    },
+    "site": "999999Z",
+    "varto_details": {
+     "short_name": "Level (Metres)",
+     "precision": "0.001000",
+     "subdesc": "",
+     "variable": "100.00",
+     "units": "Metres",
+     "name": "Stream Water Level"
+    }
+   }
+  ]
+ },
+ "licence": "CC_40_BY",
+ "Glossary": "https://water-monitoring.information.qld.gov.au/wini/documents/webglossary.pdf"
+}

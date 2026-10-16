@@ -1,0 +1,97 @@
+{
+ "error_num": 0,
+ "return": {
+  "traces": [
+   {
+    "error_num": 0,
+    "compressed": "0",
+    "site_details": {
+     "timezone": "10.0",
+     "short_name": "HAWK'BURY NTHRCHMOND",
+     "latitude_decode": " 33\u00b035'21.5\"S",
+     "longitude": "150.714031090",
+     "name": "HAWKESBURY RIVER AT NORTH RICHMOND",
+     "longitude_decode": " 33\u00b035'21.5\"W",
+     "latitude": "-33.589301250",
+     "org_name": "WaterNSW"
+    },
+    "quality_codes": {
+     "125": "Telemetry data that has passed Gross Error checks"
+    },
+    "trace": [
+     {
+      "v": "0.127",
+      "t": 20261016044500,
+      "q": 125,
+      "d": 1
+     },
+     {
+      "v": "0.141",
+      "t": 20261016050000,
+      "q": 125,
+      "d": 1
+     },
+     {
+      "v": "0.141",
+      "t": 20261016051500,
+      "q": 125,
+      "d": 1
+     },
+     {
+      "v": "0.124",
+      "t": 20261016053000,
+      "q": 125,
+      "d": 1
+     },
+     {
+      "v": "0.091",
+      "t": 20261016054500,
+      "q": 125,
+      "d": 1
+     },
+     {
+      "v": "0.059",
+      "t": 20261016060000,
+      "q": 125,
+      "d": 1
+     },
+     {
+      "v": "0.029",
+      "t": 20261016061500,
+      "q": 125,
+      "d": 1
+     },
+     {
+      "v": "0.005",
+      "t": 20261016063000,
+      "q": 125,
+      "d": 1
+     },
+     {
+      "v": "-0.020",
+      "t": 20261016064500,
+      "q": 125,
+      "d": 1
+     }
+    ],
+    "varfrom_details": {
+     "short_name": "Level     (Metres)",
+     "precision": "0.001000",
+     "subdesc": "",
+     "variable": "100.00",
+     "units": "Metres",
+     "name": "Stream Water Level"
+    },
+    "site": "212200",
+    "varto_details": {
+     "short_name": "Level     (Metres)",
+     "precision": "0.001000",
+     "subdesc": "",
+     "variable": "100.00",
+     "units": "Metres",
+     "name": "Stream Water Level"
+    }
+   }
+  ]
+ }
+}

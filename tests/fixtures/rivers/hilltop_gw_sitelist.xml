@@ -1,0 +1,25 @@
+<?xml version="1.0" ?>
+<HilltopServer>
+<Agency>GWRC</Agency>
+<Site Name="Ashbys Stream at Ashbys Road Culvert">
+<Latitude>-41.16442519</Latitude>
+<Longitude>175.33220400</Longitude>
+</Site>
+<Site Name="Hutt River at Taita Gorge">
+<Latitude>-41.15660826</Latitude>
+<Longitude>174.98478200</Longitude>
+</Site>
+<Site Name="R27/1171">
+<Latitude>-41.25522900</Latitude>
+<Longitude>174.86794337</Longitude>
+</Site>
+<Site Name="Waiwhetu Stream at Whites Line East">
+<Latitude>-41.22479224</Latitude>
+<Longitude>174.92057144</Longitude>
+</Site>
+<Site Name="Wellington Harbour at Queens Wharf">
+<Latitude>-41.28450269</Latitude>
+<Longitude>174.77982903</Longitude>
+</Site>
+<CRC>2339</CRC>
+</HilltopServer>

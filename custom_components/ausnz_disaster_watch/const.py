@@ -17,6 +17,7 @@ CONF_LATITUDE: Final = "latitude"
 CONF_LONGITUDE: Final = "longitude"
 CONF_LOCATION_NAME: Final = "location_name"
 CONF_COUNCIL_DASHBOARD_URL: Final = "council_dashboard_url"
+CONF_RIVER_GAUGES: Final = "river_gauges"
 
 # Location modes
 LOCATION_MODE_HOME: Final = "home"

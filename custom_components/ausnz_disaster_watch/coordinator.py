@@ -48,6 +48,8 @@ if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
 
+    from .river_coordinator import RiverGaugeCoordinator
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -150,6 +152,8 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         self._feeds_failed: list[str] = []
         # Opt-in Open-Meteo forecast coordinators, set up by async_setup_entry (#38, #39, #40)
         self.forecasts = ForecastCoordinators()
+        # Polls the river gauges chosen in the options flow; None when none are selected (#31)
+        self.river_coordinator: RiverGaugeCoordinator | None = None
         self._update_config_values()
 
         session = async_get_clientsession(hass)

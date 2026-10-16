@@ -235,6 +235,39 @@ _SOURCES = (
         terms_url="https://open-meteo.com/en/docs/google-weathernext-api",
         status=LicenceStatus.UNVERIFIED,
     ),
+    # Opt-in river gauges (#31)
+    DataSource(
+        key="river_qld_wmip",
+        owner="Queensland Government (Water Monitoring Information Portal)",
+        attribution="© State of Queensland, Water Monitoring Information Portal, CC BY 4.0",
+        licence="CC BY 4.0",
+        terms_url="https://www.qld.gov.au/legal/disclaimer",
+        status=LicenceStatus.OPEN,
+    ),
+    DataSource(
+        key="river_waternsw",
+        owner="WaterNSW",
+        attribution="© State Government of NSW and WaterNSW, CC BY",
+        licence="CC BY (3.0 or 4.0; listings differ)",
+        terms_url="https://data.gov.au/data/dataset/nsw-real-time-water",
+        status=LicenceStatus.OPEN,
+    ),
+    DataSource(
+        key="river_hbrc_hilltop",
+        owner="Hawke's Bay Regional Council",
+        attribution="Hawke's Bay Regional Council, CC BY",
+        licence="CC BY 3.0 or 4.0 NZ",
+        terms_url="https://www.hbrc.govt.nz/our-council/open-data/",
+        status=LicenceStatus.OPEN,
+    ),
+    DataSource(
+        key="river_nz_hilltop",
+        owner="NZ regional councils (Hilltop servers)",
+        attribution="New Zealand regional councils",
+        licence="Not verified: no licence stated for the Hilltop servers",
+        terms_url="https://hilltop.gw.govt.nz/Data.hts",
+        status=LicenceStatus.UNVERIFIED,
+    ),
 )
 
 DATA_SOURCES: dict[str, DataSource] = {source.key: source for source in _SOURCES}

@@ -16,6 +16,7 @@ from .entity import AustralianDisasterWatchEntity
 from .forecast_entity import forecast_sensors
 from .providers.fire_danger import NZ_SEASONS, local_today
 from .providers.sources import attribution_for
+from .river_sensor import async_setup_river_sensors
 
 
 async def async_setup_entry(
@@ -44,6 +45,7 @@ async def async_setup_entry(
     if coordinator.state_code == STATE_NZ:
         entities.append(FireSeasonSensor(coordinator))
     async_add_entities(entities)
+    async_setup_river_sensors(hass, entry, async_add_entities)
 
 
 class NearestHazardDistanceSensor(AustralianDisasterWatchEntity, SensorEntity):

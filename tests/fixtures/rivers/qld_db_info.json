@@ -1,0 +1,16 @@
+{
+ "error_num": 0,
+ "disclaimer": "https://www.qld.gov.au/legal/disclaimer",
+ "return": {
+  "rows": [
+   {
+    "stname": "Moggill Creek at Upper Brookfield",
+    "longitude": "152.892431000",
+    "station": "143032A",
+    "latitude": "-27.488339000"
+   }
+  ]
+ },
+ "licence": "CC_40_BY",
+ "Glossary": "https://water-monitoring.information.qld.gov.au/wini/documents/webglossary.pdf"
+}

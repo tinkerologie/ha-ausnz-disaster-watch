@@ -423,8 +423,8 @@ async def test_options_flow(
     result = await hass.config_entries.options.async_init(mock_config_entry.entry_id)
     assert result["type"] == data_entry_flow.FlowResultType.MENU
     assert result["step_id"] == "init"
-    # River point edit/remove only appear once a point exists
-    assert result["menu_options"] == ["settings", "forecasts", "add_river_point"]
+    # River point edit/remove only appear once a point exists; QLD has river gauges (#31)
+    assert result["menu_options"] == ["settings", "forecasts", "add_river_point", "river_gauges"]
 
     result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "settings"})
     assert result["type"] == data_entry_flow.FlowResultType.FORM
