@@ -136,6 +136,10 @@ def test_choose_broadcaster() -> None:
     gone = choose_broadcaster(stations, "abc_gone", "QLD", *BRISBANE)
     assert gone is not None
     assert gone.station.key == "abc_brisbane"
+    # An ABC station kept after the entry moved to New Zealand is not used there
+    moved = choose_broadcaster(stations, "abc_sunshine", "NZ", *CHRISTCHURCH)
+    assert moved is not None
+    assert (moved.station.key, moved.selection) == ("rnz_national", "nearest")
     assert choose_broadcaster({}, BROADCASTER_NEAREST, "QLD", *BRISBANE) is None
     assert media_content_id("abc") == "media-source://ausnz_disaster_watch/emergency_broadcaster/abc"
 

@@ -129,10 +129,11 @@ def choose_broadcaster(
     """Return the chosen station, or the nearest one; None when off or the table has no station."""
     if option == BROADCASTER_OFF:
         return None
-    if (chosen := stations.get(option)) is not None:
+    # A chosen station counts only in the entry's country (the entry may have moved country)
+    if (chosen := stations.get(option)) is not None and chosen.country == country_of(state):
         distance = calculate_haversine_distance(latitude, longitude, chosen.latitude, chosen.longitude)
         return BroadcasterChoice(chosen, "chosen", distance)
-    # "nearest", or a station that is no longer in the table
+    # "nearest", a station that is no longer in the table, or one of another country
     if not (ranked := stations_by_distance(stations, state, latitude, longitude)):
         return None
     station, distance = ranked[0]
