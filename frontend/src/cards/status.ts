@@ -16,6 +16,9 @@ const ALERT_KEYS = [
   { key: KEY.roadClosureNearby, icon: "mdi:traffic-cone", label: "status.chip.road_closure_nearby" },
 ] as const satisfies readonly { key: EntityKey; icon: string; label: TranslationKey }[];
 
+/** Headlines that are the sensor's state as it is; the others are the card's own wording. */
+const SENSOR_STATUSES = new Set<HeadlineStatus>(["all_clear", "emergency", "watch_and_act", "advice", "information"]);
+
 const STATUS_LABELS: Record<HeadlineStatus, TranslationKey> = {
   all_clear: "status.all_clear",
   unavailable: "status.unavailable",
@@ -105,9 +108,13 @@ export class StatusCard extends DisasterCard {
     const levelState = stateFor(hass, device, KEY.highestWarningLevel);
     const countState = stateFor(hass, device, KEY.activeHazardsCount);
     const count = isUnavailable(countState) ? undefined : numberAttr(countState?.state);
-    const status = headlineStatus(isUnavailable(levelState) ? undefined : levelState?.state, count);
+    const status = headlineStatus(levelState?.state, count);
     const presentation = headlinePresentation(status);
-    const label = t(hass, STATUS_LABELS[status]);
+    // The sensor's own translated state name when the headline is that state (#21)
+    const label =
+      levelState && hass.formatEntityState && SENSOR_STATUSES.has(status)
+        ? hass.formatEntityState(levelState)
+        : t(hass, STATUS_LABELS[status]);
 
     const distanceState = stateFor(hass, device, KEY.nearestHazardDistance);
     const titleState = stateFor(hass, device, KEY.nearestHazardTitle);

@@ -136,6 +136,19 @@ customElements.define(
 customElements.define("ha-tooltip", class extends Base {});
 
 /** Build a hass object from the fixture with HA-like formatters. */
+const ENUM_STATE_NAMES = {
+  all_clear: "All Clear",
+  information: "Information",
+  advice: "Advice",
+  watch_and_act: "Watch and Act",
+  emergency_warning: "Emergency Warning",
+  no_rating: "No Rating",
+  moderate: "Moderate",
+  high: "High",
+  extreme: "Extreme",
+  catastrophic: "Catastrophic",
+};
+
 window.makeHass = (fixture, { darkMode = false, states = {} } = {}) => {
   const allStates = { ...structuredClone(fixture.states), ...states };
   const number = (v) => new Intl.NumberFormat("en").format(v);
@@ -159,6 +172,8 @@ window.makeHass = (fixture, { darkMode = false, states = {} } = {}) => {
       removeEventListener() {},
     },
     formatEntityState(stateObj) {
+      // Translated ENUM state names, as the integration's en.json gives them (#21)
+      if (ENUM_STATE_NAMES[stateObj.state]) return ENUM_STATE_NAMES[stateObj.state];
       const value = Number(stateObj.state);
       const unit = stateObj.attributes.unit_of_measurement;
       const shown = stateObj.state !== "" && Number.isFinite(value) ? number(value) : stateObj.state;

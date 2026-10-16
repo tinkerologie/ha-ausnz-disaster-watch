@@ -551,7 +551,7 @@
     },
     "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_highest_warning_level": {
       "entity_id": "sensor.australia_and_new_zealand_disaster_watch_nz_wellington_highest_warning_level",
-      "state": "Advice",
+      "state": "advice",
       "attributes": {
         "emergency_news": [],
         "nearby_councils": [],
@@ -1121,7 +1121,7 @@
     },
     "sensor.australia_and_new_zealand_disaster_watch_qld_dev_highest_warning_level": {
       "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_highest_warning_level",
-      "state": "Watch and Act",
+      "state": "watch_and_act",
       "attributes": {
         "emergency_news": [],
         "nearby_councils": [
@@ -1326,7 +1326,7 @@
     },
     "sensor.australia_and_new_zealand_disaster_watch_qld_dev_fire_danger_rating": {
       "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_fire_danger_rating",
-      "state": "Moderate",
+      "state": "moderate",
       "attributes": {
         "district_name": "Southeast Coast",
         "district_number": "QLD_15",

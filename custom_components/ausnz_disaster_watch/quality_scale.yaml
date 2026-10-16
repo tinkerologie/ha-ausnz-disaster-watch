@@ -90,13 +90,10 @@ rules:
     status: done
     comment: No entity holds configuration or diagnostic data; feed health is in the diagnostics.
   entity-device-class:
-    status: todo
+    status: done
     comment: |
-      Highest warning level and fire danger rating report English display strings
-      ("Watch and Act", "Extreme") that the dashboard cards and user automations compare.
-      Making them ENUM sensors with translated states needs snake_case state tokens, a
-      breaking change left for a maintainer decision. Every other sensor with a matching
-      device class uses it.
+      Highest warning level, fire danger rating, fire season and heatwave severity are ENUM
+      sensors with translated states; measurements use their device class.
   entity-disabled-by-default:
     status: done
     comment: |
@@ -106,11 +103,7 @@ rules:
     status: done
     comment: Cameras and geolocation events are named after the upstream camera and incident.
   exception-translations: done
-  icon-translations:
-    status: todo
-    comment: |
-      Every entity takes its icon from icons.json except highest warning level and fire
-      danger rating, whose state icons need the same state tokens as entity-device-class.
+  icon-translations: done
   reconfiguration-flow: done
   repair-issues:
     status: done

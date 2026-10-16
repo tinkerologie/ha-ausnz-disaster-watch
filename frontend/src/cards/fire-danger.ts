@@ -130,7 +130,11 @@ export class FireDangerCard extends DisasterCard {
     }
     const rating = parseAfdrs(isUnavailable(stateObj) ? undefined : stateObj.state);
     const tone = afdrsTone(rating);
-    const label = t(hass, `fire.rating.${rating}` as TranslationKey);
+    // The sensor's translated state name (#21); an unknown rating reads as "No rating"
+    const label =
+      hass.formatEntityState && !isUnavailable(stateObj)
+        ? hass.formatEntityState(stateObj)
+        : t(hass, `fire.rating.${rating}` as TranslationKey);
     const district = stringAttr(stateObj.attributes.district_name);
     const day = stringAttr(stateObj.attributes.day);
     const totalFireBan = stateObj.attributes.total_fire_ban === true;

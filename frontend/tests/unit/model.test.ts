@@ -20,6 +20,11 @@ describe("Australian Warning System", () => {
     ["Watch & Act", "watch_and_act", "orange"],
     ["Advice", "advice", "amber"],
     ["Information", "information", "blue"],
+    // Sensor states (#21)
+    ["emergency_warning", "emergency", "red"],
+    ["watch_and_act", "watch_and_act", "orange"],
+    ["advice", "advice", "amber"],
+    ["information", "information", "blue"],
     ["Unknown", "unknown", "grey"],
     [undefined, "unknown", "grey"],
   ])("%s -> %s", (value, level, tone) => {
@@ -36,6 +41,12 @@ describe("Australian Warning System", () => {
     expect(headlineStatus(undefined, 0)).toBe("unavailable");
     expect(headlineStatus("Information", 2)).toBe("information");
     expect(headlineStatus("Unknown", 2)).toBe("unknown");
+    // Sensor states (#21); an unknown level with hazards is not missing data
+    expect(headlineStatus("all_clear", 0)).toBe("all_clear");
+    expect(headlineStatus("all_clear", 1)).toBe("unknown");
+    expect(headlineStatus("watch_and_act", 1)).toBe("watch_and_act");
+    expect(headlineStatus("emergency_warning", 1)).toBe("emergency");
+    expect(headlineStatus("unknown", 2)).toBe("unknown");
     expect(headlinePresentation("all_clear").tone).toBe("green");
     expect(headlinePresentation("unavailable").tone).toBe("grey");
     expect(headlinePresentation("emergency").tone).toBe("red");
@@ -76,6 +87,8 @@ describe("ratings", () => {
     expect(parseAfdrs("Extreme")).toBe("extreme");
     expect(parseAfdrs("Catastrophic")).toBe("catastrophic");
     expect(parseAfdrs("No Rating")).toBe("no_rating");
+    expect(parseAfdrs("no_rating")).toBe("no_rating");
+    expect(parseAfdrs("catastrophic")).toBe("catastrophic");
     expect(parseAfdrs(undefined)).toBe("no_rating");
     expect(afdrsTone("moderate")).toBe("green");
     expect(afdrsTone("catastrophic")).toBe("red");

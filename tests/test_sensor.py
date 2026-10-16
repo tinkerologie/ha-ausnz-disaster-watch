@@ -73,7 +73,8 @@ async def test_sensors_telemetry(
     # Highest warning level sensor: "Emergency Warning"
     level_state = hass.states.get(f"{prefix}_highest_warning_level")
     assert level_state is not None
-    assert level_state.state == "Emergency Warning"
+    assert level_state.state == "emergency_warning"
+    assert level_state.attributes["device_class"] == "enum"
 
     # Nearest hazard title sensor
     title_state = hass.states.get(f"{prefix}_nearest_hazard_title")
@@ -110,16 +111,18 @@ async def test_sensors_clear_state(
 
     level_state = hass.states.get(f"{prefix}_highest_warning_level")
     assert level_state is not None
-    assert level_state.state == "All Clear"
+    assert level_state.state == "all_clear"
 
 
-async def test_highest_warning_level_sensor_icons(hass: HomeAssistant, mock_config_entry: MockConfigEntry) -> None:
-    """Test icon selection for different warning levels."""
+async def test_highest_warning_level_sensor_states(hass: HomeAssistant, mock_config_entry: MockConfigEntry) -> None:
+    """Each warning level is an option; the icons for them come from icons.json (#21)."""
     coordinator = AustralianDisasterWatchCoordinator(hass, mock_config_entry)
     sensor = HighestWarningLevelSensor(coordinator)
 
+    assert sensor.icon is None
+    assert sensor.options == ["all_clear", "information", "advice", "watch_and_act", "emergency_warning"]
     coordinator.data = {}
-    assert sensor.icon == "mdi:shield-check"
+    assert sensor.native_value == "all_clear"
 
     hazard_advice = CanonicalHazard(
         id="1",
@@ -132,7 +135,7 @@ async def test_highest_warning_level_sensor_icons(hass: HomeAssistant, mock_conf
         updated_at=datetime.now(UTC),
     )
     coordinator.data = {"1": hazard_advice}
-    assert sensor.icon == "mdi:information"
+    assert sensor.native_value == "advice"
 
     hazard_wa = CanonicalHazard(
         id="2",
@@ -145,7 +148,7 @@ async def test_highest_warning_level_sensor_icons(hass: HomeAssistant, mock_conf
         updated_at=datetime.now(UTC),
     )
     coordinator.data = {"2": hazard_wa}
-    assert sensor.icon == "mdi:alert"
+    assert sensor.native_value == "watch_and_act"
 
     hazard_ew = CanonicalHazard(
         id="3",
@@ -158,7 +161,13 @@ async def test_highest_warning_level_sensor_icons(hass: HomeAssistant, mock_conf
         updated_at=datetime.now(UTC),
     )
     coordinator.data = {"3": hazard_ew}
-    assert sensor.icon == "mdi:alert-octagon"
+    assert sensor.native_value == "emergency_warning"
+
+    # A level that is not known has no option: the sensor is unknown
+    coordinator.data = {"4": hazard_ew.model_copy(update={"id": "4", "warning_level": WarningLevel.UNKNOWN})}
+    assert sensor.native_value is None
+    coordinator.data = {"5": hazard_ew.model_copy(update={"id": "5", "warning_level": WarningLevel.INFORMATION})}
+    assert sensor.native_value == "information"
 
 
 async def test_expanded_disaster_sensors(
@@ -231,21 +240,25 @@ async def test_expanded_disaster_sensors(
     assert "warnings" in ww_count.extra_state_attributes
 
     fd_sensor = FireDangerRatingSensor(coordinator)
-    assert fd_sensor.native_value == "Catastrophic"
-    assert fd_sensor.icon == "mdi:fire-alert"
+    assert fd_sensor.native_value == "catastrophic"
+    assert fd_sensor.icon is None  # from icons.json (#21)
+    assert fd_sensor.options == ["no_rating", "moderate", "high", "extreme", "catastrophic"]
     fd_attrs = fd_sensor.extra_state_attributes
     assert fd_attrs["district_name"] == "Moreton"
     assert fd_attrs["total_fire_ban"] is True
 
-    # Test fire danger sensor with Extreme, High, Moderate, and None
-    coordinator.data.fire_danger.rating = "Extreme"
-    assert fd_sensor.icon == "mdi:fire-alert"
-    coordinator.data.fire_danger.rating = "High"
-    assert fd_sensor.icon == "mdi:fire"
-    coordinator.data.fire_danger.rating = "Moderate"
-    assert fd_sensor.icon == "mdi:fire"
-    coordinator.data.fire_danger.rating = "No Rating"
-    assert fd_sensor.icon == "mdi:shield-check"
+    # AFDRS display names map to their options; anything else is unknown (#21)
+    for rating, option in (
+        ("Extreme", "extreme"),
+        ("High", "high"),
+        ("Moderate", "moderate"),
+        ("No Rating", "no_rating"),
+        (" no-rating ", "no_rating"),
+        ("Very High", None),
+        ("", None),
+    ):
+        coordinator.data.fire_danger.rating = rating
+        assert fd_sensor.native_value == option, rating
 
     coordinator.data.fire_danger = None
     assert fd_sensor.native_value is None

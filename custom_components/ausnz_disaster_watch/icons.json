@@ -106,6 +106,16 @@
       "active_hazards_count": {
         "default": "mdi:shield-alert"
       },
+      "highest_warning_level": {
+        "default": "mdi:help-circle-outline",
+        "state": {
+          "all_clear": "mdi:shield-check",
+          "information": "mdi:information-outline",
+          "advice": "mdi:information",
+          "watch_and_act": "mdi:alert",
+          "emergency_warning": "mdi:alert-octagon"
+        }
+      },
       "nearest_hazard_title": {
         "default": "mdi:text-box-search"
       },
@@ -120,6 +130,16 @@
       },
       "weather_warnings_count": {
         "default": "mdi:weather-lightning-rainy"
+      },
+      "fire_danger_rating": {
+        "default": "mdi:help-circle-outline",
+        "state": {
+          "no_rating": "mdi:fire-off",
+          "moderate": "mdi:fire",
+          "high": "mdi:fire",
+          "extreme": "mdi:fire-alert",
+          "catastrophic": "mdi:fire-alert"
+        }
       },
       "fire_season": {
         "default": "mdi:fire",

@@ -78,9 +78,9 @@ Renders interactive pins on the native Home Assistant Map for every active hazar
 | `…_nearest_hazard_distance` | Distance to the closest active incident | `km` |
 | `…_nearest_hazard_title` | Headline of the nearest incident | — |
 | `…_active_hazards_count` | Active incidents in the monitored perimeter | `hazards` |
-| `…_highest_warning_level` | Highest AWS level currently active (`Emergency Warning`, `Watch and Act`, `Advice`, `Information`, `All Clear`) | — |
+| `…_highest_warning_level` | Highest AWS level currently active. States: `emergency_warning`, `watch_and_act`, `advice`, `information`, `all_clear` (no incidents); `unknown` when the incidents have no known level. The dashboard shows them translated (Emergency Warning, Watch and Act, …) | — |
 | `…_weather_warnings_count` | Active weather warnings | `warnings` |
-| `…_fire_danger_rating` | Today's AFDRS fire danger rating for your fire weather district, with a 4-day `forecast` attribute | — |
+| `…_fire_danger_rating` | Today's AFDRS fire danger rating for your fire weather district (`no_rating`, `moderate`, `high`, `extreme`, `catastrophic`), with a 4-day `forecast` attribute | — |
 | `…_fire_season` | New Zealand only: fire season at your location (`open`, `restricted`, `prohibited`) with Section 52 prohibitions | — |
 | `…_power_outages_count` / `…_power_outages_customers_affected` | Power outages and customers affected (see [Power outages](#power-outages)) | `outages` / `customers` |
 | `…_road_closures_count` | Road closures, flooded roads and road hazards nearby (plus roadworks when enabled); the `closures` attribute lists the nearest 25 with their `category` | `closures` |
@@ -203,7 +203,7 @@ When a camera entity is within 5 km of an incident, the incident's map pin (`geo
 
 Your location is matched to its Bureau of Meteorology fire weather district (bundled, simplified `IDM00007` boundaries, so border towns such as Albury and Wodonga or Queanbeyan and Canberra get their own district). The rating and 4-day outlook come from the Bureau's fire danger forecast for that state. Each forecast day is dated in the district's local time, so the sensor always shows today's rating, including in the evening after the next day's forecast is issued. Fire danger is polled at most every 30 minutes.
 
-`…_fire_danger_rating` attributes: `district_name`, `district_number` (BoM district code such as `NSW_FW008`), `date`, `fire_behaviour_index`, `total_fire_ban`, `forecast` (one entry per day: `date`, `rating`, `fire_behaviour_index`, `total_fire_ban`), `issued_at`, `source` and `total_fire_ban_source`. The state is unchanged: `No Rating`, `Moderate`, `High`, `Extreme` or `Catastrophic`.
+`…_fire_danger_rating` attributes: `district_name`, `district_number` (BoM district code such as `NSW_FW008`), `date`, `fire_behaviour_index`, `total_fire_ban`, `forecast` (one entry per day: `date`, `rating`, `fire_behaviour_index`, `total_fire_ban`), `issued_at`, `source` and `total_fire_ban_source`. The state is `no_rating`, `moderate`, `high`, `extreme` or `catastrophic` (shown translated, for example "Extreme"); it is `unknown` when the district has no AFDRS rating. The `rating` of each `forecast` day keeps the display name (`Extreme`).
 
 Total fire bans come from the agency that declares them:
 
@@ -662,7 +662,28 @@ actions:
         media_content_type: music
 ```
 
-### 5. Dam above full supply
+### 5. Fire danger rating of Extreme or higher
+
+States of the highest warning level and fire danger rating sensors are snake_case (`watch_and_act`, `extreme`); the dashboard and history show them translated.
+
+```yaml
+alias: "Fire danger: extreme or catastrophic"
+triggers:
+  - trigger: state
+    entity_id: sensor.australia_and_new_zealand_disaster_watch_qld_home_fire_danger_rating
+    to:
+      - extreme
+      - catastrophic
+actions:
+  - action: notify.notify
+    data:
+      title: "Fire danger"
+      message: >-
+        Fire danger is {{ states('sensor.australia_and_new_zealand_disaster_watch_qld_home_fire_danger_rating') }}
+        in {{ state_attr('sensor.australia_and_new_zealand_disaster_watch_qld_home_fire_danger_rating', 'district_name') }}.
+```
+
+### 6. Dam above full supply
 
 Notify when Somerset holds flood water or Wivenhoe goes over 100%:
 
@@ -719,7 +740,7 @@ When a feed fails, its last good data stands in for up to 30 minutes, so a short
 - Each entry watches one location. Add another entry for each extra location.
 - Coverage depends on what each agency publishes. NSW SES, VicEmergency and ACT warning areas are not read (see [Warning Areas](#key-features)), and some council dashboards cannot be read (see [Setup & Configuration](#setup--configuration)).
 - Distances are to the published warning area where an agency publishes one, otherwise to a single point, which can be far from the edge of a large fire or flood.
-- The highest warning level and fire danger rating sensors report the English names of the levels (`Watch and Act`, `Extreme`). Automations should compare these exact strings.
+- Hazard attributes (`warning_level`, the emergency warning sensor's `highest_warning_level` attribute) and fire danger `forecast` days keep the English level names (`Watch and Act`, `Extreme`); only the two sensors' states are snake_case.
 - Forecast signals and the AI rain outlook are model output, not official warnings.
 - Data is only as current as each feed. Always follow the official advice of your emergency services; this integration is not a warning service.
 
@@ -785,7 +806,7 @@ The full register, with every endpoint, terms evidence, rate limits and the deci
 
 ## Quality Scale & Standards
 
-- **Integration Quality Scale**: Silver. [`quality_scale.yaml`](custom_components/ausnz_disaster_watch/quality_scale.yaml) records each [rule](https://developers.home-assistant.io/docs/core/integration-quality-scale/rules) as done, exempt (with the reason) or still to do.
+- **Integration Quality Scale**: Gold. [`quality_scale.yaml`](custom_components/ausnz_disaster_watch/quality_scale.yaml) records each [rule](https://developers.home-assistant.io/docs/core/integration-quality-scale/rules) as done, exempt (with the reason) or still to do.
 - **Type Checking**: Pyright in basic mode.
 - **Modern Code Standards**: Linted and formatted with Ruff (`py313`).
 - **Comprehensive Test Suite**: Tested with `pytest-homeassistant-custom-component`.

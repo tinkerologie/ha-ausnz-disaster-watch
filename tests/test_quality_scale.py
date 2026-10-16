@@ -16,6 +16,7 @@ import yaml
 
 from custom_components.ausnz_disaster_watch.geo_location import hazard_translation_key
 from custom_components.ausnz_disaster_watch.models import CanonicalHazard, HazardType
+from custom_components.ausnz_disaster_watch.sensor import FIRE_DANGER_OPTIONS, WARNING_LEVEL_OPTIONS_WITH_CLEAR
 
 INTEGRATION = Path(__file__).parent.parent / "custom_components" / "ausnz_disaster_watch"
 
@@ -80,9 +81,6 @@ TIERS: dict[str, tuple[str, ...]] = {
     ),
     "platinum": ("async-dependency", "inject-websession", "strict-typing"),
 }
-
-# Sensors that keep a computed icon until their states become tokens (see icon-translations)
-COMPUTED_ICONS = {"highest_warning_level", "fire_danger_rating"}
 
 
 def _status(value: Any) -> str:
@@ -155,8 +153,21 @@ def test_icons_match_translated_entities() -> None:
     source = "\n".join(path.read_text(encoding="utf-8") for path in INTEGRATION.glob("*.py"))
     for platform in ("sensor", "binary_sensor"):
         assert set(icons[platform]) <= set(translations[platform]), platform
-    # No icon is set in code any more, except the two computed ones
+    # No icon is set in code; every icon comes from icons.json
     assert "_attr_icon" not in source
     assert 'icon="mdi:' not in source
-    assert source.count("def icon(self)") == len(COMPUTED_ICONS)
-    assert not COMPUTED_ICONS & set(icons["sensor"])
+    assert "def icon(self)" not in source
+
+
+def test_enum_states_are_translated_and_have_icons() -> None:
+    """Every option of the ENUM sensors has a translated name, and state icons name real options (#21)."""
+    icons = json.loads((INTEGRATION / "icons.json").read_text(encoding="utf-8"))["entity"]["sensor"]
+    translations = json.loads((INTEGRATION / "translations" / "en.json").read_text(encoding="utf-8"))["entity"]
+    for key, options in (
+        ("highest_warning_level", WARNING_LEVEL_OPTIONS_WITH_CLEAR),
+        ("fire_danger_rating", FIRE_DANGER_OPTIONS),
+    ):
+        assert set(translations["sensor"][key]["state"]) == set(options), key
+        # Every state has its own icon; the neutral default is left for unknown (#21).
+        assert set(icons[key]["state"]) == set(options), key
+        assert icons[key]["default"] == "mdi:help-circle-outline", key
