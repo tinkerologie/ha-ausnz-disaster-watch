@@ -20,7 +20,14 @@ from custom_components.ausnz_disaster_watch.const import (
     STATE_NZ,
 )
 from custom_components.ausnz_disaster_watch.dam_options import offers_dam_storages, storage_label
-from custom_components.ausnz_disaster_watch.dams import DAM_SCAN_INTERVAL, DamSourceError, StorageReading, StorageSite
+from custom_components.ausnz_disaster_watch.dams import (
+    DAM_SCAN_INTERVAL,
+    OPERATOR_WATERNSW,
+    DamSourceError,
+    OperatorReading,
+    StorageReading,
+    StorageSite,
+)
 from custom_components.ausnz_disaster_watch.diagnostics import async_get_config_entry_diagnostics
 from homeassistant.const import ATTR_ATTRIBUTION, ATTR_UNIT_OF_MEASUREMENT, STATE_OFF, STATE_ON, STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant
@@ -98,6 +105,22 @@ def mock_fetch() -> Generator[AsyncMock]:
         "custom_components.ausnz_disaster_watch.dam_coordinator.async_fetch_readings",
         autospec=True,
     ) as fetch:
+        yield fetch
+
+
+@pytest.fixture(autouse=True)
+def mock_operators() -> Generator[AsyncMock]:
+    """Patch the operator feeds: no operator readings, and discovery returned unchanged."""
+    with (
+        patch(
+            "custom_components.ausnz_disaster_watch.dam_coordinator.async_fetch_operator_readings",
+            AsyncMock(return_value={}),
+        ) as fetch,
+        patch(
+            "custom_components.ausnz_disaster_watch.dam_options.async_attach_operators",
+            AsyncMock(side_effect=lambda session, readings, now: readings),
+        ),
+    ):
         yield fetch
 
 
@@ -392,3 +415,89 @@ async def test_diagnostics_list_the_storage_source(
     assert keys.count("bom_water_storages") == 1
     assert mock_config_entry.runtime_data.attribution == attribution
     assert "Water Data Online" not in (attribution or "")
+
+
+TOONUMBAR = StorageSite(
+    site_id="585899",
+    name="TOONUMBAR DAM",
+    latitude=-28.6185,
+    longitude=152.7936,
+    owner="w00077",
+    volume_ts=("132602010",),
+    level_ts=("363676010",),
+    full_volume_ml=11048.902,
+    full_level_m=129.626,
+    operator=OPERATOR_WATERNSW,
+    operator_id="203042",
+)
+TOONUMBAR_PERCENT = f"sensor.{PREFIX}_toonumbar_dam_percent_full"
+TOONUMBAR_ABOVE = f"binary_sensor.{PREFIX}_toonumbar_dam_above_full_supply"
+SPILL = OperatorReading(
+    OPERATOR_WATERNSW,
+    datetime(2026, 10, 16, 3, 30, tzinfo=UTC),
+    level_m=129.71,
+    volume_ml=11158.0,
+    spill_24h_ml=32.0,
+    release_24h_ml=29.0,
+    totals_date="2026-10-15",
+)
+
+
+async def test_operator_feed(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    mock_providers: AsyncMock,
+    mock_fetch: AsyncMock,
+    mock_operators: AsyncMock,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """A matched WaterNSW gauge gives a fresher level and the spill signal; diagnostics list the feed."""
+    freezer.move_to(datetime(2026, 10, 16, 4, 0, tzinfo=UTC))
+    mock_fetch.return_value = {TOONUMBAR.key: _reading(TOONUMBAR, volume=11000.0, level=129.5)}
+    mock_operators.return_value = {TOONUMBAR.key: SPILL}
+    mock_config_entry.add_to_hass(hass)
+    await _setup(hass, mock_config_entry, [TOONUMBAR])
+
+    percent = hass.states.get(TOONUMBAR_PERCENT)
+    assert percent.state == "99.6"
+    assert percent.attributes["level_m"] == 129.71
+    assert percent.attributes["source"] == "waternsw"
+    assert percent.attributes["spilling"] is True
+    assert percent.attributes["spillway_24h_ml"] == 32.0
+    assert percent.attributes["release_24h_ml"] == 29.0
+    assert percent.attributes["totals_date"] == "2026-10-15"
+    assert percent.attributes["operator_observed_at"] == "2026-10-16T03:30:00+00:00"
+    assert percent.attributes[ATTR_ATTRIBUTION].startswith("© State Government of NSW and WaterNSW, CC BY;")
+    # Spilling although the Bureau's volume is under full supply
+    assert hass.states.get(TOONUMBAR_ABOVE).state == STATE_ON
+
+    keys = [
+        s["key"]
+        for s in (await async_get_config_entry_diagnostics(hass, mock_config_entry))["coordinator"]["data_sources"]
+    ]
+    assert "bom_water_storages" in keys
+    assert "waternsw_storages" in keys
+    assert "hydro_tasmania_lakes" not in keys
+
+    # Water Data Online down: the operator reading alone keeps the storage current
+    mock_fetch.side_effect = DamSourceError("down")
+    freezer.tick(DAM_SCAN_INTERVAL)
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert hass.states.get(TOONUMBAR_PERCENT).state == "99.6"
+
+
+async def test_operator_only_when_bom_never_answered(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    mock_providers: AsyncMock,
+    mock_fetch: AsyncMock,
+    mock_operators: AsyncMock,
+) -> None:
+    """Without any Water Data Online reading, the operator's level and volume are used."""
+    mock_fetch.side_effect = DamSourceError("down")
+    mock_operators.return_value = {TOONUMBAR.key: SPILL}
+    mock_config_entry.add_to_hass(hass)
+    await _setup(hass, mock_config_entry, [TOONUMBAR])
+    assert hass.states.get(TOONUMBAR_PERCENT).state == "101.0"
+    assert hass.states.get(TOONUMBAR_ABOVE).state == STATE_ON

@@ -23,6 +23,7 @@ from .const import (
     LOCATION_MODE_HOME,
     STATE_NZ,
 )
+from .dam_operators import async_attach_operators
 from .dams import (
     DAM_DISCOVERY_TIMEOUT,
     DamSourceError,
@@ -81,15 +82,19 @@ class DamOptionsFlow(OptionsFlowWithReload):
         latitude, longitude = next((float(la), float(lo)) for la, lo in candidates if la is not None and lo is not None)
         errors: dict[str, str] = {}
         labels = {site.key: f"{site.name} (selected)" for site in selected}
+        session = async_get_clientsession(self.hass)
+        now = dt_util.utcnow()
         try:
             async with asyncio.timeout(DAM_DISCOVERY_TIMEOUT.total_seconds()):
                 discovered = await async_discover_storages(
-                    async_get_clientsession(self.hass),
+                    session,
                     latitude=latitude,
                     longitude=longitude,
                     radius_km=float(config.get(CONF_RADIUS, DEFAULT_RADIUS)),
-                    now=dt_util.utcnow(),
+                    now=now,
                 )
+                # WaterNSW and Hydro Tasmania storages get their operator feed (fresher, with spill data)
+                discovered = await async_attach_operators(session, discovered, now)
         except (DamSourceError, TimeoutError) as err:
             _LOGGER.debug("Dam storage discovery failed: %r", err)
             errors["base"] = "dams_unavailable"

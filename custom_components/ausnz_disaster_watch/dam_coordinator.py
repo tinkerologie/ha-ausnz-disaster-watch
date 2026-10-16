@@ -10,6 +10,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
+from .dam_operators import async_fetch_operator_readings
 from .dams import (
     DAM_READING_WINDOW,
     DAM_SCAN_INTERVAL,
@@ -17,6 +18,7 @@ from .dams import (
     StorageReading,
     StorageSite,
     async_fetch_readings,
+    merge_operator,
 )
 
 if TYPE_CHECKING:
@@ -29,10 +31,12 @@ _LOGGER = logging.getLogger(__name__)
 class DamStorageCoordinator(DataUpdateCoordinator[dict[str, StorageReading]]):
     """Fetch the latest reading of each selected storage every hour.
 
-    Data is keyed by ``StorageSite.key``. A storage without a reading in the last
-    DAM_READING_WINDOW is absent, so its sensors are unavailable. When Water Data Online
-    cannot be reached, the previous readings are kept while they are inside that window;
-    the update fails only when none remain.
+    Data is keyed by ``StorageSite.key``. Each storage's Water Data Online reading is merged
+    with its operator feed's (WaterNSW or Hydro Tasmania, when matched), which is fresher and
+    carries spill data. A storage without a reading in the last DAM_READING_WINDOW is absent,
+    so its sensors are unavailable. When Water Data Online cannot be reached, the previous
+    readings are kept while they are inside that window and operator readings still update
+    them; the update fails only when no reading remains.
     """
 
     config_entry: ConfigEntry
@@ -52,12 +56,19 @@ class DamStorageCoordinator(DataUpdateCoordinator[dict[str, StorageReading]]):
     async def _async_update_data(self) -> dict[str, StorageReading]:
         """Fetch readings, bridging outages with the previous readings."""
         now = dt_util.utcnow()
+        cutoff = now - DAM_READING_WINDOW
+        error: DamSourceError | None = None
         try:
-            return await async_fetch_readings(self._session, self.sites, now)
+            bom = await async_fetch_readings(self._session, self.sites, now)
         except DamSourceError as err:
             _LOGGER.debug("Dam storages unavailable: %s", err)
-            cutoff = now - DAM_READING_WINDOW
-            kept = {key: reading for key, reading in (self.data or {}).items() if reading.observed_at >= cutoff}
-            if not kept:
-                raise UpdateFailed(translation_domain=DOMAIN, translation_key="dam_storages_unavailable") from err
-            return kept
+            error = err
+            bom = {key: reading for key, reading in (self.data or {}).items() if reading.observed_at >= cutoff}
+        operators = await async_fetch_operator_readings(self._session, self.sites, now)
+        readings: dict[str, StorageReading] = {}
+        for site in self.sites:
+            if (reading := merge_operator(site, bom.get(site.key), operators.get(site.key))) is not None:
+                readings[site.key] = reading
+        if error is not None and not readings:
+            raise UpdateFailed(translation_domain=DOMAIN, translation_key="dam_storages_unavailable") from error
+        return readings

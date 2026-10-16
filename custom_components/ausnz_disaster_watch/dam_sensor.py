@@ -184,8 +184,20 @@ class DamEntity(CoordinatorEntity[DamStorageCoordinator]):
                     "level_m": reading.level_m,
                     "change_24h_ml": reading.change_24h_ml,
                     "above_full_supply": reading.above_full_supply,
+                    "source": reading.source,
                 }
             )
+            if (op := reading.operator) is not None:
+                attrs.update(
+                    {
+                        "spilling": reading.spilling,
+                        "operator_observed_at": op.observed_at.isoformat() if op.observed_at else None,
+                        "spillway_24h_ml": op.spill_24h_ml,
+                        "release_24h_ml": op.release_24h_ml,
+                        "totals_date": op.totals_date,
+                        "metres_below_full": op.metres_below_full,
+                    }
+                )
         return attrs
 
 
@@ -217,7 +229,9 @@ class DamAboveFullSupplyBinarySensor(DamEntity, BinarySensorEntity):
     """On while a storage holds more than its full supply volume (or is above full supply level).
 
     An ungated dam above full supply is spilling; a gated flood-mitigation dam is holding
-    flood water above its drinking-water compartment and will be releasing it.
+    flood water above its drinking-water compartment and will be releasing it. Where the
+    operator feed reports a spill (WaterNSW spillway discharge in the last daily total, or
+    Hydro Tasmania's "Spilling" comment), the sensor is on too.
     """
 
     _attr_translation_key = "dam_above_full_supply"

@@ -288,7 +288,7 @@
       },
       "dam_storages": {
         "title": "Dam and weir storage levels",
-        "description": "Choose dams and weirs to add as sensors: percent full, volume, level, and an \"above full supply\" sensor that turns on when a storage is spilling or holding flood water. The list shows the nearest storages within the monitoring radius (at least 150 km, because the dams that flood a town are often well upstream) that reported in the last 7 days. Data comes from Bureau of Meteorology Water Data Online, which water agencies update about once a day, so readings are usually 12 to 48 hours old. These sensors do not warn of dam releases: follow the dam operator's release notifications and the Bureau's flood warnings for that. Leave all unticked for no storage sensors. Searching can take up to a minute the first time.",
+        "description": "Choose dams and weirs to add as sensors: percent full, volume, level, and an \"above full supply\" sensor that turns on when a storage is spilling or holding flood water. The list shows the nearest storages within the monitoring radius (at least 150 km, because the dams that flood a town are often well upstream) that reported in the last 7 days. Data comes from Bureau of Meteorology Water Data Online, which water agencies update about once a day, so readings are usually 12 to 48 hours old. WaterNSW and Hydro Tasmania storages are matched to their operator feeds, which add a current level (WaterNSW) and spill data. These sensors do not warn of dam releases: follow the dam operator's release notifications and the Bureau's flood warnings for that. Leave all unticked for no storage sensors. Searching can take up to a minute the first time.",
         "data": {
           "dam_storages": "Storages"
         },

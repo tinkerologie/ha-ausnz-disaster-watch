@@ -1,0 +1,37 @@
+{
+ "error_num": 0,
+ "return": {
+  "rows": [
+   {
+    "stname": "IRONPOT CREEK AT TOONUMBAR DAM-STORAGE GAUGE",
+    "longitude": "152.793580946",
+    "station": "203042",
+    "latitude": "-28.618520942"
+   },
+   {
+    "stname": "WARRAGAMBA RIVER AT WARRAGAMBA DAM WALL",
+    "longitude": "150.595843000",
+    "station": "212242",
+    "latitude": "-33.883541000"
+   },
+   {
+    "stname": "WARRAGAMBA RIVER AT WARRAGAMBA DAM U/S (Hideaway Bay)",
+    "longitude": "150.591111110",
+    "station": "212243",
+    "latitude": "-33.891111110"
+   },
+   {
+    "stname": "CASCADE CREEK AT CASCADE CREEK DAM No 1 (MIDDLE)",
+    "longitude": "150.303611520",
+    "station": "212281",
+    "latitude": "-33.688889120"
+   },
+   {
+    "stname": "MURRAY RIVER AT HUME DAM - STORAGE GAUGE NO.2",
+    "longitude": "147.053900000",
+    "station": "401027",
+    "latitude": "-36.088500000"
+   }
+  ]
+ }
+}
