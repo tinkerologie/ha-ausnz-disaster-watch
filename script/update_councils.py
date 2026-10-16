@@ -165,6 +165,7 @@ def probe_guardian(base: str) -> tuple[str | None, bool]:
     intermediate, Home Assistant does not) is still reported, with ``False``.
     """
     status = 0
+    certificate_error = False
     for verify in (True, False):
         for endpoint in ("bom", "getTemplateWidgets"):
             for attempt in range(3):
@@ -174,6 +175,7 @@ def probe_guardian(base: str) -> tuple[str | None, bool]:
                     continue
                 break
             if status == CERT_ERROR:
+                certificate_error = True
                 break  # retry the whole probe without verification
             if status != 200:
                 continue
@@ -187,7 +189,7 @@ def probe_guardian(base: str) -> tuple[str | None, bool]:
         if status != CERT_ERROR:
             break
     print(f"not a live Guardian IMS dashboard: {base} (HTTP {status or 'error'})", file=sys.stderr)
-    return None, True
+    return None, not certificate_error
 
 
 def load_lgas(state: str) -> dict[str, dict[str, Any]]:
@@ -291,7 +293,8 @@ def build(prune: bool) -> list[dict[str, Any]]:
             if key in previous and previous[key].get("url") and not prune:
                 print(f"warning: {name} ({url}) did not answer; keeping {previous[key]['url']}", file=sys.stderr)
                 entry["url"] = previous[key]["url"]
-                entry["certificate_ok"] = previous[key].get("certificate_ok", True)
+                # A certificate failure seen now overrides an earlier good result
+                entry["certificate_ok"] = certificate_ok and previous[key].get("certificate_ok", True)
             else:
                 continue  # not a Guardian IMS dashboard (a web page, another platform, or offline)
         councils[key] = entry

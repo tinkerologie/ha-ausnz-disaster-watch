@@ -157,7 +157,7 @@ Council base URLs the integration offers or links to (presets in `const.py`, the
 `config_flow.py`, the host aliases in `guardian_ims.py`, and the "nearby councils" links in
 `qld.py` and `nsw.py`; links are never polled):
 
-- QLD presets: https://disaster.moretonbay.qld.gov.au, https://disaster.noosa.qld.gov.au, https://disaster.cairns.qld.gov.au, https://disaster.townsville.qld.gov.au, https://disaster.frasercoast.qld.gov.au, https://disaster.bundaberg.qld.gov.au, https://disaster.ipswich.qld.gov.au, https://disaster.logan.qld.gov.au, https://dashboard.goldcoast.qld.gov.au, https://dashboard.redland.qld.gov.au (old hosts `disaster.goldcoast`, `dashboard.cityofgoldcoast.com.au` and `disaster.redland` are aliased to these)
+- QLD and NSW presets: every council in `custom_components/ausnz_disaster_watch/data/council_dashboards.json` (generated, see below); entries without a readable URL (other platforms, or a certificate Home Assistant rejects) are not polled. Old hosts `disaster.goldcoast`, `dashboard.cityofgoldcoast.com.au` and `disaster.redland` are aliased to the current hosts. Dashboards named in code (nearby council links, Moreton Bay endpoints): https://disaster.moretonbay.qld.gov.au, https://disaster.noosa.qld.gov.au, https://dashboard.goldcoast.qld.gov.au.
 - QLD links: https://disasterhub.sunshinecoast.qld.gov.au (a web app, not Guardian IMS), https://www.brisbane.qld.gov.au/community-support-and-safety/natural-disasters-and-emergencies/emergency-dashboard, https://disaster.somerset.qld.gov.au
 - NSW: https://disaster.hawkesbury.nsw.gov.au, https://emergency.bmcc.nsw.gov.au, https://emergency.ballina.nsw.gov.au, https://emergency.byron.nsw.gov.au, https://emergency.northernbeaches.nsw.gov.au
 
