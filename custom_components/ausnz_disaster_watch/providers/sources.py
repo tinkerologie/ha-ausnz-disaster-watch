@@ -130,6 +130,14 @@ _SOURCES = (
         status=LicenceStatus.OPEN,
     ),
     DataSource(
+        key="ga_earthquakes",
+        owner="Geoscience Australia",
+        attribution="© Commonwealth of Australia (Geoscience Australia), CC BY 4.0",
+        licence="CC BY 4.0",
+        terms_url="https://www.ga.gov.au/copyright",
+        status=LicenceStatus.OPEN,
+    ),
+    DataSource(
         key="nzta_roads",
         owner="NZ Transport Agency Waka Kotahi",
         attribution="NZ Transport Agency Waka Kotahi",
@@ -251,6 +259,7 @@ PROVIDER_SOURCES: dict[str, tuple[str, ...]] = {
     "NTHazardProvider": ("nt_fire_incidents",),
     "NZHazardProvider": ("geonet", "nema_cap", "metservice_cap", "nzta_roads"),
     "BoMHazardProvider": ("bom_wmo",),
+    "GAEarthquakeProvider": ("ga_earthquakes",),
 }
 
 

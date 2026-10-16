@@ -17,14 +17,11 @@ import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.ausnz_disaster_watch.const import (
-    CONF_COUNCIL_DASHBOARD_URL,
-    CONF_EXCLUDE_HAZARD_REDUCTION,
     CONF_INCLUDE_EARTHQUAKES,
     CONF_LATITUDE,
     CONF_LOCATION_MODE,
     CONF_LOCATION_NAME,
     CONF_LONGITUDE,
-    CONF_OVERRIDE_EMERGENCY,
     CONF_RADIUS,
     CONF_STATE,
     DOMAIN,
@@ -142,26 +139,24 @@ def test_ga_earthquakes_are_opt_in(hass: HomeAssistant, state: str, include: boo
 
 
 async def test_options_flow_earthquake_toggle(hass: HomeAssistant, mock_config_entry: MockConfigEntry) -> None:
-    """Australian entries can opt in to earthquakes in the options flow; it defaults to off."""
+    """Australian entries opt in from their own options menu step; it defaults to off."""
     mock_config_entry.add_to_hass(hass)
+    hass.config_entries.async_update_entry(mock_config_entry, options={CONF_RADIUS: 75})
     result = await hass.config_entries.options.async_init(mock_config_entry.entry_id)
+    assert result["type"] == data_entry_flow.FlowResultType.MENU
+    assert "earthquakes" in result["menu_options"]
+
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "earthquakes"})
     assert result["type"] == data_entry_flow.FlowResultType.FORM
-    schema = result["data_schema"].schema
-    field = next(key for key in schema if key == CONF_INCLUDE_EARTHQUAKES)
+    assert result["step_id"] == "earthquakes"
+    field = next(key for key in result["data_schema"].schema if key == CONF_INCLUDE_EARTHQUAKES)
     assert field.default() is False
 
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"],
-        user_input={
-            CONF_RADIUS: 50,
-            CONF_OVERRIDE_EMERGENCY: True,
-            CONF_EXCLUDE_HAZARD_REDUCTION: True,
-            CONF_COUNCIL_DASHBOARD_URL: "",
-            CONF_INCLUDE_EARTHQUAKES: True,
-        },
-    )
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {CONF_INCLUDE_EARTHQUAKES: True})
     assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
     assert mock_config_entry.options[CONF_INCLUDE_EARTHQUAKES] is True
+    # Options other steps own are kept
+    assert mock_config_entry.options[CONF_RADIUS] == 75
 
 
 async def test_options_flow_has_no_earthquake_toggle_for_nz(hass: HomeAssistant) -> None:
@@ -179,4 +174,5 @@ async def test_options_flow_has_no_earthquake_toggle_for_nz(hass: HomeAssistant)
     )
     entry.add_to_hass(hass)
     result = await hass.config_entries.options.async_init(entry.entry_id)
-    assert CONF_INCLUDE_EARTHQUAKES not in result["data_schema"].schema
+    assert result["type"] == data_entry_flow.FlowResultType.MENU
+    assert "earthquakes" not in result["menu_options"]

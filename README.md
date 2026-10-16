@@ -19,7 +19,7 @@ Directly integrates official emergency feeds—including the **Queensland Fire D
   - **New Zealand**: GeoNet earthquakes (with GeoNet's CAP quake alerts) and volcanic alert levels, NEMA Civil Defence alerts, MetService warnings, and NZTA state highway closures and hazards.
   - **Northern Territory**: Bushfires NT and NT Fire and Rescue Service incidents from the NT Government Fire_Incidents service.
   - **National / Federal**: Bureau of Meteorology (BoM) weather warnings (severe thunderstorms, tropical cyclones, flood warnings).
-  - **Earthquakes (optional)**: Geoscience Australia earthquakes of magnitude 3 or more from the last 48 hours, within your radius (M6+ Watch and Act, M4.5+ Advice, smaller Information). Turn on **Include Geoscience Australia earthquakes** under **Configure** (Australian entries; New Zealand entries use GeoNet). Earthquake data © Commonwealth of Australia (Geoscience Australia), CC BY 4.0.
+  - **Earthquakes (optional)**: Geoscience Australia earthquakes of magnitude 3 or more from the last 48 hours, within your radius (M6+ Watch and Act, M4.5+ Advice, smaller Information). Turn it on under **Configure > Earthquakes** (Australian entries; New Zealand entries use GeoNet). Earthquake data © Commonwealth of Australia (Geoscience Australia), CC BY 4.0.
 - **Australian Warning System (AWS) Normalization**:
   - 🚨 **Emergency Warning** (Level 3 - Red)
   - ⚠️ **Watch and Act** (Level 2 - Orange)

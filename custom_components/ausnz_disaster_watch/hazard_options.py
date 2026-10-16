@@ -35,4 +35,4 @@ class HazardOptionsFlow(ForecastOptionsFlow):
                 ): BooleanSelector(),
             }
         )
-        return self.async_show_form(step_id="earthquakes", data_schema=schema)
+        return self.async_show_form(step_id="earthquakes", data_schema=schema)  # type: ignore[arg-type]
