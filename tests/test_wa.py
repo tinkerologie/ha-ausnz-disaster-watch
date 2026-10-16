@@ -90,6 +90,8 @@ def test_warnings_levels_area_and_fields(provider: WAHazardProvider) -> None:
         # Neither point nor polygon: skipped, never placed at a default location
         warning_item("w8", "Bushfire Advice - NOWHERE", "Bushfire Advice", lat=None, polygon=""),
         warning_item("w9", "Bushfire Advice - BAD", "Bushfire Advice", lat=999.0),
+        # No warning type: the title's place suffix is ignored for the level
+        warning_item("w10", "Bushfire Advice - EMERGENCY BEACH", None),
     )
     hazards = {h.id: h for h in provider._parse_warnings(feed)}
     assert set(hazards) == {
@@ -100,6 +102,7 @@ def test_warnings_levels_area_and_fields(provider: WAHazardProvider) -> None:
         "wa_warn_w5",
         "wa_warn_w7",
         "wa_warn_w9",
+        "wa_warn_w10",
     }
     w1 = hazards["wa_warn_w1"]
     assert w1.warning_level is WarningLevel.EMERGENCY_WARNING
@@ -116,6 +119,8 @@ def test_warnings_levels_area_and_fields(provider: WAHazardProvider) -> None:
     assert area_distance(-31.85, 116.2, w1.area) == 0.0
     assert hazards["wa_warn_w2"].warning_level is WarningLevel.WATCH_AND_ACT
     assert hazards["wa_warn_w3"].warning_level is WarningLevel.ADVICE
+    assert hazards["wa_warn_w10"].warning_level is WarningLevel.ADVICE
+    assert hazards["wa_warn_w10"].location_name == "Emergency Beach"
     assert hazards["wa_warn_w4"].area is None
     assert hazards["wa_warn_w4"].location_name == "Metro North East"
     assert hazards["wa_warn_w5"].warning_level is WarningLevel.WATCH_AND_ACT

@@ -188,11 +188,11 @@ class WAHazardProvider(BaseHazardProvider):
         # title alone can mislead (a place called "Emergency Beach")
         type_match = _WARNING_TYPE_RE.search(_child_text(item, "description"))
         warning_type = html.unescape(type_match.group(1)) if type_match else ""
+        place = title.rsplit(" - ", 1)[1].strip() if " - " in title else ""
         level = WarningLevel.from_str(_child_text(item, "alertLevel"))
         if level is WarningLevel.UNKNOWN:
-            level = WarningLevel.from_str(warning_type or title)
-
-        place = title.rsplit(" - ", 1)[1].strip() if " - " in title else ""
+            # Without a warning type, read the title without its place suffix
+            level = WarningLevel.from_str(warning_type or title.rsplit(" - ", 1)[0])
         # Fallback uses fields that do not change when the warning is updated (#7)
         item_id = _child_text(item, "guid") or stable_id("wa_warn", title, place or region, *point)
         return CanonicalHazard(
