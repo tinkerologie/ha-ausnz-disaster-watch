@@ -32,7 +32,8 @@ MORETON_BAY = "https://disaster.moretonbay.qld.gov.au"
 def test_nearest_council_dashboard() -> None:
     """The nearest preset in the same state within 40 km, else none."""
     assert nearest_council_dashboard("QLD", -16.92, 145.77) == "https://disaster.cairns.qld.gov.au"
-    assert nearest_council_dashboard("QLD", -23.44, 144.25) is None
+    assert nearest_council_dashboard("QLD", -23.44, 144.25) == "https://rapad.qitplus.com/longreach"
+    assert nearest_council_dashboard("QLD", -20.0, 155.0) is None
     assert nearest_council_dashboard("NSW", -27.27, 152.98) is None
     assert nearest_council_dashboard("QLD", None, 152.98) is None
     # Sunshine Coast has no Guardian dashboard; Noosa (about 28 km away) is used instead

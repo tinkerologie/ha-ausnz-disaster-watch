@@ -1,0 +1,42 @@
+#!/bin/bash
+
+# script/update-councils: Regenerate the council disaster dashboard registry
+#
+# Downloads the official Queensland list of council disaster dashboards, adds the known NSW
+# Guardian IMS councils, probes every dashboard, locates each council with ABS Local
+# Government Area data and writes
+# custom_components/ausnz_disaster_watch/data/council_dashboards.json (#32).
+# Review the printed added/removed/changed summary before committing the result.
+#
+# Usage:
+#   ./script/update-councils [--prune] [--dry-run]
+#
+# Examples:
+#   ./script/update-councils            # update the registry, keep councils that did not answer
+#   ./script/update-councils --dry-run  # print the summary only
+#   ./script/update-councils --prune    # also drop councils whose dashboard did not answer
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR/.."
+
+# shellcheck source=script/.lib/output.sh
+source "$SCRIPT_DIR/.lib/output.sh"
+
+if [[ -z ${VIRTUAL_ENV:-} ]]; then
+    log_header "Activating virtual environment"
+    # shellcheck source=/dev/null
+    if [[ -f "$PWD/.local/ha-venv/bin/activate" ]]; then
+        source "$PWD/.local/ha-venv/bin/activate"
+    elif [[ -f "$HOME/.local/ha-venv/bin/activate" ]]; then
+        source "$HOME/.local/ha-venv/bin/activate"
+    else
+        log_error "Virtual environment not found in $PWD/.local/ha-venv or $HOME/.local/ha-venv"
+        exit 1
+    fi
+fi
+
+log_header "Updating the council dashboard registry"
+python "$SCRIPT_DIR/update_councils.py" "$@"
+log_success "Council registry updated"
