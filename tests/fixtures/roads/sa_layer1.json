@@ -1,0 +1,129 @@
+{
+  "type": "FeatureCollection",
+  "exceededTransferLimit": false,
+  "features": [
+    {
+      "type": "Feature",
+      "id": 105433,
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            140.56319283673577,
+            -33.05359062660201
+          ],
+          [
+            140.5628640268096,
+            -33.05499347506787
+          ],
+          [
+            140.56265079090258,
+            -33.055959022295085
+          ]
+        ]
+      },
+      "properties": {
+        "LOCATION_ID": 105433,
+        "PLOT_TYPE": "RD_CLOSURE",
+        "PLOT_HYPERLINK": null,
+        "PLOT_ALT_TEXT": null,
+        "PLOT_DETAILS": "MORGAN MAIL RD Closed due to flooding over road\r\n\r\nRef# 2138578",
+        "ROAD_NO": 19075,
+        "LOCAL_ROAD_NAME": "MORGAN MAIL ROAD",
+        "START_SIDE_STREET_NAME1": "EASTERN RD",
+        "START_SIDE_STREET_NAME2": null,
+        "START_SIDE_STREET_NAME3": null,
+        "START_SUBURB": "QUONDONG",
+        "END_SIDE_STREET_NAME1": "DANGGALI RD",
+        "END_SIDE_STREET_NAME2": null,
+        "END_SIDE_STREET_NAME3": null,
+        "END_SUBURB": "PINE VALLEY STATION",
+        "START_DATE": 1772643300000,
+        "END_DATE": null,
+        "GIS_LINK_ID": "2639059"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 105434,
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            140.56319283673577,
+            -33.05359062660201
+          ],
+          [
+            140.5628640268096,
+            -33.05499347506787
+          ],
+          [
+            140.56265079090258,
+            -33.055959022295085
+          ]
+        ]
+      },
+      "properties": {
+        "LOCATION_ID": 105434,
+        "PLOT_TYPE": "RD_CLOSURE",
+        "PLOT_HYPERLINK": null,
+        "PLOT_ALT_TEXT": null,
+        "PLOT_DETAILS": null,
+        "ROAD_NO": 19075,
+        "LOCAL_ROAD_NAME": "MORGAN MAIL ROAD",
+        "START_SIDE_STREET_NAME1": "EASTERN RD",
+        "START_SIDE_STREET_NAME2": null,
+        "START_SIDE_STREET_NAME3": null,
+        "START_SUBURB": "QUONDONG",
+        "END_SIDE_STREET_NAME1": "DANGGALI RD",
+        "END_SIDE_STREET_NAME2": null,
+        "END_SIDE_STREET_NAME3": null,
+        "END_SUBURB": "PINE VALLEY STATION",
+        "START_DATE": 1772643360000,
+        "END_DATE": null,
+        "GIS_LINK_ID": "2639060"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 105435,
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            140.54642103085325,
+            -33.22603550947928
+          ],
+          [
+            140.51936351394676,
+            -33.22700951468896
+          ],
+          [
+            140.5006303587495,
+            -33.22976896266188
+          ]
+        ]
+      },
+      "properties": {
+        "LOCATION_ID": 105435,
+        "PLOT_TYPE": "RD_CLOSURE",
+        "PLOT_HYPERLINK": null,
+        "PLOT_ALT_TEXT": null,
+        "PLOT_DETAILS": "MORGAN MAIL RD Closed due to flooding over road\r\n\r\nRef# 2138578",
+        "ROAD_NO": 19087,
+        "LOCAL_ROAD_NAME": "MORGAN VALE ROAD",
+        "START_SIDE_STREET_NAME1": "DANGGALI RD",
+        "START_SIDE_STREET_NAME2": null,
+        "START_SIDE_STREET_NAME3": null,
+        "START_SUBURB": "DANGGALI",
+        "END_SIDE_STREET_NAME1": "PINE VALLEY RD",
+        "END_SIDE_STREET_NAME2": null,
+        "END_SIDE_STREET_NAME3": null,
+        "END_SUBURB": "PINE VALLEY STATION",
+        "START_DATE": 1772643300000,
+        "END_DATE": null,
+        "GIS_LINK_ID": "2639061"
+      }
+    }
+  ]
+}

@@ -1,0 +1,534 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPoint",
+        "coordinates": [
+          [
+            152.948075928,
+            -27.354923514
+          ]
+        ]
+      },
+      "properties": {
+        "id": 717127,
+        "area_alert": false,
+        "status": "Published",
+        "published": null,
+        "source": {
+          "source_name": "MBRC",
+          "source_id": "mbrc-2ab819d0-5fcd-44b9-b160-b5d10b847f25",
+          "account": "MBRC",
+          "provided_by": "City of Moreton Bay",
+          "provided_by_url": "https://www.moretonbay.qld.gov.au"
+        },
+        "url": "https://api.qldtraffic.qld.gov.au/v2/events/717127",
+        "image": null,
+        "event_type": "Flooding",
+        "event_subtype": "Flash flooding",
+        "event_due_to": "Heavy rain",
+        "impact": {
+          "direction": "Both directions",
+          "towards": null,
+          "impact_type": "Closures",
+          "impact_subtype": "Road closed to all traffic",
+          "delay": "Long delays expected"
+        },
+        "duration": {
+          "start": "2026-05-29T01:27:00+10:00",
+          "end": null,
+          "active_days": null,
+          "recurrences": null
+        },
+        "event_priority": "Medium",
+        "description": "Flood Damage at Bunya Crossing Reserve car park",
+        "advice": "Do not drive in flood waters",
+        "information": null,
+        "road_summary": {
+          "road_name": "Dugandan Road",
+          "locality": "Bunya",
+          "postcode": "4055",
+          "local_government_area": "Moreton Bay Regional",
+          "district": "North Coast"
+        },
+        "last_updated": "2026-05-29T11:40:01.352716+10:00",
+        "next_inspection": null,
+        "web_link": null,
+        "alert_message": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiLineString",
+        "coordinates": [
+          [
+            [
+              152.4066739,
+              -28.0589968
+            ],
+            [
+              152.4066,
+              -28.05898
+            ],
+            [
+              152.40653,
+              -28.05897
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": 548467,
+        "area_alert": false,
+        "status": "Published",
+        "published": "2023-04-11T06:00:00+10:00",
+        "source": {
+          "source_name": "EPS",
+          "source_id": null,
+          "account": null,
+          "provided_by": "Department of Transport and Main Roads",
+          "provided_by_url": "https://qldtraffic.qld.gov.au"
+        },
+        "url": "https://api.qldtraffic.qld.gov.au/v2/events/548467",
+        "image": null,
+        "event_type": "Roadworks",
+        "event_subtype": "Planned roadworks",
+        "event_due_to": null,
+        "impact": {
+          "direction": "Both directions",
+          "towards": null,
+          "impact_type": "Lanes affected",
+          "impact_subtype": "Lane or lanes reduced",
+          "delay": "Delays expected (during active hours)"
+        },
+        "duration": {
+          "start": "2023-04-11T06:00:00+10:00",
+          "end": "2026-10-31T17:00:00+10:00",
+          "active_days": [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday"
+          ],
+          "recurrences": [
+            {
+              "event_id": 548467,
+              "description": "From Monday 6 AM to Friday 6 PM",
+              "impact": {
+                "direction": "Both directions",
+                "towards": null,
+                "impact_type": "Lanes affected",
+                "impact_subtype": "Lane or lanes reduced",
+                "delay": "Delays expected (during active hours)"
+              }
+            }
+          ]
+        },
+        "event_priority": "Medium",
+        "description": "Final 2km of works at Cunninghams Gap. Both lanes open.",
+        "advice": "Changed traffic conditions",
+        "information": "No right turns at Crest carpark.\n\nPermitted U-turn locations: Westbound: Drive through the West Gap Creek picnic area, (1.5km west of the crest) before continuing eastbound to the Crest Carpark. Eastbound: around 2km east from the Crest Carpark.\n\nPhone:1800 497 100 (9am-5pm, Monday to Friday)\nEmail: Cunninghams_gap@tmr.qld.gov.au",
+        "road_summary": {
+          "road_name": "Cunningham Highway",
+          "locality": "Tregony",
+          "postcode": "4370",
+          "local_government_area": "Scenic Rim Regional / Southern Downs Regional",
+          "district": "Darling Downs / South Coast"
+        },
+        "last_updated": "2026-10-15T10:50:20.759278+10:00",
+        "next_inspection": null,
+        "web_link": "https://www.tmr.qld.gov.au/projects/cunningham-highway-ipswich-warwick-2020-disaster-recovery-funding-arrangements-reconstruction-works",
+        "alert_message": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiLineString",
+        "coordinates": [
+          [
+            [
+              153.067439441,
+              -28.168759655
+            ],
+            [
+              153.067355941,
+              -28.168947455
+            ],
+            [
+              153.067295941,
+              -28.169117455
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": 248797,
+        "area_alert": false,
+        "status": "Published",
+        "published": null,
+        "source": {
+          "source_name": "EPS",
+          "source_id": null,
+          "account": null,
+          "provided_by": "Department of Transport and Main Roads",
+          "provided_by_url": "https://qldtraffic.qld.gov.au"
+        },
+        "url": "https://api.qldtraffic.qld.gov.au/v2/events/248797",
+        "image": null,
+        "event_type": "Hazard",
+        "event_subtype": "Road damage",
+        "event_due_to": null,
+        "impact": {
+          "direction": "All directions",
+          "towards": null,
+          "impact_type": "Closures",
+          "impact_subtype": "Road closed to all traffic",
+          "delay": null
+        },
+        "duration": {
+          "start": "2017-09-06T09:39:00+10:00",
+          "end": null,
+          "active_days": null,
+          "recurrences": null
+        },
+        "event_priority": "Low",
+        "description": "Vehicle access is closed to all vehicles and will remain closed until further notice ",
+        "advice": "Use alternative route",
+        "information": null,
+        "road_summary": {
+          "road_name": "Duck Creek Road",
+          "locality": "Cainbable / Kerry",
+          "postcode": "4285",
+          "local_government_area": "Scenic Rim Regional",
+          "district": "South Coast"
+        },
+        "last_updated": "2026-10-15T20:59:31.57197+10:00",
+        "next_inspection": null,
+        "web_link": null,
+        "alert_message": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPoint",
+        "coordinates": [
+          [
+            153.18944086,
+            -27.961027641
+          ]
+        ]
+      },
+      "properties": {
+        "id": 459421,
+        "area_alert": false,
+        "status": "Published",
+        "published": null,
+        "source": {
+          "source_name": "Guardian",
+          "source_id": "7eb9a046-c223-43fe-bacc-d40d1a47f344",
+          "account": "36510",
+          "provided_by": "Scenic Rim Regional Council",
+          "provided_by_url": "http://ldcc@scenicrim.qld.gov.au "
+        },
+        "url": "https://api.qldtraffic.qld.gov.au/v2/events/459421",
+        "image": null,
+        "event_type": "Hazard",
+        "event_subtype": "Road damage",
+        "event_due_to": "Earlier flooding",
+        "impact": {
+          "direction": "All directions",
+          "towards": null,
+          "impact_type": "Lanes affected",
+          "impact_subtype": "All lanes affected",
+          "delay": "Delays expected"
+        },
+        "duration": {
+          "start": "2022-02-28T08:30:00+10:00",
+          "end": null,
+          "active_days": null,
+          "recurrences": null
+        },
+        "event_priority": "Medium",
+        "description": "The Shelf Rd, Tamborine Mountain ",
+        "advice": "Proceed with caution",
+        "information": null,
+        "road_summary": {
+          "road_name": "The Shelf Road",
+          "locality": "Tamborine Mountain",
+          "postcode": "4272",
+          "local_government_area": "Scenic Rim Regional",
+          "district": "South Coast"
+        },
+        "last_updated": "2025-09-15T12:00:02.202406+10:00",
+        "next_inspection": "2026-09-30T15:00:00+10:00",
+        "web_link": null,
+        "alert_message": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPoint",
+        "coordinates": [
+          [
+            153.1084424,
+            -27.5620935
+          ]
+        ]
+      },
+      "properties": {
+        "id": 834564,
+        "area_alert": false,
+        "status": "Published",
+        "published": null,
+        "source": {
+          "source_name": "EPS",
+          "source_id": null,
+          "account": null,
+          "provided_by": "Department of Transport and Main Roads",
+          "provided_by_url": "https://qldtraffic.qld.gov.au"
+        },
+        "url": "https://api.qldtraffic.qld.gov.au/v2/events/834564",
+        "image": null,
+        "event_type": "Congestion",
+        "event_subtype": "Recurring",
+        "event_due_to": null,
+        "impact": {
+          "direction": "Northbound",
+          "towards": "Belmont",
+          "impact_type": "Lanes affected",
+          "impact_subtype": "All lanes affected",
+          "delay": "Delays expected"
+        },
+        "duration": {
+          "start": "2026-10-16T05:21:00+10:00",
+          "end": null,
+          "active_days": null,
+          "recurrences": null
+        },
+        "event_priority": "Medium",
+        "description": null,
+        "advice": "Proceed with caution",
+        "information": null,
+        "road_summary": {
+          "road_name": "Gateway Motorway",
+          "locality": "Rochedale",
+          "postcode": "4123",
+          "local_government_area": "Brisbane City",
+          "district": "Metropolitan"
+        },
+        "last_updated": "2026-10-16T05:23:10.04815+10:00",
+        "next_inspection": null,
+        "web_link": null,
+        "alert_message": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPoint",
+        "coordinates": [
+          [
+            150.1709706,
+            -24.2795502
+          ]
+        ]
+      },
+      "properties": {
+        "id": 834404,
+        "area_alert": false,
+        "status": "Published",
+        "published": null,
+        "source": {
+          "source_name": "EPS",
+          "source_id": null,
+          "account": null,
+          "provided_by": "Department of Transport and Main Roads",
+          "provided_by_url": "https://qldtraffic.qld.gov.au"
+        },
+        "url": "https://api.qldtraffic.qld.gov.au/v2/events/834404",
+        "image": null,
+        "event_type": "Hazard",
+        "event_subtype": "Stationary vehicle",
+        "event_due_to": null,
+        "impact": {
+          "direction": "Both directions",
+          "towards": null,
+          "impact_type": "No blockage",
+          "impact_subtype": null,
+          "delay": "No delays expected"
+        },
+        "duration": {
+          "start": "2026-10-15T10:33:00+10:00",
+          "end": null,
+          "active_days": null,
+          "recurrences": null
+        },
+        "event_priority": "Low",
+        "description": "Left shoulder",
+        "advice": "Proceed with caution",
+        "information": null,
+        "road_summary": {
+          "road_name": "Leichhardt Highway",
+          "locality": "Woolein",
+          "postcode": "4702",
+          "local_government_area": "Banana Shire",
+          "district": "Fitzroy"
+        },
+        "last_updated": "2026-10-16T07:35:55.628259+10:00",
+        "next_inspection": null,
+        "web_link": null,
+        "alert_message": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPoint",
+        "coordinates": [
+          [
+            148.628408245,
+            -23.037122211
+          ]
+        ]
+      },
+      "properties": {
+        "id": 767632,
+        "area_alert": false,
+        "status": "Published",
+        "published": "2025-12-10T10:15:00+10:00",
+        "source": {
+          "source_name": "Guardian",
+          "source_id": "d3eaf504-42b9-4fb3-b0e6-2fdf170a730e",
+          "account": "33980",
+          "provided_by": "Isaac Regional Council",
+          "provided_by_url": "https://www.isaac.qld.gov.au/"
+        },
+        "url": "https://api.qldtraffic.qld.gov.au/v2/events/767632",
+        "image": null,
+        "event_type": "Special event",
+        "event_subtype": "N/A",
+        "event_due_to": null,
+        "impact": {
+          "direction": "All directions",
+          "towards": "",
+          "impact_type": "N/A",
+          "impact_subtype": "",
+          "delay": "No delays expected"
+        },
+        "duration": {
+          "start": "2025-12-10T10:15:00+10:00",
+          "end": "2026-12-09T10:15:00+10:00",
+          "active_days": null,
+          "recurrences": null
+        },
+        "event_priority": "Medium",
+        "description": "14t Maximum Load limit imposed on Culvert Structure.",
+        "advice": "Use alternative route",
+        "information": null,
+        "road_summary": {
+          "road_name": "Grasstree Road",
+          "locality": "Middlemount",
+          "postcode": "4746",
+          "local_government_area": "Isaac Regional",
+          "district": "Mackay/Whitsunday"
+        },
+        "last_updated": "2025-12-10T10:12:02.439256+10:00",
+        "next_inspection": "2026-11-10T10:10:00+10:00",
+        "web_link": "",
+        "alert_message": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "GeometryCollection",
+        "geometries": [
+          {
+            "type": "LineString",
+            "coordinates": [
+              [
+                145.481090708,
+                -17.507668597
+              ],
+              [
+                145.4811272,
+                -17.5077008
+              ],
+              [
+                145.4811502,
+                -17.5077361
+              ]
+            ]
+          },
+          {
+            "type": "Point",
+            "coordinates": [
+              145.481093322,
+              -17.507670903
+            ]
+          },
+          {
+            "type": "Point",
+            "coordinates": [
+              145.48098572,
+              -17.508220207
+            ]
+          }
+        ]
+      },
+      "properties": {
+        "id": 539691,
+        "area_alert": false,
+        "status": "Published",
+        "published": null,
+        "source": {
+          "source_name": "Guardian",
+          "source_id": "a55805eb-5afd-4d80-aa18-87f2d2d5bb40",
+          "account": "36820",
+          "provided_by": "Tablelands Regional Council",
+          "provided_by_url": "https://www.trc.qld.gov.au/"
+        },
+        "url": "https://api.qldtraffic.qld.gov.au/v2/events/539691",
+        "image": null,
+        "event_type": "Hazard",
+        "event_subtype": "Bridge or culvert damaged",
+        "event_due_to": null,
+        "impact": {
+          "direction": "Both directions",
+          "towards": null,
+          "impact_type": "Closures",
+          "impact_subtype": "Road closed to all traffic",
+          "delay": "No delays expected"
+        },
+        "duration": {
+          "start": "2026-09-22T09:00:00+10:00",
+          "end": null,
+          "active_days": null,
+          "recurrences": null
+        },
+        "event_priority": "Medium",
+        "description": "Coolabbi Creek Bridge on Gotak Road, Evelyn is temporarily closed. Motorists are encouraged to observe signage and seek alternate route. ",
+        "advice": "Seek alternative transport method",
+        "information": null,
+        "road_summary": {
+          "road_name": "Go Tack Road",
+          "locality": "Evelyn",
+          "postcode": "4888",
+          "local_government_area": "Tablelands Regional",
+          "district": "Far North"
+        },
+        "last_updated": "2026-07-07T15:24:10.829502+10:00",
+        "next_inspection": "2027-06-07T15:22:00+10:00",
+        "web_link": null,
+        "alert_message": null
+      }
+    }
+  ]
+}

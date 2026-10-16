@@ -426,6 +426,7 @@ async def test_options_flow(
     # River point edit/remove only appear once a point exists; QLD has river gauges (#31)
     assert result["menu_options"] == [
         "settings",
+        "roads",
         "forecasts",
         "earthquakes",
         "national_feeds",

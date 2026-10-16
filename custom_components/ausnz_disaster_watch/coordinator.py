@@ -49,6 +49,7 @@ from .providers import get_providers_for_config
 from .providers.base import BaseHazardProvider, ProviderUnavailableError
 from .providers.fire_danger import FireDangerService, local_today
 from .providers.geometry import area_distance
+from .providers.roads import get_road_providers_for_config, merge_road_items
 from .providers.sources import DataSource, attribution_for, sources_for_provider
 
 if TYPE_CHECKING:
@@ -171,14 +172,23 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         self.forecasts = ForecastCoordinators()
         # Polls the river gauges chosen in the options flow; None when none are selected (#31)
         self.river_coordinator: RiverGaugeCoordinator | None = None
+        self._road_feed_healthy: dict[str, bool] = {}
+        self.road_feeds_failed: list[str] = []
         self._update_config_values()
 
         session = async_get_clientsession(hass)
         # Providers that measure distance to warning areas need the resolved home location
-        provider_config = {**self.combined_config, "latitude": self.latitude, "longitude": self.longitude}
+        provider_config = {
+            **self.combined_config,
+            "latitude": self.latitude,
+            "longitude": self.longitude,
+            "radius": self.radius_km,
+        }
         self.providers = get_providers_for_config(hass, session, provider_config)
         # Fire danger outlook / NZ fire season on its own 30-minute schedule (#28)
         self.fire_service = FireDangerService(hass, session, provider_config)
+        # Statewide road feeds (#29), kept apart so they never count towards hazard feed health
+        self.road_providers = get_road_providers_for_config(hass, session, provider_config)
         self._update_location()
 
     def _update_config_values(self) -> None:
@@ -195,6 +205,7 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         self.radius_km: float = float(cfg.radius)
         self.override_emergency: bool = cfg.override_emergency
         self.exclude_hazard_reduction: bool = cfg.exclude_hazard_reduction
+        self.include_roadworks: bool = cfg.include_roadworks
         self.location_mode: str = cfg.location_mode
         self._stored_latitude = cfg.latitude
         self._stored_longitude = cfg.longitude
@@ -227,7 +238,7 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         self._resolve_location()
         if previous not in {(None, None), (self.latitude, self.longitude)}:
             self._last_good_hazards.clear()
-        for provider in [*self.providers, self.fire_service]:
+        for provider in [*self.providers, *self.road_providers, self.fire_service]:
             if isinstance(provider, BaseHazardProvider):
                 provider.set_location(self.latitude, self.longitude)
         # Location-based forecasts follow too; river points are user-picked coordinates and stay
@@ -372,28 +383,7 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
                 _LOGGER.debug("Error updating power outages from %s: %s", provider.__class__.__name__, err)
 
         async def _fetch_roads() -> None:
-            try:
-                rc = await provider.async_fetch_road_closures()
-                if isinstance(rc, list):
-                    for item in rc:
-                        if (
-                            isinstance(item, RoadClosureItem)
-                            and item.latitude is not None
-                            and item.longitude is not None
-                        ):
-                            dist = round(
-                                calculate_haversine_distance(
-                                    self.latitude, self.longitude, item.latitude, item.longitude
-                                ),
-                                2,
-                            )
-                            item.distance_km = dist
-                            if dist <= self.radius_km:
-                                road_closures.append(item)
-                        elif isinstance(item, RoadClosureItem):
-                            road_closures.append(item)
-            except Exception as err:  # noqa: BLE001
-                _LOGGER.debug("Error updating road closures from %s: %s", provider.__class__.__name__, err)
+            await self._async_collect_roads(provider, road_closures)
 
         async def _fetch_relief() -> None:
             try:
@@ -420,6 +410,44 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
                 _LOGGER.debug("Error updating relief facilities from %s: %s", provider.__class__.__name__, err)
 
         await asyncio.gather(_fetch_power(), _fetch_roads(), _fetch_relief())
+
+    async def _async_collect_statewide_roads(self, provider: Any, road_closures: list[RoadClosureItem]) -> bool:
+        """Collect a statewide road feed's items; return False (logged once per outage) if it is down."""
+        key = type(provider).__name__
+        try:
+            await self._async_collect_roads(provider, road_closures, raise_errors=True)
+        except Exception as err:  # noqa: BLE001
+            if self._road_feed_healthy.get(key, True):
+                _LOGGER.warning("Road feed %s is unavailable: %s", key, err)
+            self._road_feed_healthy[key] = False
+            return False
+        if self._road_feed_healthy.get(key) is False:
+            _LOGGER.info("Road feed %s is available again", key)
+        self._road_feed_healthy[key] = True
+        return True
+
+    async def _async_collect_roads(
+        self, provider: Any, road_closures: list[RoadClosureItem], raise_errors: bool = False
+    ) -> None:
+        """Collect a provider's road items within the radius (unlocated council items are kept)."""
+        try:
+            rc = await provider.async_fetch_road_closures()
+            if isinstance(rc, list):
+                for item in rc:
+                    if isinstance(item, RoadClosureItem) and item.latitude is not None and item.longitude is not None:
+                        dist = round(
+                            calculate_haversine_distance(self.latitude, self.longitude, item.latitude, item.longitude),
+                            2,
+                        )
+                        item.distance_km = dist
+                        if dist <= self.radius_km:
+                            road_closures.append(item)
+                    elif isinstance(item, RoadClosureItem):
+                        road_closures.append(item)
+        except Exception as err:
+            if raise_errors:
+                raise
+            _LOGGER.debug("Error updating road closures from %s: %s", provider.__class__.__name__, err)
 
     async def _collect_environmental(
         self,
@@ -504,7 +532,11 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         cameras: list[DisasterCameraItem] = []
         nearby_councils: list[dict[str, str]] = []
 
-        coros = []
+        statewide_roads: list[RoadClosureItem] = []
+        road_feeds = asyncio.gather(
+            *(self._async_collect_statewide_roads(provider, statewide_roads) for provider in self.road_providers)
+        )
+        coros: list[Any] = [road_feeds]
         for provider in self.providers:
             coros.append(self._collect_infrastructure(provider, power_outages, road_closures, relief_facilities))
             coros.append(
@@ -514,8 +546,12 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
             )
             coros.append(self._collect_cameras_and_councils(provider, cameras, nearby_councils))
 
-        if coros:
-            await asyncio.gather(*coros)
+        await asyncio.gather(*coros)
+        self.road_feeds_failed = [
+            type(provider).__name__
+            for provider, ok in zip(self.road_providers, road_feeds.result(), strict=True)
+            if not ok
+        ]
 
         await self.fire_service.async_update()
         fire_outlook = self.fire_service.outlook
@@ -541,7 +577,12 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
 
         return {
             "power_outages": power_outages,
-            "road_closures": road_closures,
+            # Statewide feeds first, so their items win over council copies of the same event
+            # Nearest first, so capped lists (the sensor shows 25) hold the closest roads; unlocated last
+            "road_closures": sorted(
+                merge_road_items(statewide_roads, road_closures, self.include_roadworks),
+                key=lambda item: (item.distance_km is None, item.distance_km or 0.0),
+            ),
             "weather_warnings": _unique_by_title(weather_warnings),
             "emergency_news": emergency_news,
             "fire_danger": fire_danger,
@@ -639,7 +680,9 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         """Return the register entries for every source this entry's providers read (#34)."""
         return list(
             dict.fromkeys(
-                source for provider in self.providers for source in sources_for_provider(type(provider).__name__)
+                source
+                for provider in [*self.providers, *self.road_providers]
+                for source in sources_for_provider(type(provider).__name__)
             )
         )
 

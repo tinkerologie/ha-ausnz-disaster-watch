@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from datetime import timedelta
 from typing import Any
 
@@ -26,6 +27,7 @@ from .coordinator import AustralianDisasterWatchCoordinator
 from .entity import AustralianDisasterWatchEntity
 from .forecast_entity import forecast_binary_sensors
 from .models import CALL_TO_ACTION_MAX_LENGTH
+from .models import RoadEventCategory
 from .providers.fire_danger import local_today
 from .providers.sources import attribution_for, national_feed_attribution
 from .river_binary_sensor import async_setup_river_alert_sensors
@@ -45,6 +47,7 @@ async def async_setup_entry(
         ActiveHazardsNearbyBinarySensor(coordinator),
         PowerOutageActiveBinarySensor(coordinator),
         RoadClosureNearbyBinarySensor(coordinator),
+        FloodedRoadNearbyBinarySensor(coordinator),
         *forecast_binary_sensors(coordinator),
     ]
     if coordinator.state_code != STATE_NZ:
@@ -186,7 +189,10 @@ class PowerOutageActiveBinarySensor(AustralianDisasterWatchEntity, BinarySensorE
 
 
 class RoadClosureNearbyBinarySensor(AustralianDisasterWatchEntity, BinarySensorEntity):
-    """Binary sensor that turns on if any road closures or hazards exist in perimeter."""
+    """Binary sensor that turns on for a road closure, flooded road or road hazard in perimeter.
+
+    Planned roadworks and special events never turn it on (#29).
+    """
 
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
     _attr_translation_key = "road_closure_nearby"
@@ -196,9 +202,14 @@ class RoadClosureNearbyBinarySensor(AustralianDisasterWatchEntity, BinarySensorE
         super().__init__(coordinator, "road_closure_nearby")
 
     @property
+    def available(self) -> bool:
+        """Return False while a statewide road feed is down, so an outage is not read as all-clear."""
+        return super().available and not self.coordinator.road_feeds_failed
+
+    @property
     def is_on(self) -> bool:
-        """Return True if any road closures exist."""
-        return len(self.coordinator.road_closures) > 0
+        """Return True if any unplanned road closure, flooding or hazard exists."""
+        return any(not item.is_planned for item in self.coordinator.road_closures)
 
     @property
     def icon(self) -> str:
@@ -207,9 +218,62 @@ class RoadClosureNearbyBinarySensor(AustralianDisasterWatchEntity, BinarySensorE
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        """Return closure counts."""
+        """Return closure counts by category."""
+        items = self.coordinator.road_closures
+        counts = Counter(str(item.category) for item in items)
         return {
-            "closures_count": len(self.coordinator.road_closures),
+            "closures_count": len(items),
+            **{f"{category}_count": counts.get(category.value, 0) for category in RoadEventCategory},
+        }
+
+
+class FloodedRoadNearbyBinarySensor(AustralianDisasterWatchEntity, BinarySensorEntity):
+    """Binary sensor that turns on when a flooded road is reported within the perimeter (#29)."""
+
+    _attr_device_class = BinarySensorDeviceClass.SAFETY
+    _attr_translation_key = "flooded_road_nearby"
+
+    def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
+        """Initialize flooded road binary sensor."""
+        super().__init__(coordinator, "flooded_road_nearby")
+
+    @property
+    def available(self) -> bool:
+        """Return False while a statewide road feed is down, so an outage is not read as all-clear."""
+        return super().available and not self.coordinator.road_feeds_failed
+
+    @property
+    def _flooded(self) -> list[Any]:
+        return [item for item in self.coordinator.road_closures if item.is_flooding]
+
+    @property
+    def is_on(self) -> bool:
+        """Return True if any flooded road is reported nearby."""
+        return bool(self._flooded)
+
+    @property
+    def icon(self) -> str:
+        """Return icon depending on state."""
+        return "mdi:home-flood" if self.is_on else "mdi:road-variant"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the flooded road count and the nearest few flooded roads."""
+        flooded = sorted(
+            self._flooded, key=lambda item: item.distance_km if item.distance_km is not None else float("inf")
+        )
+        return {
+            "flooded_count": len(flooded),
+            "nearest": [
+                {
+                    "road": item.road,
+                    "suburb": item.suburb,
+                    "status": item.status,
+                    "distance_km": item.distance_km,
+                    "source": item.source,
+                }
+                for item in flooded[:5]
+            ],
         }
 
 

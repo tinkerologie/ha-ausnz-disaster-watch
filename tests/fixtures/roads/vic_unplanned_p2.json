@@ -1,0 +1,51 @@
+{
+  "meta": {
+    "total_records": 3,
+    "total_pages": 2,
+    "page": 2,
+    "limit": 500,
+    "count": 3
+  },
+  "data": {
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "geometry": {"type": "Point", "coordinates": [145.1, -37.9]},
+        "properties": {
+          "eventId": "88125",
+          "impactId": "2",
+          "eventLocationStatus": "Reopened",
+          "eventType": "Hazard",
+          "impact": {"impactType": "Road closed"},
+          "closedRoadName": "Reopened Road"
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {"type": "Point", "coordinates": [145.2, -37.95]},
+        "properties": {
+          "eventId": "88126",
+          "impactId": "1",
+          "eventLocationStatus": "Active",
+          "eventType": "Vehicle breakdown",
+          "impact": {"impactType": "Lane closed"},
+          "closedRoadName": "Monash Freeway"
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {"type": "Point", "coordinates": [145.3, -38.0]},
+        "properties": {
+          "eventId": "88127",
+          "impactId": "1",
+          "eventLocationStatus": "Active",
+          "eventType": "Hazard",
+          "eventSubType": "Fallen tree",
+          "reference": {"localRoadName": "Belgrave-Gembrook Road"}
+        }
+      }
+    ]
+  },
+  "links": []
+}

@@ -8,7 +8,7 @@ from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.core import HomeAssistant
 
 from . import AusNZDisasterWatchConfigEntry
-from .const import CONF_LATITUDE, CONF_LONGITUDE
+from .const import CONF_LATITUDE, CONF_LONGITUDE, CONF_VIC_API_KEY
 
 TO_REDACT = {
     CONF_LATITUDE,
@@ -18,6 +18,7 @@ TO_REDACT = {
     # ArcGIS editor fields hold email addresses (#30)
     "created_user",
     "last_edited_user",
+    CONF_VIC_API_KEY,
 }
 
 
@@ -47,6 +48,10 @@ async def async_get_config_entry_diagnostics(
             "providers": [p.__class__.__name__ for p in coordinator.providers],
             "attribution": coordinator.attribution,
             "data_sources": [source.as_dict() for source in coordinator.data_sources],
+            "road_providers": [p.__class__.__name__ for p in coordinator.road_providers],
+            "include_roadworks": coordinator.include_roadworks,
+            "road_closures_count": len(coordinator.road_closures),
+            "road_feeds_failed": coordinator.road_feeds_failed,
             "active_hazards_count": len(coordinator.active_hazards),
             "highest_warning_level": coordinator.highest_warning_level.value,
             "has_emergency_warning_nearby": coordinator.has_emergency_warning_nearby,
