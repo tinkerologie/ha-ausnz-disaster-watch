@@ -45,6 +45,7 @@ Versions follow Home Assistant's scheme, `YEAR.MONTH.PATCH` (for example `2026.1
 
 ### Changed
 
+- CI jobs run on the runner set by the `RUNNER_LABELS` repository variable (a JSON label list, for example `["self-hosted","unraid"]`). Without it they fall back to `ubuntu-latest`. This lets the private repository use a self-hosted runner when GitHub-hosted minutes run out.
 - QLD no longer reads the council `fireDetailed` feed: it is a statewide list without coordinates. QLD cameras now come from the council dashboard (`getCameras`) instead of four hard-coded Brisbane cameras; the old camera entities are no longer provided and can be removed (#25, #19).
 - **BREAKING CHANGE:** `geo_location` events now have `source: ausnz_disaster_watch` instead of the agency name, as Home Assistant's `geo_location` trigger and map card expect one source per integration. The agency is in the new `agency` attribute; update automations or cards that filtered on an agency name in `source` (#18).
 - **BREAKING CHANGE:** `geo_location` entity IDs are `geo_location.ausnz_disaster_watch_<hazard_id>` (long IDs are shortened with a digest) instead of being built from the full warning headline. The headline stays the entity name (#18).

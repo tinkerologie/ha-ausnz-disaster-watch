@@ -17,7 +17,7 @@ concurrency:
 jobs:
   ruff:
     name: Lint
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.RUNNER_LABELS || '"ubuntu-latest"') }}
     steps:
       - name: Checkout the repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -41,9 +41,18 @@ jobs:
         with:
           path: |
             .local/ha-venv
-          key: ha-venv-${{ runner.os }}-py314-lint-${{ hashFiles('requirements_dev.txt') }}
+          key: ha-venv-${{ runner.os }}-${{ runner.environment }}-py314-lint-${{ hashFiles('requirements_dev.txt') }}
           restore-keys: |
-            ha-venv-${{ runner.os }}-py314-lint-
+            ha-venv-${{ runner.os }}-${{ runner.environment }}-py314-lint-
+
+      - name: Drop a cached venv built under another workspace path
+        # Virtualenvs hard-code their absolute path; a cache restored on a runner with a
+        # different workspace (another self-hosted runner, or GitHub-hosted) is unusable.
+        run: |
+          if [ -f .local/ha-venv/bin/activate ] && ! grep -q "$PWD/.local/ha-venv" .local/ha-venv/bin/activate; then
+            echo "Cached venv was built elsewhere; recreating it"
+            rm -rf .local/ha-venv
+          fi
 
       - name: Install lint dependencies
         run: |
@@ -60,7 +69,7 @@ jobs:
 
   backend:
     name: Test
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.RUNNER_LABELS || '"ubuntu-latest"') }}
     permissions:
       contents: read
       id-token: write # Codecov OIDC upload
@@ -94,9 +103,26 @@ jobs:
         with:
           path: |
             .local/ha-venv
-          key: ha-venv-${{ runner.os }}-py314-ha${{ steps.ha_version.outputs.HA_VERSION }}-${{ hashFiles('**/requirements*.txt') }}
+          key: ha-venv-${{ runner.os }}-${{ runner.environment }}-py314-ha${{ steps.ha_version.outputs.HA_VERSION }}-${{ hashFiles('**/requirements*.txt') }}
           restore-keys: |
-            ha-venv-${{ runner.os }}-py314-ha${{ steps.ha_version.outputs.HA_VERSION }}-
+            ha-venv-${{ runner.os }}-${{ runner.environment }}-py314-ha${{ steps.ha_version.outputs.HA_VERSION }}-
+
+      - name: Drop a cached venv built under another workspace path
+        # Virtualenvs hard-code their absolute path; a cache restored on a runner with a
+        # different workspace (another self-hosted runner, or GitHub-hosted) is unusable.
+        run: |
+          if [ -f .local/ha-venv/bin/activate ] && ! grep -q "$PWD/.local/ha-venv" .local/ha-venv/bin/activate; then
+            echo "Cached venv was built elsewhere; recreating it"
+            rm -rf .local/ha-venv
+          fi
+
+      - name: Install build tools (self-hosted runner)
+        # GitHub-hosted images include these; some Home Assistant test dependencies
+        # (for example dtlssocket) are compiled from source and need them.
+        if: runner.environment == 'self-hosted'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends autoconf automake libtool build-essential pkg-config
 
       - name: Install dependencies
         run: script/setup/bootstrap
@@ -115,7 +141,7 @@ jobs:
 
   imports:
     name: Declared requirements
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.RUNNER_LABELS || '"ubuntu-latest"') }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -139,7 +165,7 @@ jobs:
 
   frontend:
     name: Frontend
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.RUNNER_LABELS || '"ubuntu-latest"') }}
     defaults:
       run:
         working-directory: frontend
