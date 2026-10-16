@@ -10,9 +10,12 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import AusNZDisasterWatchConfigEntry
+from .const import STATE_NZ
 from .coordinator import AustralianDisasterWatchCoordinator
 from .entity import AustralianDisasterWatchEntity
 from .forecast_entity import forecast_sensors
+from .providers.fire_danger import NZ_SEASONS, local_today
+from .providers.sources import attribution_for
 
 
 async def async_setup_entry(
@@ -23,23 +26,24 @@ async def async_setup_entry(
     """Set up Australian Disaster Watch sensors."""
     coordinator = entry.runtime_data
 
-    async_add_entities(
-        [
-            NearestHazardDistanceSensor(coordinator),
-            ActiveHazardsCountSensor(coordinator),
-            HighestWarningLevelSensor(coordinator),
-            NearestHazardTitleSensor(coordinator),
-            PowerOutagesCountSensor(coordinator),
-            PowerOutagesCustomersAffectedSensor(coordinator),
-            RoadClosuresCountSensor(coordinator),
-            WeatherWarningsCountSensor(coordinator),
-            FireDangerRatingSensor(coordinator),
-            AirQualityIndexSensor(coordinator),
-            PrimaryWeatherObservationSensor(coordinator),
-            ReliefFacilitiesCountSensor(coordinator),
-            *forecast_sensors(coordinator),
-        ]
-    )
+    entities: list[SensorEntity] = [
+        NearestHazardDistanceSensor(coordinator),
+        ActiveHazardsCountSensor(coordinator),
+        HighestWarningLevelSensor(coordinator),
+        NearestHazardTitleSensor(coordinator),
+        PowerOutagesCountSensor(coordinator),
+        PowerOutagesCustomersAffectedSensor(coordinator),
+        RoadClosuresCountSensor(coordinator),
+        WeatherWarningsCountSensor(coordinator),
+        FireDangerRatingSensor(coordinator),
+        AirQualityIndexSensor(coordinator),
+        PrimaryWeatherObservationSensor(coordinator),
+        ReliefFacilitiesCountSensor(coordinator),
+        *forecast_sensors(coordinator),
+    ]
+    if coordinator.state_code == STATE_NZ:
+        entities.append(FireSeasonSensor(coordinator))
+    async_add_entities(entities)
 
 
 class NearestHazardDistanceSensor(AustralianDisasterWatchEntity, SensorEntity):
@@ -262,6 +266,11 @@ class FireDangerRatingSensor(AustralianDisasterWatchEntity, SensorEntity):
 
     _attr_translation_key = "fire_danger_rating"
 
+    @property
+    def attribution(self) -> str | None:
+        """Credit the fire danger and total fire ban sources for this district (#28, #34)."""
+        return attribution_for(self.coordinator.fire_service.data_sources) or super().attribution
+
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize fire danger rating sensor."""
         super().__init__(coordinator, "fire_danger_rating")
@@ -288,11 +297,65 @@ class FireDangerRatingSensor(AustralianDisasterWatchEntity, SensorEntity):
         fd = self.coordinator.fire_danger
         if not fd:
             return {}
-        return {
+        attrs: dict[str, Any] = {
             "district_name": fd.district_name,
             "district_number": fd.district_number,
             "total_fire_ban": fd.total_fire_ban,
             "day": fd.day,
+        }
+        outlook = self.coordinator.fire_outlook
+        if outlook is not None and outlook.district_number == fd.district_number:
+            today = local_today(outlook.time_zone)
+            current = outlook.day(today)
+            attrs["date"] = today.isoformat()
+            attrs["fire_behaviour_index"] = current.fire_behaviour_index if current else None
+            attrs["forecast"] = [day.model_dump(mode="json") for day in outlook.days if day.date >= today]
+            attrs["issued_at"] = outlook.issued_at.isoformat() if outlook.issued_at else None
+            attrs["source"] = outlook.source
+            attrs["total_fire_ban_source"] = outlook.total_fire_ban_source
+        return attrs
+
+
+class FireSeasonSensor(AustralianDisasterWatchEntity, SensorEntity):
+    """New Zealand fire season (open, restricted or prohibited) at the configured location (#28)."""
+
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = list(NZ_SEASONS)
+    _attr_translation_key = "fire_season"
+
+    @property
+    def attribution(self) -> str | None:
+        """Credit Fire and Emergency New Zealand (#34)."""
+        return attribution_for(self.coordinator.fire_service.data_sources) or super().attribution
+
+    def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
+        """Initialize fire season sensor."""
+        super().__init__(coordinator, "fire_season")
+
+    @property
+    def native_value(self) -> str | None:
+        """Return the fire season status."""
+        season = self.coordinator.fire_season
+        return season.season if season else None
+
+    @property
+    def icon(self) -> str:
+        """Return an icon matching the season."""
+        return {"restricted": "mdi:fire-alert", "prohibited": "mdi:fire-off"}.get(str(self.native_value), "mdi:fire")
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the fire zone and any Section 52 prohibition."""
+        season = self.coordinator.fire_season
+        if season is None:
+            return {}
+        return {
+            "zone": season.zone,
+            "district": season.district,
+            "last_updated": season.last_updated.isoformat() if season.last_updated else None,
+            "section_52": season.section_52,
+            "section_52_comment": season.section_52_comment,
+            "prohibited_activities": season.prohibited_activities,
         }
 
 

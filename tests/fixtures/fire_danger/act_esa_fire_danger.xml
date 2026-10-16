@@ -1,0 +1,19 @@
+<rss version="2.0">
+  <channel>
+  <title>ACT Fire Danger Rating Meter</title>
+  <link>http://esa.act.gov.au</link>
+  <description>ACT Fire Danger Rating Meter</description>
+  <lastBuildDate>Fri, 16 Oct 2026 9:24:05 +1100</lastBuildDate>
+  <pubDate>Fri, 16 Oct 2026 9:24:05 +1100</pubDate>
+  <FireDangerMap>
+    <District>
+      <Name>ACT</Name>
+      <RegionNumber>8</RegionNumber>
+      <DangerLevelToday>Moderate</DangerLevelToday>
+      <DangerLevelTomorrow>Moderate</DangerLevelTomorrow>
+      <FireBanToday>No</FireBanToday>
+      <FireBanTomorrow>No</FireBanTomorrow>
+    </District>
+  </FireDangerMap>
+  </channel>
+</rss>

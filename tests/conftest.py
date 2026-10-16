@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from datetime import UTC, datetime
 import re
 from typing import Any
+from unittest.mock import AsyncMock, patch
 
 import aiohttp
 import pytest
@@ -34,6 +35,22 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 @pytest.fixture(autouse=True)
 def auto_enable_custom_integrations(enable_custom_integrations: None) -> None:
     """Enable custom integration discovery in all tests."""
+
+
+@pytest.fixture(autouse=True)
+def no_fire_danger_network(request: pytest.FixtureRequest) -> Generator[None]:
+    """Stop the coordinator's fire danger service reaching the network (#28).
+
+    Tests of the service itself opt out with ``@pytest.mark.real_fire_service``.
+    """
+    if request.node.get_closest_marker("real_fire_service"):
+        yield
+        return
+    with patch(
+        "custom_components.ausnz_disaster_watch.providers.fire_danger.FireDangerService.async_update",
+        AsyncMock(return_value=None),
+    ):
+        yield
 
 
 @pytest.fixture

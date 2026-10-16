@@ -12,7 +12,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from custom_components.ausnz_disaster_watch.const import STATE_ACT, STATE_SA, STATE_VIC
-from custom_components.ausnz_disaster_watch.fire_districts import find_district, load_fire_districts
+from custom_components.ausnz_disaster_watch.fire_districts import FIRE_DISTRICTS, find_district, load_fire_districts
 from custom_components.ausnz_disaster_watch.models import HazardType, WarningLevel
 from custom_components.ausnz_disaster_watch.providers import ACTHazardProvider, SAHazardProvider, VictoriaHazardProvider
 from custom_components.ausnz_disaster_watch.providers.base import BaseHazardProvider
@@ -35,9 +35,10 @@ from homeassistant.core import HomeAssistant
 )
 def test_wa_fire_district_lookup(lat: float, lon: float, expected: str | None) -> None:
     """The bundled BoM polygons resolve a location to its WA fire weather district."""
-    districts = load_fire_districts("wa_fire_districts")
-    assert len(districts) == 49
-    assert find_district(districts, lat, lon) == expected
+    districts = load_fire_districts(FIRE_DISTRICTS)
+    assert len(districts) == 139
+    assert sum(aac.startswith("WA_") for aac in districts) == 49
+    assert find_district(districts, lat, lon, "WA_") == expected
 
 
 def test_find_district_honours_holes_and_degenerate_edges() -> None:

@@ -2,8 +2,8 @@
 
 Agencies publish fire danger ratings per BoM fire weather district (an AAC code such as
 ``WA_FW091``) without geometry. The bundled polygons come from the BoM ``IDM00007``
-dataset, simplified to about 1 km, so the configured location can be matched to its
-district with a point-in-polygon test (#14).
+dataset (all 139 districts nationally), simplified to about 1 km, so the configured
+location can be matched to its district with a point-in-polygon test (#14, #28).
 """
 
 from __future__ import annotations
@@ -15,6 +15,9 @@ from pathlib import Path
 from typing import Any
 
 _DATA_DIR = Path(__file__).parent / "data"
+
+# Bundled national district file (``data/fire_districts.json``)
+FIRE_DISTRICTS = "fire_districts"
 
 # A location within this distance (degrees, about 25 km) of a district boundary still
 # resolves to that district. This covers coastal points that fall outside the simplified
@@ -58,11 +61,16 @@ def _segment_distance(lat: float, lon: float, a: list[float], b: list[float]) ->
     return float(((lon - x1 - t * dx) ** 2 + (lat - y1 - t * dy) ** 2) ** 0.5)
 
 
-def find_district(districts: dict[str, dict[str, Any]], lat: float, lon: float) -> str | None:
+def find_district(
+    districts: dict[str, dict[str, Any]], lat: float, lon: float, prefix: str | None = None
+) -> str | None:
     """Return the AAC of the district containing the point, else the nearest one within range.
 
-    Rings use the even-odd rule, so holes in a district are honoured.
+    Rings use the even-odd rule, so holes in a district are honoured. ``prefix`` (e.g.
+    ``"WA_"``) limits the search to one jurisdiction's districts.
     """
+    if prefix is not None:
+        districts = {aac: district for aac, district in districts.items() if aac.startswith(prefix)}
     for aac, district in districts.items():
         if sum(_ring_contains(ring, lat, lon) for ring in district["rings"]) % 2:
             return aac
@@ -77,6 +85,12 @@ def find_district(districts: dict[str, dict[str, Any]], lat: float, lon: float) 
     return best[1] if best else None
 
 
-def resolve_district(name: str, lat: float, lon: float) -> str | None:
+def resolve_district(name: str, lat: float, lon: float, prefix: str | None = None) -> str | None:
     """Return the AAC of the bundled ``name`` district for a point. Blocking: run in an executor."""
-    return find_district(load_fire_districts(name), lat, lon)
+    return find_district(load_fire_districts(name), lat, lon, prefix)
+
+
+def district_name(name: str, aac: str) -> str:
+    """Return the name of a bundled district (the AAC if unknown). Blocking: run in an executor."""
+    district = load_fire_districts(name).get(aac)
+    return str(district["name"]) if district else aac

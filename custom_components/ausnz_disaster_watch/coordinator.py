@@ -29,7 +29,9 @@ from .models import (
     DisasterCoordinatorData,
     DisasterWatchConfigModel,
     EmergencyNewsItem,
+    FireDangerOutlook,
     FireDangerRating,
+    FireSeasonStatus,
     PowerOutageItem,
     ReliefFacilityItem,
     RoadClosureItem,
@@ -39,6 +41,7 @@ from .models import (
 )
 from .providers import get_providers_for_config
 from .providers.base import BaseHazardProvider, ProviderUnavailableError
+from .providers.fire_danger import FireDangerService, local_today
 from .providers.sources import DataSource, attribution_for, sources_for_provider
 
 if TYPE_CHECKING:
@@ -106,6 +109,22 @@ def nearest_council_dashboard(state: str, latitude: float | None, longitude: flo
     return best[1] if best else None
 
 
+def fire_danger_today(outlook: FireDangerOutlook | None) -> FireDangerRating | None:
+    """Return today's rating from an outlook, today being the district's local date (#28)."""
+    if outlook is None:
+        return None
+    day = outlook.day(local_today(outlook.time_zone))
+    if day is None or day.rating is None:
+        return None
+    return FireDangerRating(
+        district_number=outlook.district_number,
+        district_name=outlook.district_name,
+        rating=day.rating,
+        total_fire_ban=day.total_fire_ban,
+        day="Today",
+    )
+
+
 class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinatorData]):
     """Coordinator to manage polling of emergency hazards with spatial filtering."""
 
@@ -137,6 +156,8 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         # Providers that measure distance to warning areas need the resolved home location
         provider_config = {**self.combined_config, "latitude": self.latitude, "longitude": self.longitude}
         self.providers = get_providers_for_config(hass, session, provider_config)
+        # Fire danger outlook / NZ fire season on its own 30-minute schedule (#28)
+        self.fire_service = FireDangerService(hass, session, provider_config)
         self._update_location()
 
     def _update_config_values(self) -> None:
@@ -185,7 +206,7 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         self._resolve_location()
         if previous not in {(None, None), (self.latitude, self.longitude)}:
             self._last_good_hazards.clear()
-        for provider in self.providers:
+        for provider in [*self.providers, self.fire_service]:
             if isinstance(provider, BaseHazardProvider):
                 provider.set_location(self.latitude, self.longitude)
         # Location-based forecasts follow too; river points are user-picked coordinates and stay
@@ -465,6 +486,11 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         if coros:
             await asyncio.gather(*coros)
 
+        await self.fire_service.async_update()
+        fire_outlook = self.fire_service.outlook
+        fire_danger = fire_danger_today(fire_outlook)
+
+        # Fall back to the providers' own (single-day) sources when there is no outlook for today
         for provider in self.providers:
             if fire_danger is None:
                 try:
@@ -488,6 +514,8 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
             "weather_warnings": _unique_by_title(weather_warnings),
             "emergency_news": emergency_news,
             "fire_danger": fire_danger,
+            "fire_outlook": fire_outlook,
+            "fire_season": self.fire_service.season,
             "weather_stations": weather_stations,
             "air_quality_stations": air_quality_stations,
             "relief_facilities": relief_facilities,
@@ -524,6 +552,8 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
             weather_warnings=aux["weather_warnings"],
             emergency_news=aux["emergency_news"],
             fire_danger=aux["fire_danger"],
+            fire_outlook=aux.get("fire_outlook"),
+            fire_season=aux.get("fire_season"),
             weather_stations=aux["weather_stations"],
             air_quality_stations=aux["air_quality_stations"],
             relief_facilities=aux["relief_facilities"],
@@ -610,6 +640,16 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
     def fire_danger(self) -> Any | None:
         """Return current AFDRS fire danger rating."""
         return getattr(self.data, "fire_danger", None) if self.data is not None else None
+
+    @property
+    def fire_outlook(self) -> FireDangerOutlook | None:
+        """Return the multi-day fire danger and total fire ban outlook (#28)."""
+        return getattr(self.data, "fire_outlook", None) if self.data is not None else None
+
+    @property
+    def fire_season(self) -> FireSeasonStatus | None:
+        """Return the New Zealand fire season status (#28)."""
+        return getattr(self.data, "fire_season", None) if self.data is not None else None
 
     @property
     def weather_stations(self) -> list[Any]:

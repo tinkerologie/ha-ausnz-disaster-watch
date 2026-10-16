@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime as dt
 from datetime import UTC, datetime
 from enum import StrEnum
 import re
@@ -274,6 +275,51 @@ class FireDangerRating(BaseModel):
     day: str | None = Field(default=None, description="Forecast day")
 
 
+class FireDangerDay(BaseModel):
+    """One day of a district fire danger forecast, dated in the district's local time (#28)."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    date: dt.date = Field(description="Local calendar day the forecast applies to")
+    rating: str | None = Field(
+        default=None, description="AFDRS rating (No Rating, Moderate, High, Extreme, Catastrophic)"
+    )
+    fire_behaviour_index: int | None = Field(default=None, description="AFDRS Fire Behaviour Index")
+    total_fire_ban: bool | None = Field(default=None, description="Total fire ban declared; None when not published")
+
+
+class FireDangerOutlook(BaseModel):
+    """Multi-day fire danger forecast and total fire bans for one BoM fire weather district (#28)."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    district_number: str = Field(description="BoM fire weather district AAC (e.g. NSW_FW008)")
+    district_name: str = Field(description="Fire weather district name")
+    time_zone: str = Field(description="IANA time zone the forecast days are dated in")
+    issued_at: datetime | None = Field(default=None, description="Forecast issue time")
+    source: str = Field(description="Fire danger forecast source")
+    total_fire_ban_source: str | None = Field(default=None, description="Total fire ban source, if any")
+    days: list[FireDangerDay] = Field(default_factory=list)
+
+    def day(self, on: dt.date) -> FireDangerDay | None:
+        """Return the forecast for a local calendar day, if the forecast covers it."""
+        return next((day for day in self.days if day.date == on), None)
+
+
+class FireSeasonStatus(BaseModel):
+    """New Zealand fire season status and Section 52 prohibitions at a location (#28)."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    season: str | None = Field(default=None, description="open, restricted or prohibited")
+    zone: str | None = Field(default=None, description="Fire zone name")
+    district: str | None = Field(default=None, description="Fire and Emergency NZ district")
+    last_updated: datetime | None = Field(default=None)
+    section_52: bool | None = Field(default=None, description="A Section 52 prohibition covers the location")
+    section_52_comment: str | None = Field(default=None)
+    prohibited_activities: list[str] = Field(default_factory=list)
+
+
 class WeatherStationObservation(BaseModel):
     """Local environmental weather station telemetry."""
 
@@ -352,6 +398,8 @@ class DisasterCoordinatorData(BaseModel):
     weather_warnings: list[WeatherWarningItem] = Field(default_factory=list)
     emergency_news: list[EmergencyNewsItem] = Field(default_factory=list)
     fire_danger: FireDangerRating | None = Field(default=None)
+    fire_outlook: FireDangerOutlook | None = Field(default=None)
+    fire_season: FireSeasonStatus | None = Field(default=None)
     weather_stations: list[WeatherStationObservation] = Field(default_factory=list)
     air_quality_stations: list[AirQualityStationData] = Field(default_factory=list)
     relief_facilities: list[ReliefFacilityItem] = Field(default_factory=list)

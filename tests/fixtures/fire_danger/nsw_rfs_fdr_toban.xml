@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<FireDangerMap>
+  <District>
+    <Name>Greater Sydney Region</Name>
+    <RegionNumber>4</RegionNumber>
+    <Councils>The Hills; Blacktown; Blue Mountains; Burwood; Camden; Campbelltown; Canada Bay; Fairfield; Hawkesbury; Hornsby; Hunters Hill; Kogarah; Ku-ring-gai; Lane Cove; Liverpool; Mosman; North Sydney; Parramatta; Penrith; Randwick; Ryde; Strathfield; Sutherland; Sydney; Waverley; Willoughby; Woollahra; Bayside; Canterbury-Bankstown; Central Coast; Cumberland; Georges River; Inner West; Northern Beaches</Councils>
+    <DangerLevelToday>NONE</DangerLevelToday>
+    <DangerLevelTomorrow>MODERATE</DangerLevelTomorrow>
+    <FireBanToday>No</FireBanToday>
+    <FireBanTomorrow>No</FireBanTomorrow>
+  </District>
+  <District>
+    <Name>ACT</Name>
+    <RegionNumber>8</RegionNumber>
+    <DangerLevelToday>MODERATE</DangerLevelToday>
+    <DangerLevelTomorrow>MODERATE</DangerLevelTomorrow>
+    <FireBanToday>No</FireBanToday>
+    <FireBanTomorrow>No</FireBanTomorrow>
+  </District>
+  <District>
+    <Name>Eastern Riverina</Name>
+    <RegionNumber>17</RegionNumber>
+    <Councils>Albury; Coolamon; Greater Hume; Junee; Lockhart; Wagga Wagga</Councils>
+    <DangerLevelToday>NONE</DangerLevelToday>
+    <DangerLevelTomorrow>NONE</DangerLevelTomorrow>
+    <FireBanToday>No</FireBanToday>
+    <FireBanTomorrow>No</FireBanTomorrow>
+  </District>
+</FireDangerMap>
