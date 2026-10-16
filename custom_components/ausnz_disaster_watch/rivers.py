@@ -407,7 +407,8 @@ async def async_kisters_sites(session: aiohttp.ClientSession, source: str) -> li
     )
     sites: dict[str, GaugeSite] = {}
     for table in tables:
-        for row in table.get("rows", []):
+        rows = table.get("rows")
+        for row in rows if isinstance(rows, list) else []:
             try:
                 station = str(row["station"])
                 lat, lon = float(row["latitude"]), float(row["longitude"])

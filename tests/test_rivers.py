@@ -457,3 +457,18 @@ async def test_kisters_malformed_live_site_list(hass: HomeAssistant, aioclient_m
     route(aioclient_mock, live)
     sites = await rivers.async_kisters_sites(async_get_clientsession(hass), "qld")
     assert [site.site_id for site in sites] == ["143032A"]
+
+
+@pytest.mark.parametrize("rows", [None, "143032A"])
+async def test_kisters_malformed_site_table(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, rows: object
+) -> None:
+    """A get_db_info table whose rows are null or a string yields no sites instead of raising."""
+
+    def table(url: URL):
+        if url.host == QLD_HOST and kisters_request(url)["function"] == "get_db_info":
+            return respond(url, json_body={"error_num": 0, "return": {"rows": rows}})
+        return None
+
+    route(aioclient_mock, table)
+    assert await rivers.async_kisters_sites(async_get_clientsession(hass), "qld") == []
