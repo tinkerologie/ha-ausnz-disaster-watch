@@ -12,6 +12,7 @@ import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.ausnz_disaster_watch import coordinator as coordinator_module
+from custom_components.ausnz_disaster_watch.const import DOMAIN
 from custom_components.ausnz_disaster_watch.coordinator import (
     AustralianDisasterWatchCoordinator,
     OptionalFeedTimeoutError,
@@ -19,6 +20,7 @@ from custom_components.ausnz_disaster_watch.coordinator import (
 from custom_components.ausnz_disaster_watch.models import AirQualityStationData
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 
 PREFIX = "australia_and_new_zealand_disaster_watch_qld_city_of_moreton_bay"
 STATION = AirQualityStationData(station_id="s1", station_name="Station", overall_rating="Fair")
@@ -202,71 +204,62 @@ async def test_slow_fire_outlook_does_not_block(hass: HomeAssistant, mock_config
     await hass.async_block_till_done(wait_background_tasks=True)
 
 
-async def test_obsolete_call_does_not_clear_current_watcher(hass: HomeAssistant) -> None:
-    """A call from before a location change finishing late neither refreshes nor unwatches the new call."""
+async def test_location_change_uses_only_the_new_points_result(hass: HomeAssistant) -> None:
+    """After the home location moves, a slow call for the old point is never shown, and the new one is.
+
+    The old call finishing late must not use its result, request a refresh, or stop the new call's
+    late answer from filling the sensor in.
+    """
     entry = MockConfigEntry(
-        domain="ausnz_disaster_watch",
+        domain=DOMAIN,
+        title="Home",
         data={"state": "QLD", "location_mode": "home", "radius": 50},
         unique_id="ausnz_disaster_watch_qld_home",
     )
     entry.add_to_hass(hass)
     hass.config.latitude, hass.config.longitude = -27.47, 153.03
-    calls: list[asyncio.Event] = []
-    outcomes: list[list[AirQualityStationData] | Exception] = [RuntimeError("old point"), [STATION]]
+    releases: list[asyncio.Event] = []
+    results = [
+        [AirQualityStationData(station_id="old", station_name="Old point", overall_rating="Poor")],
+        [AirQualityStationData(station_id="new", station_name="New point", overall_rating="Fair")],
+    ]
 
     async def per_call_feed() -> list[AirQualityStationData]:
         release = asyncio.Event()
-        calls.append(release)
-        outcome = outcomes[len(calls) - 1]
+        releases.append(release)
+        result = results[len(releases) - 1]
         await release.wait()
-        if isinstance(outcome, Exception):
-            raise outcome
-        return outcome
+        return result
 
     provider = AsyncMock()
     provider.async_fetch_hazards.return_value = []
     provider.async_fetch_air_quality = per_call_feed
+
+    def aq_state() -> str:
+        entity_id = er.async_get(hass).async_get_entity_id("sensor", DOMAIN, f"{entry.entry_id}_air_quality_rating")
+        assert entity_id is not None
+        state = hass.states.get(entity_id)
+        assert state is not None
+        return state.state
+
     with patch(PROVIDERS, return_value=[provider]):
-        coordinator = AustralianDisasterWatchCoordinator(hass, entry)
-    with patch.object(coordinator, "async_request_refresh") as refresh:
-        await coordinator._async_update_data()  # old call times out and is watched
-        old_task = next(iter(coordinator._optional_watched.values()))
-        hass.config.latitude, hass.config.longitude = -33.87, 151.21
-        await coordinator._async_update_data()  # new call for the new point times out and is watched
-        assert len(calls) == 2
-        new_task = next(iter(coordinator._optional_watched.values()))
-
-        calls[0].set()  # the obsolete call fails late
-        await asyncio.wait({old_task})
+        assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
-        refresh.assert_not_called()
-        assert new_task in coordinator._optional_watched.values()
+        assert aq_state() == "unknown"  # the old point's call is still running
 
-        calls[1].set()  # the current call answers late: one refresh fills the entities in
+        hass.config.latitude, hass.config.longitude = -33.87, 151.21
+        await entry.runtime_data.async_refresh()  # the next poll asks again for the new point
+        await hass.async_block_till_done()
+        assert len(releases) == 2
+        assert aq_state() == "unknown"
+
+        releases[0].set()  # the old point answers late: its result is not shown
+        for _ in range(5):
+            await asyncio.sleep(0)
+        await hass.async_block_till_done()
+        assert aq_state() == "unknown"
+
+        releases[1].set()  # the new point answers late: its refresh fills the sensor in
         await hass.async_block_till_done(wait_background_tasks=True)
-        refresh.assert_called_once()
-        assert not coordinator._optional_watched
-
-
-async def test_location_change_drops_optional_results(hass: HomeAssistant) -> None:
-    """After the home location moves, a slow feed's result for the old point is not used."""
-    entry = MockConfigEntry(
-        domain="ausnz_disaster_watch",
-        data={"state": "QLD", "location_mode": "home", "radius": 50},
-        unique_id="ausnz_disaster_watch_qld_home",
-    )
-    entry.add_to_hass(hass)
-    hass.config.latitude, hass.config.longitude = -27.47, 153.03
-    feed = SlowFeed([STATION])
-    feed.release.set()
-    with patch(PROVIDERS, return_value=[provider_with(feed)]):
-        coordinator = AustralianDisasterWatchCoordinator(hass, entry)
-    coordinator.data = await coordinator._async_update_data()
-    assert coordinator.data.air_quality_stations == [STATION]
-
-    feed.release.clear()
-    hass.config.latitude, hass.config.longitude = -33.87, 151.21
-    with patch.object(coordinator, "async_request_refresh"):
-        assert (await coordinator._async_update_data()).air_quality_stations == []
-        feed.release.set()
-        await hass.async_block_till_done(wait_background_tasks=True)
+        assert aq_state() == "Fair"
+    assert await hass.config_entries.async_unload(entry.entry_id)
