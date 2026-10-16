@@ -162,7 +162,9 @@ async def test_flow_user_step_home_mode(hass: HomeAssistant) -> None:
     [
         ((-16.92, 145.77), "https://disaster.cairns.qld.gov.au"),  # Cairns
         ((-27.10, 152.95), "https://disaster.moretonbay.qld.gov.au"),  # Caboolture
-        ((-23.44, 144.25), None),  # Longreach: no preset within 40 km
+        ((-23.44, 144.25), "https://rapad.qitplus.com/longreach"),  # Longreach (RAPAD, #32)
+        ((-27.56, 151.95), "https://disaster.tr.qld.gov.au"),  # Toowoomba, not Lockyer Valley
+        ((-20.0, 155.0), None),  # Coral Sea: no council near
     ],
 )
 async def test_flow_home_mode_picks_nearest_council(

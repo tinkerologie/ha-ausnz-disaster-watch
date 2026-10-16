@@ -12,15 +12,8 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from .const import (
-    COUNCIL_AUTO_MATCH_KM,
-    DEFAULT_SCAN_INTERVAL,
-    DOMAIN,
-    LAST_GOOD_MAX_AGE,
-    LOCATION_MODE_HOME,
-    PRESET_COUNCIL_DASHBOARDS,
-    THREAT_SCAN_INTERVAL,
-)
+from .const import DEFAULT_SCAN_INTERVAL, DOMAIN, LAST_GOOD_MAX_AGE, LOCATION_MODE_HOME, THREAT_SCAN_INTERVAL
+from .council_registry import nearest_council, nearest_readable_dashboard, usable_url
 from .forecast_coordinator import ForecastCoordinators
 from .models import (
     AirQualityStationData,
@@ -110,24 +103,20 @@ def _unique_by_title(warnings: list[WeatherWarningItem]) -> list[WeatherWarningI
 
 
 def nearest_council_dashboard(state: str, latitude: float | None, longitude: float | None) -> str | None:
-    """Return the URL of the nearest preset council dashboard in ``state`` within the match distance.
+    """Return the URL of the council dashboard for a point in ``state``, or None.
 
-    This is a geographic heuristic on each council's representative point, not a check
-    against council boundaries; the user can change or clear the URL in the options (#19).
+    The council is picked from the generated registry (council_registry.nearest_council, a
+    geographic heuristic, not council boundaries). When that council has no dashboard the
+    integration can read (Brisbane, Sunshine Coast, or a certificate Home Assistant
+    rejects), the nearest readable dashboard within the match distance is used, as before;
+    None when there is none. The user can change or clear the URL in the options (#19, #32).
     """
     if latitude is None or longitude is None:
         return None
-    best: tuple[float, str] | None = None
-    for preset in PRESET_COUNCIL_DASHBOARDS.values():
-        url = preset.get("url")
-        if preset.get("state") != state or not isinstance(url, str):
-            continue
-        dist = calculate_haversine_distance(
-            latitude, longitude, float(preset["latitude"] or 0), float(preset["longitude"] or 0)
-        )
-        if dist <= COUNCIL_AUTO_MATCH_KM and (best is None or dist < best[0]):
-            best = (dist, url)
-    return best[1] if best else None
+    match = nearest_council(state, latitude, longitude)
+    if match and (url := usable_url(match[1])):
+        return url
+    return nearest_readable_dashboard(state, latitude, longitude)
 
 
 def fire_danger_today(outlook: FireDangerOutlook | None) -> FireDangerRating | None:

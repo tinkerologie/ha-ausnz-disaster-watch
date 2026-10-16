@@ -5,6 +5,8 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import Final
 
+from .council_registry import COUNCIL_DASHBOARDS, usable_url
+
 DOMAIN: Final = "ausnz_disaster_watch"
 
 # Configuration options
@@ -117,91 +119,21 @@ SUPPORTED_STATES: Final = [
     STATE_NZ,
 ]
 
-# These are the preset council disaster dashboards (Guardian IMS). A preset without a URL
-# has no JSON dashboard the integration can read.
+# Preset council disaster dashboards, keyed as before, from the generated registry
+# (data/council_dashboards.json, see council_registry.py) (#32). A preset without a URL has no
+# Guardian IMS dashboard the integration can read (Brisbane, Sunshine Coast, and the
+# dashboards with an incomplete certificate chain).
 PRESET_COUNCIL_DASHBOARDS: Final[dict[str, dict[str, str | float | None]]] = {
-    "moreton_bay": {
-        "name": "City of Moreton Bay",
-        "state": STATE_QLD,
-        "url": "https://disaster.moretonbay.qld.gov.au",
-        "latitude": -27.2657,
-        "longitude": 152.9818,
-    },
-    "sunshine_coast": {
-        "name": "Sunshine Coast",
-        "state": STATE_QLD,
-        # Disaster Hub (disasterhub.sunshinecoast.qld.gov.au) is not a Guardian IMS dashboard.
-        "url": None,
-        "latitude": -26.6500,
-        "longitude": 153.0667,
-    },
-    "noosa": {
-        "name": "Noosa Shire",
-        "state": STATE_QLD,
-        "url": "https://disaster.noosa.qld.gov.au",
-        "latitude": -26.3986,
-        "longitude": 153.0442,
-    },
-    "gold_coast": {
-        "name": "City of Gold Coast",
-        "state": STATE_QLD,
-        "url": "https://dashboard.goldcoast.qld.gov.au",
-        "latitude": -28.0167,
-        "longitude": 153.4000,
-    },
-    "cairns": {
-        "name": "Cairns Regional",
-        "state": STATE_QLD,
-        "url": "https://disaster.cairns.qld.gov.au",
-        "latitude": -16.9186,
-        "longitude": 145.7781,
-    },
-    "townsville": {
-        "name": "Townsville City",
-        "state": STATE_QLD,
-        "url": "https://disaster.townsville.qld.gov.au",
-        "latitude": -19.2590,
-        "longitude": 146.8169,
-    },
-    "fraser_coast": {
-        "name": "Fraser Coast",
-        "state": STATE_QLD,
-        "url": "https://disaster.frasercoast.qld.gov.au",
-        "latitude": -25.5398,
-        "longitude": 152.7032,
-    },
-    "bundaberg": {
-        "name": "Bundaberg Regional",
-        "state": STATE_QLD,
-        "url": "https://disaster.bundaberg.qld.gov.au",
-        "latitude": -24.8661,
-        "longitude": 152.3489,
-    },
-    "redland": {
-        "name": "Redland City",
-        "state": STATE_QLD,
-        "url": "https://dashboard.redland.qld.gov.au",
-        "latitude": -27.5306,
-        "longitude": 153.2500,
-    },
-    "ipswich": {
-        "name": "Ipswich City",
-        "state": STATE_QLD,
-        "url": "https://disaster.ipswich.qld.gov.au",
-        "latitude": -27.6167,
-        "longitude": 152.7667,
-    },
-    "logan": {
-        "name": "Logan City",
-        "state": STATE_QLD,
-        "url": "https://disaster.logan.qld.gov.au",
-        "latitude": -27.6972,
-        "longitude": 153.1111,
-    },
+    key: {
+        "name": council["name"],
+        "state": council["state"],
+        # None also for a dashboard whose certificate Home Assistant rejects
+        "url": usable_url(council),
+        "latitude": council["latitude"],
+        "longitude": council["longitude"],
+    }
+    for key, council in COUNCIL_DASHBOARDS.items()
 }
-
-# A home-zone entry gets the nearest preset council dashboard within this distance (#19).
-COUNCIL_AUTO_MATCH_KM: Final = 40
 
 # Entity Attributes
 ATTR_HAZARD_TYPE: Final = "hazard_type"
