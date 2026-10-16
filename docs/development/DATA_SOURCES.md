@@ -185,7 +185,7 @@ default in `config_flow.py`, the host aliases in `guardian_ims.py`, and the "nea
 links are never polled):
 
 - QLD and NSW presets: every council in `custom_components/ausnz_disaster_watch/data/council_dashboards.json` (generated, see below); entries without a readable URL (other platforms, or a certificate Home Assistant rejects) are not polled. Old hosts `disaster.goldcoast`, `dashboard.cityofgoldcoast.com.au` and `disaster.redland` are aliased to the current hosts. Dashboards named in code (the setup default, host aliases): https://disaster.moretonbay.qld.gov.au, https://disaster.noosa.qld.gov.au, https://dashboard.goldcoast.qld.gov.au.
-- Nearby council links (QLD and NSW): the six registry dashboards nearest the monitored point, without the entry's own (`council_registry.nearby_council_links`, #32).
+- Nearby council links (QLD and NSW): up to six registry dashboards nearest the monitored point, without the entry's own (`council_registry.nearby_council_links`, #32).
 
 ## Bundled data
 

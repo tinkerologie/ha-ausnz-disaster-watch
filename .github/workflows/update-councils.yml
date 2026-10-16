@@ -59,10 +59,29 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git switch -C "$BRANCH"
+          open_pr="$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number // empty')"
+          if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null; then
+            if [ -z "$open_pr" ]; then
+              echo "::error::$BRANCH exists without an open pull request; delete the branch so the refresh can recreate it"
+              exit 1
+            fi
+            # Build on the open pull request's branch, so commits a maintainer added there are kept
+            cp "$REGISTRY" "$RUNNER_TEMP/council_dashboards.json"
+            git checkout -- "$REGISTRY"
+            git fetch --no-tags origin "$BRANCH"
+            git switch -C "$BRANCH" FETCH_HEAD
+            cp "$RUNNER_TEMP/council_dashboards.json" "$REGISTRY"
+            if git diff --quiet -- "$REGISTRY"; then
+              echo "The open pull request #$open_pr already has this registry"
+              exit 0
+            fi
+          else
+            git switch -c "$BRANCH"
+          fi
           git add "$REGISTRY"
           git commit -m "chore(councils): update the council dashboard registry" -m "Part of #32"
-          git push --force origin "$BRANCH"
+          # A plain push: if someone pushed meanwhile it is rejected instead of overwriting their work
+          git push origin "HEAD:refs/heads/$BRANCH"
           {
             echo "Monthly refresh of the council dashboard registry (\`script/update-councils\`)."
             echo
@@ -74,8 +93,8 @@ jobs:
             echo
             echo "Part of #32"
           } > "$RUNNER_TEMP/body.md"
-          if gh pr view "$BRANCH" --json state --jq .state 2>/dev/null | grep -q OPEN; then
-            gh pr edit "$BRANCH" --body-file "$RUNNER_TEMP/body.md"
+          if [ -n "$open_pr" ]; then
+            gh pr edit "$open_pr" --body-file "$RUNNER_TEMP/body.md"
           else
             gh pr create --base main --head "$BRANCH" \
               --title "chore(councils): update the council dashboard registry" \
