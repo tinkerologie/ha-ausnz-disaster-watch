@@ -1,5 +1,6 @@
 """Unit tests for Australian Emergency Hazards sensor platform."""
 
+from dataclasses import replace
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
@@ -164,9 +165,9 @@ async def test_highest_warning_level_sensor_states(hass: HomeAssistant, mock_con
     assert sensor.native_value == "emergency_warning"
 
     # A level that is not known has no option: the sensor is unknown
-    coordinator.data = {"4": hazard_ew.model_copy(update={"id": "4", "warning_level": WarningLevel.UNKNOWN})}
+    coordinator.data = {"4": replace(hazard_ew, id="4", warning_level=WarningLevel.UNKNOWN)}
     assert sensor.native_value is None
-    coordinator.data = {"5": hazard_ew.model_copy(update={"id": "5", "warning_level": WarningLevel.INFORMATION})}
+    coordinator.data = {"5": replace(hazard_ew, id="5", warning_level=WarningLevel.INFORMATION)}
     assert sensor.native_value == "information"
 
 

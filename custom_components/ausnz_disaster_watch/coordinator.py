@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import dataclasses
 from datetime import datetime, timedelta
 import logging
 import math
@@ -218,15 +219,14 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         self._update_location()
 
     def _update_config_values(self) -> None:
-        """Update internal parameters from entry data and options using Pydantic."""
+        """Update internal parameters from validated entry data and options."""
         # Merge data and options (options take precedence)
         self.combined_config: dict[str, Any] = {
             **self.entry.data,
             **self.entry.options,
         }
 
-        # Validate using Pydantic v2 model
-        cfg = DisasterWatchConfigModel.model_validate(self.combined_config)
+        cfg = DisasterWatchConfigModel.from_config(self.combined_config)
         self.state_code: str = cfg.state.upper()
         self.radius_km: float = float(cfg.radius)
         self.override_emergency: bool = cfg.override_emergency
@@ -674,13 +674,12 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
                 seen.add((item.distributor, item.id))
             if item.distance_km is None and item.latitude is not None and item.longitude is not None:
                 # A copy: the item may be a feed's cached or last good outage
-                item = item.model_copy(
-                    update={
-                        "distance_km": round(
-                            calculate_haversine_distance(self.latitude, self.longitude, item.latitude, item.longitude),
-                            2,
-                        )
-                    }
+                item = dataclasses.replace(
+                    item,
+                    distance_km=round(
+                        calculate_haversine_distance(self.latitude, self.longitude, item.latitude, item.longitude),
+                        2,
+                    ),
                 )
             if item.distance_km is not None and item.distance_km > self.radius_km:
                 continue

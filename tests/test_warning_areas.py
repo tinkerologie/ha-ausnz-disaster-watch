@@ -22,6 +22,7 @@ from custom_components.ausnz_disaster_watch.models import (
     CanonicalHazard,
     HazardType,
     WarningLevel,
+    to_json_dict,
 )
 from custom_components.ausnz_disaster_watch.providers import (
     BoMHazardProvider,
@@ -195,7 +196,7 @@ def test_area_never_reaches_attributes_or_dumps() -> None:
     assert len(attrs["call_to_action"]) == CALL_TO_ACTION_MAX_LENGTH
     assert attrs["prop_ok"] == 1
     assert not any(k.startswith("prop_") and k != "prop_ok" for k in attrs)
-    assert "area" not in hazard.model_dump(mode="json")
+    assert "area" not in to_json_dict(hazard)
     assert " area=" not in repr(hazard)
     assert hazard.is_inside_warning
     assert not _hazard("h2", WarningLevel.INFORMATION, inside_area=True).is_inside_warning

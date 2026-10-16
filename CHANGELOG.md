@@ -49,6 +49,7 @@ Versions follow Home Assistant's scheme, `YEAR.MONTH.PATCH` (for example `2026.1
 
 ### Changed
 
+- The integration no longer depends on pydantic: the data models in `models.py` are standard-library dataclasses (frozen where nothing changes them after creation), and `pydantic` is removed from the manifest requirements. Each model still converts and checks its fields when it is created, the same way as before (an `int` or numeric string for a number, enum values, ISO 8601 timestamps; a value of the wrong type or out of range skips that one feed record). Entity attributes and diagnostics are unchanged, and a diagnostics snapshot test now guards their format. Importing `models.py` takes about 8 ms instead of about 55 ms (#20).
 - **BREAKING CHANGE:** `…_highest_warning_level` and `…_fire_danger_rating` are ENUM sensors (`device_class: enum`) with snake_case states, translated state names and per-state icons from `icons.json`, so the integration reaches Integration Quality Scale **gold** (#21). The states map as follows:
   - Highest warning level: `All Clear` → `all_clear`, `Information` → `information`, `Advice` → `advice`, `Watch and Act` → `watch_and_act`, `Emergency Warning` → `emergency_warning`, `Unknown` → `unknown` (the sensor's state is unknown).
   - Fire danger rating: `No Rating` → `no_rating`, `Moderate` → `moderate`, `High` → `high`, `Extreme` → `extreme`, `Catastrophic` → `catastrophic`. A rating that is not an AFDRS rating is now `unknown` instead of its raw text.

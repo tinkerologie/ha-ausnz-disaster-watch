@@ -8,6 +8,8 @@ few districts); ``wa_total_fire_bans.json`` is an archived Emergency WA response
 from __future__ import annotations
 
 from collections.abc import Callable
+import copy
+from dataclasses import replace
 from datetime import date, datetime, timedelta
 import json
 from pathlib import Path
@@ -659,7 +661,7 @@ def test_fire_danger_today(freezer: FrozenDateTimeFactory) -> None:
     freezer.move_to("2026-10-20T00:00:00+00:00")  # beyond the forecast
     assert fire_danger_today(BRISBANE_OUTLOOK) is None
     assert fire_danger_today(None) is None
-    no_rating = BRISBANE_OUTLOOK.model_copy(deep=True)
+    no_rating = copy.deepcopy(BRISBANE_OUTLOOK)
     no_rating.days[0].rating = None
     freezer.move_to("2026-10-15T00:00:00+00:00")
     assert fire_danger_today(no_rating) is None
@@ -760,7 +762,7 @@ async def test_ban_sensor_unknown_without_outlook(hass: HomeAssistant, mock_conf
     assert sensor.icon is None  # from icons.json (#21)
     assert sensor.extra_state_attributes == {}
 
-    coordinator.data.fire_outlook = BRISBANE_OUTLOOK.model_copy(update={"days": []})
+    coordinator.data.fire_outlook = replace(BRISBANE_OUTLOOK, days=[])
     assert sensor.is_on is None
     assert sensor.extra_state_attributes["tomorrow"] is None
 
@@ -815,7 +817,7 @@ async def test_nz_entities_show_fire_season(hass: HomeAssistant, entity_icon: Ca
 
     coordinator = entry.runtime_data
     sensor = FireSeasonSensor(coordinator)
-    coordinator.data.fire_season = season.model_copy(update={"season": "prohibited", "last_updated": None})
+    coordinator.data.fire_season = replace(season, season="prohibited", last_updated=None)
     assert sensor.icon is None  # from icons.json (#21)
     assert sensor.extra_state_attributes["last_updated"] is None
     coordinator.data.fire_season = None

@@ -28,7 +28,12 @@ from custom_components.ausnz_disaster_watch.const import (
 )
 from custom_components.ausnz_disaster_watch.coordinator import AustralianDisasterWatchCoordinator
 from custom_components.ausnz_disaster_watch.diagnostics import async_get_config_entry_diagnostics
-from custom_components.ausnz_disaster_watch.models import DisasterWatchConfigModel, RoadClosureItem, RoadEventCategory
+from custom_components.ausnz_disaster_watch.models import (
+    DisasterWatchConfigModel,
+    ModelValidationError,
+    RoadClosureItem,
+    RoadEventCategory,
+)
 from custom_components.ausnz_disaster_watch.providers.roads import (
     NSWRoadProvider,
     NTRoadProvider,
@@ -121,18 +126,19 @@ def test_category_inference_for_council_items() -> None:
     assert RoadEventCategory.infer("Impassable") == RoadEventCategory.CLOSURE
     assert RoadEventCategory.infer(None, "water over road") == RoadEventCategory.FLOODING
     assert RoadEventCategory.infer("Closed", "Unplanned closure") == RoadEventCategory.CLOSURE
-    # A null status falls back to "Closed" like a missing one
-    assert RoadClosureItem.infer_category({"id": "n", "status": None})["category"] == RoadEventCategory.CLOSURE
-    assert RoadClosureItem.infer_category({"id": "m"})["category"] == RoadEventCategory.CLOSURE
+    # A null status is inferred like a missing one, then rejected: the status is required text
+    with pytest.raises(ModelValidationError, match="status"):
+        RoadClosureItem(id="n", status=None)  # type: ignore[arg-type]
+    assert RoadClosureItem(id="m", category=None).category == RoadEventCategory.CLOSURE  # type: ignore[arg-type]
 
 
 def test_config_model_road_options() -> None:
     """The roadworks option defaults off; a blank VIC key is no key."""
-    cfg = DisasterWatchConfigModel.model_validate({})
+    cfg = DisasterWatchConfigModel.from_config({})
     assert cfg.include_roadworks is False
     assert cfg.vic_api_key is None
-    assert DisasterWatchConfigModel.model_validate({"vic_api_key": "  "}).vic_api_key is None
-    assert DisasterWatchConfigModel.model_validate({"vic_api_key": " k "}).vic_api_key == "k"
+    assert DisasterWatchConfigModel.from_config({"vic_api_key": "  "}).vic_api_key is None
+    assert DisasterWatchConfigModel.from_config({"vic_api_key": " k "}).vic_api_key == "k"
 
 
 def test_merge_road_items() -> None:

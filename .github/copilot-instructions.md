@@ -37,7 +37,7 @@ Generate code that passes these checks on first run. As an AI agent, you should 
 **Component Structure:**
 
 - `coordinator.py` — AustralianDisasterWatchCoordinator (DataUpdateCoordinator)
-- `models.py` — CanonicalHazard, HazardType, WarningLevel, telemetry models (Pydantic v2)
+- `models.py` — CanonicalHazard, HazardType, WarningLevel, telemetry models (standard-library dataclasses)
 - `entity.py` — AusNZDisasterWatchEntity (base coordinator entity)
 - `providers/` — Jurisdiction hazard adapters (base, qld, nsw, vic, bom, nz, wa, sa, tas, nt, act)
 - `providers/roads/` — Statewide road event feeds (nsw, qld, vic, sa, wa, nt, tas) and their merge with council road items

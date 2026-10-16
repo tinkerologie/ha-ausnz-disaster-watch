@@ -1,6 +1,7 @@
 """Unit tests for the Geolocation platform and dynamic entity synchronization."""
 
 from collections.abc import Callable
+from dataclasses import replace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -87,9 +88,7 @@ async def test_geolocation_dynamic_lifecycle(
 
     # A refresh with the same hazard keeps the entity ID and picks up headline changes
     mock_provider.async_fetch_hazards.return_value = [
-        mock_hazard_emergency_warning.model_copy(
-            update={"title": "EMERGENCY WARNING - Bushfire at Caboolture (updated)"}
-        )
+        replace(mock_hazard_emergency_warning, title="EMERGENCY WARNING - Bushfire at Caboolture (updated)")
     ]
     await coordinator.async_refresh()
     await hass.async_block_till_done()
@@ -211,8 +210,8 @@ async def test_geolocation_long_hazard_ids_get_distinct_entity_ids(
     """Test two long hazard IDs with the same prefix produce two distinct, short entity IDs."""
     prefix = "BOM_" + "x" * 80
     hazards = [
-        mock_hazard_emergency_warning.model_copy(update={"id": prefix + "1"}),
-        mock_hazard_emergency_warning.model_copy(update={"id": prefix + "2"}),
+        replace(mock_hazard_emergency_warning, id=prefix + "1"),
+        replace(mock_hazard_emergency_warning, id=prefix + "2"),
     ]
     await _setup_with_hazards(hass, mock_config_entry, hazards)
 
@@ -229,8 +228,8 @@ async def test_geolocation_slug_collisions_get_distinct_entity_ids(
 ) -> None:
     """Test hazard IDs that slugify alike still get distinct entity IDs (the registry suffixes the second)."""
     hazards = [
-        mock_hazard_emergency_warning.model_copy(update={"id": "QLD-1"}),
-        mock_hazard_emergency_warning.model_copy(update={"id": "QLD_1"}),
+        replace(mock_hazard_emergency_warning, id="QLD-1"),
+        replace(mock_hazard_emergency_warning, id="QLD_1"),
     ]
     await _setup_with_hazards(hass, mock_config_entry, hazards)
 
@@ -276,7 +275,7 @@ async def test_geolocation_event_without_distance(
     """Test distance is None when the hazard has no distance."""
     coordinator = AustralianDisasterWatchCoordinator(hass, mock_config_entry)
     event = AustralianDisasterWatchGeolocationEvent(
-        coordinator, "entry", "h1", mock_hazard_advice.model_copy(update={"distance_km": None})
+        coordinator, "entry", "h1", replace(mock_hazard_advice, distance_km=None)
     )
     assert event.distance is None
 
@@ -374,8 +373,8 @@ async def test_geolocation_keeps_entities_during_partial_outage(
     assert {s.entity_id for s in _geo_states(hass)} == {EMERGENCY_ENTITY_ID, WATCH_ENTITY_ID}
 
     # Snapshot that is missing a hazard while another feed is down: nothing is removed
-    partial = coordinator.data.model_copy(
-        update={"hazards": {mock_hazard_watch_and_act.id: mock_hazard_watch_and_act}, "feeds_failed": ["Other feed"]}
+    partial = replace(
+        coordinator.data, hazards={mock_hazard_watch_and_act.id: mock_hazard_watch_and_act}, feeds_failed=["Other feed"]
     )
     coordinator.async_set_updated_data(partial)
     await hass.async_block_till_done()
@@ -441,9 +440,7 @@ async def test_hazard_type_change_updates_icon_key(
     registry = er.async_get(hass)
     assert registry.async_get(EMERGENCY_ENTITY_ID).translation_key == "bushfire"
 
-    provider.async_fetch_hazards.return_value = [
-        mock_hazard_emergency_warning.model_copy(update={"hazard_type": HazardType.FLOOD})
-    ]
+    provider.async_fetch_hazards.return_value = [replace(mock_hazard_emergency_warning, hazard_type=HazardType.FLOOD)]
     await mock_config_entry.runtime_data.async_refresh()
     await hass.async_block_till_done()
 

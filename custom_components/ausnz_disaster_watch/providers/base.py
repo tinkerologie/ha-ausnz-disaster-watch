@@ -80,7 +80,7 @@ class ProviderUnavailableError(Exception):
 
 
 # Errors that mean "this one upstream record is malformed": skip the record, keep the feed.
-# pydantic's ValidationError is a ValueError subclass.
+# A model's ModelValidationError is a ValueError subclass.
 MALFORMED_ITEM_ERRORS: tuple[type[Exception], ...] = (ValueError, TypeError, KeyError, AttributeError, IndexError)
 
 
