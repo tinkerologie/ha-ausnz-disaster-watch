@@ -17,6 +17,7 @@ from __future__ import annotations
 import json
 import math
 from pathlib import Path
+import re
 from typing import Any, Final, TypedDict
 
 _REGISTRY_PATH = Path(__file__).parent / "data" / "council_dashboards.json"
@@ -114,3 +115,35 @@ def nearest_readable_dashboard(state: str, latitude: float, longitude: float) ->
 def usable_url(council: CouncilDashboard) -> str | None:
     """Return the dashboard URL the integration can read, or None."""
     return council["url"] if council["url"] and council["certificate_ok"] else None
+
+
+def _normalise_url(url: str | None) -> str:
+    """Return a URL for comparison: no scheme, no trailing slash, lower case."""
+    return re.sub(r"^https?://", "", (url or "").strip().lower()).rstrip("/")
+
+
+# How many neighbouring council dashboards the card links to.
+NEARBY_COUNCIL_LINKS: Final = 6
+
+
+def nearby_council_links(
+    state: str, latitude: float | None, longitude: float | None, exclude_url: str | None = None
+) -> list[dict[str, str]]:
+    """Return links to the council dashboards nearest a point in ``state``, nearest first (#32).
+
+    The links are shown on the card and never polled, so a dashboard whose certificate Home
+    Assistant rejects is still linked (browsers open it). Councils without a dashboard and
+    the entry's own dashboard (``exclude_url``) are left out. Without a point, the councils
+    are listed by name.
+    """
+    own = _normalise_url(exclude_url)
+    candidates = [
+        council
+        for council in COUNCIL_DASHBOARDS.values()
+        if council["state"] == state and council["url"] and _normalise_url(council["url"]) != own
+    ]
+    if latitude is None or longitude is None:
+        candidates.sort(key=lambda council: council["name"])
+    else:
+        candidates.sort(key=lambda c: _distance_km(latitude, longitude, c["latitude"], c["longitude"]))
+    return [{"name": council["name"], "url": str(council["url"])} for council in candidates[:NEARBY_COUNCIL_LINKS]]

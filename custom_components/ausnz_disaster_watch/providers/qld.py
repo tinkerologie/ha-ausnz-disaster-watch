@@ -8,6 +8,7 @@ import re
 from typing import Any
 
 from custom_components.ausnz_disaster_watch.const import CONF_COUNCIL_DASHBOARD_URL, STATE_QLD
+from custom_components.ausnz_disaster_watch.council_registry import nearby_council_links
 from custom_components.ausnz_disaster_watch.models import (
     AirQualityStationData,
     CanonicalHazard,
@@ -36,22 +37,6 @@ QFD_WARNINGS_URL = (
 )
 QFD_WEB_URL = "https://www.fire.qld.gov.au/Current-Incidents"
 QLDTRAFFIC_WEB_URL = "https://qldtraffic.qld.gov.au"
-
-# Links to other council dashboards (shown on the card; never polled)
-QLD_COUNCIL_LINKS: list[dict[str, str]] = [
-    {"name": "City of Moreton Bay", "url": "https://disaster.moretonbay.qld.gov.au"},
-    {"name": "Sunshine Coast Council (Disaster Hub)", "url": "https://disasterhub.sunshinecoast.qld.gov.au"},
-    {"name": "City of Gold Coast", "url": "https://dashboard.goldcoast.qld.gov.au"},
-    {
-        "name": "Brisbane City Council",
-        "url": (
-            "https://www.brisbane.qld.gov.au/community-support-and-safety"
-            "/natural-disasters-and-emergencies/emergency-dashboard"
-        ),
-    },
-    {"name": "Somerset Regional Council", "url": "https://disaster.somerset.qld.gov.au"},
-    {"name": "Noosa Shire Council", "url": "https://disaster.noosa.qld.gov.au"},
-]
 
 _TRAILING_DASH_RE = re.compile(r"\s*-\s*$")
 
@@ -439,5 +424,13 @@ class QueenslandHazardProvider(BaseHazardProvider):
         return await self.dashboard.cameras() if self.dashboard else []
 
     async def async_fetch_nearby_councils(self) -> list[dict[str, str]]:
-        """Return links to other council disaster dashboards."""
-        return [dict(link) for link in QLD_COUNCIL_LINKS] if self.dashboard else []
+        """Return links to the QLD council dashboards nearest the monitored point (#32).
+
+        The links come from the generated council registry and are never polled.
+        """
+        return nearby_council_links(
+            "QLD",
+            self.config.get("latitude"),
+            self.config.get("longitude"),
+            self.dashboard.base_url if self.dashboard else None,
+        )

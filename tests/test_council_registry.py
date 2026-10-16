@@ -137,3 +137,18 @@ async def test_custom_step_lists_registry_councils(hass: HomeAssistant) -> None:
 def test_registry_file_matches_loader() -> None:
     """The loader reads every council of the generated file."""
     assert council_registry._load() == COUNCIL_DASHBOARDS
+
+
+@pytest.mark.parametrize(
+    "own",
+    [
+        "https://disaster.moretonbay.qld.gov.au",
+        "https://disaster.moretonbay.qld.gov.au/",
+        "http://DISASTER.MoretonBay.qld.gov.au/ ",
+    ],
+)
+def test_nearby_links_exclude_own_dashboard_however_written(own: str) -> None:
+    """The entry's own dashboard is left out whatever its scheme, case or trailing slash."""
+    links = council_registry.nearby_council_links("QLD", -27.10, 152.95, own)
+    assert "moretonbay" not in " ".join(link["url"] for link in links)
+    assert len(links) == council_registry.NEARBY_COUNCIL_LINKS

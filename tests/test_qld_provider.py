@@ -267,7 +267,8 @@ async def test_auxiliary_feeds_without_dashboard(hass: HomeAssistant) -> None:
         assert await provider.async_fetch_relief_facilities() == []
         assert await provider.async_fetch_cameras() == []
         provider.async_fetch_json.assert_not_awaited()
-    assert await _provider(hass, {}, council=None).async_fetch_nearby_councils() == []
+    # Without a council dashboard the nearby links are still offered.
+    assert len(await _provider(hass, {}, council=None).async_fetch_nearby_councils()) == 6
 
 
 @pytest.mark.parametrize(
@@ -298,17 +299,34 @@ async def test_auxiliary_feeds_delegate_to_dashboard(
 
 
 async def test_council_links(hass: HomeAssistant) -> None:
-    """Council links point at hosts that exist (#12, #25)."""
-    qld_links = await _provider(hass, {}).async_fetch_nearby_councils()
-    qld_urls = {link["url"] for link in qld_links}
-    assert "https://dashboard.goldcoast.qld.gov.au" in qld_urls
-    assert "https://disaster.somerset.qld.gov.au" in qld_urls
-    assert not any("disaster.brisbane" in url or "cityofgoldcoast" in url for url in qld_urls)
+    """Council links are the registry dashboards nearest home, without the entry's own (#12, #25, #32)."""
+    provider = _provider(hass, {})
+    provider.set_location(-27.10, 152.95)  # Caboolture, in the City of Moreton Bay.
+    qld_links = await provider.async_fetch_nearby_councils()
+    assert [link["name"] for link in qld_links] == [
+        "Somerset Regional",
+        "Redland City",
+        "Ipswich City",
+        "Logan City",
+        "Noosa Shire",
+        "Lockyer Valley Regional",
+    ]
+    assert BASE not in {link["url"] for link in qld_links}
+    assert not any("disasterhub" in link["url"] or "brisbane" in link["url"] for link in qld_links)
 
-    nsw_urls = {link["url"] for link in await NSWHazardProvider(hass, AsyncMock(), {}).async_fetch_nearby_councils()}
-    assert "https://emergency.byron.nsw.gov.au" in nsw_urls
-    assert "https://emergency.northernbeaches.nsw.gov.au" in nsw_urls
-    assert not any("tweed" in url or "begavalley" in url for url in nsw_urls)
+    nsw = NSWHazardProvider(
+        hass, AsyncMock(), {"latitude": -28.64, "longitude": 153.61}
+    )  # Byron Bay, no dashboard set.
+    nsw_links = await nsw.async_fetch_nearby_councils()
+    assert nsw_links[:2] == [
+        {"name": "Byron Shire", "url": "https://emergency.byron.nsw.gov.au"},
+        {"name": "Ballina Shire", "url": "https://emergency.ballina.nsw.gov.au"},
+    ]
+    assert not any("tweed" in link["url"] or "disasterdashboards" in link["url"] for link in nsw_links)
+
+    # Without a monitored point the links are listed by name.
+    unlocated = await NSWHazardProvider(hass, AsyncMock(), {}).async_fetch_nearby_councils()
+    assert [link["name"] for link in unlocated] == sorted(link["name"] for link in unlocated)
 
 
 async def test_nsw_hazard_poll_starts_dashboard_poll(hass: HomeAssistant, feed_routes: Any) -> None:

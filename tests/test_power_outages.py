@@ -16,7 +16,7 @@ from urllib.parse import parse_qs, urlsplit
 
 from freezegun.api import FrozenDateTimeFactory
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.common import MockConfigEntry, flush_store
 
 from custom_components.ausnz_disaster_watch.const import CONF_EXTRA_OUTAGE_FEEDS, CONF_INCLUDE_PLANNED_OUTAGES, DOMAIN
 from custom_components.ausnz_disaster_watch.coordinator import AustralianDisasterWatchCoordinator
@@ -613,6 +613,9 @@ async def test_options_power_outage_page(hass: HomeAssistant, state: str, fields
     assert [str(key) for key in result["data_schema"].schema] == fields
     with patch("custom_components.ausnz_disaster_watch.async_setup_entry", return_value=True):
         await hass.config_entries.options.async_configure(result["flow_id"], dict.fromkeys(fields, True))
+        # Let the reload finish and write the saved options now, so no delayed write timer lingers.
+        await hass.async_block_till_done(wait_background_tasks=True)
+        await flush_store(hass.config_entries._store)
     assert entry.options == {"radius": 30, **dict.fromkeys(fields, True)}
 
 
