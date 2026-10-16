@@ -29,6 +29,7 @@ from custom_components.ausnz_disaster_watch.providers.sources import (
     REGISTER_PATH,
     LicenceStatus,
     attribution_for,
+    sources_for_fire,
     sources_for_provider,
 )
 from homeassistant.core import HomeAssistant
@@ -147,12 +148,16 @@ async def test_entities_and_diagnostics_expose_attribution(
 
     entries = er.async_entries_for_config_entry(er.async_get(hass), mock_config_entry.entry_id)
     assert {entry.domain for entry in entries} == {"sensor", "binary_sensor", "geo_location"}
+    # Fire entities credit the fire danger sources for the district instead (#28)
+    fire_keys = ("_fire_danger_rating", "_total_fire_ban")
+    fire_attribution = attribution_for(sources_for_fire("QLD"))
     for entry in entries:
         if entry.domain == "geo_location":
             continue  # checked below
         state = hass.states.get(entry.entity_id)
         assert state is not None
-        assert state.attributes["attribution"] == expected, entry.entity_id
+        want = fire_attribution if entry.unique_id.endswith(fire_keys) else expected
+        assert state.attributes["attribution"] == want, entry.entity_id
     camera = AustralianDisasterWatchCamera(
         coordinator, DisasterCameraItem(id="cam", name="Cam", image_url="https://example.invalid/cam.jpg")
     )

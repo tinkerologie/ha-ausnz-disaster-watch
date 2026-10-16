@@ -37,6 +37,7 @@ from homeassistant.util import dt as dt_util
 
 from . import fire_bans
 from .base import MALFORMED_ITEM_ERRORS, BaseHazardProvider, ProviderUnavailableError
+from .sources import DataSource, sources_for_fire
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -246,6 +247,15 @@ class FireDangerService(BaseHazardProvider):
     async def async_fetch_hazards(self) -> list[CanonicalHazard]:
         """Publish no hazards (fire danger is not a hazard)."""
         return []
+
+    @property
+    def data_sources(self) -> tuple[DataSource, ...]:
+        """Return the sources for the location's district (the configured state until it is resolved)."""
+        district = self._district[1] if self._district else None
+        if district is None:
+            return sources_for_fire(self.state_code)
+        aac = district[0]
+        return sources_for_fire("ACT" if aac == ACT_DISTRICT else aac.split("_", 1)[0])
 
     def _location(self) -> tuple[float, float] | None:
         try:

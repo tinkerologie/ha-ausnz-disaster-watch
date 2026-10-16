@@ -822,3 +822,20 @@ async def test_service_refreshes_when_the_location_moves(hass: HomeAssistant, fr
     await service.async_update()
     assert service.outlook is not None
     assert service.outlook.district_number == "NSW_FW008"
+
+
+@pytest.mark.real_fire_service
+async def test_service_sources_follow_the_district(hass: HomeAssistant, freezer: FrozenDateTimeFactory) -> None:
+    """The service credits the configured state until the district is known, then the district's agency (#34)."""
+    freezer.move_to(NOON_16_OCT)
+    act = _service(
+        hass, "NSW", CANBERRA, bom=BOM_NSW, act=(fire_bans.ACT_ESA_FDR_URL, _text("act_esa_fire_danger.xml"))
+    )
+    assert [s.key for s in act.data_sources] == ["bom_fire_danger", "nsw_rfs"]
+    await act.async_update()
+    assert [s.key for s in act.data_sources] == ["bom_fire_danger", "act_esa"]
+    nowhere = _service(hass, "NSW", (-36.85, 174.76))
+    await nowhere.async_update()
+    assert [s.key for s in nowhere.data_sources] == ["bom_fire_danger", "nsw_rfs"]
+    nz = _service(hass, "NZ", CHRISTCHURCH)
+    assert [s.key for s in nz.data_sources] == ["fenz_fire_season"]

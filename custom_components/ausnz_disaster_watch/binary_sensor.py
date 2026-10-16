@@ -25,6 +25,7 @@ from .coordinator import AustralianDisasterWatchCoordinator
 from .entity import AustralianDisasterWatchEntity
 from .forecast_entity import forecast_binary_sensors
 from .providers.fire_danger import local_today
+from .providers.sources import attribution_for
 
 
 async def async_setup_entry(
@@ -177,6 +178,11 @@ class TotalFireBanBinarySensor(AustralianDisasterWatchEntity, BinarySensorEntity
 
     _attr_device_class = BinarySensorDeviceClass.SAFETY
     _attr_translation_key = "total_fire_ban"
+
+    @property
+    def attribution(self) -> str | None:
+        """Credit the fire danger and total fire ban sources for this district (#28, #34)."""
+        return attribution_for(self.coordinator.fire_service.data_sources) or super().attribution
 
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize total fire ban binary sensor."""

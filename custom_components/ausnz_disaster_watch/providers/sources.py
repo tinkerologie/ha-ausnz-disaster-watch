@@ -161,6 +161,47 @@ _SOURCES = (
         terms_url="https://www.bom.gov.au/copyright",
         status=LicenceStatus.RESTRICTED,
     ),
+    # Fire danger outlook, total fire bans and NZ fire season (#28)
+    DataSource(
+        key="bom_fire_danger",
+        owner="Australian Government Bureau of Meteorology",
+        attribution="Fire danger forecast: Australian Government Bureau of Meteorology (www.bom.gov.au)",
+        licence="BoM copyright: personal and non-commercial use",
+        terms_url="https://www.bom.gov.au/copyright",
+        status=LicenceStatus.RESTRICTED,
+    ),
+    DataSource(
+        key="cfa_fire_bans",
+        owner="Country Fire Authority",
+        attribution="© State of Victoria (Country Fire Authority), CC BY 4.0",
+        licence="CC BY 4.0",
+        terms_url="https://discover.data.vic.gov.au/dataset/cfa-data-feeds-for-incidents-total-fire-bans-fire-danger-ratings-and-latest-news",
+        status=LicenceStatus.OPEN,
+    ),
+    DataSource(
+        key="sa_cfs_fire_danger",
+        owner="SA Country Fire Service",
+        attribution="Government of South Australia (SA Country Fire Service)",
+        licence="No terms for fireDangerRating.xml; neighbouring CFS feeds are CC BY-NC-ND 4.0",
+        terms_url="https://data.sa.gov.au/data/dataset/south-australian-country-fire-service-current-incidents-rss-feed",
+        status=LicenceStatus.RESTRICTED,
+    ),
+    DataSource(
+        key="abs_lga",
+        owner="Australian Bureau of Statistics",
+        attribution="Local government areas © Australian Bureau of Statistics, CC BY 4.0",
+        licence="CC BY 4.0",
+        terms_url="https://www.abs.gov.au/website-privacy-copyright-and-disclaimer",
+        status=LicenceStatus.OPEN,
+    ),
+    DataSource(
+        key="fenz_fire_season",
+        owner="Fire and Emergency New Zealand",
+        attribution="Fire and Emergency New Zealand",
+        licence="No licence published for the fire season and Section 52 layers",
+        terms_url="https://www.fireandemergency.nz/about-us/copyright/",
+        status=LicenceStatus.UNVERIFIED,
+    ),
     # Opt-in Open-Meteo forecast features (#38, #39, #40); the free API is non-commercial only
     DataSource(
         key="open_meteo_forecast",
@@ -220,6 +261,25 @@ FORECAST_SOURCES: dict[str, tuple[str, ...]] = {
     "ai_ensemble": ("open_meteo_forecast", "ecmwf_aifs"),
     "ai_weathernext": ("google_weathernext2",),
 }
+
+
+# Fire danger sources per jurisdiction of the location's fire weather district (#28)
+FIRE_SOURCES: dict[str, tuple[str, ...]] = {
+    "NSW": ("bom_fire_danger", "nsw_rfs"),
+    "ACT": ("bom_fire_danger", "act_esa"),
+    "VIC": ("bom_fire_danger", "cfa_fire_bans"),
+    "SA": ("bom_fire_danger", "sa_cfs_fire_danger"),
+    "WA": ("bom_fire_danger", "wa_emergency", "abs_lga"),
+    "QLD": ("bom_fire_danger",),
+    "NT": ("bom_fire_danger",),
+    "TAS": ("bom_fire_danger",),
+    "NZ": ("fenz_fire_season",),
+}
+
+
+def sources_for_fire(jurisdiction: str) -> tuple[DataSource, ...]:
+    """Return the register entries the fire danger outlook reads for a jurisdiction."""
+    return tuple(DATA_SOURCES[key] for key in FIRE_SOURCES.get(jurisdiction, ()))
 
 
 def sources_for_forecast(*features: str) -> tuple[DataSource, ...]:

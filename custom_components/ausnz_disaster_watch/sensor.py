@@ -15,6 +15,7 @@ from .coordinator import AustralianDisasterWatchCoordinator
 from .entity import AustralianDisasterWatchEntity
 from .forecast_entity import forecast_sensors
 from .providers.fire_danger import NZ_SEASONS, local_today
+from .providers.sources import attribution_for
 
 
 async def async_setup_entry(
@@ -265,6 +266,11 @@ class FireDangerRatingSensor(AustralianDisasterWatchEntity, SensorEntity):
 
     _attr_translation_key = "fire_danger_rating"
 
+    @property
+    def attribution(self) -> str | None:
+        """Credit the fire danger and total fire ban sources for this district (#28, #34)."""
+        return attribution_for(self.coordinator.fire_service.data_sources) or super().attribution
+
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize fire danger rating sensor."""
         super().__init__(coordinator, "fire_danger_rating")
@@ -316,6 +322,11 @@ class FireSeasonSensor(AustralianDisasterWatchEntity, SensorEntity):
     _attr_device_class = SensorDeviceClass.ENUM
     _attr_options = list(NZ_SEASONS)
     _attr_translation_key = "fire_season"
+
+    @property
+    def attribution(self) -> str | None:
+        """Credit Fire and Emergency New Zealand (#34)."""
+        return attribution_for(self.coordinator.fire_service.data_sources) or super().attribution
 
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize fire season sensor."""
