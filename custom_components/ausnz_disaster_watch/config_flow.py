@@ -69,6 +69,7 @@ from .const import (
 )
 from .coordinator import nearest_council_dashboard
 from .council_registry import councils_for_state, usable_url
+from .dam_options import DamOptionsFlow, offers_dam_storages
 from .hazard_options import HazardOptionsFlow
 from .models import DisasterWatchConfigModel
 from .national_options import NationalFeedsOptionsFlow
@@ -676,7 +677,7 @@ def clean_road_options(options: dict[str, Any], user_input: dict[str, Any]) -> d
 
 
 class AustralianDisasterWatchOptionsFlowHandler(
-    HazardOptionsFlow, NationalFeedsOptionsFlow, CameraOptionsFlow, BroadcasterOptionsFlow
+    HazardOptionsFlow, NationalFeedsOptionsFlow, CameraOptionsFlow, BroadcasterOptionsFlow, DamOptionsFlow
 ):
     """Handle options flow for Australia and New Zealand Disaster Watch."""
 
@@ -711,6 +712,8 @@ class AustralianDisasterWatchOptionsFlowHandler(
         state = str({**self.config_entry.data, **self.config_entry.options}.get(CONF_STATE, "")).upper()
         if state in STATE_RIVER_SOURCES:
             menu.append("river_gauges")
+        if offers_dam_storages(state):
+            menu.append("dam_storages")
         return self.async_show_menu(step_id="init", menu_options=menu)
 
     async def async_step_settings(

@@ -24,6 +24,7 @@ CONF_INCLUDE_EARTHQUAKES: Final = "include_earthquakes"
 CONF_RIVER_GAUGES: Final = "river_gauges"
 # Opt-in emergency broadcaster (#73): "off" (default), "nearest" or a station key
 CONF_EMERGENCY_BROADCASTER: Final = "emergency_broadcaster"
+CONF_DAM_STORAGES: Final = "dam_storages"
 
 # Opt-in national and regional hazard feeds (#37). All default to off.
 CONF_ENABLE_TSUNAMI: Final = "enable_tsunami"

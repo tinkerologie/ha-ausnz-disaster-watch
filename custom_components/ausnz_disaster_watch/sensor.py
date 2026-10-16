@@ -20,6 +20,7 @@ from .const import (
     STATE_NZ,
 )
 from .coordinator import AustralianDisasterWatchCoordinator
+from .dam_sensor import async_setup_dam_sensors
 from .entity import AustralianDisasterWatchEntity
 from .forecast_entity import forecast_sensors
 from .providers.fire_danger import NZ_SEASONS, local_today
@@ -75,6 +76,7 @@ async def async_setup_entry(
     async_add_entities(entities)
     async_setup_river_sensors(hass, entry, async_add_entities)
     await async_setup_broadcaster_sensor(hass, entry, async_add_entities)
+    async_setup_dam_sensors(hass, entry, async_add_entities)
 
 
 class NearestHazardDistanceSensor(AustralianDisasterWatchEntity, SensorEntity):
