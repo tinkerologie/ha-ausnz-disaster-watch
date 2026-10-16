@@ -1,5 +1,6 @@
 """Unit tests for the Geolocation platform and dynamic entity synchronization."""
 
+from collections.abc import Callable
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -48,6 +49,7 @@ async def test_geolocation_dynamic_lifecycle(
     mock_config_entry: MockConfigEntry,
     mock_hazard_emergency_warning: CanonicalHazard,
     mock_hazard_watch_and_act: CanonicalHazard,
+    entity_icon: Callable[[str], str | None],
 ) -> None:
     """Test adding and clean removal of geolocation entities without orphaned state or registry entries."""
     mock_provider = await _setup_with_hazards(hass, mock_config_entry, [mock_hazard_emergency_warning])
@@ -69,7 +71,8 @@ async def test_geolocation_dynamic_lifecycle(
     assert geo_state.attributes["integration"] == DOMAIN
     assert geo_state.attributes["warning_level"] == "Emergency Warning"
     assert geo_state.attributes["hazard_type"] == "Bushfire"
-    assert geo_state.attributes["icon"] == "mdi:fire"
+    assert "icon" not in geo_state.attributes
+    assert entity_icon(geo_state.entity_id) == "mdi:fire"
     # Cards scope incidents per config entry through these attributes (#26).
     assert geo_state.attributes["integration"] == "ausnz_disaster_watch"
     assert geo_state.attributes["entry_id"] == mock_config_entry.entry_id

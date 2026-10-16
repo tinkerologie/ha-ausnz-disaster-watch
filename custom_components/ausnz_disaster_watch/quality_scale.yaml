@@ -1,0 +1,129 @@
+# Integration Quality Scale self-assessment (#21). Rule names follow
+# script/hassfest/quality_scale.py of Home Assistant 2026.10. hassfest skips this file for
+# custom integrations, so tests/test_quality_scale.py checks it instead.
+rules:
+  # Bronze
+  action-setup:
+    status: exempt
+    comment: The integration registers no service actions; the Assist LLM tools are not actions.
+  appropriate-polling:
+    status: done
+    comment: |
+      Hazard feeds every 5 minutes, every minute while an Emergency Warning or Watch and Act
+      is nearby; fire danger every 30 minutes, river gauges every 15 minutes, dam storages
+      hourly, forecasts hourly or every 6 hours.
+  brands: done
+  common-modules: done
+  config-flow: done
+  config-flow-test-coverage: done
+  dependency-transparency: done
+  docs-actions:
+    status: exempt
+    comment: The integration registers no service actions.
+  docs-conditions:
+    status: exempt
+    comment: The integration provides no device conditions.
+  docs-high-level-description: done
+  docs-installation-instructions: done
+  docs-removal-instructions: done
+  docs-triggers:
+    status: exempt
+    comment: The integration provides no device triggers.
+  entity-event-setup: done
+  entity-unique-id: done
+  has-entity-name:
+    status: done
+    comment: |
+      Geolocation events are named after the incident headline and belong to no device,
+      like the core feed integrations (geonetnz_quakes, gdacs).
+  runtime-data: done
+  test-before-configure:
+    status: done
+    comment: |
+      The user, location and reconfigure steps fetch the entry's hazard feeds and show
+      cannot_connect when none of them answers, the same rule the first refresh uses.
+  test-before-setup: done
+  unique-config-entry: done
+
+  # Silver
+  action-exceptions:
+    status: exempt
+    comment: The integration registers no service actions.
+  config-entry-unloading: done
+  docs-configuration-parameters: done
+  docs-installation-parameters: done
+  entity-unavailable: done
+  integration-owner: done
+  log-when-unavailable: done
+  parallel-updates: done
+  reauthentication-flow:
+    status: exempt
+    comment: |
+      The feeds are public and need no credentials. The optional VicRoads open data key is
+      set in the options; without a working key only the Victorian road feed is skipped.
+  test-coverage: done
+
+  # Gold
+  devices: done
+  diagnostics: done
+  discovery:
+    status: exempt
+    comment: The integration reads public cloud feeds; there is nothing on the network to discover.
+  discovery-update-info:
+    status: exempt
+    comment: The integration reads public cloud feeds; there is nothing on the network to discover.
+  docs-data-update: done
+  docs-examples: done
+  docs-known-limitations: done
+  docs-supported-devices:
+    status: exempt
+    comment: The integration is a service; it integrates no devices.
+  docs-supported-functions: done
+  docs-troubleshooting: done
+  docs-use-cases: done
+  dynamic-devices:
+    status: exempt
+    comment: |
+      Each entry has one fixed service device. Entities that come and go with the data
+      (incidents, cameras, river gauges, dam storages) are added and removed on that device.
+  entity-category:
+    status: done
+    comment: No entity holds configuration or diagnostic data; feed health is in the diagnostics.
+  entity-device-class:
+    status: todo
+    comment: |
+      Highest warning level and fire danger rating report English display strings
+      ("Watch and Act", "Extreme") that the dashboard cards and user automations compare.
+      Making them ENUM sensors with translated states needs snake_case state tokens, a
+      breaking change left for a maintainer decision. Every other sensor with a matching
+      device class uses it.
+  entity-disabled-by-default:
+    status: done
+    comment: |
+      The emergency broadcaster sensor is disabled by default. Opt-in feeds create their
+      entities only when turned on, and the remaining default entities feed the bundled cards.
+  entity-translations:
+    status: done
+    comment: Cameras and geolocation events are named after the upstream camera and incident.
+  exception-translations: done
+  icon-translations:
+    status: todo
+    comment: |
+      Every entity takes its icon from icons.json except highest warning level and fire
+      danger rating, whose state icons need the same state tokens as entity-device-class.
+  reconfiguration-flow: done
+  repair-issues:
+    status: done
+    comment: A repair issue is raised when the dashboard card resource cannot be removed.
+  stale-devices:
+    status: exempt
+    comment: |
+      Each entry has one service device, removed with its entry. Stale entities (ended
+      incidents, delisted cameras, deselected gauges and storages) are removed.
+
+  # Platinum
+  async-dependency: done
+  inject-websession: done
+  strict-typing:
+    status: todo
+    comment: Pyright runs in basic mode.

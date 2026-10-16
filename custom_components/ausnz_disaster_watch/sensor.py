@@ -28,6 +28,9 @@ from .providers.heatwave import HEATWAVE_SEVERITIES
 from .providers.sources import attribution_for, national_feed_attribution
 from .river_sensor import async_setup_river_sensors
 
+# Entities only read coordinator data; the coordinator does all fetching
+PARALLEL_UPDATES = 0
+
 # Attribute lists are capped to keep state attributes small
 MAX_LISTED_ITEMS = 20
 
@@ -86,7 +89,6 @@ class NearestHazardDistanceSensor(AustralianDisasterWatchEntity, SensorEntity):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfLength.KILOMETERS
     _attr_translation_key = "nearest_hazard_distance"
-    _attr_icon = "mdi:map-marker-distance"
 
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize distance sensor."""
@@ -122,7 +124,6 @@ class ActiveHazardsCountSensor(AustralianDisasterWatchEntity, SensorEntity):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = "hazards"
     _attr_translation_key = "active_hazards_count"
-    _attr_icon = "mdi:shield-alert"
 
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize count sensor."""
@@ -138,7 +139,6 @@ class HighestWarningLevelSensor(AustralianDisasterWatchEntity, SensorEntity):
     """Sensor reporting the highest Australian Warning System level in the perimeter."""
 
     _attr_translation_key = "highest_warning_level"
-    _attr_icon = "mdi:alert-decagram"
 
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize highest warning level sensor."""
@@ -181,7 +181,6 @@ class NearestHazardTitleSensor(AustralianDisasterWatchEntity, SensorEntity):
     """Sensor displaying the title/headline of the nearest active hazard."""
 
     _attr_translation_key = "nearest_hazard_title"
-    _attr_icon = "mdi:text-box-search"
 
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize nearest hazard title sensor."""
@@ -202,7 +201,6 @@ class PowerOutagesCountSensor(AustralianDisasterWatchEntity, SensorEntity):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = "outages"
     _attr_translation_key = "power_outages_count"
-    _attr_icon = "mdi:transmission-tower-off"
 
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize power outages count sensor."""
@@ -235,7 +233,6 @@ class PowerOutagesCustomersAffectedSensor(AustralianDisasterWatchEntity, SensorE
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = "customers"
     _attr_translation_key = "power_outages_customers_affected"
-    _attr_icon = "mdi:account-alert"
 
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize customers affected sensor."""
@@ -253,7 +250,6 @@ class RoadClosuresCountSensor(AustralianDisasterWatchEntity, SensorEntity):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = "closures"
     _attr_translation_key = "road_closures_count"
-    _attr_icon = "mdi:traffic-cone"
 
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize road closures count sensor."""
@@ -279,7 +275,6 @@ class WeatherWarningsCountSensor(AustralianDisasterWatchEntity, SensorEntity):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = "warnings"
     _attr_translation_key = "weather_warnings_count"
-    _attr_icon = "mdi:weather-lightning-rainy"
 
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize weather warnings count sensor."""
@@ -381,11 +376,6 @@ class FireSeasonSensor(AustralianDisasterWatchEntity, SensorEntity):
         return season.season if season else None
 
     @property
-    def icon(self) -> str:
-        """Return an icon matching the season."""
-        return {"restricted": "mdi:fire-alert", "prohibited": "mdi:fire-off"}.get(str(self.native_value), "mdi:fire")
-
-    @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the fire zone and any Section 52 prohibition."""
         season = self.coordinator.fire_season
@@ -405,7 +395,6 @@ class AirQualityIndexSensor(AustralianDisasterWatchEntity, SensorEntity):
     """Sensor reporting regional air quality rating and pollutant telemetry."""
 
     _attr_translation_key = "air_quality_rating"
-    _attr_icon = "mdi:air-filter"
 
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize air quality sensor."""
@@ -446,7 +435,6 @@ class PrimaryWeatherObservationSensor(AustralianDisasterWatchEntity, SensorEntit
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_translation_key = "primary_weather_observation"
-    _attr_icon = "mdi:thermometer"
 
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize weather observation sensor."""
@@ -486,7 +474,6 @@ class ReliefFacilitiesCountSensor(AustralianDisasterWatchEntity, SensorEntity):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = "facilities"
     _attr_translation_key = "relief_facilities_count"
-    _attr_icon = "mdi:home-heart"
 
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize relief facilities count sensor."""
@@ -512,7 +499,6 @@ class SatelliteHotspotsSensor(AustralianDisasterWatchEntity, SensorEntity):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = "hotspots"
     _attr_translation_key = "satellite_hotspots_nearby"
-    _attr_icon = "mdi:satellite-variant"
 
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize satellite hotspots sensor."""
@@ -554,7 +540,6 @@ class HeatwaveSeveritySensor(AustralianDisasterWatchEntity, SensorEntity):
     _attr_device_class = SensorDeviceClass.ENUM
     _attr_options = list(HEATWAVE_SEVERITIES)
     _attr_translation_key = "heatwave_severity"
-    _attr_icon = "mdi:thermometer-alert"
 
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize heatwave severity sensor."""
@@ -594,7 +579,6 @@ class UVIndexSensor(AustralianDisasterWatchEntity, SensorEntity):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UV_INDEX
     _attr_translation_key = "uv_index"
-    _attr_icon = "mdi:sun-wireless"
 
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize UV index sensor."""
@@ -634,7 +618,6 @@ class RegionalDisasterAlertsSensor(AustralianDisasterWatchEntity, SensorEntity):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = "alerts"
     _attr_translation_key = "regional_disaster_alerts"
-    _attr_icon = "mdi:earth"
 
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
         """Initialize regional alerts sensor."""

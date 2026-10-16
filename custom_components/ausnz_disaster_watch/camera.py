@@ -32,6 +32,9 @@ from .providers.sources import DATA_SOURCES
 
 _LOGGER = logging.getLogger(__name__)
 
+# Entities only read coordinator data; the coordinator does all fetching
+PARALLEL_UPDATES = 0
+
 # Largest frame accepted; QLDTraffic's "resized" flood camera frames are about 0.8 MB
 MAX_FRAME_BYTES = 8 * 1024 * 1024
 
@@ -109,7 +112,7 @@ async def async_setup_entry(
 class AustralianDisasterWatchCamera(Camera, AustralianDisasterWatchEntity):
     """Camera entity rendering live disaster and flood webcam snapshots."""
 
-    _attr_icon = "mdi:cctv"
+    _attr_translation_key = "disaster_camera"
 
     def __init__(self, coordinator: AustralianDisasterWatchCoordinator, camera_id: str) -> None:
         """Initialize camera entity for the camera with ``camera_id``."""

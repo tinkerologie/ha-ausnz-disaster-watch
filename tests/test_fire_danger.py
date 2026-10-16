@@ -7,6 +7,7 @@ few districts); ``wa_total_fire_bans.json`` is an archived Emergency WA response
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import date, datetime, timedelta
 import json
 from pathlib import Path
@@ -700,7 +701,10 @@ def _entity_id(platform: str, key: str, state: str = "qld", location: str = "cit
 
 @pytest.mark.real_fire_service
 async def test_au_entities_show_outlook_and_ban(
-    hass: HomeAssistant, mock_config_entry: MockConfigEntry, freezer: FrozenDateTimeFactory
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    freezer: FrozenDateTimeFactory,
+    entity_icon: Callable[[str], str | None],
 ) -> None:
     """AU entries get a total fire ban sensor; the rating sensor carries the outlook."""
     freezer.move_to(NOON_16_OCT)
@@ -721,7 +725,8 @@ async def test_au_entities_show_outlook_and_ban(
     ban = hass.states.get(_entity_id("binary_sensor", "total_fire_ban"))
     assert ban is not None
     assert ban.state == STATE_ON
-    assert ban.attributes["icon"] == "mdi:fire-alert"
+    assert "icon" not in ban.attributes
+    assert entity_icon(ban.entity_id) == "mdi:fire-alert"
     assert ban.attributes["date"] == "2026-10-16"
     assert ban.attributes["tomorrow"] is None
     assert ban.attributes["district_number"] == "QLD_FW015"
@@ -752,7 +757,7 @@ async def test_ban_sensor_unknown_without_outlook(hass: HomeAssistant, mock_conf
     await coordinator.async_refresh()
     sensor = TotalFireBanBinarySensor(coordinator)
     assert sensor.is_on is None
-    assert sensor.icon == "mdi:fire-off"
+    assert sensor.icon is None  # from icons.json (#21)
     assert sensor.extra_state_attributes == {}
 
     coordinator.data.fire_outlook = BRISBANE_OUTLOOK.model_copy(update={"days": []})
@@ -767,7 +772,7 @@ async def test_ban_sensor_unknown_without_outlook(hass: HomeAssistant, mock_conf
 
 
 @pytest.mark.real_fire_service
-async def test_nz_entities_show_fire_season(hass: HomeAssistant) -> None:
+async def test_nz_entities_show_fire_season(hass: HomeAssistant, entity_icon: Callable[[str], str | None]) -> None:
     """NZ entries get a fire season sensor and no total fire ban sensor."""
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -800,7 +805,8 @@ async def test_nz_entities_show_fire_season(hass: HomeAssistant) -> None:
     state = hass.states.get(_entity_id("sensor", "fire_season", "nz", "christchurch"))
     assert state is not None
     assert state.state == "open"
-    assert state.attributes["icon"] == "mdi:fire"
+    assert "icon" not in state.attributes
+    assert entity_icon(state.entity_id) == "mdi:fire"
     assert state.attributes["zone"] == "Canterbury/Christchurch Metropolitan"
     assert state.attributes["section_52"] is True
     assert state.attributes["prohibited_activities"] == ["fireworks"]
@@ -810,7 +816,7 @@ async def test_nz_entities_show_fire_season(hass: HomeAssistant) -> None:
     coordinator = entry.runtime_data
     sensor = FireSeasonSensor(coordinator)
     coordinator.data.fire_season = season.model_copy(update={"season": "prohibited", "last_updated": None})
-    assert sensor.icon == "mdi:fire-off"
+    assert sensor.icon is None  # from icons.json (#21)
     assert sensor.extra_state_attributes["last_updated"] is None
     coordinator.data.fire_season = None
     assert sensor.native_value is None

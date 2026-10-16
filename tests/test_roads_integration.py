@@ -293,7 +293,7 @@ async def test_road_items_are_sorted_nearest_first(hass: HomeAssistant) -> None:
 # --- entities ------------------------------------------------------------------------------
 
 
-async def test_flooded_road_nearby_nsw(hass: HomeAssistant) -> None:
+async def test_flooded_road_nearby_nsw(hass: HomeAssistant, entity_icon: Callable[[str], str | None]) -> None:
     """A Live Traffic flood within the radius turns on the flooded road and closure sensors."""
     entry = entry_for("NSW", "Milparinka", -29.40, 141.60)
     factory = road_factory(
@@ -310,7 +310,8 @@ async def test_flooded_road_nearby_nsw(hass: HomeAssistant) -> None:
     assert flooded is not None
     assert flooded.state == STATE_ON
     assert flooded.attributes["device_class"] == "safety"
-    assert flooded.attributes["icon"] == "mdi:home-flood"
+    assert "icon" not in flooded.attributes
+    assert entity_icon(flooded.entity_id) == "mdi:home-flood"
     assert flooded.attributes["flooded_count"] == 1
     assert flooded.attributes["nearest"][0]["road"] == "Hewart Downs Road"
     assert flooded.attributes["nearest"][0]["distance_km"] < 10
@@ -347,7 +348,9 @@ async def test_flooded_road_nearby_nt(hass: HomeAssistant) -> None:
     assert state.attributes["nearest"][0]["road"] == "Dorisvale Road"
 
 
-async def test_roadworks_never_turn_on_road_sensors(hass: HomeAssistant) -> None:
+async def test_roadworks_never_turn_on_road_sensors(
+    hass: HomeAssistant, entity_icon: Callable[[str], str | None]
+) -> None:
     """Listed roadworks (option on) count in the sensor but leave both binary sensors off."""
     entry = entry_for("QLD", "Warwick", -28.06, 152.41, radius=20, **{CONF_INCLUDE_ROADWORKS: True})
     await setup_with_roads(hass, entry, road_factory(QueenslandRoadProvider, {"events_v2": load("qld_events_v2")}))
@@ -363,7 +366,8 @@ async def test_roadworks_never_turn_on_road_sensors(hass: HomeAssistant) -> None
     flooded = hass.states.get(entity("qld", "warwick", "flooded_road_nearby"))
     assert flooded is not None
     assert flooded.state == STATE_OFF
-    assert flooded.attributes["icon"] == "mdi:road-variant"
+    assert "icon" not in flooded.attributes
+    assert entity_icon(flooded.entity_id) == "mdi:road-variant"
     assert flooded.attributes["nearest"] == []
 
 

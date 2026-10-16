@@ -22,25 +22,12 @@ from homeassistant.util import slugify
 from . import AusNZDisasterWatchConfigEntry
 from .const import DOMAIN, NEAREST_CAMERA_KM
 from .coordinator import AustralianDisasterWatchCoordinator, calculate_haversine_distance
-from .models import CanonicalHazard, HazardType
+from .models import CanonicalHazard
 
 _LOGGER = logging.getLogger(__name__)
 
-HAZARD_ICONS = {
-    HazardType.BUSHFIRE: "mdi:fire",
-    HazardType.GRASS_FIRE: "mdi:grass",
-    HazardType.METROPOLITAN_FIRE: "mdi:fire-alert",
-    HazardType.FLOOD: "mdi:water-alert",
-    HazardType.SEVERE_STORM: "mdi:weather-lightning",
-    HazardType.CYCLONE: "mdi:weather-hurricane",
-    HazardType.EARTHQUAKE: "mdi:pulse",
-    HazardType.VOLCANO: "mdi:volcano",
-    HazardType.TSUNAMI: "mdi:tsunami",
-    HazardType.HAZMAT: "mdi:biohazard",
-    HazardType.ROAD_INCIDENT: "mdi:car-emergency",
-    HazardType.OTHER: "mdi:alert-decagram",
-}
-
+# Entities only read coordinator data; the coordinator does all fetching
+PARALLEL_UPDATES = 0
 
 # geo_location triggers and the map card filter on ``source``; like the core feed
 # integrations, every event from this integration shares one constant source (#18).
@@ -63,6 +50,11 @@ def hazard_object_id(hazard_id: str) -> str:
         digest = hashlib.sha256(hazard_id.encode()).hexdigest()[:_DIGEST_LENGTH]
         slug = f"{slug[: MAX_HAZARD_SLUG_LENGTH - _DIGEST_LENGTH - 1].rstrip('_')}_{digest}"
     return f"{DOMAIN}_{slug}"
+
+
+def hazard_translation_key(hazard: CanonicalHazard) -> str:
+    """Return the translation key (and so the icons.json icon) of a hazard's type."""
+    return hazard.hazard_type.name.lower()
 
 
 def current_hazards(coordinator: AustralianDisasterWatchCoordinator) -> dict[str, CanonicalHazard]:
@@ -165,6 +157,8 @@ class AustralianDisasterWatchGeolocationEvent(CoordinatorEntity[AustralianDisast
         self.entity_id = f"{GEO_LOCATION_DOMAIN}.{hazard_object_id(hazard_id)}"
         self._hazard = hazard
         self._attr_name = hazard.title
+        # Icons come from icons.json, one translation key per hazard type
+        self._attr_translation_key = hazard_translation_key(hazard)
 
     @property
     def hazard(self) -> CanonicalHazard:
@@ -177,6 +171,7 @@ class AustralianDisasterWatchGeolocationEvent(CoordinatorEntity[AustralianDisast
         if (hazard := current_hazards(self.coordinator).get(self.hazard_id)) is not None:
             self._hazard = hazard
             self._attr_name = hazard.title
+            self._attr_translation_key = hazard_translation_key(hazard)
         super()._handle_coordinator_update()
 
     @property
@@ -200,11 +195,6 @@ class AustralianDisasterWatchGeolocationEvent(CoordinatorEntity[AustralianDisast
     def longitude(self) -> float | None:
         """Return event longitude (centroid)."""
         return self._hazard.longitude
-
-    @property
-    def icon(self) -> str:
-        """Return MDI icon based on hazard type."""
-        return HAZARD_ICONS.get(self._hazard.hazard_type, "mdi:alert-decagram")
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

@@ -49,6 +49,7 @@ markers = [
     "unit: Unit tests (fast, no external dependencies)",
     "integration: Integration tests (may use coordinator/time service)",
     "real_fire_service: Run the real fire danger service (feeds mocked per test) instead of the autouse stub",
+    "real_feed_probe: Run the config flow's real feed check instead of the autouse stub",
 ]
 filterwarnings = [
     # Treat warnings as errors to catch issues early

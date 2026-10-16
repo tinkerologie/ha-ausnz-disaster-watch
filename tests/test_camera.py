@@ -118,7 +118,8 @@ async def test_camera_attributes_and_snapshots(
     camera.hass = hass
 
     assert camera.name == "Goodna Flood Camera"
-    assert camera.icon == "mdi:cctv"
+    assert camera.icon is None  # from icons.json (#21)
+    assert camera.translation_key == "disaster_camera"
     assert camera.unique_id == f"{mock_config_entry.entry_id}_camera_goodna"
     assert camera.available is True
 

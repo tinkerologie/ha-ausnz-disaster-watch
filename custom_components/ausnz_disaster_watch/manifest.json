@@ -22,6 +22,7 @@
     "aio_georss_client",
     "aio_georss_gdacs"
   ],
+  "quality_scale": "silver",
   "requirements": [
     "aio-geojson-geonetnz-quakes>=0.16",
     "aio-geojson-geonetnz-volcano>=0.9",
