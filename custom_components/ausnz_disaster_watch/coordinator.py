@@ -8,11 +8,20 @@ import logging
 import math
 from typing import TYPE_CHECKING, Any
 
+from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from .const import DEFAULT_SCAN_INTERVAL, DOMAIN, LAST_GOOD_MAX_AGE, LOCATION_MODE_HOME, THREAT_SCAN_INTERVAL
+from .const import (
+    DEFAULT_SCAN_INTERVAL,
+    DOMAIN,
+    FIRST_REFRESH_OPTIONAL_TIMEOUT,
+    LAST_GOOD_MAX_AGE,
+    LOCATION_MODE_HOME,
+    OPTIONAL_FEED_TIMEOUT,
+    THREAT_SCAN_INTERVAL,
+)
 from .council_registry import nearest_council, nearest_readable_dashboard, usable_url
 from .forecast_coordinator import ForecastCoordinators
 from .models import (
@@ -53,6 +62,10 @@ if TYPE_CHECKING:
     from .river_coordinator import RiverGaugeCoordinator
 
 _LOGGER = logging.getLogger(__name__)
+
+
+class OptionalFeedTimeoutError(ProviderUnavailableError):
+    """An optional feed did not answer in time and has no recent result to fall back on (#75)."""
 
 
 def calculate_haversine_distance(
@@ -167,6 +180,12 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         self.river_coordinator: RiverGaugeCoordinator | None = None
         self._road_feed_healthy: dict[str, bool] = {}
         self.road_feeds_failed: list[str] = []
+        # Optional (non-hazard) feed calls that outlived their timeout, their last good results,
+        # and the feeds whose timeout has been logged (#75)
+        self._optional_tasks: dict[str, asyncio.Task[Any]] = {}
+        self._optional_last_good: dict[str, tuple[datetime, Any]] = {}
+        self._optional_timed_out: set[str] = set()
+        self._optional_watched: set[str] = set()
         self._update_config_values()
 
         session = async_get_clientsession(hass)
@@ -243,6 +262,56 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         for forecast in (self.forecasts.weather, self.forecasts.ensemble):
             if forecast is not None:
                 forecast.set_location(self.latitude, self.longitude)
+
+    async def _async_optional(self, owner: Any, hook: str, *, log_timeout: bool = True) -> Any:
+        """Call an optional feed hook with a timeout, so a slow source never holds up a refresh (#75).
+
+        The call runs as an entry background task. If it does not finish in time, the refresh
+        uses the feed's last good result (for up to ``LAST_GOOD_MAX_AGE``) or, without one,
+        raises ``OptionalFeedTimeoutError`` so the feed reads as unavailable. The call keeps
+        running, and the next refresh uses its result instead of starting another call. When a
+        feed with no data yet finishes late, a refresh is requested so its entities fill in.
+        The first refresh waits less, so entry setup is not held up by optional feeds.
+        """
+        key = f"{type(owner).__name__}#{id(owner)}.{hook}"
+        name = f"{type(owner).__name__}.{hook}"
+        task = self._optional_tasks.get(key)
+        if task is None:
+            task = self.config_entry.async_create_background_task(self.hass, getattr(owner, hook)(), f"{DOMAIN} {name}")
+            self._optional_tasks[key] = task
+        timeout = FIRST_REFRESH_OPTIONAL_TIMEOUT if self.data is None else OPTIONAL_FEED_TIMEOUT
+        # asyncio.wait never cancels the call (unlike wait_for, or shield, which would also
+        # report a late failure as an unhandled error)
+        await asyncio.wait({task}, timeout=timeout)
+        if not task.done():
+            if log_timeout and key not in self._optional_timed_out:
+                _LOGGER.warning("Optional feed %s did not answer within %s s; using its last result", name, timeout)
+            self._optional_timed_out.add(key)
+            if key not in self._optional_watched:
+                self._optional_watched.add(key)
+                task.add_done_callback(lambda done: self._optional_finished_late(key, done))
+            cached = self._optional_last_good.get(key)
+            if cached is not None and dt_util.utcnow() - cached[0] <= LAST_GOOD_MAX_AGE:
+                return cached[1]
+            raise OptionalFeedTimeoutError(f"{name} timed out after {timeout} s")
+        self._optional_tasks.pop(key, None)
+        if task.cancelled():
+            raise OptionalFeedTimeoutError(f"{name} was cancelled")
+        value = task.result()  # raises the call's own error
+        if key in self._optional_timed_out:
+            self._optional_timed_out.discard(key)
+            if log_timeout:
+                _LOGGER.info("Optional feed %s is answering again", name)
+        self._optional_last_good[key] = (dt_util.utcnow(), value)
+        return value
+
+    @callback
+    def _optional_finished_late(self, key: str, task: asyncio.Task[Any]) -> None:
+        """Refresh once a timed-out feed that has no data yet finishes, so its entities fill in."""
+        self._optional_watched.discard(key)
+        if task.cancelled() or task.exception() is not None or key in self._optional_last_good:
+            return
+        self.config_entry.async_create_task(self.hass, self.async_request_refresh(), f"{DOMAIN} refresh after {key}")
 
     async def _async_fetch_all_hazards(self) -> list[CanonicalHazard]:
         """Fetch all hazards from active providers concurrently, tracking each feed's health (#16).
@@ -362,7 +431,7 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
 
         async def _fetch_power() -> None:
             try:
-                po = await provider.async_fetch_power_outages()
+                po = await self._async_optional(provider, "async_fetch_power_outages")
                 if isinstance(po, list):
                     # Radius filtering happens with the distributor outages (_process_power_outages)
                     power_outages.extend(item for item in po if isinstance(item, PowerOutageItem))
@@ -374,7 +443,7 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
 
         async def _fetch_relief() -> None:
             try:
-                rf = await provider.async_fetch_relief_facilities()
+                rf = await self._async_optional(provider, "async_fetch_relief_facilities")
                 if isinstance(rf, list):
                     for item in rf:
                         if (
@@ -429,7 +498,8 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
     ) -> None:
         """Collect a provider's road items within the radius (unlocated council items are kept)."""
         try:
-            rc = await provider.async_fetch_road_closures()
+            # Statewide feeds report their own outages (once), so their timeouts are not logged twice
+            rc = await self._async_optional(provider, "async_fetch_road_closures", log_timeout=not raise_errors)
             if isinstance(rc, list):
                 for item in rc:
                     if isinstance(item, RoadClosureItem) and item.latitude is not None and item.longitude is not None:
@@ -459,7 +529,7 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
 
         async def _fetch_warnings() -> None:
             try:
-                ww = await provider.async_fetch_weather_warnings()
+                ww = await self._async_optional(provider, "async_fetch_weather_warnings")
                 if isinstance(ww, list):
                     weather_warnings.extend([item for item in ww if isinstance(item, WeatherWarningItem)])
             except Exception as err:  # noqa: BLE001
@@ -467,7 +537,7 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
 
         async def _fetch_news() -> None:
             try:
-                en = await provider.async_fetch_emergency_news()
+                en = await self._async_optional(provider, "async_fetch_emergency_news")
                 if isinstance(en, list):
                     emergency_news.extend([item for item in en if isinstance(item, EmergencyNewsItem)])
             except Exception as err:  # noqa: BLE001
@@ -475,7 +545,7 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
 
         async def _fetch_stations() -> None:
             try:
-                ws = await provider.async_fetch_weather_telemetry()
+                ws = await self._async_optional(provider, "async_fetch_weather_telemetry")
                 if isinstance(ws, list):
                     weather_stations.extend([item for item in ws if isinstance(item, WeatherStationObservation)])
             except Exception as err:  # noqa: BLE001
@@ -483,7 +553,7 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
 
         async def _fetch_aq() -> None:
             try:
-                aq = await provider.async_fetch_air_quality()
+                aq = await self._async_optional(provider, "async_fetch_air_quality")
                 if isinstance(aq, list):
                     air_quality_stations.extend([item for item in aq if isinstance(item, AirQualityStationData)])
             except Exception as err:  # noqa: BLE001
@@ -501,7 +571,7 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
 
         async def _fetch_cam() -> None:
             try:
-                cam = await provider.async_fetch_cameras()
+                cam = await self._async_optional(provider, "async_fetch_cameras")
                 if isinstance(cam, list):
                     cameras.extend([item for item in cam if isinstance(item, DisasterCameraItem) and self._near(item)])
             except Exception as err:  # noqa: BLE001
@@ -509,7 +579,7 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
 
         async def _fetch_councils() -> None:
             try:
-                nc = await provider.async_fetch_nearby_councils()
+                nc = await self._async_optional(provider, "async_fetch_nearby_councils")
                 if isinstance(nc, list):
                     nearby_councils.extend([item for item in nc if isinstance(item, dict)])
             except Exception as err:  # noqa: BLE001
@@ -525,7 +595,11 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         health transitions are logged once.
         """
         results = await asyncio.gather(
-            *(source.async_fetch_power_outages() for source in self.power_sources),
+            # Each distributor logs its own outages, so its timeout is not logged twice (#75)
+            *(
+                self._async_optional(source, "async_fetch_power_outages", log_timeout=False)
+                for source in self.power_sources
+            ),
             return_exceptions=True,
         )
         for source, result in zip(self.power_sources, results, strict=True):
@@ -621,7 +695,11 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
             type(provider).__name__ for provider, ok in zip(self.road_providers, road_results, strict=True) if not ok
         ]
 
-        await self.fire_service.async_update()
+        try:
+            # The service keeps its last outlook, so a slow update only delays the new one
+            await self._async_optional(self.fire_service, "async_update")
+        except ProviderUnavailableError as err:
+            _LOGGER.debug("Fire danger outlook not updated: %s", err)
         fire_outlook = self.fire_service.outlook
         fire_danger = fire_danger_today(fire_outlook)
 
@@ -629,7 +707,7 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         for provider in self.providers:
             if fire_danger is None:
                 try:
-                    fd = await provider.async_fetch_fire_danger()
+                    fd = await self._async_optional(provider, "async_fetch_fire_danger")
                     if isinstance(fd, FireDangerRating):
                         fire_danger = fd
                 except Exception as err:  # noqa: BLE001
@@ -684,7 +762,7 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
 
         async def fetch(provider: Any, field: str, hook: str, expected: type) -> tuple[str, Any]:
             try:
-                value = await getattr(provider, hook)()
+                value = await self._async_optional(provider, hook)
             except Exception as err:  # noqa: BLE001
                 _LOGGER.debug("Error updating %s from %s: %s", field, provider.__class__.__name__, err)
                 return field, None

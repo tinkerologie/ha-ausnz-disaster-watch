@@ -82,6 +82,10 @@ DEFAULT_SCAN_INTERVAL: Final = 300  # 5 minutes in seconds
 THREAT_SCAN_INTERVAL: Final = 60  # 1 minute when active threat detected
 # How long a failed feed's last good hazards are kept before they are dropped (#16)
 LAST_GOOD_MAX_AGE: Final = timedelta(minutes=30)
+# Optional (non-hazard) feed calls: how long a refresh waits before using the last result (#75).
+# The first refresh waits less so entry setup is not held up by optional feeds.
+OPTIONAL_FEED_TIMEOUT: Final = 15  # seconds
+FIRST_REFRESH_OPTIONAL_TIMEOUT: Final = 5  # seconds
 
 # State codes
 STATE_QLD: Final = "QLD"
