@@ -412,13 +412,24 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         await asyncio.gather(_fetch_power(), _fetch_roads(), _fetch_relief())
 
     async def _async_collect_statewide_roads(self, provider: Any, road_closures: list[RoadClosureItem]) -> bool:
-        """Collect a statewide road feed's items; return False (logged once per outage) if it is down."""
+        """Collect a statewide road feed's items; return False (logged once per outage) if it is down.
+
+        A feed is down when it raises, or when one of its sources has been unavailable for longer
+        than the last-good window (its remaining items are still used, but the feed is incomplete).
+        """
         key = type(provider).__name__
         try:
             await self._async_collect_roads(provider, road_closures, raise_errors=True)
-        except Exception as err:  # noqa: BLE001
+        except Exception as err:
             if self._road_feed_healthy.get(key, True):
                 _LOGGER.warning("Road feed %s is unavailable: %s", key, err)
+            if not isinstance(err, ProviderUnavailableError):
+                _LOGGER.debug("Unexpected error from road feed %s", key, exc_info=err)
+            self._road_feed_healthy[key] = False
+            return False
+        if failed_sources := getattr(provider, "failed_sources", None):
+            if self._road_feed_healthy.get(key, True):
+                _LOGGER.warning("Road feed %s is incomplete; unavailable: %s", key, ", ".join(failed_sources))
             self._road_feed_healthy[key] = False
             return False
         if self._road_feed_healthy.get(key) is False:
@@ -533,10 +544,11 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         nearby_councils: list[dict[str, str]] = []
 
         statewide_roads: list[RoadClosureItem] = []
-        road_feeds = asyncio.gather(
-            *(self._async_collect_statewide_roads(provider, statewide_roads) for provider in self.road_providers)
-        )
-        coros: list[Any] = [road_feeds]
+        coros: list[Any] = [
+            asyncio.gather(
+                *(self._async_collect_statewide_roads(provider, statewide_roads) for provider in self.road_providers)
+            )
+        ]
         for provider in self.providers:
             coros.append(self._collect_infrastructure(provider, power_outages, road_closures, relief_facilities))
             coros.append(
@@ -546,11 +558,9 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
             )
             coros.append(self._collect_cameras_and_councils(provider, cameras, nearby_councils))
 
-        await asyncio.gather(*coros)
+        road_results, *_ = await asyncio.gather(*coros)
         self.road_feeds_failed = [
-            type(provider).__name__
-            for provider, ok in zip(self.road_providers, road_feeds.result(), strict=True)
-            if not ok
+            type(provider).__name__ for provider, ok in zip(self.road_providers, road_results, strict=True) if not ok
         ]
 
         await self.fire_service.async_update()

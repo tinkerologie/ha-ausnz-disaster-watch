@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import timedelta
 import json
+import logging
 from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -120,6 +121,9 @@ def test_category_inference_for_council_items() -> None:
     assert RoadEventCategory.infer("Impassable") == RoadEventCategory.CLOSURE
     assert RoadEventCategory.infer(None, "water over road") == RoadEventCategory.FLOODING
     assert RoadEventCategory.infer("Closed", "Unplanned closure") == RoadEventCategory.CLOSURE
+    # A null status falls back to "Closed" like a missing one
+    assert RoadClosureItem.infer_category({"id": "n", "status": None})["category"] == RoadEventCategory.CLOSURE
+    assert RoadClosureItem.infer_category({"id": "m"})["category"] == RoadEventCategory.CLOSURE
 
 
 def test_config_model_road_options() -> None:
@@ -234,6 +238,34 @@ async def test_road_feed_outage_is_reported(
     assert state.state == STATE_ON
     diag = await async_get_config_entry_diagnostics(hass, entry)
     assert diag["coordinator"]["road_feeds_failed"] == []
+
+
+async def test_incomplete_or_broken_road_feed_is_reported(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A source down beyond the window marks the feed failed but keeps its other items; bugs log a traceback."""
+    entry = entry_for("NSW", "Sydney", -33.87, 151.21, radius=100)
+    entry.add_to_hass(hass)
+    coordinator = AustralianDisasterWatchCoordinator(hass, entry)
+    partial = AsyncMock()
+    partial.failed_sources = ["Live Traffic NSW flood"]
+    partial.async_fetch_road_closures.return_value = [
+        RoadClosureItem(id="near", road="B", category="closure", latitude=-33.88, longitude=151.2)
+    ]
+    broken = AsyncMock()
+    broken.failed_sources = []
+    broken.async_fetch_road_closures.side_effect = RuntimeError("bug")
+    coordinator.road_providers = [partial, broken]
+    coordinator.providers = []
+    caplog.set_level(logging.DEBUG, logger="custom_components.ausnz_disaster_watch")
+
+    await coordinator.async_refresh()
+    await coordinator.async_refresh()
+    assert coordinator.road_feeds_failed == ["AsyncMock", "AsyncMock"]
+    assert [item.id for item in coordinator.road_closures] == ["near"]
+    assert caplog.text.count("is incomplete; unavailable: Live Traffic NSW flood") == 1
+    assert "Unexpected error from road feed AsyncMock" in caplog.text
+    assert "RuntimeError: bug" in caplog.text
 
 
 async def test_road_items_are_sorted_nearest_first(hass: HomeAssistant) -> None:

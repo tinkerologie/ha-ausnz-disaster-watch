@@ -226,7 +226,7 @@ Each state's official road feed is read every few minutes and filtered to your r
 | `roadworks` | Planned roadworks (listed only with the option on) | no | no |
 | `special_event` | Planned special events (listed only with the option on) | no | no |
 
-Breakdowns, traffic signal faults, ferries, congestion and standing heavy-vehicle limits are not listed. Timestamps are converted from the agency's local time zone. If a state road feed is down for more than 30 minutes, `…_road_closure_nearby` and `…_flooded_road_nearby` become unavailable rather than showing `off`.
+Breakdowns, traffic signal faults, ferries, congestion and standing heavy-vehicle limits are not listed. Timestamps are converted from the agency's local time zone. A feed whose sources are all down keeps its last good items for up to 30 minutes. After that, or when any one source of a multi-source feed (for example one of the Live Traffic NSW files) has been down for more than 30 minutes, `…_road_closure_nearby` and `…_flooded_road_nearby` become unavailable rather than showing `off`; the remaining sources' items are still listed.
 
 | State | Source | Key | Licence |
 | ----- | ------ | --- | ------- |

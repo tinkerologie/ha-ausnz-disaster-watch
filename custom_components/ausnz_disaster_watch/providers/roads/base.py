@@ -139,6 +139,8 @@ class BaseRoadProvider(BaseHazardProvider):
         self._good_at: datetime | None = None
         # Last good items of each source of a multi-source feed, so one source's outage does not drop its events
         self._source_items: dict[str, tuple[datetime, list[RoadClosureItem]]] = {}
+        # Sources down for longer than LAST_GOOD_MAX_AGE in the latest fetch: the feed is incomplete
+        self.failed_sources: list[str] = []
 
     def set_location(self, latitude: float, longitude: float) -> None:
         """Follow the monitored point; a move refetches, as radius-box queries depend on it."""
@@ -217,6 +219,7 @@ class BaseRoadProvider(BaseHazardProvider):
         results = await asyncio.gather(*(_run(fetch, parse) for _, fetch, parse in source_list), return_exceptions=True)
         items: list[RoadClosureItem] = []
         failures: list[str] = []
+        stale: list[str] = []
         seen: set[str] = set()
         for (label, _, _), result in zip(source_list, results, strict=True):
             if isinstance(result, BaseException):
@@ -226,6 +229,7 @@ class BaseRoadProvider(BaseHazardProvider):
                 failures.append(f"{label}: {result}")
                 cached = self._source_items.get(label)
                 if cached is None or now - cached[0] > LAST_GOOD_MAX_AGE:
+                    stale.append(label)
                     continue
                 result = cached[1]
             else:
@@ -234,6 +238,7 @@ class BaseRoadProvider(BaseHazardProvider):
                 if item.id not in seen:
                     seen.add(item.id)
                     items.append(item)
+        self.failed_sources = stale
         if len(failures) == len(source_list):
             raise ProviderUnavailableError("; ".join(failures) or "no sources configured")
         return items

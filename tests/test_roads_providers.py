@@ -654,12 +654,16 @@ async def test_failed_source_keeps_its_last_good_items(hass: HomeAssistant, free
     routed(provider, {"flood.json": load("nsw_flood"), "incident.json": load("nsw_incident")})
     assert "NSW_286275" in by_id(await provider.async_fetch_road_closures())
 
+    assert provider.failed_sources == []
+
     freezer.tick(timedelta(minutes=5))
     routed(provider, {"flood.json": ProviderUnavailableError("down"), "incident.json": load("nsw_incident")})
     assert "NSW_286275" in by_id(await provider.async_fetch_road_closures())
+    assert provider.failed_sources == []  # bridged: still complete
 
     freezer.tick(timedelta(minutes=31))
     assert "NSW_286275" not in by_id(await provider.async_fetch_road_closures())
+    assert provider.failed_sources == ["Live Traffic NSW flood"]  # beyond the window: incomplete
 
 
 async def test_moving_location_refetches(hass: HomeAssistant) -> None:

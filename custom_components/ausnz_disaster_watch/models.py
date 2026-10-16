@@ -313,8 +313,9 @@ class RoadClosureItem(BaseModel):
     def infer_category(cls, data: Any) -> Any:
         """Derive the category from status and reason when a feed does not set one."""
         if isinstance(data, dict) and data.get("category") is None:
-            status = data.get("status", "Closed")
-            data = {**data, "category": RoadEventCategory.infer(str(status or ""), data.get("reason"))}
+            # One fallback for a missing and a null status, matching the field default
+            status = data.get("status") or "Closed"
+            data = {**data, "category": RoadEventCategory.infer(str(status), data.get("reason"))}
         return data
 
     id: str = Field(description="Unique road condition identifier")

@@ -822,7 +822,7 @@ class AustralianDisasterWatchOptionsFlowHandler(HazardOptionsFlow, NationalFeeds
         current_config = {**self.config_entry.data, **self.config_entry.options}
         return self.async_show_form(
             step_id="roads",
-            data_schema=vol.Schema(road_option_fields(current_config)),
+            data_schema=vol.Schema(road_option_fields(current_config)),  # type: ignore[arg-type]
         )
 
 
