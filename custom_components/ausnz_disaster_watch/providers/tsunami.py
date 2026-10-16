@@ -108,6 +108,9 @@ def jatwc_status(files: dict[str, bytes], state: str, now: datetime) -> TsunamiS
         product = _product_of(name)
         alert = parse_cap(content.decode("utf-8", errors="replace"))
         if alert is None:
+            # Another state's broken bulletin cannot decide this state's status; ours can
+            if product not in jatwc_products(state):
+                continue
             raise ProviderUnavailableError(f"JATWC product {name} is not a CAP alert")
         if not _applies_to(product, alert, state):
             continue

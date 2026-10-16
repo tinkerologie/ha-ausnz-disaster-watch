@@ -198,8 +198,11 @@ async def test_new_zealand_has_no_australian_entities(hass: HomeAssistant) -> No
     assert hass.states.get(f"sensor.{nz}_satellite_hotspots_nearby") is None
 
 
-async def test_tsunami_hazard_turns_sensor_on(hass: HomeAssistant, mock_config_entry: MockConfigEntry) -> None:
-    """A retained tsunami hazard (e.g. an official NEMA alert) turns the sensor on."""
+@pytest.mark.parametrize("undetermined", [False, True])
+async def test_tsunami_hazard_turns_sensor_on(
+    hass: HomeAssistant, mock_config_entry: MockConfigEntry, undetermined: bool
+) -> None:
+    """A retained tsunami hazard (e.g. an official NEMA alert) turns the sensor on, even while the feed is down."""
     hazard = CanonicalHazard(
         id="NZ_NEMA_1",
         source="NEMA",
@@ -211,7 +214,8 @@ async def test_tsunami_hazard_turns_sensor_on(hass: HomeAssistant, mock_config_e
         updated_at=NOW,
     )
     inactive = TSUNAMI.model_copy(update={"active": False, "threat_level": None})
-    await setup_entry(hass, mock_config_entry, [hazard_mock([hazard]), national_mock(tsunami=inactive)])
+    national = national_mock(tsunami=None if undetermined else inactive)
+    await setup_entry(hass, mock_config_entry, [hazard_mock([hazard]), national])
     state = hass.states.get(f"binary_sensor.{PREFIX}_tsunami_warning")
     assert state is not None
     assert state.state == STATE_ON

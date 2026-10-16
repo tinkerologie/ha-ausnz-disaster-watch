@@ -241,8 +241,8 @@ class TsunamiWarningBinarySensor(AustralianDisasterWatchEntity, BinarySensorEnti
 
     @property
     def available(self) -> bool:
-        """Return False while the tsunami status is undetermined."""
-        return super().available and self.coordinator.tsunami is not None
+        """Return False while the tsunami status is undetermined and no tsunami hazard is in range."""
+        return super().available and (self.coordinator.tsunami is not None or bool(self.coordinator.tsunami_hazards))
 
     @property
     def is_on(self) -> bool:
@@ -260,7 +260,8 @@ class TsunamiWarningBinarySensor(AustralianDisasterWatchEntity, BinarySensorEnti
         """Return the threat level, headline and the products checked."""
         status = self.coordinator.tsunami
         if status is None:
-            return {}
+            hazards = [h.title for h in self.coordinator.tsunami_hazards]
+            return {"tsunami_hazards": hazards} if hazards else {}
         return {
             "threat_level": status.threat_level,
             "headline": status.headline,

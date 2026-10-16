@@ -140,6 +140,11 @@ def test_jatwc_unparsable_product_is_undetermined() -> None:
     """A present product that is not CAP raises instead of reading as clear."""
     with pytest.raises(ProviderUnavailableError):
         tsunami.jatwc_status({"IDY68020.cap.xml": b"<html>busy</html>"}, "QLD", JATWC_NOW)
+    # A broken bulletin for another state does not make this state's status undetermined
+    status = tsunami.jatwc_status(
+        {"IDY68025.cap.xml": b"<html>busy</html>", "IDY68027.cap.xml": JATWC_LAND}, "QLD", JATWC_NOW
+    )
+    assert (status.active, status.products) == (True, ["IDY68027"])
 
 
 # PTWC
