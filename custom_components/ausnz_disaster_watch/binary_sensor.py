@@ -24,6 +24,7 @@ from .const import (
     STATE_NZ,
 )
 from .coordinator import AustralianDisasterWatchCoordinator
+from .dam_sensor import async_setup_dam_binary_sensors
 from .entity import AustralianDisasterWatchEntity
 from .forecast_entity import forecast_binary_sensors
 from .models import CALL_TO_ACTION_MAX_LENGTH, RoadEventCategory
@@ -55,6 +56,7 @@ async def async_setup_entry(
         entities.append(TsunamiWarningBinarySensor(coordinator))
     async_add_entities(entities)
     async_setup_river_alert_sensors(hass, entry, async_add_entities)
+    async_setup_dam_binary_sensors(hass, entry, async_add_entities)
 
 
 class EmergencyWarningNearbyBinarySensor(AustralianDisasterWatchEntity, BinarySensorEntity):

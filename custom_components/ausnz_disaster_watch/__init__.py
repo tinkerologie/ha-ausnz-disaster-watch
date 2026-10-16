@@ -11,6 +11,7 @@ from homeassistant.helpers import config_validation as cv, entity_registry as er
 
 from .const import (
     CONF_COUNCIL_DASHBOARD_URL,
+    CONF_DAM_STORAGES,
     CONF_LOCATION_MODE,
     CONF_RIVER_GAUGES,
     CONF_STATE,
@@ -20,6 +21,8 @@ from .const import (
     STATE_QLD,
 )
 from .coordinator import AustralianDisasterWatchCoordinator, nearest_council_dashboard
+from .dam_coordinator import DamStorageCoordinator
+from .dams import sites_from_options as storages_from_options
 from .forecast_coordinator import async_setup_forecasts
 from .frontend import async_register_frontend, async_unregister_frontend
 from .river_coordinator import RiverGaugeCoordinator
@@ -97,6 +100,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: AusNZDisasterWatchConfig
     if sites := sites_from_options(entry.options.get(CONF_RIVER_GAUGES)):
         coordinator.river_coordinator = RiverGaugeCoordinator(hass, entry, sites)
         await coordinator.river_coordinator.async_refresh()
+    # Dam storages likewise never block setup
+    if storages := storages_from_options(entry.options.get(CONF_DAM_STORAGES)):
+        coordinator.dam_coordinator = DamStorageCoordinator(hass, entry, storages)
+        await coordinator.dam_coordinator.async_refresh()
 
     entry.runtime_data = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

@@ -294,6 +294,6 @@ property-decorators = ["propcache.api.cached_property"]
 keep-runtime-typing = true
 
 [tool.codespell]
-ignore-words-list = "aiport,astroid,checkin,currenty,descriptio,hass,iif,incomfort,lookin,nam,notin,sie,deine,oder"
+ignore-words-list = "ahd,aiport,astroid,checkin,currenty,descriptio,hass,iif,incomfort,lookin,nam,notin,sie,deine,oder"
 skip = "./.*,*.csv,*.json,*.ambr,uv.lock,*.js,*.js.map,*.pyc,tests/fixtures,tests/fixtures/*"
 quiet-level = 2
