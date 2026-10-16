@@ -292,6 +292,14 @@ _SOURCES = (
         status=LicenceStatus.OPEN,
     ),
     DataSource(
+        key="stats_nz_ta",
+        owner="Stats NZ Tatauranga Aotearoa",
+        attribution="Territorial authority boundaries: Stats NZ, CC BY 4.0",
+        licence="CC BY 4.0",
+        terms_url="https://www.arcgis.com/home/item.html?id=b7f8726da7f6467a9cb42221b0013938",
+        status=LicenceStatus.OPEN,
+    ),
+    DataSource(
         key="fenz_fire_season",
         owner="Fire and Emergency New Zealand",
         attribution="Fire and Emergency New Zealand",

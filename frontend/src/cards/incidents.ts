@@ -7,6 +7,7 @@ import { CATEGORY_ICONS, HAZARD_CATEGORIES, hazardCategory, hazardIcon, type Haz
 import { badge, empty, header, list, row, showAll } from "../components/render";
 import type { BaseCardConfig, HassEntity, HomeAssistant, LovelaceConfigForm } from "../types";
 import {
+  areaSchema,
   assertBoolean,
   assertList,
   assertPositiveInt,
@@ -47,6 +48,8 @@ export class IncidentsCard extends DisasterCard<IncidentsCardConfig> {
   protected declare _expanded: boolean;
 
   protected readonly titleKey = "incidents.title" as const;
+  // Radius by default: a hazard just over the council border still matters (#94)
+  static override readonly defaultArea = "radius" as const;
   protected override readonly usesIncidents = true;
 
   constructor() {
@@ -68,6 +71,7 @@ export class IncidentsCard extends DisasterCard<IncidentsCardConfig> {
     return {
       schema: [
         ...baseSchema(),
+        areaSchema(this.defaultArea),
         { name: "max_items", selector: { number: { min: 1, max: 100, mode: "box" } } },
         { name: "show_planned_burns", selector: { boolean: {} } },
         {
@@ -147,8 +151,9 @@ export class IncidentsCard extends DisasterCard<IncidentsCardConfig> {
 
   protected renderBody(hass: HomeAssistant, config: IncidentsCardConfig): TemplateResult {
     const categories = this.categories();
-    const all = geoLocationsFor(hass, this.entryId).filter((s) =>
-      categories.includes(hazardCategory(s.attributes.hazard_type)),
+    const area = this.areaFilter(hass);
+    const all = geoLocationsFor(hass, this.entryId).filter(
+      (s) => categories.includes(hazardCategory(s.attributes.hazard_type)) && area.keep(s.attributes.in_council_area),
     );
     const hasBurns = all.some((s) => s.attributes.is_hazard_reduction === true);
     const visible = this.showBurns ? all : all.filter((s) => s.attributes.is_hazard_reduction !== true);
@@ -175,8 +180,14 @@ export class IncidentsCard extends DisasterCard<IncidentsCardConfig> {
       ${key === "all" ? nothing : html`<ha-icon slot="icon" .icon=${CATEGORY_ICONS[key]}></ha-icon>`}
     </ha-filter-chip>`;
 
-    return html`${header({ title: this.cardTitle(), icon: "mdi:alert-decagram", count: String(visible.length) })}
+    return html`${header({
+        title: this.cardTitle(),
+        icon: "mdi:alert-decagram",
+        count: String(visible.length),
+        subtitle: area.council?.name,
+      })}
       <div class="content">
+        ${this.areaHint(hass, area)}
         ${
           all.length
             ? html`<ha-chip-set aria-label=${t(hass, "incidents.filters")}>

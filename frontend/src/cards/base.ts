@@ -8,7 +8,7 @@
  *   `embedded` mode used by the all-in-one card (no `ha-card` frame).
  */
 import { html, LitElement, nothing, type PropertyValues, type TemplateResult } from "lit";
-import { DOMAIN, type EntityKey } from "../const";
+import { DOMAIN, KEY, type EntityKey } from "../const";
 import { openMoreInfo } from "../ha/actions";
 import {
   entityIdFor,
@@ -17,7 +17,9 @@ import {
   integrationDevices,
   isIntegrationDevice,
   resolveDevice,
+  stateFor,
 } from "../ha/entities";
+import { AREA_MODES, areaFilter, councilArea, type AreaFilter, type AreaMode } from "../model/area";
 import { preloadHaElements } from "../ha/preload";
 import { t, type TranslationKey } from "../localize/localize";
 import { alert } from "../components/render";
@@ -50,6 +52,13 @@ export abstract class DisasterCard<C extends BaseCardConfig = BaseCardConfig> ex
     return [];
   }
 
+  /**
+   * Default of the card's `area` option (#94), or undefined when the card has none. Lists
+   * of local services default to the council; hazard cards to the radius, because a
+   * hazard just over the council border still matters.
+   */
+  static readonly defaultArea?: AreaMode;
+
   /** Whether this card renders the entry's geolocation incidents. */
   protected readonly usesIncidents: boolean = false;
 
@@ -70,6 +79,7 @@ export abstract class DisasterCard<C extends BaseCardConfig = BaseCardConfig> ex
     if (config.title !== undefined && typeof config.title !== "string") {
       throw new Error("'title' must be text");
     }
+    assertChoice(config as unknown as Record<string, unknown>, "area", AREA_MODES);
   }
 
   setConfig(config: C): void {
@@ -97,6 +107,19 @@ export abstract class DisasterCard<C extends BaseCardConfig = BaseCardConfig> ex
     return this._config?.title || t(this.hass, this.titleKey);
   }
 
+  /** The card's council-area filter (#94); everything passes on a card without the option. */
+  protected areaFilter(hass: HomeAssistant): AreaFilter {
+    const defaultArea = (this.constructor as typeof DisasterCard).defaultArea;
+    if (!defaultArea) return areaFilter("radius", undefined);
+    const level = stateFor(hass, this.deviceId, KEY.highestWarningLevel);
+    return areaFilter(this._config?.area ?? defaultArea, councilArea(level?.attributes.council_area));
+  }
+
+  /** Short hint when the card asks for the council but its boundary is unknown (#94). */
+  protected areaHint(hass: HomeAssistant, filter: AreaFilter): TemplateResult | typeof nothing {
+    return filter.fallback ? html`<span class="secondary">${t(hass, "area.fallback")}</span>` : nothing;
+  }
+
   protected moreInfo(entityId: string | undefined): void {
     openMoreInfo(this, entityId);
   }
@@ -105,7 +128,10 @@ export abstract class DisasterCard<C extends BaseCardConfig = BaseCardConfig> ex
   trackedEntityIds(hass: HomeAssistant): string[] {
     const device = resolveDevice(hass, this._config?.device);
     const ids: string[] = [];
-    for (const key of this.entityKeys()) {
+    const keys = [...this.entityKeys()];
+    // The council area comes from the highest warning level sensor (#94)
+    if ((this.constructor as typeof DisasterCard).defaultArea) keys.push(KEY.highestWarningLevel);
+    for (const key of keys) {
       const id = entityIdFor(hass, device, key);
       if (id) ids.push(id);
     }
@@ -176,6 +202,20 @@ export function stubConfig(hass: HomeAssistant | undefined): { device?: string }
   return device ? { device } : {};
 }
 
+/** Editor field for the `area` option (#94). */
+export function areaSchema(defaultArea: AreaMode): HaFormSchema {
+  return {
+    name: "area",
+    default: defaultArea,
+    selector: {
+      select: {
+        mode: "dropdown",
+        options: AREA_MODES.map((value) => ({ value, label: t(undefined, `editor.area.${value}` as TranslationKey) })),
+      },
+    },
+  };
+}
+
 /** Editor fields every card has. */
 export function baseSchema(): HaFormSchema[] {
   return [
@@ -190,6 +230,7 @@ const LABELS: Record<string, TranslationKey> = {
   max_items: "editor.max_items",
   show_planned_burns: "editor.show_planned_burns",
   show_nearby_councils: "editor.show_nearby_councils",
+  area: "editor.area",
   categories: "editor.categories",
   refresh_interval: "editor.refresh_interval",
   zoom: "editor.zoom",
@@ -206,6 +247,7 @@ const HELPERS: Record<string, TranslationKey> = {
   max_items: "editor.max_items_helper",
   show_planned_burns: "editor.show_planned_burns_helper",
   show_nearby_councils: "editor.show_nearby_councils_helper",
+  area: "editor.area_helper",
   categories: "editor.categories_helper",
   refresh_interval: "editor.refresh_interval_helper",
   zoom: "editor.zoom_helper",

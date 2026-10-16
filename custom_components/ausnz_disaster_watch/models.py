@@ -443,6 +443,9 @@ class CanonicalHazard(_Model):
         default=None, metadata={**_EXCLUDED, **_coerce(_area)}, repr=False
     )
     inside_area: bool | None = None  # True if the monitored point is inside ``area``; None without an area
+    # Point or area in the entry's council area (#94); None while the council is unknown.
+    # Cards only: the radius-based entities ignore it
+    in_council_area: bool | None = None
     # Timezone-aware UTC time the warning expires
     expires: datetime | None = field(default=None, metadata=_coerce(_utc_or_none))
     call_to_action: str | None = None  # Australian Warning System call to action
@@ -487,6 +490,8 @@ class CanonicalHazard(_Model):
             attrs["web_url"] = self.web_url
         if self.inside_area is not None:
             attrs["inside_area"] = self.inside_area
+        if self.in_council_area is not None:
+            attrs["in_council_area"] = self.in_council_area
         if self.expires is not None:
             attrs["expires"] = self.expires.isoformat()
         if self.call_to_action:
@@ -548,6 +553,8 @@ class PowerOutageItem(_Model):
     status: str | None = None  # Distributor status text
     start_time: str | None = None  # When the outage started (ISO 8601)
     distance_km: float | None = field(default=None, metadata=_NON_NEGATIVE)  # Distance from the monitored point
+    # In the entry's council area (#94); None without a location or while the council is unknown
+    in_council_area: bool | None = None
 
 
 class RoadEventCategory(StrEnum):
@@ -604,6 +611,8 @@ class RoadClosureItem(_Model):
     latitude: float | None = field(default=None, metadata=_LATITUDE)
     longitude: float | None = field(default=None, metadata=_LONGITUDE)
     distance_km: float | None = field(default=None, metadata=_NON_NEGATIVE)
+    # In the entry's council area (#94); None without a location or while the council is unknown
+    in_council_area: bool | None = None
     # Closure, flooding, hazard, roadworks or special event; inferred from status and reason when unset
     category: RoadEventCategory = cast("RoadEventCategory", None)
 
@@ -848,6 +857,8 @@ class ReliefFacilityItem(_Model):
     latitude: float | None = field(default=None, metadata=_LATITUDE)
     longitude: float | None = field(default=None, metadata=_LONGITUDE)
     distance_km: float | None = field(default=None, metadata=_NON_NEGATIVE)
+    # In the entry's council area (#94); None without a location or while the council is unknown
+    in_council_area: bool | None = None
 
 
 @dataclass(slots=True, kw_only=True, frozen=True)
@@ -866,6 +877,8 @@ class DisasterCameraItem(_Model):
     owner: str | None = None  # Who supplies the image, when the network names them
     description: str | None = None  # What the camera shows
     distance_km: float | None = field(default=None, metadata=_NON_NEGATIVE)  # Distance from the monitored location
+    # In the entry's council area (#94); None without a location or while the council is unknown
+    in_council_area: bool | None = None
 
 
 @dataclass(slots=True, kw_only=True)

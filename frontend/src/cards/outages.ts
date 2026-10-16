@@ -6,7 +6,7 @@ import { t, tCount } from "../localize/localize";
 import { customersAffected } from "../model/outages";
 import { alert, empty, header, list, row, showAll } from "../components/render";
 import type { BaseCardConfig, HomeAssistant, LovelaceConfigForm } from "../types";
-import { assertPositiveInt, baseSchema, computeHelper, computeLabel, DisasterCard, stubConfig } from "./base";
+import { areaSchema, assertPositiveInt, baseSchema, computeHelper, computeLabel, DisasterCard, stubConfig } from "./base";
 
 export interface ListCardConfig extends BaseCardConfig {
   max_items?: number;
@@ -17,6 +17,7 @@ interface OutageItem {
   cause?: string;
   restore_time?: string | null;
   customers_affected?: number;
+  in_council_area?: boolean | null;
 }
 
 const DEFAULT_MAX_ITEMS = 8;
@@ -26,6 +27,7 @@ export class OutagesCard extends DisasterCard<ListCardConfig> {
   static override properties = { ...DisasterCard.properties, _expanded: { state: true } };
   protected declare _expanded: boolean;
   protected readonly titleKey = "outages.title" as const;
+  static override readonly defaultArea = "council" as const;
 
   constructor() {
     super();
@@ -43,7 +45,11 @@ export class OutagesCard extends DisasterCard<ListCardConfig> {
 
   static getConfigForm(): LovelaceConfigForm {
     return {
-      schema: [...baseSchema(), { name: "max_items", selector: { number: { min: 1, max: 100, mode: "box" } } }],
+      schema: [
+        ...baseSchema(),
+        areaSchema(this.defaultArea),
+        { name: "max_items", selector: { number: { min: 1, max: 100, mode: "box" } } },
+      ],
       computeLabel,
       computeHelper,
       assertConfig: (c) => this.validateConfig(c),
@@ -56,9 +62,11 @@ export class OutagesCard extends DisasterCard<ListCardConfig> {
 
   protected renderBody(hass: HomeAssistant, config: ListCardConfig): TemplateResult {
     const stateObj = stateFor(hass, this.deviceId, KEY.powerOutagesCount);
+    const area = this.areaFilter(hass);
     const head = header({
       title: this.cardTitle(),
       icon: "mdi:transmission-tower-off",
+      subtitle: area.council?.name,
       detailsLabel: t(hass, "action.details"),
       onDetails: stateObj ? () => this.moreInfo(stateObj.entity_id) : undefined,
     });
@@ -67,17 +75,23 @@ export class OutagesCard extends DisasterCard<ListCardConfig> {
           ${alert("warning", t(hass, stateObj ? "state.unavailable" : "state.entity_missing"))}
         </div>`;
     }
-    const outages = listAttr<OutageItem>(stateObj!.attributes.outages);
-    const count = numberAttr(stateObj!.state) ?? outages.length;
-    const customers = customersAffected(
-      stateFor(hass, this.deviceId, KEY.powerOutagesCustomersAffected),
-      stateObj!.attributes.customers_affected,
-    );
+    const outages = listAttr<OutageItem>(stateObj!.attributes.outages).filter((o) => area.keep(o.in_council_area));
+    // The states count the radius; the council totals are attributes (#94)
+    const count =
+      (area.council ? numberAttr(stateObj!.attributes.council_area_count) : numberAttr(stateObj!.state)) ??
+      outages.length;
+    const customers = area.council
+      ? numberAttr(stateObj!.attributes.council_area_customers_affected)
+      : customersAffected(
+          stateFor(hass, this.deviceId, KEY.powerOutagesCustomersAffected),
+          stateObj!.attributes.customers_affected,
+        );
     const max = config.max_items ?? DEFAULT_MAX_ITEMS;
     const shown = this._expanded ? outages : outages.slice(0, max);
 
     return html`${head}
       <div class="content">
+        ${this.areaHint(hass, area)}
         ${
           count === 0
             ? empty("mdi:transmission-tower", t(hass, "outages.empty"))

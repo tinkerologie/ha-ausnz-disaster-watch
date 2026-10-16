@@ -37,6 +37,8 @@ export interface HeaderOptions {
   title: string;
   icon: string;
   count?: string;
+  /** Second line under the title, e.g. the council the card is filtered to (#94). */
+  subtitle?: string;
   /** Label for the details button; shown when `onDetails` is set. */
   detailsLabel?: string;
   onDetails?: () => void;
@@ -45,9 +47,12 @@ export interface HeaderOptions {
 export function header(options: HeaderOptions): TemplateResult {
   return html`<div class="header">
     <ha-icon .icon=${options.icon} aria-hidden="true"></ha-icon>
-    <h2 class="title">${options.title}${
-      options.count ? html` <span class="count">${options.count}</span>` : nothing
-    }</h2>
+    <div class="heading">
+      <h2 class="title">${options.title}${
+        options.count ? html` <span class="count">${options.count}</span>` : nothing
+      }</h2>
+      ${options.subtitle ? html`<span class="subtitle">${options.subtitle}</span>` : nothing}
+    </div>
     ${
       options.onDetails
         ? html`<div class="actions">

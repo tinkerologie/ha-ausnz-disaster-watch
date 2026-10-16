@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 import logging
 import re
 from typing import Any
@@ -26,7 +27,7 @@ from .dam_sensor import async_setup_dam_sensors
 from .entity import AustralianDisasterWatchEntity
 from .entity_lifecycle import tracks_entities
 from .forecast_entity import forecast_sensors
-from .models import WarningLevel, to_dict, to_json_dict
+from .models import PowerOutageItem, WarningLevel, to_dict, to_json_dict
 from .providers.fire_danger import NZ_SEASONS, local_today
 from .providers.heatwave import HEATWAVE_SEVERITIES
 from .providers.sources import attribution_for, national_feed_attribution
@@ -114,6 +115,16 @@ async def async_setup_entry(
     async_setup_dam_sensors(hass, entry, async_add_entities)
 
 
+def council_area_count(coordinator: AustralianDisasterWatchCoordinator, items: Iterable[Any]) -> int | None:
+    """Return how many items are in the entry's council area, or None while it is unknown (#94).
+
+    Only the cards use it; the sensor states stay radius-based.
+    """
+    if coordinator.council_area is None:
+        return None
+    return sum(1 for item in items if item.in_council_area is True)
+
+
 class NearestHazardDistanceSensor(AustralianDisasterWatchEntity, SensorEntity):
     """Sensor tracking distance to the closest active emergency hazard."""
 
@@ -196,6 +207,7 @@ class HighestWarningLevelSensor(AustralianDisasterWatchEntity, SensorEntity):
             "inside_warning_level": inside[0].warning_level.value if inside else None,
             "emergency_news": [to_json_dict(n) for n in news[:20]],
             "council": self.coordinator.council,
+            "council_area": self.coordinator.council_area_summary,
             "nearby_councils": councils[:10],
         }
 
@@ -234,6 +246,16 @@ class PowerOutagesCountSensor(AustralianDisasterWatchEntity, SensorEntity):
         """Return count of active power outages."""
         return len(self.coordinator.power_outages)
 
+    def _council_totals(self, outages: list[PowerOutageItem]) -> dict[str, int | None]:
+        """Return the outages and customers in the council area, or None while it is unknown (#94)."""
+        count = council_area_count(self.coordinator, outages)
+        return {
+            "council_area_count": count,
+            "council_area_customers_affected": None
+            if count is None
+            else sum(o.customers_affected for o in outages if o.in_council_area is True),
+        }
+
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return power outage list attributes."""
@@ -243,6 +265,8 @@ class PowerOutagesCountSensor(AustralianDisasterWatchEntity, SensorEntity):
         return {
             "customers_affected": sum(o.customers_affected for o in outages),
             "outages": [to_dict(o) for o in outages[:25]],
+            # For the cards' council filter (#94); the state stays radius-based
+            **self._council_totals(outages),
             "est_restore": nearest.restore_time if nearest else None,
             "nearest_outage_distance_km": nearest.distance_km if nearest else None,
             "nearest_outage_distributor": nearest.distributor if nearest else None,
@@ -289,6 +313,7 @@ class RoadClosuresCountSensor(AustralianDisasterWatchEntity, SensorEntity):
         closures = self.coordinator.road_closures
         return {
             "closures": [to_json_dict(c) for c in closures[:25]],
+            "council_area_count": council_area_count(self.coordinator, closures),
         }
 
 
@@ -318,6 +343,7 @@ class WeatherWarningsCountSensor(AustralianDisasterWatchEntity, SensorEntity):
             "warnings": [to_json_dict(w) for w in warnings[:20]],
             "emergency_news": [to_json_dict(n) for n in news[:20]],
             "council": self.coordinator.council,
+            "council_area": self.coordinator.council_area_summary,
             "nearby_councils": councils[:10],
         }
 
@@ -516,6 +542,7 @@ class ReliefFacilitiesCountSensor(AustralianDisasterWatchEntity, SensorEntity):
         facilities = self.coordinator.relief_facilities
         return {
             "facilities": [to_dict(f) for f in facilities[:25]],
+            "council_area_count": council_area_count(self.coordinator, facilities),
         }
 
 

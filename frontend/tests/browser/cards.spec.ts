@@ -556,6 +556,138 @@ test("relief card links only the entry's own council unless nearby councils are 
   expect(errors).toEqual([]);
 });
 
+/** QLD states as the integration publishes them once the council area is known (#94). */
+function councilStates(): Record<string, unknown> {
+  const states = fixture.states as Record<string, { entity_id: string; state: string; attributes: Record<string, unknown> }>;
+  const id = (part: string) => Object.keys(states).find((k) => k.includes(part))!;
+  const withAttrs = (key: string, attrs: Record<string, unknown>) => ({
+    ...states[key],
+    attributes: { ...states[key]!.attributes, ...attrs },
+  });
+  const inside = new Set(["Bribie Island Road", "Bruce Highway", "Morayfield Road"]);
+  const roads = id("qld_dev_road_closures_count");
+  const outages = id("qld_dev_power_outages_count");
+  const level = id("qld_dev_highest_warning_level");
+  const out: Record<string, unknown> = {
+    [level]: withAttrs(level, { council_area: { name: "City of Moreton Bay", code: "35010" } }),
+    [roads]: withAttrs(roads, {
+      council_area_count: 3,
+      closures: (states[roads]!.attributes.closures as { road: string }[]).map((c) => ({ ...c, in_council_area: inside.has(c.road) })),
+    }),
+    [outages]: withAttrs(outages, {
+      council_area_count: 0,
+      council_area_customers_affected: 0,
+      outages: (states[outages]!.attributes.outages as object[]).map((o) => ({ ...o, in_council_area: false })),
+    }),
+  };
+  for (const key of Object.keys(states)) {
+    if (key.startsWith("camera.") && key.includes("qld_dev")) {
+      out[key] = withAttrs(key, { in_council_area: key.includes("caboolture") });
+    } else if (key.startsWith("geo_location.") && states[key]!.attributes.entry_id === "entry-qld") {
+      out[key] = withAttrs(key, { in_council_area: key.includes("road_weather_alert_for_brisbane") });
+    }
+  }
+  return out;
+}
+
+test("cards show the council area by default for local services and the radius for hazards (#94)", async ({ page }) => {
+  const { errors } = await setup(page);
+  const states = councilStates();
+
+  // Roads: council by default, with the council in the header and the council count
+  const roads = await mount(page, "ausnz-disaster-roads-card", { device: QLD }, { states });
+  await expect(roads.locator(".subtitle")).toHaveText("City of Moreton Bay");
+  await expect(roads.getByText("Bribie Island Road")).toBeVisible();
+  await expect(roads.getByText("Dugandan Road")).toHaveCount(0);
+  await expect(roads.locator(".count")).toHaveText("3");
+  const roadsRadius = await mount(page, "ausnz-disaster-roads-card", { device: QLD, area: "radius" }, { states });
+  await expect(roadsRadius.getByText("Dugandan Road", { exact: false })).toBeVisible();
+  await expect(roadsRadius.locator(".subtitle")).toHaveCount(0);
+  await expect(roadsRadius.locator(".count")).toHaveText("5");
+
+  // Outages: none in the council, though one in the radius
+  const outages = await mount(page, "ausnz-disaster-outages-card", { device: QLD }, { states });
+  await expect(outages.getByText("KURWONGBAH")).toHaveCount(0);
+  await expect(outages.getByText("No power outages", { exact: false })).toBeVisible();
+
+  // Cameras: only the one in the council
+  const cameras = await mount(page, "ausnz-disaster-cameras-card", { device: QLD }, { states });
+  await expect(cameras.locator(".camera")).toHaveCount(1);
+  await expect(cameras.locator(".count")).toHaveText("1");
+
+  // Incidents and status: the radius unless asked for the council
+  const incidents = await mount(page, "ausnz-disaster-incidents-card", { device: QLD, max_items: 50 }, { states });
+  await expect(incidents.getByText("Severe Thunderstorm Warning", { exact: false }).first()).toBeVisible();
+  await expect(incidents.locator(".subtitle")).toHaveCount(0);
+  const councilIncidents = await mount(
+    page,
+    "ausnz-disaster-incidents-card",
+    { device: QLD, max_items: 50, area: "council" },
+    { states },
+  );
+  await expect(councilIncidents.locator(".subtitle")).toHaveText("City of Moreton Bay");
+  await expect(councilIncidents.locator(".count")).toHaveText("2");
+  await expect(councilIncidents.getByText("Severe Thunderstorm Warning", { exact: false })).toHaveCount(0);
+
+  const status = await mount(page, "ausnz-disaster-status-card", { device: QLD, area: "council" }, { states });
+  await expect(status.getByText("2 hazards in City of Moreton Bay")).toBeVisible();
+  const statusRadius = await mount(page, "ausnz-disaster-status-card", { device: QLD }, { states });
+  await expect(statusRadius.getByText("in City of Moreton Bay", { exact: false })).toHaveCount(0);
+
+  const map = await mount(page, "ausnz-disaster-map-card", { device: QLD, area: "council" }, { states });
+  await expect(map.locator(".subtitle")).toHaveText("City of Moreton Bay");
+  await expect(map.locator("path.incident")).toHaveCount(2);
+  expect(errors).toEqual([]);
+});
+
+test("council filter falls back to the radius with a hint while the boundary is unknown (#94)", async ({ page }) => {
+  const { errors } = await setup(page);
+  const roads = await mount(page, "ausnz-disaster-roads-card", { device: QLD });
+  await expect(roads.getByText("Your council's boundary is not known yet", { exact: false })).toBeVisible();
+  await expect(roads.getByText("Dugandan Road", { exact: false })).toBeVisible();
+  await expect(roads.locator(".subtitle")).toHaveCount(0);
+  // No hint when the card asks for the radius
+  const radius = await mount(page, "ausnz-disaster-incidents-card", { device: NZ });
+  await expect(radius.getByText("Your council's boundary is not known yet", { exact: false })).toHaveCount(0);
+
+  const form = await page.evaluate(() =>
+    ["ausnz-disaster-relief-card", "ausnz-disaster-incidents-card", "ausnz-disaster-status-card", "ausnz-disaster-warnings-card"].map(
+      (tag) => {
+        const cls = customElements.get(tag) as unknown as {
+          getConfigForm: () => {
+            schema: { name: string; default?: unknown; selector?: { select?: { options: { value: string; label: string }[] } } }[];
+            computeLabel: (s: { name: string }) => string;
+          };
+          validateConfig: (c: unknown) => void;
+        };
+        const { schema, computeLabel } = cls.getConfigForm();
+        const field = schema.find((s) => s.name === "area");
+        let error = "";
+        try {
+          cls.validateConfig({ area: "state" });
+        } catch (err) {
+          error = (err as Error).message;
+        }
+        return {
+          tag,
+          default: field?.default ?? null,
+          label: field ? computeLabel(field) : null,
+          options: field?.selector?.select?.options ?? [],
+          error,
+        };
+      },
+    ),
+  );
+  expect(form.map((f) => f.default)).toEqual(["council", "radius", "radius", null]);
+  expect(form[0]!.label).toBe("Area");
+  expect(form[0]!.options).toEqual([
+    { value: "council", label: "My council" },
+    { value: "radius", label: "Radius" },
+  ]);
+  expect(form.every((f) => f.error.includes("area"))).toBe(true);
+  expect(errors).toEqual([]);
+});
+
 test("default map requests no satellite or GDACS data (#71)", async ({ page }) => {
   const domains: string[] = [];
   const { external } = await setup(page);

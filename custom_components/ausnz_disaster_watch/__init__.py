@@ -27,6 +27,7 @@ from .entity import camera_unique_id
 from .entity_lifecycle import async_setup_registry_cleanup
 from .forecast_coordinator import async_setup_forecasts
 from .frontend import async_register_frontend, async_unregister_frontend
+from .providers.council_area import async_remove_stored_council_area
 from .providers.fire_danger import async_remove_stored_outlook
 from .river_coordinator import RiverGaugeCoordinator
 from .rivers import sites_from_options
@@ -133,8 +134,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: AusNZDisasterWatchConfi
 
 
 async def async_remove_entry(hass: HomeAssistant, entry: AusNZDisasterWatchConfigEntry) -> None:
-    """Remove the entry's stored fire outlook, and the card resource with the last entry (#22, #89)."""
+    """Remove the entry's stored fire outlook and council area, and the card resource with the last entry (#22, #89, #94)."""
     await async_remove_stored_outlook(hass, entry.entry_id)
+    await async_remove_stored_council_area(hass, entry.entry_id)
     remaining = [other for other in hass.config_entries.async_entries(DOMAIN) if other.entry_id != entry.entry_id]
     if not remaining:
         await async_unregister_frontend(hass)

@@ -83,6 +83,8 @@ export interface BaseCardConfig {
   /** Device of the integration's config entry; scopes everything the card shows (#26). */
   device?: string;
   title?: string;
+  /** `council`: only items in the entry's council area; `radius`: everything in the radius (#94). */
+  area?: "council" | "radius";
 }
 
 export interface LovelaceGridOptions {

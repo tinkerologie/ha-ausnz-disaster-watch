@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { awsPresentation, headlinePresentation, headlineStatus, parseAwsLevel } from "../../src/model/aws";
 import { hazardCategory, hazardIcon } from "../../src/model/hazards";
+import { areaFilter, councilArea, summariseIncidents } from "../../src/model/area";
 import { councilLinks } from "../../src/model/councils";
 import { customersAffected } from "../../src/model/outages";
 import {
@@ -151,6 +152,53 @@ describe("Power outages customers affected (#26)", () => {
   it("returns undefined, never 0, when both are missing", () => {
     expect(customersAffected(undefined, undefined)).toBeUndefined();
     expect(customersAffected(sensor("unavailable"), null)).toBeUndefined();
+  });
+});
+
+describe("council area filter (#94)", () => {
+  const moretonBay = { name: "City of Moreton Bay", code: "35010" };
+
+  it("reads the council_area attribute", () => {
+    expect(councilArea(moretonBay)).toEqual(moretonBay);
+    expect(councilArea({ name: " Wellington City " })).toEqual({ name: "Wellington City", code: undefined });
+    expect(councilArea(null)).toBeUndefined();
+    expect(councilArea({ code: "1" })).toBeUndefined();
+    expect(councilArea("City")).toBeUndefined();
+  });
+
+  it("hides only items known to be outside the council", () => {
+    const filter = areaFilter("council", moretonBay);
+    expect(filter).toMatchObject({ council: moretonBay, fallback: false });
+    expect([true, false, null, undefined].map(filter.keep)).toEqual([true, false, true, true]);
+  });
+
+  it("falls back to the radius while the council is unknown, and keeps everything for the radius", () => {
+    const fallback = areaFilter("council", undefined);
+    expect(fallback.fallback).toBe(true);
+    expect(fallback.council).toBeUndefined();
+    expect(fallback.keep(false)).toBe(true);
+    const radius = areaFilter("radius", moretonBay);
+    expect(radius.council).toBeUndefined();
+    expect(radius.fallback).toBe(false);
+    expect(radius.keep(false)).toBe(true);
+  });
+
+  it("summarises incidents: highest level, count and nearest", () => {
+    expect(summariseIncidents([])).toEqual({ level: "all_clear", count: 0 });
+    expect(
+      summariseIncidents([
+        { level: "Advice", distanceKm: 4, title: "Grass fire" },
+        { level: "Watch and Act", distanceKm: 9, title: "Bushfire" },
+        { level: "Information", title: "Unlocated" },
+        { level: "Information", distanceKm: 2, title: "Flood" },
+      ]),
+    ).toEqual({ level: "Watch and Act", count: 4, nearestKm: 2, nearestTitle: "Flood" });
+    expect(summariseIncidents([{ level: "Unknown", title: "?" }])).toEqual({
+      level: "unknown",
+      count: 1,
+      nearestKm: undefined,
+      nearestTitle: undefined,
+    });
   });
 });
 

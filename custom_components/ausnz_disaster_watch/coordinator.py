@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Iterable
 import dataclasses
 from datetime import datetime, timedelta
 import logging
@@ -51,6 +52,7 @@ from .models import (
 )
 from .providers import get_providers_for_config
 from .providers.base import BaseHazardProvider, PartialFeedError, ProviderUnavailableError
+from .providers.council_area import CouncilArea, CouncilAreaService
 from .providers.fire_danger import FireDangerService, local_today
 from .providers.geometry import area_distance
 from .providers.guardian_ims import GuardianDashboard
@@ -142,6 +144,26 @@ def nearest_council_dashboard(state: str, latitude: float | None, longitude: flo
     return nearest_readable_dashboard(state, latitude, longitude)
 
 
+def tag_council_area(area: CouncilArea | None, hazards: Iterable[CanonicalHazard], aux: dict[str, Any]) -> None:
+    """Set ``in_council_area`` on every hazard and listed item (#94).
+
+    Items without a location, and everything while the council is unknown, get None. The
+    flag is for the cards only; the radius-based entities never read it.
+    """
+
+    def inside(item: Any) -> bool | None:
+        return None if area is None else area.contains(item.latitude, item.longitude)
+
+    for hazard in hazards:
+        hazard.in_council_area = None if area is None else area.tag_hazard(hazard)
+    for key in ("road_closures", "relief_facilities"):
+        for item in aux[key]:
+            item.in_council_area = inside(item)
+    # Frozen models: replaced
+    for key in ("power_outages", "cameras"):
+        aux[key] = [dataclasses.replace(item, in_council_area=inside(item)) for item in aux[key]]
+
+
 def fire_danger_today(outlook: FireDangerOutlook | None) -> FireDangerRating | None:
     """Return today's rating from an outlook, today being the district's local date (#28)."""
     if outlook is None:
@@ -218,6 +240,8 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         self.providers = [p for p in providers if not isinstance(p, PowerOutageSource)]
         # Fire danger outlook / NZ fire season on its own 30-minute schedule (#28)
         self.fire_service = FireDangerService(hass, session, provider_config, entry_id=entry.entry_id)
+        # The council area of the monitored point, for the cards' council filter (#94)
+        self.council_area_service = CouncilAreaService(hass, session, provider_config, entry_id=entry.entry_id)
         # Statewide road feeds (#29), kept apart so they never count towards hazard feed health
         self.road_providers = get_road_providers_for_config(hass, session, provider_config)
         self._update_location()
@@ -276,7 +300,13 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
             self._optional_tasks.clear()
             self._optional_timed_out.clear()
             self._optional_watched.clear()
-        for provider in [*self.providers, *self.road_providers, *self.power_sources, self.fire_service]:
+        for provider in [
+            *self.providers,
+            *self.road_providers,
+            *self.power_sources,
+            self.fire_service,
+            self.council_area_service,
+        ]:
             if isinstance(provider, BaseHazardProvider):
                 provider.set_location(self.latitude, self.longitude)
         # Location-based forecasts follow too; river points are user-picked coordinates and stay
@@ -849,7 +879,10 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         self._update_location()
         all_hazards = await self._async_fetch_all_hazards()
         filtered_hazards, has_active_threat = self._filter_and_process_hazards(all_hazards)
-        aux, national = await asyncio.gather(self._async_fetch_composite_feeds(), self._async_fetch_national_feeds())
+        aux, national, _ = await asyncio.gather(
+            self._async_fetch_composite_feeds(), self._async_fetch_national_feeds(), self._async_update_council_area()
+        )
+        tag_council_area(self.council_area, filtered_hazards.values(), aux)
 
         # Dynamic Polling Interval Adjustment
         if has_active_threat:
@@ -886,14 +919,40 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
             **national,
         )
 
+    async def _async_update_council_area(self) -> None:
+        """Look up the council area when the location changed (#94); a failure only skips the tags."""
+        try:
+            await self._async_optional(self.council_area_service, "async_update")
+        except OptionalFeedTimeoutError as err:
+            _LOGGER.debug("Council area not resolved yet: %s", err)
+
+    @property
+    def council_area(self) -> CouncilArea | None:
+        """Return the council area of the monitored point, or None while it is unknown (#94)."""
+        return self.council_area_service.area
+
+    @property
+    def council_area_summary(self) -> dict[str, str] | None:
+        """Return the council area's name and code for the cards (no boundary), or None (#94)."""
+        area = self.council_area
+        return {"name": area.name, "code": area.code} if area is not None else None
+
     @property
     def data_sources(self) -> list[DataSource]:
-        """Return the register entries for every source this entry's providers read (#34)."""
+        """Return the register entries for every source this entry's providers read (#34).
+
+        The council boundary source is listed once a boundary is in use (#94).
+        """
         return list(
             dict.fromkeys(
-                source
-                for provider in [*self.providers, *self.road_providers, *self.power_sources]
-                for source in sources_for_provider(type(provider).__name__)
+                [
+                    *(
+                        source
+                        for provider in [*self.providers, *self.road_providers, *self.power_sources]
+                        for source in sources_for_provider(type(provider).__name__)
+                    ),
+                    *(self.council_area_service.data_sources if self.council_area is not None else ()),
+                ]
             )
         )
 

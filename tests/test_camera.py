@@ -226,7 +226,7 @@ def test_camera_credits_its_network_and_owner(hass: HomeAssistant, mock_config_e
     coordinator.entry.entry_id = "entry"
     coordinator.cameras = [
         _camera("qld", source_key="qldtraffic_cameras", owner="Douglas Shire Council", direction="North"),
-        _camera("nz", source_key="nzta_cameras", description="Looking north", distance_km=1.2),
+        _camera("nz", source_key="nzta_cameras", description="Looking north", distance_km=1.2, in_council_area=False),
         _camera("council"),
         _camera("unknown", source_key="not_registered"),
     ]
@@ -239,6 +239,9 @@ def test_camera_credits_its_network_and_owner(hass: HomeAssistant, mock_config_e
     assert nz.attribution == DATA_SOURCES["nzta_cameras"].attribution
     assert nz.extra_state_attributes["description"] == "Looking north"
     assert nz.extra_state_attributes["distance_km"] == 1.2
+    # Tagged for the cards' council filter (#94); untagged cameras have no such attribute
+    assert nz.extra_state_attributes["in_council_area"] is False
+    assert "in_council_area" not in qld.extra_state_attributes
     assert AustralianDisasterWatchCamera(coordinator, "council").attribution == "Entry credit"
     assert AustralianDisasterWatchCamera(coordinator, "unknown").attribution == "Entry credit"
     assert AustralianDisasterWatchCamera(coordinator, "gone").attribution == "Entry credit"

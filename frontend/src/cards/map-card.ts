@@ -7,6 +7,7 @@ import { awsPresentation } from "../model/aws";
 import { alert, header } from "../components/render";
 import type { BaseCardConfig, HomeAssistant, LovelaceConfigForm, LovelaceGridOptions } from "../types";
 import {
+  areaSchema,
   assertBoolean,
   assertChoice,
   assertNumber,
@@ -244,6 +245,8 @@ export class MapCard extends DisasterCard<MapCardConfig> {
   protected declare _cyclonesHidden: boolean;
   protected declare _viirsDay: ViirsDay;
   protected readonly titleKey = "map.title" as const;
+  // Radius by default: a hazard just over the council border still matters (#94)
+  static override readonly defaultArea = "radius" as const;
   protected override readonly usesIncidents = true;
 
   private _map?: IncidentMap;
@@ -277,6 +280,7 @@ export class MapCard extends DisasterCard<MapCardConfig> {
     return {
       schema: [
         ...baseSchema(),
+        areaSchema(this.defaultArea),
         { name: "zoom", selector: { number: { min: 1, max: 18, mode: "box" } } },
         { name: "radar", default: true, selector: { boolean: {} } },
         { name: "radar_opacity", selector: { number: { min: 0.1, max: 1, step: 0.05, mode: "slider" } } },
@@ -356,7 +360,9 @@ export class MapCard extends DisasterCard<MapCardConfig> {
 
   private viewOptions(): MapViewOptions {
     const hass = this.hass!;
+    const area = this.areaFilter(hass);
     const incidents = geoLocationsFor(hass, this.entryId).flatMap((s) => {
+      if (!area.keep(s.attributes.in_council_area)) return [];
       const latitude = numberAttr(s.attributes.latitude);
       const longitude = numberAttr(s.attributes.longitude);
       if (latitude === undefined || longitude === undefined) return [];
@@ -527,12 +533,13 @@ export class MapCard extends DisasterCard<MapCardConfig> {
     if (status.radar === "unavailable") notices.push(notice("map.radar_unavailable"));
     if (status.satellite === "unavailable") notices.push(notice("map.satellite_unavailable"));
     if (status.cyclones === "unavailable") notices.push(notice("map.cyclones_unavailable"));
+    if (this.areaFilter(hass).fallback) notices.push(notice("area.fallback"));
     return notices;
   }
 
   protected renderBody(hass: HomeAssistant, config: MapCardConfig): TemplateResult {
     const name = deviceName(hass, this.deviceId) ?? hass.config?.location_name ?? "";
-    return html`${header({ title: this.cardTitle(), icon: "mdi:map-marker-radius" })}
+    return html`${header({ title: this.cardTitle(), icon: "mdi:map-marker-radius", subtitle: this.areaFilter(hass).council?.name })}
       <div class="map-wrap">
         <div class="map" role="region" aria-label=${t(hass, "map.label", { name })}></div>
       </div>
