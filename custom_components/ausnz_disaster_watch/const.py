@@ -211,8 +211,3 @@ RIVER_FORECAST_INTERVAL: Final = timedelta(hours=6)  # GloFAS updates daily
 AI_ENSEMBLE_INTERVAL: Final = timedelta(hours=6)  # AIFS runs every 6 h
 AI_WEATHERNEXT_MIN_AGE: Final = timedelta(hours=12)  # WeatherNext 2 runs every 12 h
 FORECAST_RETRY_INTERVAL: Final = timedelta(minutes=30)
-
-ATTRIBUTION_OPEN_METEO: Final = "Weather data by Open-Meteo.com (CC BY 4.0)"
-ATTRIBUTION_GLOFAS: Final = "Flood data by Open-Meteo.com (GloFAS, CC BY 4.0)"
-ATTRIBUTION_AIFS: Final = "ECMWF AIFS (CC BY 4.0)"
-ATTRIBUTION_WEATHERNEXT: Final = "Google WeatherNext 2"

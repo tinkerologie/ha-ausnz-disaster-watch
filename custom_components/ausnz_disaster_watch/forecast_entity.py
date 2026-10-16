@@ -27,7 +27,6 @@ from homeassistant.const import (
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import ATTRIBUTION_AIFS, ATTRIBUTION_GLOFAS, ATTRIBUTION_OPEN_METEO, ATTRIBUTION_WEATHERNEXT
 from .coordinator import AustralianDisasterWatchCoordinator
 from .entity import entry_device_info
 from .forecast_coordinator import (
@@ -48,6 +47,7 @@ from .providers.forecast_signals import (
     river_trend,
 )
 from .providers.open_meteo import MODEL_WEATHERNEXT, RiverDay, RiverForecast
+from .providers.sources import attribution_for, sources_for_forecast
 
 FFDI_DISCLAIMER = (
     "Calculated from model forecasts with an experimental drought factor. Not an official fire danger rating."
@@ -154,7 +154,7 @@ WEATHER_SENSORS = (
 class WeatherSignalEntity(ForecastEntity[WeatherSignalsCoordinator]):
     """Common attributes of the weather signal entities."""
 
-    _attr_attribution = ATTRIBUTION_OPEN_METEO
+    _attr_attribution = attribution_for(sources_for_forecast("weather_signals"))
 
     def _common_attributes(self) -> dict[str, Any]:
         data = self.coordinator.data
@@ -238,7 +238,7 @@ class WeatherThresholdBinarySensor(WeatherSignalEntity, BinarySensorEntity):
 class RiverEntity(ForecastEntity[RiverForecastCoordinator]):
     """Base for one river point's entities."""
 
-    _attr_attribution = ATTRIBUTION_GLOFAS
+    _attr_attribution = attribution_for(sources_for_forecast("river_forecast"))
 
     def __init__(
         self,
@@ -393,10 +393,8 @@ class EnsembleOutlookSensor(ForecastEntity[EnsembleOutlookCoordinator], SensorEn
         """Initialize from a description; attribution names only the models in use."""
         super().__init__(main, coordinator, description.key)
         self.entity_description = description
-        sources = [ATTRIBUTION_OPEN_METEO, ATTRIBUTION_AIFS]
-        if MODEL_WEATHERNEXT in coordinator.models:
-            sources.append(ATTRIBUTION_WEATHERNEXT)
-        self._attr_attribution = "; ".join(sources)
+        features = ["ai_ensemble"] + (["ai_weathernext"] if MODEL_WEATHERNEXT in coordinator.models else [])
+        self._attr_attribution = attribution_for(sources_for_forecast(*features))
 
     @property
     def native_value(self) -> float | None:

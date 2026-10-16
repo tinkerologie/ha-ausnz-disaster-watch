@@ -33,6 +33,7 @@ from custom_components.ausnz_disaster_watch.providers.open_meteo import (
     parse_forecast,
     parse_river,
 )
+from custom_components.ausnz_disaster_watch.providers.sources import DATA_SOURCES, FORECAST_SOURCES
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import ATTR_ATTRIBUTION, STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
@@ -132,7 +133,7 @@ async def test_weather_signal_entities(
     gust = _state(hass, entry, "sensor", "max_wind_gust_24h")
     assert float(gust.state) > 30
     assert gust.attributes["unit_of_measurement"] == "km/h"
-    assert gust.attributes[ATTR_ATTRIBUTION] == "Weather data by Open-Meteo.com (CC BY 4.0)"
+    assert gust.attributes[ATTR_ATTRIBUTION] == DATA_SOURCES["open_meteo_forecast"].attribution
     assert gust.attributes["source"] == "Open-Meteo"
     assert gust.attributes["model"] == "best_match"
     assert gust.attributes["official"] is False
@@ -220,7 +221,7 @@ async def test_river_entities(
     assert discharge.entity_id.endswith("river_discharge_brisbane_river")
     assert float(discharge.state) == 25.36
     assert discharge.attributes["unit_of_measurement"] == "m³/s"
-    assert discharge.attributes[ATTR_ATTRIBUTION] == "Flood data by Open-Meteo.com (GloFAS, CC BY 4.0)"
+    assert discharge.attributes[ATTR_ATTRIBUTION] == DATA_SOURCES["open_meteo_flood"].attribution
     assert len(discharge.attributes["forecast"]) == 7
     assert discharge.attributes["forecast"][6] == {"date": "2026-10-21", "mean": 37.46, "max": 68.98, "p75": 31.66}
     assert discharge.attributes["p75"] == 25.95
@@ -271,8 +272,9 @@ async def test_ai_ensemble_entities_and_polling(
     assert p24.attributes["experimental"] is True
     assert p24.attributes["official"] is False
     assert p24.attributes["notice"] == "Experimental AI model output. Not an official warning."
-    assert "Google WeatherNext 2" in p24.attributes[ATTR_ATTRIBUTION]
-    assert "ECMWF AIFS (CC BY 4.0)" in p24.attributes[ATTR_ATTRIBUTION]
+    assert p24.attributes[ATTR_ATTRIBUTION] == (
+        "Weather data by Open-Meteo.com, CC BY 4.0; ECMWF AIFS, CC BY 4.0; Google WeatherNext 2"
+    )
     assert "models" not in p24.attributes
     assert 0 <= float(_state(hass, entry, "sensor", "heavy_rain_probability_72h").state) <= 100
 
@@ -420,3 +422,10 @@ async def test_forecasts_follow_home_location(
     await entry.runtime_data.async_refresh()
     await hass.async_block_till_done()
     assert client.async_get_forecast.await_count == calls
+
+
+def test_forecast_sources_are_registered() -> None:
+    """Every forecast feature credits register entries; only WeatherNext 2 is unverified."""
+    assert all(key in DATA_SOURCES for keys in FORECAST_SOURCES.values() for key in keys)
+    assert DATA_SOURCES["google_weathernext2"].status.value == "unverified"
+    assert {DATA_SOURCES[k].status.value for k in ("open_meteo_forecast", "open_meteo_flood", "ecmwf_aifs")} == {"open"}
