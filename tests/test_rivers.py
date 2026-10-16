@@ -443,3 +443,17 @@ def test_river_sources_in_register() -> None:
     # Unverified councils are credited by name only, without claiming a licence
     unverified = [s.attribution for key, s in rivers.HILLTOP_SERVERS.items() if key != "hilltop_hbrc"]
     assert not any("CC BY" in text for text in unverified)
+
+
+async def test_kisters_malformed_live_site_list(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) -> None:
+    """Malformed get_sites_by_datasource entries are skipped instead of aborting discovery."""
+
+    def live(url: URL):
+        if url.host == QLD_HOST and kisters_request(url)["function"] == "get_sites_by_datasource":
+            body = {"error_num": 0, "return": {"datasources": [None, {"sites": "143032A"}, {"sites": ["143032A"]}]}}
+            return respond(url, json_body=body)
+        return None
+
+    route(aioclient_mock, live)
+    sites = await rivers.async_kisters_sites(async_get_clientsession(hass), "qld")
+    assert [site.site_id for site in sites] == ["143032A"]

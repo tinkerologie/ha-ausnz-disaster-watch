@@ -78,7 +78,6 @@ Renders interactive pins on the native Home Assistant Map for every active hazar
 | `…_relief_facilities_count` | Evacuation centres and sandbag stations nearby | `facilities` |
 | `…_air_quality` | Air quality rating of the nearest station | — |
 | `…_local_weather_observation` | Temperature at the nearest weather station | `°C` |
-
 | `…_<gauge name>_water_level` | Water level at each river gauge you selected (see below) | `m` |
 
 Entity IDs start with the device name, for example `binary_sensor.australia_and_new_zealand_disaster_watch_qld_home_emergency_warning_nearby`.

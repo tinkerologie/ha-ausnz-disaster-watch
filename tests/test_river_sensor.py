@@ -412,3 +412,26 @@ def test_alert_level_storage() -> None:
     assert GaugeSite.from_dict(SAVAGES.with_alert_level(3.0).as_dict()) == SAVAGES.with_alert_level(3.0)
     assert GaugeSite.from_dict({**SAVAGES.as_dict(), "alert_level_m": "high"}) == SAVAGES
     assert "alert_level_m" not in SAVAGES.as_dict()
+
+
+async def test_alert_level_empty_string_clears(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+) -> None:
+    """A cleared alert-level box submitted as an empty string means no alert level."""
+    mock_config_entry.add_to_hass(hass)
+    hass.config_entries.async_update_entry(
+        mock_config_entry, options={CONF_RIVER_GAUGES: [SAVAGES.with_alert_level(2.0).as_dict()]}
+    )
+    with patch("custom_components.ausnz_disaster_watch.config_flow.async_discover_gauges", return_value=[]):
+        result = await _open_gauge_picker(hass, mock_config_entry)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], user_input={CONF_RIVER_GAUGES: [SAVAGES.key]}
+    )
+    assert result["step_id"] == "river_alert_levels"
+    # The frontend may send "" for a cleared box; call the step directly, as the schema would reject ""
+    flow = hass.config_entries.options._progress[result["flow_id"]]
+    with patch("custom_components.ausnz_disaster_watch.async_setup_entry", return_value=True):
+        done = await flow.async_step_river_alert_levels({SAVAGES.name: ""})
+    assert done["type"] is FlowResultType.CREATE_ENTRY
+    assert done["data"][CONF_RIVER_GAUGES] == [SAVAGES.as_dict()]

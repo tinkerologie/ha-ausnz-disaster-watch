@@ -384,8 +384,10 @@ async def async_kisters_sites(session: aiohttp.ClientSession, source: str) -> li
         session, server, "get_sites_by_datasource", {"datasources": [server.datasource]}, "1"
     )
     live: set[str] = set()
-    for entry in live_result.get("datasources", []):
-        live.update(str(site) for site in entry.get("sites", []))
+    for entry in live_result.get("datasources") or []:
+        # Skip malformed entries like the db_info loop below skips malformed rows
+        if isinstance(entry, dict) and isinstance(listed := entry.get("sites"), list):
+            live.update(str(site) for site in listed)
     tables = await asyncio.gather(
         *(
             _async_kisters_call(

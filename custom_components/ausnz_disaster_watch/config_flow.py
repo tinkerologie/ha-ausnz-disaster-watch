@@ -751,7 +751,8 @@ class AustralianDisasterWatchOptionsFlowHandler(ForecastOptionsFlow):
         fields = gauge_field_names(self._chosen)
         if user_input is not None:
             gauges = [
-                site.with_alert_level(None if (level := user_input.get(field)) is None else float(level))
+                # A cleared box can arrive as a missing key or an empty string
+                site.with_alert_level(None if (level := user_input.get(field)) in (None, "") else float(level))
                 for site, field in zip(self._chosen, fields, strict=True)
             ]
             return self._save({CONF_RIVER_GAUGES: [site.as_dict() for site in gauges]})
