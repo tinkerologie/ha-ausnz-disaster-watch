@@ -27,6 +27,7 @@ from .forecast_entity import forecast_binary_sensors
 from .models import CALL_TO_ACTION_MAX_LENGTH
 from .providers.fire_danger import local_today
 from .providers.sources import attribution_for
+from .river_binary_sensor import async_setup_river_alert_sensors
 
 
 async def async_setup_entry(
@@ -48,6 +49,7 @@ async def async_setup_entry(
     if coordinator.state_code != STATE_NZ:
         entities.append(TotalFireBanBinarySensor(coordinator))
     async_add_entities(entities)
+    async_setup_river_alert_sensors(hass, entry, async_add_entities)
 
 
 class EmergencyWarningNearbyBinarySensor(AustralianDisasterWatchEntity, BinarySensorEntity):

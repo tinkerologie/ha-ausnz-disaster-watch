@@ -1,0 +1,37 @@
+<?xml version="1.0" ?>
+<Hilltop>
+<Agency>Taranaki Regional Council</Agency>
+<Measurement SiteName="Huatoki at Mill Rd">
+<DataSource Name="Water Level" NumItems="1">
+<TSType>StdSeries</TSType>
+<DataType>SimpleTimeSeries</DataType>
+<Interpolation>Instant</Interpolation>
+<ItemInfo ItemNumber="1">
+<ItemName>Stage</ItemName><ItemFormat>F</ItemFormat><Units>m</Units><Format>####.###</Format>
+</ItemInfo>
+</DataSource>
+<Data DateFormat="Calendar" NumItems="1">
+<E><T>2026-10-16T09:00:00</T><I1>1.359</I1></E>
+<E><T>2026-10-16T09:05:00</T><I1>1.359</I1></E>
+<E><T>2026-10-16T09:10:00</T><I1>1.358</I1></E>
+<E><T>2026-10-16T09:15:00</T><I1>1.357</I1></E>
+<E><T>2026-10-16T09:20:00</T><I1>1.359</I1></E>
+<E><T>2026-10-16T09:25:00</T><I1>1.358</I1></E>
+<E><T>2026-10-16T09:30:00</T><I1>1.358</I1></E>
+<E><T>2026-10-16T09:35:00</T><I1>1.358</I1></E>
+<E><T>2026-10-16T09:40:00</T><I1>1.357</I1></E>
+<E><T>2026-10-16T09:45:00</T><I1>1.357</I1></E>
+<E><T>2026-10-16T09:50:00</T><I1>1.359</I1></E>
+<E><T>2026-10-16T09:55:00</T><I1>1.357</I1></E>
+<E><T>2026-10-16T10:00:00</T><I1>1.357</I1></E>
+<E><T>2026-10-16T10:05:00</T><I1>1.357</I1></E>
+<E><T>2026-10-16T10:10:00</T><I1>1.356</I1></E>
+<E><T>2026-10-16T10:15:00</T><I1>1.356</I1></E>
+<E><T>2026-10-16T10:20:00</T><I1>1.357</I1></E>
+<E><T>2026-10-16T10:25:00</T><I1>1.358</I1></E>
+<E><T>2026-10-16T10:30:00</T><I1>1.357</I1></E>
+<E><T>2026-10-16T10:35:00</T><I1>1.358</I1></E>
+<E><T>2026-10-16T10:40:00</T><I1>1.356</I1></E>
+</Data>
+</Measurement>
+</Hilltop>

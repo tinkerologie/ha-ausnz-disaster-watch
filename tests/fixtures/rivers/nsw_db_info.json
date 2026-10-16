@@ -1,0 +1,31 @@
+{
+ "error_num": 0,
+ "return": {
+  "rows": [
+   {
+    "stname": "OXLEY RIVER AT EUNGELLA",
+    "longitude": "153.292947216",
+    "station": "201001",
+    "latitude": "-28.353986107"
+   },
+   {
+    "stname": "ROPES CREEK AT DEBRINCAT AVENUE",
+    "longitude": "150.792394000",
+    "station": "212049",
+    "latitude": "-33.753217000"
+   },
+   {
+    "stname": "HAWKESBURY RIVER AT NORTH RICHMOND",
+    "longitude": "150.714031090",
+    "station": "212200",
+    "latitude": "-33.589301250"
+   },
+   {
+    "stname": "NEPEAN RIVER AT PENRITH",
+    "longitude": "150.682500000",
+    "station": "212201",
+    "latitude": "-33.746777780"
+   }
+  ]
+ }
+}

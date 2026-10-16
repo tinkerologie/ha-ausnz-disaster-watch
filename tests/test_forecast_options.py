@@ -213,6 +213,7 @@ async def test_edit_and_remove_river_points(hass: HomeAssistant, mock_config_ent
         "add_river_point",
         "edit_river_point",
         "remove_river_point",
+        "river_gauges",  # QLD has river gauge services (#31)
     ]
 
     result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "edit_river_point"})

@@ -19,6 +19,7 @@ CONF_LOCATION_NAME: Final = "location_name"
 CONF_COUNCIL_DASHBOARD_URL: Final = "council_dashboard_url"
 # Opt-in Geoscience Australia earthquakes for Australian entries (#23)
 CONF_INCLUDE_EARTHQUAKES: Final = "include_earthquakes"
+CONF_RIVER_GAUGES: Final = "river_gauges"
 
 # Location modes
 LOCATION_MODE_HOME: Final = "home"

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any, Final
 
@@ -10,6 +11,7 @@ import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult, OptionsFlow
 from homeassistant.core import callback
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
     BooleanSelector,
     NumberSelector,
@@ -23,6 +25,7 @@ from homeassistant.helpers.selector import (
     TextSelectorConfig,
     TextSelectorType,
 )
+from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_COUNCIL_DASHBOARD_URL,
@@ -33,6 +36,7 @@ from .const import (
     CONF_LONGITUDE,
     CONF_OVERRIDE_EMERGENCY,
     CONF_RADIUS,
+    CONF_RIVER_GAUGES,
     CONF_STATE,
     DEFAULT_EXCLUDE_HAZARD_REDUCTION,
     DEFAULT_OVERRIDE_EMERGENCY,
@@ -57,6 +61,16 @@ from .const import (
 from .coordinator import nearest_council_dashboard
 from .hazard_options import HazardOptionsFlow
 from .models import DisasterWatchConfigModel
+from .rivers import (
+    RIVER_DISCOVERY_TIMEOUT,
+    STATE_RIVER_SOURCES,
+    GaugeReading,
+    GaugeSite,
+    RiverSourceError,
+    async_discover_gauges,
+    haversine_km,
+    sites_from_options,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -574,19 +588,51 @@ class AustralianDisasterWatchConfigFlow(ConfigFlow, domain=DOMAIN):
         return AustralianDisasterWatchOptionsFlowHandler()
 
 
+def gauge_label(reading: GaugeReading, latitude: float, longitude: float) -> str:
+    """Return the options-flow label of a discovered gauge: name, distance and current level."""
+    site = reading.site
+    distance = haversine_km(latitude, longitude, site.latitude, site.longitude)
+    return f"{site.name} ({distance:.1f} km, {reading.level_m:.2f} m)"
+
+
+def gauge_field_names(sites: list[GaugeSite]) -> list[str]:
+    """Return one form field name per gauge for the alert-level form.
+
+    Field names are shown as labels when they have no translation, so they are the gauge
+    names; a repeated name gets its site ID appended so every field stays unique.
+    """
+    names = [site.name for site in sites]
+    return [f"{site.name} ({site.site_id})" if names.count(site.name) > 1 else site.name for site in sites]
+
+
 class AustralianDisasterWatchOptionsFlowHandler(HazardOptionsFlow):
     """Handle options flow for Australia and New Zealand Disaster Watch."""
+
+    def __init__(self) -> None:
+        """Initialize the options flow."""
+        super().__init__()
+        # Gauges offered on the river gauge form, by GaugeSite.key
+        self._discovered: dict[str, GaugeSite] = {}
+        # Gauges ticked on the river gauge form, waiting for their alert levels
+        self._chosen: list[GaugeSite] = []
 
     async def async_step_init(
         self,
         user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
-        """Show the options menu; river point edit/remove only appear once a point exists."""
+        """Show the options menu.
+
+        River point edit/remove only appear once a point exists; the river gauge picker only
+        where a gauge service covers the state (#31).
+        """
         menu = ["settings", "forecasts", "add_river_point"]
         if self._offers_earthquakes:
             menu.insert(2, "earthquakes")
         if self._points:
             menu += ["edit_river_point", "remove_river_point"]
+        state = str({**self.config_entry.data, **self.config_entry.options}.get(CONF_STATE, "")).upper()
+        if state in STATE_RIVER_SOURCES:
+            menu.append("river_gauges")
         return self.async_show_menu(step_id="init", menu_options=menu)
 
     async def async_step_settings(
@@ -634,6 +680,96 @@ class AustralianDisasterWatchOptionsFlowHandler(HazardOptionsFlow):
         return self.async_show_form(
             step_id="settings",
             data_schema=schema,  # type: ignore[arg-type]
+        )
+
+    async def async_step_river_gauges(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> ConfigFlowResult:
+        """Pick river and creek gauges near the location; none are selected by default (#31)."""
+        selected = sites_from_options(self.config_entry.options.get(CONF_RIVER_GAUGES))
+
+        if user_input is not None:
+            levels = {site.key: site.alert_level_m for site in selected}
+            known: dict[str, GaugeSite] = {**self._discovered, **{site.key: site for site in selected}}
+            # The selector only accepts listed keys, all of which are known
+            keys = user_input.get(CONF_RIVER_GAUGES, [])
+            self._chosen = [known[key].with_alert_level(levels.get(key)) for key in keys]
+            if not self._chosen:
+                return self._save({CONF_RIVER_GAUGES: []})
+            return await self.async_step_river_alert_levels()
+
+        config = {**self.config_entry.data, **self.config_entry.options}
+        # Same point as the coordinator: home-mode entries follow the home location (#19)
+        home = (self.hass.config.latitude, self.hass.config.longitude)
+        stored = (config.get(CONF_LATITUDE), config.get(CONF_LONGITUDE))
+        candidates = (home, stored) if config.get(CONF_LOCATION_MODE) == LOCATION_MODE_HOME else (stored, home)
+        latitude, longitude = next((float(la), float(lo)) for la, lo in candidates if la is not None and lo is not None)
+        errors: dict[str, str] = {}
+        labels = {site.key: f"{site.name} (selected)" for site in selected}
+        try:
+            # Bound the wait: one hanging council server must not hold the form for minutes
+            async with asyncio.timeout(RIVER_DISCOVERY_TIMEOUT.total_seconds()):
+                discovered = await async_discover_gauges(
+                    async_get_clientsession(self.hass),
+                    state=str(config.get(CONF_STATE, STATE_QLD)),
+                    latitude=latitude,
+                    longitude=longitude,
+                    radius_km=float(config.get(CONF_RADIUS, DEFAULT_RADIUS)),
+                    now=dt_util.utcnow(),
+                )
+        except (RiverSourceError, TimeoutError) as err:
+            _LOGGER.debug("River gauge discovery failed: %r", err)
+            errors["base"] = "rivers_unavailable"
+            discovered = []
+        self._discovered = {reading.site.key: reading.site for reading in discovered}
+        for reading in discovered:
+            labels[reading.site.key] = gauge_label(reading, latitude, longitude)
+        if not labels and not errors:
+            errors["base"] = "no_river_gauges"
+
+        schema = vol.Schema(
+            {
+                vol.Optional(CONF_RIVER_GAUGES, default=[site.key for site in selected]): SelectSelector(
+                    SelectSelectorConfig(
+                        options=[SelectOptionDict(value=key, label=label) for key, label in labels.items()],
+                        multiple=True,
+                        mode=SelectSelectorMode.LIST,
+                    )
+                ),
+            }
+        )
+        return self.async_show_form(
+            step_id="river_gauges",
+            data_schema=schema,  # type: ignore[arg-type]
+            errors=errors,
+        )
+
+    async def async_step_river_alert_levels(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> ConfigFlowResult:
+        """Set an optional alert level (m) per chosen gauge; blank means no alert sensor (#31)."""
+        fields = gauge_field_names(self._chosen)
+        if user_input is not None:
+            gauges = [
+                # A cleared box can arrive as a missing key or an empty string
+                site.with_alert_level(None if (level := user_input.get(field)) in (None, "") else float(level))
+                for site, field in zip(self._chosen, fields, strict=True)
+            ]
+            return self._save({CONF_RIVER_GAUGES: [site.as_dict() for site in gauges]})
+
+        schema: dict[Any, Any] = {}
+        for site, field in zip(self._chosen, fields, strict=True):
+            suggested = {"suggested_value": site.alert_level_m} if site.alert_level_m is not None else None
+            schema[vol.Optional(field, description=suggested)] = NumberSelector(
+                NumberSelectorConfig(
+                    min=-100, max=1000, step="any", unit_of_measurement="m", mode=NumberSelectorMode.BOX
+                )
+            )
+        return self.async_show_form(
+            step_id="river_alert_levels",
+            data_schema=vol.Schema(schema),  # type: ignore[arg-type]
         )
 
 

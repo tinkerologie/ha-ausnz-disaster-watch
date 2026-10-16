@@ -20,6 +20,7 @@ Directly integrates official emergency feeds—including the **Queensland Fire D
   - **Northern Territory**: Bushfires NT and NT Fire and Rescue Service incidents from the NT Government Fire_Incidents service.
   - **National / Federal**: Bureau of Meteorology (BoM) weather warnings (severe thunderstorms, tropical cyclones, flood warnings).
   - **Earthquakes (optional)**: Geoscience Australia earthquakes of magnitude 3 or more from the last 48 hours, within your radius (M6+ Watch and Act, M4.5+ Advice, smaller Information). Turn it on under **Configure > Earthquakes** (Australian entries; New Zealand entries use GeoNet). Earthquake data © Commonwealth of Australia (Geoscience Australia), from [earthquakes.ga.gov.au](https://earthquakes.ga.gov.au/), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+- **River and Creek Levels** (opt-in): pick nearby water level gauges in Queensland, New South Wales, the ACT and New Zealand and get one sensor per gauge, polled every 15 minutes. See [River and creek level gauges](#river-and-creek-level-gauges).
 - **Australian Warning System (AWS) Normalization**:
   - 🚨 **Emergency Warning** (Level 3 - Red)
   - ⚠️ **Watch and Act** (Level 2 - Orange)
@@ -66,6 +67,7 @@ Renders interactive pins on the native Home Assistant Map for every active hazar
 | `…_power_outage_active` | `on` when a power outage is reported nearby | `problem` |
 | `…_road_closure_nearby` | `on` when a road closure is reported nearby | `problem` |
 | `…_total_fire_ban` | `on` when a total fire ban is declared today for your fire weather district (Australia only; see [Fire danger and total fire bans](#fire-danger-and-total-fire-bans)) | `safety` |
+| `…_<gauge name>_above_alert_level` | `on` when a selected river gauge is at or above the alert level you set (see below) | `problem` |
 
 ### Sensors (`sensor`)
 | Entity (suffix) | Description | Unit |
@@ -82,8 +84,35 @@ Renders interactive pins on the native Home Assistant Map for every active hazar
 | `…_relief_facilities_count` | Evacuation centres and sandbag stations nearby | `facilities` |
 | `…_air_quality` | Air quality rating of the nearest station | — |
 | `…_local_weather_observation` | Temperature at the nearest weather station | `°C` |
+| `…_<gauge name>_water_level` | Water level at each river gauge you selected (see below) | `m` |
 
 Entity IDs start with the device name, for example `binary_sensor.australia_and_new_zealand_disaster_watch_qld_home_emergency_warning_nearby`.
+
+### River and creek level gauges
+
+Gauge sensors are off until you choose gauges. Open **Configure** on the integration and pick
+**River and creek level gauges** from the menu. The form lists up to 10 of the nearest gauges
+within the monitoring radius that reported a level in the last 6 hours, with distance and current
+level. Finding them can take up to a minute the first time; the site lists are then cached for
+24 hours. Tick the gauges you want and submit. Each one becomes a sensor named after the gauge,
+for example `sensor.australia_and_new_zealand_disaster_watch_qld_home_brisbane_river_at_savages_crossing_water_level`.
+
+- **State**: water level in metres (`device_class: distance`, `state_class: measurement`) above the gauge's own datum, not above sea level. Readings in mm or cm are converted to metres.
+- **Attributes**: `site_id`, `source`, `latitude`, `longitude`, `distance_km` (from your location), `observed_at` (time of the reading, UTC), `trend` (`rising`, `falling` or `steady`, or `null` when there is no reading an hour before the latest one) and `change_1h_m` (the level change behind the trend, compared with the newest reading at least an hour older; changes within 1 cm are `steady`). The sensor's attribution names the data publisher.
+- **Availability**: a gauge without a reading in the last 6 hours is unavailable. If a gauge service cannot be reached, its last reading is kept until it is 6 hours old. Gauges stay selected until you untick them; unticked gauges' entities are removed.
+- **Alert levels**: after ticking gauges, the next form lets you enter an optional alert level in metres per gauge, on the same datum as its level (for example the minor flood level from your council or the Bureau of Meteorology). Each gauge with a level gets `binary_sensor.…_<gauge name>_above_alert_level` (`device_class: problem`), on while the level is at or above it, with `alert_level_m`, `level_m` and `site_id` attributes. Leave the field blank for no alert sensor; clearing a level removes its sensor. None of the gauge services publishes minor, moderate or major flood levels, so there are no built-in thresholds.
+
+| Region | Source | Licence |
+| ------ | ------ | ------- |
+| Queensland | [Water Monitoring Information Portal](https://water-monitoring.information.qld.gov.au/) (Kisters Hydstra web service, telemetered stream gauges) | CC BY 4.0, stated in every response |
+| New South Wales and ACT | [WaterNSW real-time data](https://realtimedata.waternsw.com.au/) (Kisters Hydstra web service) | Listed as CC BY on data.gov.au/SEED (version 3.0 or 4.0 differs between listings) |
+| New Zealand | Regional council Hilltop servers: Greater Wellington, Horizons, Hawke's Bay, Tasman, Northland, West Coast, Taranaki and Marlborough (measurement `Stage`) | Hawke's Bay: CC BY. Others: public, keyless servers; licence not stated |
+
+Queensland and NSW locations search both Kisters services, so gauges across the border are found too.
+Data is provisional and unvalidated. Not supported: Environment Canterbury (no sites returned, site
+behind a bot wall), Waikato (times out), Bay of Plenty, Otago and Nelson (no public Hilltop server
+found), Southland and Gisborne (server errors), Victoria and the other states (no source yet).
+Groundwater bores on the Hilltop servers are not offered.
 
 ### Cameras (`camera`)
 Flood and traffic camera snapshots near the monitored location, where the jurisdiction provides them.
@@ -147,6 +176,7 @@ Click **Configure** on the integration card to open the options menu:
 - **Forecast signals and AI rain outlook**: the opt-in Open-Meteo features below.
 - **Earthquakes** (Australian entries): include Geoscience Australia earthquakes (off by default).
 - **Add / edit / remove river points**: river flood forecast points.
+- **River and creek level gauges**: the [river gauge picker](#river-and-creek-level-gauges) and optional alert levels (Queensland, New South Wales, the ACT and New Zealand).
 
 Saving any options page reloads the entry; no Home Assistant restart is needed.
 
@@ -371,6 +401,9 @@ The integration reads public feeds published by emergency services, weather agen
 | NZ | NEMA (Civil Defence) alerts | CC BY 4.0 |
 | NZ | MetService CAP warnings | CC BY 4.0, CAP Code of Practice |
 | NZ | NZ Transport Agency Waka Kotahi road events (`trafficnz.info`) | No licence stated on data.govt.nz; open data, unverified |
+| QLD | Water Monitoring Information Portal river gauges (opt-in) | CC BY 4.0 |
+| NSW, ACT | WaterNSW real-time river gauges (opt-in) | CC BY (data.gov.au lists 3.0 and 4.0) |
+| NZ | Regional council Hilltop river gauges (opt-in) | Hawke's Bay CC BY; other councils unverified |
 
 GeoNet and NSW RFS feeds are read with the maintained `aio_geojson_geonetnz_quakes`, `aio_geojson_geonetnz_volcano` and `aio_geojson_nsw_rfs_incidents` libraries (Apache-2.0), the same ones Home Assistant core uses.
 

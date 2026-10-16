@@ -59,7 +59,8 @@
           "earthquakes": "Earthquakes (Geoscience Australia)",
           "add_river_point": "Add a river flood forecast point",
           "edit_river_point": "Edit a river point",
-          "remove_river_point": "Remove river points"
+          "remove_river_point": "Remove river points",
+          "river_gauges": "River and creek level gauges"
         }
       },
       "settings": {
@@ -141,6 +142,20 @@
         "data": {
           "include_earthquakes": "Include Geoscience Australia earthquakes"
         }
+      },
+      "river_gauges": {
+        "title": "River and creek level gauges",
+        "description": "Choose gauges to add as water level sensors. The list shows the nearest gauges within the monitoring radius that reported a level in the last 6 hours, with their distance and current level. Leave all unticked for no gauge sensors. Gauges are polled every 15 minutes. Searching can take up to a minute the first time.",
+        "data": {
+          "river_gauges": "Gauges"
+        },
+        "data_description": {
+          "river_gauges": "Levels are in metres above each gauge's local datum, not above sea level. Sources: Queensland Water Monitoring Information Portal, WaterNSW and New Zealand regional council Hilltop servers."
+        }
+      },
+      "river_alert_levels": {
+        "title": "Gauge alert levels",
+        "description": "Optionally enter an alert level in metres for each gauge, on the same datum as its water level sensor (for example the minor flood level from your council or the Bureau of Meteorology). A gauge with a level gets a binary sensor that turns on while the water is at or above it. Leave a field blank for no alert sensor."
       }
     },
     "error": {
@@ -148,7 +163,9 @@
       "duplicate_river_point": "Enter a name that no other river point uses.",
       "empty_river_point_name": "Enter a name for the river point.",
       "no_river_cell": "No river cell with data was found near this point. Pick a point on or next to a larger river.",
-      "invalid_threshold": "The threshold must be greater than 0."
+      "invalid_threshold": "The threshold must be greater than 0.",
+      "rivers_unavailable": "The gauge services could not be reached, so only the gauges you already selected are listed. Try again later.",
+      "no_river_gauges": "No gauge within the monitoring radius reported a level in the last 6 hours. Increase the radius to search further."
     },
     "abort": {
       "too_many_river_points": "You can add up to 10 river points. Remove one first.",
@@ -183,6 +200,9 @@
       },
       "total_fire_ban": {
         "name": "Total Fire Ban"
+      },
+      "river_alert": {
+        "name": "{gauge} above alert level"
       }
     },
     "sensor": {
@@ -259,6 +279,9 @@
       },
       "ai_rain_outlook": {
         "name": "Experimental AI rain outlook"
+      },
+      "river_level": {
+        "name": "{gauge} water level"
       }
     }
   },
@@ -268,6 +291,9 @@
     },
     "forecast_unavailable": {
       "message": "Open-Meteo {feature} data is unavailable: {error}"
+    },
+    "river_gauges_unavailable": {
+      "message": "None of the selected river gauges could be reached"
     }
   },
   "issues": {

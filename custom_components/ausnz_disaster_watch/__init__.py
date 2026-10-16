@@ -12,6 +12,7 @@ from homeassistant.helpers import config_validation as cv, entity_registry as er
 from .const import (
     CONF_COUNCIL_DASHBOARD_URL,
     CONF_LOCATION_MODE,
+    CONF_RIVER_GAUGES,
     CONF_STATE,
     DOMAIN,
     LOCATION_MODE_HOME,
@@ -21,6 +22,8 @@ from .const import (
 from .coordinator import AustralianDisasterWatchCoordinator, nearest_council_dashboard
 from .forecast_coordinator import async_setup_forecasts
 from .frontend import async_register_frontend, async_unregister_frontend
+from .river_coordinator import RiverGaugeCoordinator
+from .rivers import sites_from_options
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -88,6 +91,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: AusNZDisasterWatchConfig
     await coordinator.async_config_entry_first_refresh()
     # Opt-in forecast features poll on their own schedule and never block setup (#38, #39, #40)
     coordinator.forecasts = await async_setup_forecasts(hass, entry, (coordinator.latitude, coordinator.longitude))
+
+    # River gauges are optional extras: a gauge outage must not block setup, so the first
+    # refresh does not raise and the gauge sensors start unavailable instead (#31).
+    if sites := sites_from_options(entry.options.get(CONF_RIVER_GAUGES)):
+        coordinator.river_coordinator = RiverGaugeCoordinator(hass, entry, sites)
+        await coordinator.river_coordinator.async_refresh()
 
     entry.runtime_data = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
