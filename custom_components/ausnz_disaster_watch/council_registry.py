@@ -77,21 +77,18 @@ def councils_for_state(state: str) -> list[tuple[str, CouncilDashboard]]:
     )
 
 
-def nearest_council(
-    state: str, latitude: float, longitude: float, *, readable_only: bool = False
-) -> tuple[str, CouncilDashboard] | None:
+def nearest_council(state: str, latitude: float, longitude: float) -> tuple[str, CouncilDashboard] | None:
     """Return the council a point most likely belongs to, or None.
 
     A council qualifies within ``COUNCIL_AUTO_MATCH_KM`` of its point, or within its own
     equal-area radius if that is larger (large rural councils). The qualifying councils are
     ranked by distance relative to their size, so a point in a big council is not given
-    the smaller neighbour whose centre happens to be closer. ``readable_only`` considers
-    only councils with a dashboard the integration can read. This is a geographic
+    the smaller neighbour whose centre happens to be closer. This is a geographic
     heuristic, not a check against council boundaries.
     """
     best: tuple[float, str, CouncilDashboard] | None = None
     for key, council in COUNCIL_DASHBOARDS.items():
-        if council["state"] != state or (readable_only and not usable_url(council)):
+        if council["state"] != state:
             continue
         dist = _distance_km(latitude, longitude, council["latitude"], council["longitude"])
         if dist > max(COUNCIL_AUTO_MATCH_KM, council["radius_km"]):
@@ -100,6 +97,18 @@ def nearest_council(
         if best is None or score < best[0]:
             best = (score, key, council)
     return (best[1], best[2]) if best else None
+
+
+def nearest_readable_dashboard(state: str, latitude: float, longitude: float) -> str | None:
+    """Return the closest readable dashboard within ``COUNCIL_AUTO_MATCH_KM`` (plain distance), or None."""
+    best: tuple[float, str] | None = None
+    for council in COUNCIL_DASHBOARDS.values():
+        if council["state"] != state or not (url := usable_url(council)):
+            continue
+        dist = _distance_km(latitude, longitude, council["latitude"], council["longitude"])
+        if dist <= COUNCIL_AUTO_MATCH_KM and (best is None or dist < best[0]):
+            best = (dist, url)
+    return best[1] if best else None
 
 
 def usable_url(council: CouncilDashboard) -> str | None:

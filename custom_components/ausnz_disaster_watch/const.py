@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import Final
 
-from .council_registry import COUNCIL_DASHBOARDS
+from .council_registry import COUNCIL_DASHBOARDS, usable_url
 
 DOMAIN: Final = "ausnz_disaster_watch"
 
@@ -108,12 +108,14 @@ SUPPORTED_STATES: Final = [
 
 # Preset council disaster dashboards, keyed as before, from the generated registry
 # (data/council_dashboards.json, see council_registry.py) (#32). A preset without a URL has no
-# Guardian IMS dashboard the integration can read (Brisbane, Sunshine Coast).
+# Guardian IMS dashboard the integration can read (Brisbane, Sunshine Coast, and the
+# dashboards with an incomplete certificate chain).
 PRESET_COUNCIL_DASHBOARDS: Final[dict[str, dict[str, str | float | None]]] = {
     key: {
         "name": council["name"],
         "state": council["state"],
-        "url": council["url"],
+        # None also for a dashboard whose certificate Home Assistant rejects
+        "url": usable_url(council),
         "latitude": council["latitude"],
         "longitude": council["longitude"],
     }

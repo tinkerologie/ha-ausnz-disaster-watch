@@ -14,6 +14,7 @@ from custom_components.ausnz_disaster_watch.council_registry import (
     COUNCIL_DASHBOARDS,
     councils_for_state,
     nearest_council,
+    nearest_readable_dashboard,
     usable_url,
 )
 from homeassistant import config_entries
@@ -29,7 +30,7 @@ LEGACY = {
     "townsville": ("Townsville City", "https://disaster.townsville.qld.gov.au", -19.2590, 146.8169),
     "fraser_coast": ("Fraser Coast", "https://disaster.frasercoast.qld.gov.au", -25.5398, 152.7032),
     "bundaberg": ("Bundaberg Regional", "https://disaster.bundaberg.qld.gov.au", -24.8661, 152.3489),
-    "redland": ("Redland City", "https://dashboard.redland.qld.gov.au", -27.5306, 153.2500),
+    "redland": ("Redland City", None, -27.5306, 153.2500),  # certificate rejected by Home Assistant
     "ipswich": ("Ipswich City", "https://disaster.ipswich.qld.gov.au", -27.6167, 152.7667),
     "logan": ("Logan City", "https://disaster.logan.qld.gov.au", -27.6972, 153.1111),
 }
@@ -104,7 +105,9 @@ def test_nearest_council_and_usable_url() -> None:
     assert usable_url(match[1]) is None
     assert usable_url(COUNCIL_DASHBOARDS["redland"]) is None  # incomplete certificate chain
     assert usable_url(COUNCIL_DASHBOARDS["cairns"]) == "https://disaster.cairns.qld.gov.au"
-    assert nearest_council("QLD", -27.47, 153.02, readable_only=True) is not None
+    assert nearest_readable_dashboard("QLD", -27.47, 153.02) is not None
+    # Barcoo's dashboard is unreadable; Longreach (about 110 km away) is too far for the fallback
+    assert nearest_council_dashboard("QLD", -24.5, 143.3) is None
 
 
 async def test_custom_step_lists_registry_councils(hass: HomeAssistant) -> None:
@@ -119,6 +122,7 @@ async def test_custom_step_lists_registry_councils(hass: HomeAssistant) -> None:
     labels = {option["value"]: option["label"] for option in options}
     assert labels["toowoomba"] == "Toowoomba Regional"
     assert labels["brisbane"] == "Brisbane City (no readable dashboard)"
+    assert labels["redland"] == "Redland City (no readable dashboard)"
     assert "byron" not in labels  # NSW
 
     with patch("custom_components.ausnz_disaster_watch.async_setup_entry", return_value=True):

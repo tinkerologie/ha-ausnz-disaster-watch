@@ -66,7 +66,7 @@ from .const import (
     SUPPORTED_STATES,
 )
 from .coordinator import nearest_council_dashboard
-from .council_registry import councils_for_state
+from .council_registry import councils_for_state, usable_url
 from .hazard_options import HazardOptionsFlow
 from .models import DisasterWatchConfigModel
 from .national_options import NationalFeedsOptionsFlow
@@ -374,7 +374,7 @@ class AustralianDisasterWatchConfigFlow(ConfigFlow, domain=DOMAIN):
         # Councils of the selected state from the generated registry, sorted by name (#32)
         preset_options = [SelectOptionDict(value="custom", label="Manual Coordinates / Custom URL")]
         for key, info in councils_for_state(state):
-            label = info["name"] if info["url"] else f"{info['name']} (no readable dashboard)"
+            label = info["name"] if usable_url(info) else f"{info['name']} (no readable dashboard)"
             preset_options.append(SelectOptionDict(value=key, label=label))
 
         # Default custom location to Moreton Bay for QLD

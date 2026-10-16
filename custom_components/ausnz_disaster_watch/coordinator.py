@@ -13,7 +13,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.util import dt as dt_util
 
 from .const import DEFAULT_SCAN_INTERVAL, DOMAIN, LAST_GOOD_MAX_AGE, LOCATION_MODE_HOME, THREAT_SCAN_INTERVAL
-from .council_registry import nearest_council, usable_url
+from .council_registry import nearest_council, nearest_readable_dashboard, usable_url
 from .forecast_coordinator import ForecastCoordinators
 from .models import (
     AirQualityStationData,
@@ -116,8 +116,7 @@ def nearest_council_dashboard(state: str, latitude: float | None, longitude: flo
     match = nearest_council(state, latitude, longitude)
     if match and (url := usable_url(match[1])):
         return url
-    fallback = nearest_council(state, latitude, longitude, readable_only=True)
-    return usable_url(fallback[1]) if fallback else None
+    return nearest_readable_dashboard(state, latitude, longitude)
 
 
 def fire_danger_today(outlook: FireDangerOutlook | None) -> FireDangerRating | None:
