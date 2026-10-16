@@ -25,6 +25,7 @@ from custom_components.ausnz_disaster_watch.const import (
 from .act import ACTHazardProvider
 from .base import BaseHazardProvider
 from .bom import BoMHazardProvider
+from .cameras import CameraCatalogueProvider, enabled_networks
 from .ga_earthquakes import GAEarthquakeProvider
 from .national import NationalHazardProvider
 from .nsw import NSWHazardProvider
@@ -100,6 +101,9 @@ def get_providers_for_config(
     # Opt-in national and regional feeds (#37)
     if any(config.get(option) for option in NATIONAL_FEED_OPTIONS):
         providers.append(NationalHazardProvider(hass, session, config))
+    # Opt-in road and flood camera catalogues (#70)
+    if enabled_networks(config):
+        providers.append(CameraCatalogueProvider(hass, session, config))
 
     return providers
 
@@ -109,6 +113,7 @@ __all__ = [
     "ACTHazardProvider",
     "BaseHazardProvider",
     "BoMHazardProvider",
+    "CameraCatalogueProvider",
     "EndeavourOutageSource",
     "EssentialEnergyOutageSource",
     "GAEarthquakeProvider",

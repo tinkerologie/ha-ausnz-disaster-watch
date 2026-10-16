@@ -1,0 +1,214 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "crs": {
+          "type": "name",
+          "properties": {
+            "name": "EPSG:7844"
+          }
+        },
+        "coordinates": [
+          152.806142,
+          -27.555997
+        ]
+      },
+      "properties": {
+        "id": 326,
+        "url": "https://api.qldtraffic.qld.gov.au/v1/floodcams/326",
+        "description": "Karana Downs - Mt Crosby Rd near Colleges Crossing",
+        "direction": "West",
+        "district": "Metropolitan",
+        "locality": "Karana Downs",
+        "postcode": "4306",
+        "image_url": "https://cameras.qldtraffic.qld.gov.au/Flood_Cameras/Metropolitan/Karana-Downs-Mt-Crosby-Rd-near-Colleges-Crossing.jpg",
+        "image_sourced_from": null,
+        "isCustom": false,
+        "extra_info": "New images available every 30 minutes.\nImages between 6pm and 6am may be of reduced quality"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "crs": {
+          "type": "name",
+          "properties": {
+            "name": "EPSG:7844"
+          }
+        },
+        "coordinates": [
+          152.981327,
+          -27.174369
+        ]
+      },
+      "properties": {
+        "id": 255,
+        "url": "https://api.qldtraffic.qld.gov.au/v1/floodcams/255",
+        "description": "Burpengary - Burpengary Service Road/ Old Gympie Road at Little Burpengary Creek",
+        "direction": "North",
+        "district": "North Coast",
+        "locality": "Burpengary",
+        "postcode": "4505",
+        "image_url": "https://cameras.qldtraffic.qld.gov.au/resized/34a33e40-c3d9-4d91-b9cd-0c0f714995c7.jpg",
+        "image_sourced_from": "Department of Transport and Main Roads",
+        "isCustom": true,
+        "extra_info": "New images available every 30 minutes between 6am and 6pm"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "crs": {
+          "type": "name",
+          "properties": {
+            "name": "EPSG:7844"
+          }
+        },
+        "coordinates": [
+          152.976923,
+          -27.152404
+        ]
+      },
+      "properties": {
+        "id": 254,
+        "url": "https://api.qldtraffic.qld.gov.au/v1/floodcams/254",
+        "description": "Burpengary - Burpengary Service Road/ Old Gympie Road at Burpengary Creek",
+        "direction": "North",
+        "district": "North Coast",
+        "locality": "Burpengary",
+        "postcode": "4505",
+        "image_url": "https://cameras.qldtraffic.qld.gov.au/resized/8df57cc1-14c0-46bf-891c-021f2c3c98ea.jpg",
+        "image_sourced_from": "Department of Transport and Main Roads",
+        "isCustom": true,
+        "extra_info": "New images available every 30 minutes between 6am and 6pm."
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "crs": {
+          "type": "name",
+          "properties": {
+            "name": "EPSG:7844"
+          }
+        },
+        "coordinates": [
+          153.033295,
+          -27.11431
+        ]
+      },
+      "properties": {
+        "id": 251,
+        "url": "https://api.qldtraffic.qld.gov.au/v1/floodcams/251",
+        "description": "Beachmere - Caboolture Beachmere Road at King John Creek - Southwest - 4510",
+        "direction": "SouthWest",
+        "district": "North Coast",
+        "locality": "Beachmere",
+        "postcode": "4510",
+        "image_url": "https://cameras.qldtraffic.qld.gov.au/resized/bc680c95-b547-42a5-a8b6-ccf3d1e7cbf3.jpg",
+        "image_sourced_from": "Department of Transport and Main Roads",
+        "isCustom": true,
+        "extra_info": "New images available every 30 minutes between 6am and 6pm."
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "crs": {
+          "type": "name",
+          "properties": {
+            "name": "EPSG:7844"
+          }
+        },
+        "coordinates": [
+          152.947998,
+          -27.051385
+        ]
+      },
+      "properties": {
+        "id": 333,
+        "url": "https://api.qldtraffic.qld.gov.au/v1/floodcams/333",
+        "description": "Caboolture - Beerburrum Rd at King John Creek - South - 4510",
+        "direction": "South",
+        "district": "North Coast",
+        "locality": "Caboolture",
+        "postcode": "4510",
+        "image_url": "https://cameras.qldtraffic.qld.gov.au/resized/c40ab126-cb0c-439c-ab04-902cee58f92d.jpg",
+        "image_sourced_from": "Department of Transport and Main Roads",
+        "isCustom": true,
+        "extra_info": "New images available every 30 minutes between 6am and 6pm\n"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "crs": {
+          "type": "name",
+          "properties": {
+            "name": "EPSG:7844"
+          }
+        },
+        "coordinates": [
+          152.48915,
+          -27.265236
+        ]
+      },
+      "properties": {
+        "id": 334,
+        "url": "https://api.qldtraffic.qld.gov.au/v1/floodcams/334",
+        "description": "Glen Esk - Brisbane Valley Highway at Paddy Gully - North - 4311",
+        "direction": "North",
+        "district": "North Coast",
+        "locality": "Glen Esk",
+        "postcode": "4311",
+        "image_url": "https://cameras.qldtraffic.qld.gov.au/resized/e29fce3d-aa08-4595-9b76-b44787ad440e.jpg",
+        "image_sourced_from": "Department of Transport and Main Roads",
+        "isCustom": true,
+        "extra_info": "New images available every 30 minutes between 6am and 6pm"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "crs": {
+          "type": "name",
+          "properties": {
+            "name": "EPSG:7844"
+          }
+        },
+        "coordinates": [
+          142.2698818,
+          -12.6538615
+        ]
+      },
+      "properties": {
+        "id": 218,
+        "url": "https://api.qldtraffic.qld.gov.au/v1/floodcams/218",
+        "description": "Mission River - Peninsula Developmental Road at Myall Creek",
+        "direction": "East",
+        "district": "Far North",
+        "locality": "Mission River",
+        "postcode": "4874",
+        "image_url": "https://cameras.qldtraffic.qld.gov.au/resized/d87d1de1-0215-46c4-ace0-cf938584f64c.jpg",
+        "image_sourced_from": "Department of Transport and Main Roads",
+        "isCustom": true,
+        "extra_info": null
+      }
+    }
+  ],
+  "published": "2026-10-13T07:15:35.2349314+10:00",
+  "rights": {
+    "owner": "As per the respective provided_by details contained in the feed: Department of Transport and Main Roads, Transport for NSW, or the respective Local Government Authority.",
+    "disclaimer": "The State of Queensland makes no statements, representations or warranties about the accuracy, currency, reliability or completeness of the information contained in this feed.",
+    "copyright": "Copyright in material within this feed is owned by the State of Queensland or other entities which provide material for the website by arrangement. Please consult the respective provided_by_url for each data owner or the QLDTraffic website for further information https://qldtraffic.qld.gov.au/More/Data.html."
+  }
+}

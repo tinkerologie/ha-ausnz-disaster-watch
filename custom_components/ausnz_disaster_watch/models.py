@@ -606,6 +606,12 @@ class DisasterCameraItem(BaseModel):
     suburb: str | None = Field(default=None, description="Locality or suburb")
     latitude: float | None = Field(default=None, ge=-90.0, le=90.0)
     longitude: float | None = Field(default=None, ge=-180.0, le=180.0)
+    # Road agency camera networks (#70); council dashboard cameras leave these unset
+    source_key: str | None = Field(default=None, description="Data source register key of the camera network")
+    direction: str | None = Field(default=None, description="Direction the camera faces")
+    owner: str | None = Field(default=None, description="Who supplies the image, when the network names them")
+    description: str | None = Field(default=None, description="What the camera shows")
+    distance_km: float | None = Field(default=None, ge=0.0, description="Distance from the monitored location")
 
 
 class DisasterCoordinatorData(BaseModel):

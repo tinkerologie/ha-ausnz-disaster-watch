@@ -27,6 +27,7 @@ from homeassistant.helpers.selector import (
 )
 from homeassistant.util import dt as dt_util
 
+from .camera_options import CameraOptionsFlow
 from .const import (
     CONF_COUNCIL_DASHBOARD_URL,
     CONF_EXCLUDE_HAZARD_REDUCTION,
@@ -677,7 +678,7 @@ def clean_road_options(options: dict[str, Any], user_input: dict[str, Any]) -> d
     return cleaned
 
 
-class AustralianDisasterWatchOptionsFlowHandler(HazardOptionsFlow, NationalFeedsOptionsFlow):
+class AustralianDisasterWatchOptionsFlowHandler(HazardOptionsFlow, NationalFeedsOptionsFlow, CameraOptionsFlow):
     """Handle options flow for Australia and New Zealand Disaster Watch."""
 
     def __init__(self) -> None:
@@ -704,6 +705,8 @@ class AustralianDisasterWatchOptionsFlowHandler(HazardOptionsFlow, NationalFeeds
             menu.insert(1, "roads")
         if power_option_fields({**self.config_entry.data, **self.config_entry.options}):
             menu.insert(menu.index("roads") + 1 if "roads" in menu else 1, "power_outages")
+        if self._camera_networks:
+            menu.insert(menu.index("national_feeds") + 1, "cameras")
         if self._points:
             menu += ["edit_river_point", "remove_river_point"]
         state = str({**self.config_entry.data, **self.config_entry.options}.get(CONF_STATE, "")).upper()
