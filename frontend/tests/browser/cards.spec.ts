@@ -505,7 +505,7 @@ test("relief card links only the entry's own council unless nearby councils are 
     el.locator("ha-icon-button.link").evaluateAll((els) => els.map((e) => (e as HTMLElement & { href: string }).href));
 
   const own = await mount(page, "ausnz-disaster-relief-card", { device: QLD });
-  await expect(own.getByText("Your council dashboard")).toBeVisible();
+  await expect(own.getByText("Council dashboard", { exact: true })).toBeVisible();
   await expect(own.getByText("City of Moreton Bay")).toBeVisible();
   await expect(own.getByText("Nearby council dashboards")).toHaveCount(0);
   await expect(own.getByText("Noosa Shire Council")).toHaveCount(0);
@@ -524,7 +524,7 @@ test("relief card links only the entry's own council unless nearby councils are 
     [level, warnings].map((id) => [id, { ...fixture.states[id], attributes: { ...fixture.states[id].attributes, council: null } }]),
   );
   const none = await mount(page, "ausnz-disaster-relief-card", { device: QLD }, { states: noCouncil });
-  await expect(none.getByText("Your council dashboard")).toHaveCount(0);
+  await expect(none.getByText("Council dashboard", { exact: true })).toHaveCount(0);
   await expect(none.getByText("Noosa Shire Council")).toHaveCount(0);
   const noneAll = await mount(page, "ausnz-disaster-relief-card", { device: QLD, show_nearby_councils: true }, { states: noCouncil });
   await expect(noneAll.getByText("Noosa Shire Council")).toBeVisible();

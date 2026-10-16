@@ -134,7 +134,7 @@ export const en = {
   "relief.group.place_of_refuge": "Places of refuge",
   "relief.group.sandbag_station": "Sandbag stations",
   "relief.group.other": "Other facilities",
-  "relief.own_council": "Your council dashboard",
+  "relief.own_council": "Council dashboard",
   "relief.councils": "Nearby council dashboards",
   "relief.open": "Open",
   "relief.closed": "Closed",

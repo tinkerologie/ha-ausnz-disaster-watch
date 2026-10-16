@@ -450,7 +450,7 @@ Card-specific options:
 | Map | `radar_opacity` | `0.7` | Radar layer opacity (0.1 to 1). |
 | Map | `satellite_layer` | `none` | Satellite imagery under the incidents: `himawari_visible` (daytime clouds, every 10 minutes), `himawari_ir` (clouds day and night, every 10 minutes), `viirs_truecolor` (daily true colour image: smoke, burn scars, flood extent) or `none`. |
 | Map | `show_cyclone_tracks` | `false` | Draw the GDACS forecast track, wind areas and uncertainty cone of current cyclones listed by the **Regional Disaster Alerts** sensor. Needs the integration option **Regional disaster alerts (GDACS)**. |
-| Relief | `show_nearby_councils` | `false` | Also link to the disaster dashboards of up to six neighbouring councils, below **Your council dashboard**. Off, the card links only to the council dashboard the entry reads (none when the entry has no council dashboard). |
+| Relief | `show_nearby_councils` | `false` | Also link to the disaster dashboards of up to six neighbouring councils, below **Council dashboard**. Off, the card links only to the council dashboard the entry reads: your council's, or the nearest readable one when your council has none that Home Assistant can read (none when the entry has no council dashboard). |
 | All-in-one | `cards` | `status`, `incidents`, `warnings`, `fire_danger`, `roads`, `outages` | Sections to stack, in order. Also available: `conditions`, `relief`, `cameras`, `map`. |
 | All-in-one | `show_nearby_councils` | `false` | Passed to the relief section (see Relief above). |
 
