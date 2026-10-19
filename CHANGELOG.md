@@ -6,6 +6,8 @@ Versions follow Home Assistant's scheme, `YEAR.MONTH.PATCH` (for example `2026.1
 
 ## [Unreleased]
 
+## [2026.10.0] - 2026-10-19
+
 ### Fixed
 
 - Several cameras leaving the feed in one refresh no longer fail the update listener with `KeyError: 'camera_…'`. A removal that finished at once re-synced the cameras while the first sync was still walking them; re-syncs now wait for the running one.
@@ -75,7 +77,7 @@ Versions follow Home Assistant's scheme, `YEAR.MONTH.PATCH` (for example `2026.1
 - Option changes are applied by reloading the entry (`OptionsFlowWithReload`) and the update listener is removed; Home Assistant 2026.12 breaks integrations that combine an update listener with `async_update_reload_and_abort` (#15).
 - The coordinator is stored in typed `entry.runtime_data` instead of `hass.data[DOMAIN]`, receives its config entry explicitly, and initialises its base class before reading config values, so entries without coordinates fall back to the Home Assistant home location instead of raising `AttributeError` (#5, #8).
 - Entity names come from translations (`_attr_translation_key`) instead of hard-coded `_attr_name`; names are unchanged. Imports use public Home Assistant modules (#8).
-- Versioning follows Home Assistant (`YEAR.MONTH.PATCH`); the manifest is `2026.10.0b0`. The release workflow accepts that scheme and does not publish alpha, beta or release-candidate versions, so merging changes during the beta creates no release.
+- Versioning follows Home Assistant (`YEAR.MONTH.PATCH`), starting with this release, 2026.10.0. The release workflow accepts that scheme and does not publish alpha, beta or release-candidate versions.
 - CI uploads test coverage to Codecov (`codecov.yml`: project coverage may not drop, patch coverage 100%) (#9).
 - New `script/check-imports` and CI job verify every module imports in a clean Home Assistant environment with only the declared requirements (#17).
 - README entity tables, card type and automation examples (modern `triggers`/`actions` syntax, real entity IDs) updated; AGENTS.md/GEMINI.md/Copilot instructions describe the real package layout and domain (#9).
