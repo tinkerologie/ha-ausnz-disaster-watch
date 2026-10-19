@@ -344,3 +344,39 @@ async def test_camera_cleanup_waits_for_a_complete_refresh(
     assert registry.async_get(stale) is not None
     coordinator.async_set_updated_data(DisasterCoordinatorData())
     assert registry.async_get(stale) is None
+
+
+async def test_several_cameras_leaving_in_one_refresh(
+    hass: HomeAssistant, mock_config_entry: MockConfigEntry, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Removing several cameras at once does not fail the listener.
+
+    Tasks start eagerly, so a removal that finishes without suspending re-syncs while the
+    first sync is still walking the cameras that went (KeyError: 'camera_…').
+    """
+    entry = mock_config_entry
+    entry.add_to_hass(hass)
+    registry = er.async_get(hass)
+    coordinator, add = await _camera_platform(
+        hass, entry, DisasterCoordinatorData(cameras=[_camera("a"), _camera("b"), _camera("c"), _camera("d")])
+    )
+    entities = {entity.camera_id: entity for entity in add.call_args[0][0]}
+    for entity in entities.values():
+        entity.hass = hass
+        entity.entity_id = _register(hass, entry, "camera", f"camera_{entity.camera_id}")
+        entity.async_remove = AsyncMock()
+
+    coordinator.async_set_updated_data(DisasterCoordinatorData(cameras=[_camera("a")]))
+    await hass.async_block_till_done()
+
+    assert "Unexpected error updating listener" not in caplog.text
+    for camera_id in ("b", "c", "d"):
+        entities[camera_id].async_remove.assert_awaited_once_with(force_remove=True)
+        assert registry.async_get(entities[camera_id].entity_id) is None
+    entities["a"].async_remove.assert_not_awaited()
+
+    # They can come back
+    add.reset_mock()
+    coordinator.async_set_updated_data(DisasterCoordinatorData(cameras=[_camera("a"), _camera("c")]))
+    (returned,) = add.call_args[0][0]
+    assert returned.camera_id == "c"
