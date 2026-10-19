@@ -6,6 +6,10 @@ Versions follow Home Assistant's scheme, `YEAR.MONTH.PATCH` (for example `2026.1
 
 ## [Unreleased]
 
+### Fixed
+
+- Tests on a fresh environment (GitHub-hosted runners) failed in `test_diagnostics_snapshot`: `pytest-homeassistant-custom-component` 0.13.367 pinned Home Assistant 2026.9.4, but `script/setup/bootstrap` installed the latest release's (2026.10.2) dependencies on top, including an aiohttp the older core's `http` component rejects. The test package is now 0.13.373 (Home Assistant 2026.10.2), and bootstrap defaults to the Home Assistant version that package installed.
+
 ## [2026.10.0] - 2026-10-19
 
 ### Fixed
