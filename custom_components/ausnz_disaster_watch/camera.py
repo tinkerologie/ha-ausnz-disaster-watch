@@ -84,6 +84,10 @@ async def async_setup_entry(
     tracked: dict[str, AustralianDisasterWatchCamera] = {}
     removing: set[str] = set()
     registry_cleaned = False
+    # Tasks start eagerly, so a removal that finishes without suspending asks for a re-sync
+    # while a sync is still running; that request is deferred until the running sync ends.
+    syncing = False
+    resync = False
 
     async def _async_remove(camera_id: str, entity: AustralianDisasterWatchCamera) -> None:
         # Keep the ID tracked until the old entity is gone: re-adding a camera whose old
@@ -99,6 +103,21 @@ async def async_setup_entry(
 
     @callback
     def _sync_entities() -> None:
+        nonlocal syncing, resync
+        if syncing:
+            resync = True
+            return
+        syncing = True
+        try:
+            resync = True
+            while resync:
+                resync = False
+                _sync_once()
+        finally:
+            syncing = False
+
+    @callback
+    def _sync_once() -> None:
         nonlocal registry_cleaned
         current = {camera.id for camera in coordinator.cameras}
         complete = cameras_complete(coordinator)

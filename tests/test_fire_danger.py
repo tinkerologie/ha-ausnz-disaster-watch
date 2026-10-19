@@ -15,6 +15,7 @@ import json
 from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock, patch
+from urllib.parse import urlparse
 
 import defusedxml.ElementTree as ET
 from freezegun.api import FrozenDateTimeFactory
@@ -559,7 +560,9 @@ async def test_service_wa_bans_by_lga(hass: HomeAssistant, freezer: FrozenDateTi
     assert [d.total_fire_ban for d in wa.outlook.days] == [False, True]
     freezer.tick(FIRE_REFRESH_INTERVAL)
     await wa.async_update()
-    abs_calls = [c for c in wa.async_fetch_feed_json.await_args_list if c.args[0].startswith("https://geo.abs")]
+    abs_calls = [
+        c for c in wa.async_fetch_feed_json.await_args_list if urlparse(c.args[0]).hostname == "geo.abs.gov.au"
+    ]
     assert len(abs_calls) == 1
 
     # No LGA at the location: bans unknown
