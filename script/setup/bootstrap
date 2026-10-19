@@ -175,7 +175,14 @@ else
     log_info "No runtime dependencies defined (this is normal for blueprints)"
 fi
 
-HA_VERSION_INPUT="${HA_VERSION:-latest}"
+# Default to the Home Assistant that pytest-homeassistant-custom-component pinned (installed
+# with the test dependencies above). Installing a newer release's dependencies on top of an
+# older core leaves them out of step (for example an aiohttp the core's http component rejects).
+INSTALLED_HA_VERSION="$(python -c 'import importlib.metadata as m; print(m.version("homeassistant"))' 2>/dev/null || true)"
+if [[ -n "$INSTALLED_HA_VERSION" ]] && ! validate_homeassistant_version "$INSTALLED_HA_VERSION"; then
+    INSTALLED_HA_VERSION=""
+fi
+HA_VERSION_INPUT="${HA_VERSION:-${INSTALLED_HA_VERSION:-latest}}"
 
 if [[ "$HA_VERSION_INPUT" == "latest" || "$HA_VERSION_INPUT" == "stable" ]]; then
     log_header "Resolving latest stable Home Assistant version"
