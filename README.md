@@ -7,9 +7,13 @@
 
 # Australia and New Zealand Disaster Watch for Home Assistant
 
-[![GitHub Release](https://img.shields.io/github/v/release/tinkerologie/ha-ausnz-disaster-watch?style=flat-square)](https://github.com/tinkerologie/ha-ausnz-disaster-watch/releases)
-[![License](https://img.shields.io/github/license/tinkerologie/ha-ausnz-disaster-watch?style=flat-square)](LICENSE)
-[![hacs](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=flat-square)](https://hacs.xyz)
+<!-- BADGES:START -->
+[![Marketplace and HACS](https://img.shields.io/badge/Marketplace%20%7C%20HACS-Default-orange.svg)](https://www.hacs.xyz/docs/marketplace/)
+[![GitHub Last Commit](https://img.shields.io/github/last-commit/tinkerologie/ha-ausnz-disaster-watch)](https://github.com/tinkerologie/ha-ausnz-disaster-watch/commits/main)
+[![GitHub Release](https://img.shields.io/github/v/release/tinkerologie/ha-ausnz-disaster-watch)](https://github.com/tinkerologie/ha-ausnz-disaster-watch/releases)
+[![codecov](https://codecov.io/gh/tinkerologie/ha-ausnz-disaster-watch/graph/badge.svg)](https://codecov.io/gh/tinkerologie/ha-ausnz-disaster-watch)
+[![License](https://img.shields.io/github/license/tinkerologie/ha-ausnz-disaster-watch)](./LICENSE)
+<!-- BADGES:END -->
 
 Emergency warnings, incidents, fire danger, road closures, power outages, rivers and dams from official Australian and New Zealand feeds, normalised to the Australian Warning System and shown as Home Assistant entities, map pins and dashboard cards.
 
