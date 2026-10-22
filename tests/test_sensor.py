@@ -31,7 +31,6 @@ from custom_components.ausnz_disaster_watch.models import (
 )
 from custom_components.ausnz_disaster_watch.providers.qld import QueenslandHazardProvider
 from custom_components.ausnz_disaster_watch.sensor import (
-    ActiveHazardsCountSensor,
     AirQualityIndexSensor,
     FireDangerRatingSensor,
     HighestWarningLevelSensor,
@@ -373,6 +372,17 @@ async def test_oversized_bulletins_remain_live(
         await hass.async_block_till_done()
 
     registry = er.async_get(hass)
+    baseline_exclusions = []
+    for key in ("active_hazards_count", "power_outages_count"):
+        entity_id = registry.async_get_entity_id(
+            "sensor", "ausnz_disaster_watch", f"{mock_config_entry.entry_id}_{key}"
+        )
+        assert entity_id is not None
+        state = hass.states.get(entity_id)
+        assert state is not None
+        baseline_exclusions.append(state.state_info["unrecorded_attributes"])
+    assert baseline_exclusions[0] == baseline_exclusions[1]
+    assert not baseline_exclusions[0] & {"warnings", "emergency_news"}
     for key, expected, excluded in (
         ("highest_warning_level", "emergency_warning", {"emergency_news"}),
         ("weather_warnings_count", "25", {"warnings", "emergency_news"}),
@@ -386,7 +396,7 @@ async def test_oversized_bulletins_remain_live(
         assert state.state == expected
         assert len(state.attributes["emergency_news"]) == 20
         assert all(item["description"] == text for item in state.attributes["emergency_news"])
-        assert excluded <= state.state_info["unrecorded_attributes"]
+        assert state.state_info["unrecorded_attributes"] == baseline_exclusions[0] | excluded
         assert "council" not in state.state_info["unrecorded_attributes"]
         assert "inside_warning_area" not in state.state_info["unrecorded_attributes"]
         assert "inside_warning_level" not in state.state_info["unrecorded_attributes"]
@@ -394,10 +404,6 @@ async def test_oversized_bulletins_remain_live(
             assert len(state.attributes["warnings"]) == 20
             assert state.attributes["warnings"][0]["title"] == f"Warning 0: {text}"
             assert state.attributes["warnings"][0]["locations"] == text
-    assert HighestWarningLevelSensor._unrecorded_attributes == {"emergency_news"}
-    assert WeatherWarningsCountSensor._unrecorded_attributes == {"warnings", "emergency_news"}
-    assert not ActiveHazardsCountSensor._unrecorded_attributes
-    assert not PowerOutagesCountSensor._unrecorded_attributes
     assert await hass.config_entries.async_unload(mock_config_entry.entry_id)
 
 
