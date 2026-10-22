@@ -1007,7 +1007,7 @@ GitHub Actions run lint, tests, the declared requirements check, the frontend bu
 - **Type checking**: Pyright in basic mode.
 - **Code style**: linted and formatted with Ruff (`py313`).
 - **Tests**: `pytest-homeassistant-custom-component`.
-- **Database safety**: entity attributes are capped to stay well under Home Assistant's 16 KB attribute limit. The highest warning level and weather warnings count sensors exclude their bulky `emergency_news` and `warnings` lists from recorder history while keeping the full lists available live for dashboards.
+- **Database safety**: entity attributes are capped to stay well under Home Assistant's 16 KB attribute limit. The highest warning level and weather warnings count sensors exclude their bulky `emergency_news` and `warnings` lists from recorder history while keeping up to 20 items per list available live for dashboards.
 
 ## License
 

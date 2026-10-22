@@ -7,7 +7,11 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.ausnz_disaster_watch.const import CONF_COUNCIL_DASHBOARD_URL
+from custom_components.ausnz_disaster_watch.const import (
+    CONF_COUNCIL_DASHBOARD_URL,
+    CONF_ENABLE_REGIONAL_ALERTS,
+    CONF_ENABLE_SATELLITE_HOTSPOTS,
+)
 from custom_components.ausnz_disaster_watch.coordinator import AustralianDisasterWatchCoordinator
 from custom_components.ausnz_disaster_watch.council_registry import own_council_link
 from custom_components.ausnz_disaster_watch.models import (
@@ -20,6 +24,7 @@ from custom_components.ausnz_disaster_watch.models import (
     PowerOutageItem,
     ReliefFacilityItem,
     RoadClosureItem,
+    SatelliteHotspots,
     WarningLevel,
     WeatherStationObservation,
     WeatherWarningItem,
@@ -33,13 +38,10 @@ from custom_components.ausnz_disaster_watch.sensor import (
     PowerOutagesCountSensor,
     PowerOutagesCustomersAffectedSensor,
     PrimaryWeatherObservationSensor,
-    RegionalDisasterAlertsSensor,
     ReliefFacilitiesCountSensor,
     RoadClosuresCountSensor,
-    SatelliteHotspotsSensor,
     WeatherWarningsCountSensor,
 )
-from homeassistant.components.sensor import SensorEntity, SensorStateClass
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 
@@ -442,24 +444,39 @@ async def test_weather_warning_unit_override_and_reload(
 
 
 @pytest.mark.parametrize(
-    ("sensor_class", "unit"),
+    ("key", "unit"),
     [
-        (ActiveHazardsCountSensor, "hazards"),
-        (PowerOutagesCountSensor, "outages"),
-        (PowerOutagesCustomersAffectedSensor, "customers"),
-        (RoadClosuresCountSensor, "closures"),
-        (WeatherWarningsCountSensor, "warnings"),
-        (ReliefFacilitiesCountSensor, "facilities"),
-        (SatelliteHotspotsSensor, "hotspots"),
-        (RegionalDisasterAlertsSensor, "alerts"),
+        ("active_hazards_count", "hazards"),
+        ("power_outages_count", "outages"),
+        ("power_outages_customers_affected", "customers"),
+        ("road_closures_count", "closures"),
+        ("weather_warnings_count", "warnings"),
+        ("relief_facilities_count", "facilities"),
+        ("satellite_hotspots_nearby", "hotspots"),
+        ("regional_disaster_alerts", "alerts"),
     ],
 )
 async def test_count_sensor_metadata(
-    hass: HomeAssistant, mock_config_entry: MockConfigEntry, sensor_class: type[SensorEntity], unit: str
+    hass: HomeAssistant, mock_config_entry: MockConfigEntry, key: str, unit: str
 ) -> None:
-    """Preserve count noun units for existing long-term statistics (#115)."""
-    with patch("custom_components.ausnz_disaster_watch.coordinator.get_providers_for_config", return_value=[]):
-        coordinator = AustralianDisasterWatchCoordinator(hass, mock_config_entry)
-    sensor = sensor_class(coordinator)
-    assert sensor.native_unit_of_measurement == unit
-    assert sensor.state_class == SensorStateClass.MEASUREMENT
+    """Preserve effective count noun units for existing long-term statistics (#115)."""
+    mock_config_entry.add_to_hass(hass)
+    hass.config_entries.async_update_entry(
+        mock_config_entry, options={CONF_ENABLE_SATELLITE_HOTSPOTS: True, CONF_ENABLE_REGIONAL_ALERTS: True}
+    )
+    provider = AsyncMock()
+    provider.async_fetch_hazards.return_value = []
+    provider.async_fetch_satellite_hotspots.return_value = SatelliteHotspots(items=[], min_confidence=50)
+    provider.async_fetch_regional_alerts.return_value = []
+    with patch("custom_components.ausnz_disaster_watch.coordinator.get_providers_for_config", return_value=[provider]):
+        assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+        await hass.async_block_till_done()
+    entity_id = er.async_get(hass).async_get_entity_id(
+        "sensor", "ausnz_disaster_watch", f"{mock_config_entry.entry_id}_{key}"
+    )
+    assert entity_id is not None
+    state = hass.states.get(entity_id)
+    assert state is not None
+    assert state.attributes["unit_of_measurement"] == unit
+    assert state.attributes["state_class"] == "measurement"
+    assert await hass.config_entries.async_unload(mock_config_entry.entry_id)
