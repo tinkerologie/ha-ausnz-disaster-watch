@@ -6,6 +6,8 @@ Versions follow Home Assistant's scheme, `YEAR.MONTH.PATCH` (for example `2026.1
 
 ## [Unreleased]
 
+## [2026.10.1] - 2026-10-22
+
 ### Fixed
 
 - Highest warning level and weather warnings count sensors keep up to 20 emergency news and warning items per list live for dashboards, but exclude these bulky lists from recorder history to avoid the 16 KB attribute limit. Scalar and council attributes remain recorded (#114).
