@@ -4,20 +4,27 @@ from dataclasses import replace
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.ausnz_disaster_watch.const import CONF_COUNCIL_DASHBOARD_URL
+from custom_components.ausnz_disaster_watch.const import (
+    CONF_COUNCIL_DASHBOARD_URL,
+    CONF_ENABLE_REGIONAL_ALERTS,
+    CONF_ENABLE_SATELLITE_HOTSPOTS,
+)
 from custom_components.ausnz_disaster_watch.coordinator import AustralianDisasterWatchCoordinator
 from custom_components.ausnz_disaster_watch.council_registry import own_council_link
 from custom_components.ausnz_disaster_watch.models import (
     AirQualityStationData,
     CanonicalHazard,
     DisasterCoordinatorData,
+    EmergencyNewsItem,
     FireDangerRating,
     HazardType,
     PowerOutageItem,
     ReliefFacilityItem,
     RoadClosureItem,
+    SatelliteHotspots,
     WarningLevel,
     WeatherStationObservation,
     WeatherWarningItem,
@@ -35,6 +42,7 @@ from custom_components.ausnz_disaster_watch.sensor import (
     WeatherWarningsCountSensor,
 )
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 
 
 async def test_sensors_telemetry(
@@ -337,3 +345,144 @@ def test_own_council_link() -> None:
         "name": "dashboard.example.org",
         "url": "https://dashboard.example.org/qld",
     }
+
+
+async def test_oversized_bulletins_remain_live(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    mock_hazard_emergency_warning: CanonicalHazard,
+) -> None:
+    """Keep complete live bulletins and restrict only their recorder policy (#114).
+
+    The pinned custom-component harness does not provide recorder_mock or
+    async_wait_recording_done, so check Core's live state exclusion metadata.
+    """
+    mock_config_entry.add_to_hass(hass)
+    text = "Long emergency bulletin. " * 1000
+    provider = AsyncMock()
+    provider.async_fetch_hazards.return_value = [mock_hazard_emergency_warning]
+    provider.async_fetch_emergency_news.return_value = [
+        EmergencyNewsItem(id=str(i), title=f"Bulletin {i}", description=text) for i in range(25)
+    ]
+    provider.async_fetch_weather_warnings.return_value = [
+        WeatherWarningItem(title=f"Warning {i}: {text}", locations=text) for i in range(25)
+    ]
+    with patch("custom_components.ausnz_disaster_watch.coordinator.get_providers_for_config", return_value=[provider]):
+        assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+        await hass.async_block_till_done()
+
+    registry = er.async_get(hass)
+    baseline_exclusions = []
+    for key in ("active_hazards_count", "power_outages_count"):
+        entity_id = registry.async_get_entity_id(
+            "sensor", "ausnz_disaster_watch", f"{mock_config_entry.entry_id}_{key}"
+        )
+        assert entity_id is not None
+        state = hass.states.get(entity_id)
+        assert state is not None
+        baseline_exclusions.append(state.state_info["unrecorded_attributes"])
+    assert baseline_exclusions[0] == baseline_exclusions[1]
+    assert not baseline_exclusions[0] & {"warnings", "emergency_news"}
+    for key, expected, excluded in (
+        ("highest_warning_level", "emergency_warning", {"emergency_news"}),
+        ("weather_warnings_count", "25", {"warnings", "emergency_news"}),
+    ):
+        entity_id = registry.async_get_entity_id(
+            "sensor", "ausnz_disaster_watch", f"{mock_config_entry.entry_id}_{key}"
+        )
+        assert entity_id is not None
+        state = hass.states.get(entity_id)
+        assert state is not None
+        assert state.state == expected
+        assert len(state.attributes["emergency_news"]) == 20
+        assert all(item["description"] == text for item in state.attributes["emergency_news"])
+        assert state.state_info["unrecorded_attributes"] == baseline_exclusions[0] | excluded
+        assert "council" not in state.state_info["unrecorded_attributes"]
+        assert "inside_warning_area" not in state.state_info["unrecorded_attributes"]
+        assert "inside_warning_level" not in state.state_info["unrecorded_attributes"]
+        if key == "weather_warnings_count":
+            assert len(state.attributes["warnings"]) == 20
+            assert state.attributes["warnings"][0]["title"] == f"Warning 0: {text}"
+            assert state.attributes["warnings"][0]["locations"] == text
+    assert await hass.config_entries.async_unload(mock_config_entry.entry_id)
+
+
+async def test_weather_warning_unit_override_and_reload(
+    hass: HomeAssistant, mock_config_entry: MockConfigEntry
+) -> None:
+    """Native units and identity survive reload; explicit user overrides remain user-owned (#115)."""
+    mock_config_entry.add_to_hass(hass)
+    provider = AsyncMock()
+    provider.async_fetch_hazards.return_value = []
+    provider.async_fetch_weather_warnings.return_value = [WeatherWarningItem(title="Storm warning")]
+    registry = er.async_get(hass)
+    unique_id = f"{mock_config_entry.entry_id}_weather_warnings_count"
+    with patch("custom_components.ausnz_disaster_watch.coordinator.get_providers_for_config", return_value=[provider]):
+        assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+        await hass.async_block_till_done()
+        entity_id = registry.async_get_entity_id("sensor", "ausnz_disaster_watch", unique_id)
+        assert entity_id is not None
+        state = hass.states.get(entity_id)
+        assert state is not None
+        assert state.state == "1"
+        assert state.attributes["unit_of_measurement"] == "warnings"
+        assert state.attributes["state_class"] == "measurement"
+
+        assert await hass.config_entries.async_reload(mock_config_entry.entry_id)
+        await hass.async_block_till_done()
+        assert registry.async_get_entity_id("sensor", "ausnz_disaster_watch", unique_id) == entity_id
+        assert registry.async_get(entity_id).unique_id == unique_id
+        state = hass.states.get(entity_id)
+        assert state is not None
+        assert state.attributes["unit_of_measurement"] == "warnings"
+        assert state.attributes["state_class"] == "measurement"
+
+        registry.async_update_entity_options(entity_id, "sensor", {"unit_of_measurement": None})
+        await hass.async_block_till_done()
+        # Core 2026.10.2 ignores a null unit override for a sensor with no unit converter.
+        # Unlike the plan's hypothesis, this does not make a noun-unit sensor unitless.
+        assert registry.async_get(entity_id).options["sensor"]["unit_of_measurement"] is None
+        assert hass.states.get(entity_id).attributes["unit_of_measurement"] == "warnings"
+        registry.async_update_entity_options(entity_id, "sensor", None)
+        await hass.async_block_till_done()
+        assert hass.states.get(entity_id).attributes["unit_of_measurement"] == "warnings"
+    assert await hass.config_entries.async_unload(mock_config_entry.entry_id)
+
+
+@pytest.mark.parametrize(
+    ("key", "unit"),
+    [
+        ("active_hazards_count", "hazards"),
+        ("power_outages_count", "outages"),
+        ("power_outages_customers_affected", "customers"),
+        ("road_closures_count", "closures"),
+        ("weather_warnings_count", "warnings"),
+        ("relief_facilities_count", "facilities"),
+        ("satellite_hotspots_nearby", "hotspots"),
+        ("regional_disaster_alerts", "alerts"),
+    ],
+)
+async def test_count_sensor_metadata(
+    hass: HomeAssistant, mock_config_entry: MockConfigEntry, key: str, unit: str
+) -> None:
+    """Preserve effective count noun units for existing long-term statistics (#115)."""
+    mock_config_entry.add_to_hass(hass)
+    hass.config_entries.async_update_entry(
+        mock_config_entry, options={CONF_ENABLE_SATELLITE_HOTSPOTS: True, CONF_ENABLE_REGIONAL_ALERTS: True}
+    )
+    provider = AsyncMock()
+    provider.async_fetch_hazards.return_value = []
+    provider.async_fetch_satellite_hotspots.return_value = SatelliteHotspots(items=[], min_confidence=50)
+    provider.async_fetch_regional_alerts.return_value = []
+    with patch("custom_components.ausnz_disaster_watch.coordinator.get_providers_for_config", return_value=[provider]):
+        assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+        await hass.async_block_till_done()
+    entity_id = er.async_get(hass).async_get_entity_id(
+        "sensor", "ausnz_disaster_watch", f"{mock_config_entry.entry_id}_{key}"
+    )
+    assert entity_id is not None
+    state = hass.states.get(entity_id)
+    assert state is not None
+    assert state.attributes["unit_of_measurement"] == unit
+    assert state.attributes["state_class"] == "measurement"
+    assert await hass.config_entries.async_unload(mock_config_entry.entry_id)

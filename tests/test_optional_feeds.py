@@ -17,7 +17,8 @@ from custom_components.ausnz_disaster_watch.coordinator import (
     AustralianDisasterWatchCoordinator,
     OptionalFeedTimeoutError,
 )
-from custom_components.ausnz_disaster_watch.models import AirQualityStationData
+from custom_components.ausnz_disaster_watch.models import AirQualityStationData, FireDangerDay, FireDangerOutlook
+from custom_components.ausnz_disaster_watch.providers.fire_danger import FireDangerService, local_today
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
@@ -64,6 +65,7 @@ async def test_slow_optional_feed_does_not_block_setup(
     hass: HomeAssistant, mock_config_entry: MockConfigEntry, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Setup finishes while an optional feed is still busy; its entity fills in when it answers."""
+    caplog.set_level(logging.DEBUG, logger=coordinator_module.__name__)
     feed = SlowFeed([STATION])
     mock_config_entry.add_to_hass(hass)
     with patch(PROVIDERS, return_value=[provider_with(feed)]):
@@ -73,7 +75,10 @@ async def test_slow_optional_feed_does_not_block_setup(
         state = hass.states.get(f"sensor.{PREFIX}_air_quality")
         assert state is not None
         assert state.state == "unknown"
-        assert caplog.text.count("did not answer within") == 1
+        assert not any(
+            record.levelno >= logging.WARNING and "Optional feed" in record.message for record in caplog.records
+        )
+        assert any(record.levelno == logging.DEBUG and "at startup" in record.message for record in caplog.records)
 
         feed.release.set()
         await hass.async_block_till_done(wait_background_tasks=True)
@@ -82,7 +87,7 @@ async def test_slow_optional_feed_does_not_block_setup(
         assert state is not None
         assert state.state == "Fair"
         assert feed.calls == 1
-        assert "is answering again" in caplog.text
+        assert "is answering again" not in caplog.text
     assert await hass.config_entries.async_unload(mock_config_entry.entry_id)
 
 
@@ -116,7 +121,10 @@ async def test_timeout_uses_last_good_and_logs_once(
         # Still busy: the same call is waited on again (no second request), and nothing new is logged
         assert await poll() == "Fair"
         assert feed.calls == 2
-        assert caplog.text.count("did not answer within") == 1
+        warnings = [record for record in caplog.records if "did not answer within" in record.message]
+        assert len(warnings) == 1
+        assert warnings[0].levelno == logging.WARNING
+        assert "using its last result" in warnings[0].message
 
         # Once the last good reading is older than the stale age, the sensor reads as unknown
         with patch.object(coordinator_module, "LAST_GOOD_MAX_AGE", timedelta(0)):
@@ -185,23 +193,108 @@ async def test_timeout_without_result_raises(hass: HomeAssistant, mock_config_en
     assert await coordinator._async_optional(owner, "async_fetch_air_quality") == [STATION]
 
 
-async def test_slow_fire_outlook_does_not_block(hass: HomeAssistant, mock_config_entry: MockConfigEntry) -> None:
-    """A slow fire danger outlook update is skipped for this refresh."""
+async def test_slow_fire_outlook_does_not_block(
+    hass: HomeAssistant, mock_config_entry: MockConfigEntry, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A startup timeout is DEBUG only and its late fire outlook is published (#116)."""
+    caplog.set_level(logging.DEBUG, logger=coordinator_module.__name__)
     mock_config_entry.add_to_hass(hass)
     release = asyncio.Event()
+    outlook = FireDangerOutlook(
+        district_number="QLD_FW015",
+        district_name="Southeast Coast",
+        time_zone="Australia/Brisbane",
+        source="test",
+        days=[FireDangerDay(date=local_today("Australia/Brisbane"), rating="High")],
+    )
+    calls = 0
 
-    async def slow_update() -> None:
+    async def slow_update(service: FireDangerService) -> None:
+        nonlocal calls
+        calls += 1
         await release.wait()
+        service.outlook = outlook
 
-    with patch(PROVIDERS, return_value=[provider_with(SlowFeed([]))]):
-        coordinator = AustralianDisasterWatchCoordinator(hass, mock_config_entry)
-    with patch.object(coordinator.fire_service, "async_update", slow_update):
-        data = await coordinator._async_update_data()
-    assert data.fire_outlook is None
-    release.set()
-    for task in coordinator._optional_tasks.values():
-        task.cancel()
-    await hass.async_block_till_done(wait_background_tasks=True)
+    provider = AsyncMock()
+    provider.async_fetch_hazards.return_value = []
+    with patch(PROVIDERS, return_value=[provider]), patch.object(FireDangerService, "async_update", slow_update):
+        assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+        await hass.async_block_till_done()
+        state = hass.states.get(f"sensor.{PREFIX}_fire_danger_rating")
+        assert state is not None
+        assert state.state == "unknown"
+        records = [record for record in caplog.records if "Optional feed" in record.message]
+        assert len(records) == 1
+        assert records[0].levelno == logging.DEBUG
+        assert "at startup" in records[0].message
+        assert "FireDangerService.async_update" in records[0].message
+        release.set()
+        await hass.async_block_till_done(wait_background_tasks=True)
+        state = hass.states.get(f"sensor.{PREFIX}_fire_danger_rating")
+        assert state is not None
+        assert state.state == "high"
+        assert state.attributes["district_name"] == "Southeast Coast"
+        assert calls == 1  # Its late completion refreshed the entity without a second request.
+        assert "is answering again" not in caplog.text
+    assert await hass.config_entries.async_unload(mock_config_entry.entry_id)
+
+
+@pytest.mark.parametrize("log_timeout", [True, False])
+async def test_startup_timeout_then_sustained_outage(
+    hass: HomeAssistant, mock_config_entry: MockConfigEntry, caplog: pytest.LogCaptureFixture, log_timeout: bool
+) -> None:
+    """A persistent timeout warns once; road feeds suppress duplicate optional-feed warnings."""
+    caplog.set_level(logging.DEBUG, logger=coordinator_module.__name__)
+    mock_config_entry.add_to_hass(hass)
+    feed = SlowFeed([STATION] if log_timeout else [])
+    provider = AsyncMock()
+    provider.async_fetch_hazards.return_value = []
+    roads = []
+    if log_timeout:
+        provider.async_fetch_air_quality = feed
+    else:
+        road_provider = AsyncMock()
+        road_provider.failed_sources = []
+        road_provider.async_fetch_road_closures = feed
+        roads = [road_provider]
+    entity_id = f"sensor.{PREFIX}_air_quality" if log_timeout else f"sensor.{PREFIX}_road_closures_count"
+    with (
+        patch(PROVIDERS, return_value=[provider]),
+        patch("custom_components.ausnz_disaster_watch.coordinator.get_road_providers_for_config", return_value=roads),
+    ):
+        assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+        await hass.async_block_till_done()
+        state = hass.states.get(entity_id)
+        assert state is not None
+        assert state.state == ("unknown" if log_timeout else "0")
+        assert not any(
+            record.levelno >= logging.WARNING and "Optional feed" in record.message for record in caplog.records
+        )
+        for _ in range(2):
+            await mock_config_entry.runtime_data.async_refresh()
+            await hass.async_block_till_done()
+        warnings = [
+            record
+            for record in caplog.records
+            if record.levelno == logging.WARNING and "Optional feed" in record.message
+        ]
+        assert len(warnings) == int(log_timeout)
+        if log_timeout:
+            assert "did not answer within" in warnings[0].message
+            assert "has no recent result" in warnings[0].message
+            assert "using its last result" not in warnings[0].message
+        assert feed.calls == 1
+        feed.release.set()
+        await hass.async_block_till_done(wait_background_tasks=True)
+        state = hass.states.get(entity_id)
+        assert state is not None
+        assert state.state == ("Fair" if log_timeout else "0")
+        assert feed.calls == 1
+        recovery = [record for record in caplog.records if "is answering again" in record.message]
+        assert len(recovery) == int(log_timeout)
+        if log_timeout:
+            assert recovery[0].levelno == logging.INFO
+    assert await hass.config_entries.async_unload(mock_config_entry.entry_id)
 
 
 async def test_location_change_uses_only_the_new_points_result(hass: HomeAssistant) -> None:

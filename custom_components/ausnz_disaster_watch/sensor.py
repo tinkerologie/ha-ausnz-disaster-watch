@@ -181,6 +181,8 @@ class ActiveHazardsCountSensor(AustralianDisasterWatchEntity, SensorEntity):
 class HighestWarningLevelSensor(AustralianDisasterWatchEntity, SensorEntity):
     """Sensor reporting the highest Australian Warning System level in the perimeter."""
 
+    # Long bulletin text stays live but must not exceed the recorder's 16 KB limit.
+    _unrecorded_attributes = frozenset({"emergency_news"})
     _attr_device_class = SensorDeviceClass.ENUM
     _attr_options = list(WARNING_LEVEL_OPTIONS_WITH_CLEAR)
     _attr_translation_key = "highest_warning_level"
@@ -320,6 +322,8 @@ class RoadClosuresCountSensor(AustralianDisasterWatchEntity, SensorEntity):
 class WeatherWarningsCountSensor(AustralianDisasterWatchEntity, SensorEntity):
     """Sensor tracking active Bureau of Meteorology weather warnings."""
 
+    # Long bulletin text stays live but must not exceed the recorder's 16 KB limit.
+    _unrecorded_attributes = frozenset({"warnings", "emergency_news"})
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = "warnings"
     _attr_translation_key = "weather_warnings_count"

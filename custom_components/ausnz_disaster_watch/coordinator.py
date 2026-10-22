@@ -330,18 +330,37 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         if task is None:
             task = self.config_entry.async_create_background_task(self.hass, getattr(owner, hook)(), f"{DOMAIN} {name}")
             self._optional_tasks[key] = task
-        timeout = FIRST_REFRESH_OPTIONAL_TIMEOUT if self.data is None else OPTIONAL_FEED_TIMEOUT
+        first_refresh = self.data is None
+        timeout = FIRST_REFRESH_OPTIONAL_TIMEOUT if first_refresh else OPTIONAL_FEED_TIMEOUT
         # asyncio.wait never cancels the call (unlike wait_for, or shield, which would also
         # report a late failure as an unhandled error)
         await asyncio.wait({task}, timeout=timeout)
         if not task.done():
-            if log_timeout and key not in self._optional_timed_out:
-                _LOGGER.warning("Optional feed %s did not answer within %s s; using its last result", name, timeout)
-            self._optional_timed_out.add(key)
+            cached = self._fresh_optional_result(key)
+            if first_refresh:
+                _LOGGER.debug(
+                    "Optional feed %s is still running after %s s at startup; it continues in the background",
+                    name,
+                    timeout,
+                )
+            else:
+                if log_timeout and key not in self._optional_timed_out:
+                    if cached is not None:
+                        _LOGGER.warning(
+                            "Optional feed %s did not answer within %s s; using its last result", name, timeout
+                        )
+                    else:
+                        _LOGGER.warning(
+                            "Optional feed %s did not answer within %s s and has no recent result; "
+                            "it reads as unavailable until it answers",
+                            name,
+                            timeout,
+                        )
+                self._optional_timed_out.add(key)
             if self._optional_watched.get(key) is not task:
                 self._optional_watched[key] = task
                 task.add_done_callback(lambda done: self._optional_finished_late(key, done))
-            if (cached := self._fresh_optional_result(key)) is not None:
+            if cached is not None:
                 return cached[1]
             raise OptionalFeedTimeoutError(f"{name} timed out after {timeout} s")
         self._optional_tasks.pop(key, None)
