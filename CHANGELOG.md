@@ -8,6 +8,9 @@ Versions follow Home Assistant's scheme, `YEAR.MONTH.PATCH` (for example `2026.1
 
 ### Fixed
 
+- Highest warning level and weather warnings count sensors keep full emergency news and warning lists live for dashboards, but exclude these bulky lists from recorder history to avoid the 16 KB attribute limit. Scalar and council attributes remain recorded (#114).
+- Count sensors retain their noun units, including `warnings`, for statistics continuity. Regression coverage now checks effective units and identity across reloads. If the recorder reports that a unit cannot be converted, remove any unit override in the entity settings, or resolve the issue in Developer Tools → Statistics (#115).
+- Optional feeds that exceed the startup wait now log at DEBUG while continuing in the background. Sustained slowness on later refreshes still logs one WARNING until recovery; the warning states whether a recent cached result is used or the feed is unavailable (#116).
 - Tests on a fresh environment (GitHub-hosted runners) failed in `test_diagnostics_snapshot`: `pytest-homeassistant-custom-component` 0.13.367 pinned Home Assistant 2026.9.4, but `script/setup/bootstrap` installed the latest release's (2026.10.2) dependencies on top, including an aiohttp the older core's `http` component rejects. The test package is now 0.13.373 (Home Assistant 2026.10.2), and bootstrap defaults to the Home Assistant version that package installed.
 
 ## [2026.10.0] - 2026-10-19
