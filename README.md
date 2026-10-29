@@ -105,9 +105,24 @@ Requires Home Assistant 2026.10.0 or newer.
 
 ### Manual
 
-1. Download the source of the [latest release](https://github.com/tinkerologie/ha-ausnz-disaster-watch/releases).
-2. Copy `custom_components/ausnz_disaster_watch` into the `custom_components` folder of your Home Assistant configuration directory.
+1. Download `ausnz_disaster_watch.zip` from the [latest release](https://github.com/tinkerologie/ha-ausnz-disaster-watch/releases/latest).
+2. Create the folder `config/custom_components/ausnz_disaster_watch/` and extract the zip into it. The zip has no wrapper folder: `manifest.json` must end up directly in `ausnz_disaster_watch/`.
 3. Restart Home Assistant.
+
+Releases from the first one that ships `ausnz_disaster_watch.zip` carry the zip, a `SHA256SUMS` file and a signed build provenance attestation. HACS installs the same zip, and the "Downloaded N times" figure HACS shows is the download count of the latest release's zip, so it starts again with each release. Releases before that have no zip; choosing one of them in HACS's version picker may fail to download.
+
+#### Verify the download
+
+To check that a zip you downloaded is the one the release workflow built, keep `SHA256SUMS` in the same folder as the zip and run (with the [GitHub CLI](https://cli.github.com/) for the last two; replace `v2026.11.0` with the release's tag):
+
+```bash
+sha256sum -c SHA256SUMS   # on macOS: shasum -a 256 -c SHA256SUMS
+gh attestation verify ausnz_disaster_watch.zip --repo tinkerologie/ha-ausnz-disaster-watch \
+  --signer-workflow tinkerologie/ha-ausnz-disaster-watch/.github/workflows/release.yml
+gh release verify-asset v2026.11.0 ausnz_disaster_watch.zip --repo tinkerologie/ha-ausnz-disaster-watch
+```
+
+To build the same zip yourself from a checkout of the release tag, run `script/build-release`; it writes `dist/ausnz_disaster_watch.zip` and `dist/SHA256SUMS`. Its timestamps come from the tag's commit, so with the same zlib version the checksum matches the release's.
 
 ### Removal
 

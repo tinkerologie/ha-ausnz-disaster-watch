@@ -1,5 +1,7 @@
 {
   "name": "Australia and New Zealand Disaster Watch",
   "homeassistant": "2026.10.0",
-  "hacs": "2.0.5"
+  "hacs": "2.0.5",
+  "zip_release": true,
+  "filename": "ausnz_disaster_watch.zip"
 }

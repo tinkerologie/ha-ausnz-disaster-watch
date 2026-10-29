@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# script/build-release: Build the reproducible release zip (#120)
+#
+# Writes dist/ausnz_disaster_watch.zip (the name comes from "filename" in hacs.json) and
+# dist/SHA256SUMS from the files Git tracks under custom_components/ausnz_disaster_watch/.
+# The same commit always builds the same bytes. The release workflow and CI run it too.
+# Uses the standard library only, so no virtual environment is needed.
+#
+# Usage:
+#   ./script/build-release [--output-dir DIR] [--version VERSION]
+#
+# Examples:
+#   ./script/build-release                     # build into dist/
+#   ./script/build-release --version v2026.10.1  # also check manifest.json matches the tag
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR/.."
+
+python3 "$SCRIPT_DIR/build_release_zip.py" "$@"
