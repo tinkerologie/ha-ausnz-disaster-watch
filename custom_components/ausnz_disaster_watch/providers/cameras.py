@@ -133,8 +133,19 @@ def _feature_point(geometry: Any) -> tuple[float, float] | None:
 _IMAGE_ID = re.compile(r"(?=.*\d)(?=.*[a-z])[a-z0-9_-]{16,}")
 # About 10 m: two copies of one camera sit within this of each other
 _SAME_PLACE_DECIMALS = 4
-# Details a road network gives a camera that a council dashboard copy leaves out
-_NETWORK_DETAILS = ("source_key", "direction", "owner", "description", "suburb", "distance_km")
+# Details the kept copy of a camera takes from a dropped copy when it has none: what a road
+# network adds to a council dashboard copy, and the location a copy without geometry lacks
+_FILLABLE_DETAILS = (
+    "source_key",
+    "direction",
+    "owner",
+    "description",
+    "suburb",
+    "distance_km",
+    "latitude",
+    "longitude",
+    "in_council_area",
+)
 
 
 def _image_key(url: str) -> str | None:
@@ -164,6 +175,18 @@ def _place_key(camera: DisasterCameraItem) -> tuple[float, float, str] | None:
     )
 
 
+def _resolve_alias(aliases: dict[str, str], camera_id: str) -> str:
+    """Return the ID ``camera_id`` was last merged into, following chains; itself on a cycle."""
+    seen = {camera_id}
+    current = camera_id
+    while (target := aliases.get(current)) is not None:
+        if target in seen:
+            return camera_id
+        seen.add(target)
+        current = target
+    return current
+
+
 def merge_cameras(cameras: list[DisasterCameraItem], aliases: dict[str, str] | None = None) -> list[DisasterCameraItem]:
     """Return one camera per physical camera, in a stable order.
 
@@ -181,10 +204,11 @@ def merge_cameras(cameras: list[DisasterCameraItem], aliases: dict[str, str] | N
     if aliases is None:
         aliases = {}
     present = {camera.id for camera in cameras}
-    cameras = [
-        replace(camera, id=aliases[camera.id]) if camera.id in aliases and aliases[camera.id] not in present else camera
-        for camera in cameras
-    ]
+    renamed: list[DisasterCameraItem] = []
+    for camera in cameras:
+        target = _resolve_alias(aliases, camera.id)
+        renamed.append(replace(camera, id=target) if target != camera.id and target not in present else camera)
+    cameras = renamed
     ordered = sorted(cameras, key=lambda camera: (camera.source_key is not None, camera.id))
     kept: list[DisasterCameraItem] = []
     index: dict[tuple[str, Any], int] = {}
@@ -202,9 +226,13 @@ def merge_cameras(cameras: list[DisasterCameraItem], aliases: dict[str, str] | N
             current = kept[match]
             if camera.id != current.id:
                 aliases[camera.id] = current.id
+                # Earlier copies merged into this one now point at the kept ID too
+                for alias, target in list(aliases.items()):
+                    if target == camera.id:
+                        aliases[alias] = current.id
             details = {
                 name: getattr(camera, name)
-                for name in _NETWORK_DETAILS
+                for name in _FILLABLE_DETAILS
                 if getattr(current, name) is None and getattr(camera, name) is not None
             }
             if details:

@@ -572,3 +572,21 @@ def test_merge_cameras_malformed_image_url() -> None:
     """A URL that cannot be parsed only loses the file-name match."""
     broken = _council_cam(id="x", image_url="https://[broken/8df57cc1-14c0-46bf-891c-021f2c3c98ea.jpg")
     assert [c.id for c in merge_cameras([broken, _network_cam(latitude=-27.5)])] == ["x", "qldtraffic_flood_254"]
+
+
+def test_merge_cameras_alias_chains_and_locations() -> None:
+    """Aliases follow chains to the kept ID; a kept copy without a location takes one (#125)."""
+    aliases: dict[str, str] = {}
+    network_a = _network_cam(id="qldtraffic_flood_1")
+    network_b = _network_cam(id="qldtraffic_web_2", name="Other name", latitude=-27.6)
+    council = _council_cam(latitude=None, longitude=None)
+
+    merge_cameras([network_a, network_b], aliases)  # b merges into a (same image file)
+    assert aliases == {"qldtraffic_web_2": "qldtraffic_flood_1"}
+    (kept,) = merge_cameras([council, network_a], aliases)  # a merges into the council copy
+    assert aliases == {"qldtraffic_web_2": council.id, "qldtraffic_flood_1": council.id}
+    assert (kept.latitude, kept.longitude) == (network_a.latitude, network_a.longitude)
+    # Only b answers: it keeps the council camera's ID
+    assert [c.id for c in merge_cameras([network_b], aliases)] == [council.id]
+    # A cycle never loops
+    assert [c.id for c in merge_cameras([_council_cam(id="x")], {"x": "y", "y": "x"})] == ["x"]
