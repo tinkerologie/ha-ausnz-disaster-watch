@@ -142,7 +142,7 @@ var e=`ausnz_disaster_watch`,t=`https://github.com/tinkerologie/ha-ausnz-disaste
     align-items: center;
     min-width: 0;
   }
-  /* HA's row tokens (ha-row-item, 2026.11): entities-card spacing. */
+  /* HA's row tokens (ha-row-item; in 2026.10 and 2026.11): entities-card spacing. */
   .row .item {
     flex: 1;
     min-width: 0;
@@ -154,7 +154,7 @@ var e=`ausnz_disaster_watch`,t=`https://github.com/tinkerologie/ha-ausnz-disaste
   .row .row-actions {
     display: contents;
   }
-  /* HA's list item draws its own focus ring. */
+  /* HA's list item draws its own focus ring (:host(:focus-visible) .base, 2026.10 and 2026.11). */
   .row .item:focus-visible {
     outline: none;
   }
