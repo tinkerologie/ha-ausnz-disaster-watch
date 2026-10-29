@@ -6,6 +6,10 @@ Versions follow Home Assistant's scheme, `YEAR.MONTH.PATCH` (for example `2026.1
 
 ## [Unreleased]
 
+### Fixed
+
+- Duplicate camera entities (#125): a council dashboard and a road agency network listing the same camera (the council serves the road agency's image from its own host) became two entities, and which copy was kept depended on which source answered first. Cameras are now matched by ID, image file or place and name, the council copy is always kept and gains the network's details and attribution. While the kept copy's source is down, the other copy keeps the same entity.
+
 ### Added
 
 - Releases ship the integration as `ausnz_disaster_watch.zip`, with a `SHA256SUMS` file and a signed build provenance attestation (#120). `hacs.json` sets `zip_release` and `filename`, so from the next release HACS installs the zip and shows the download count of the latest release's zip; choosing an older release without the zip in HACS may then fail to download. `script/build-release` (a wrapper for `script/build_release_zip.py`) builds the zip reproducibly from the files Git tracks under `custom_components/ausnz_disaster_watch/`, at the zip root, and refuses to build when a tracked file differs from `HEAD`, a runtime file (data tables, translations, icons, brand images, the card bundle) is missing, or the card bundle imports a module the zip does not hold, including the lazily loaded map chunk. CI builds the zip twice on every pull request and checks the bytes match. The release workflow now builds and attests the zip in one job, then verifies the checksum and the attestation, creates a draft release with the zip, `SHA256SUMS` and `CHANGELOG.md`, publishes it and verifies the immutable release; version checks, skipped pre-releases, `v<version>` tags, existing-tag handling and changelog release notes are unchanged. The README covers manual installation from the zip and how to verify it.

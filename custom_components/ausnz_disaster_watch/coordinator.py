@@ -52,6 +52,7 @@ from .models import (
 )
 from .providers import get_providers_for_config
 from .providers.base import BaseHazardProvider, PartialFeedError, ProviderUnavailableError
+from .providers.cameras import merge_cameras
 from .providers.council_area import CouncilArea, CouncilAreaService
 from .providers.fire_danger import FireDangerService, local_today
 from .providers.geometry import area_distance
@@ -214,6 +215,8 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         self.dam_coordinator: DamStorageCoordinator | None = None
         # Unique IDs the sensor platforms created, for the registry cleanup at setup (#92)
         self.entity_tracker = EntityTracker()
+        # Dropped duplicate camera ID -> the ID it was merged into (#125)
+        self._camera_aliases: dict[str, str] = {}
         self._road_feed_healthy: dict[str, bool] = {}
         self.road_feeds_failed: list[str] = []
         # Optional (non-hazard) feed calls that outlived their timeout, their last good results,
@@ -822,16 +825,9 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
             ratings = await asyncio.gather(*(_fallback(provider) for provider in self.providers))
             fire_danger = next((rating for rating in ratings if rating is not None), None)
 
-        # One entity per camera ID: the first occurrence wins (#19). A council dashboard and a
-        # road agency network can list the same camera image under different IDs (#70).
-        unique_cameras: list[DisasterCameraItem] = []
-        camera_ids: set[str] = set()
-        image_urls: set[str] = set()
-        for camera in cameras:
-            if camera.id not in camera_ids and camera.image_url not in image_urls:
-                camera_ids.add(camera.id)
-                image_urls.add(camera.image_url)
-                unique_cameras.append(camera)
+        # One entity per physical camera, the same copy on every refresh (#19, #70, #125): a
+        # council dashboard and a road agency network can list one camera under different IDs
+        unique_cameras = merge_cameras(cameras, self._camera_aliases)
 
         return {
             "power_outages": self._process_power_outages(power_outages),

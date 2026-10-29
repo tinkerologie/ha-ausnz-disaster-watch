@@ -22,7 +22,9 @@ from collections.abc import Callable
 from dataclasses import dataclass, replace
 from datetime import timedelta
 import logging
+import re
 from typing import Any, ClassVar
+from urllib.parse import urlsplit
 
 from custom_components.ausnz_disaster_watch.const import (
     CAMERA_NETWORK_NZTA,
@@ -124,6 +126,139 @@ def _feature_point(geometry: Any) -> tuple[float, float] | None:
     if not isinstance(coords, list) or len(coords) < 2:
         return None
     return _point(coords[1], coords[0])
+
+
+# Image file names that identify one camera: a UUID or a long hex digest, as QLDTraffic and
+# the council dashboards' image store use. Descriptive names ("latest.jpg",
+# "current_snapshot_1.jpg") can repeat across cameras and never count.
+_IMAGE_ID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{16,}")
+# Two copies with the same image file but further apart than this are different cameras
+_SAME_IMAGE_MAX_KM = 0.1
+# About 10 m: two copies of one camera sit within this of each other
+_SAME_PLACE_DECIMALS = 4
+# Details the kept copy of a camera takes from a dropped copy when it has none: what a road
+# network adds to a council dashboard copy, and the location a copy without geometry lacks
+_FILLABLE_DETAILS = (
+    "source_key",
+    "direction",
+    "owner",
+    "description",
+    "suburb",
+    "distance_km",
+    "latitude",
+    "longitude",
+    "in_council_area",
+)
+
+
+def _image_key(url: str) -> str | None:
+    """Return the image file name when it identifies one camera, else None."""
+    try:
+        path = urlsplit(url).path
+    except ValueError:  # e.g. an unclosed IPv6 bracket in the host
+        return None
+    name = path.rsplit("/", 1)[-1].lower()
+    stem = name.rsplit(".", 1)[0]
+    return name if _IMAGE_ID.fullmatch(stem) else None
+
+
+def _name_key(name: str) -> str:
+    """Return the name folded for comparison: case, dashes, slashes and spacing ignored."""
+    return " ".join(re.sub(r"[^\w]+", " ", name.casefold()).split())
+
+
+def _place_key(camera: DisasterCameraItem) -> tuple[float, float, str] | None:
+    """Return (lat, lon, name) rounded to about 10 m, or None without a location."""
+    if camera.latitude is None or camera.longitude is None:
+        return None
+    return (
+        round(camera.latitude, _SAME_PLACE_DECIMALS),
+        round(camera.longitude, _SAME_PLACE_DECIMALS),
+        _name_key(camera.name),
+    )
+
+
+def _compatible(key: tuple[str, Any], kept: DisasterCameraItem, camera: DisasterCameraItem) -> bool:
+    """Return False when an image-file match joins two cameras that are far apart."""
+    if key[0] != "file" or None in (kept.latitude, kept.longitude, camera.latitude, camera.longitude):
+        return True
+    distance = haversine_km(
+        float(kept.latitude or 0.0),
+        float(kept.longitude or 0.0),
+        float(camera.latitude or 0.0),
+        float(camera.longitude or 0.0),
+    )
+    return distance <= _SAME_IMAGE_MAX_KM
+
+
+def _resolve_alias(aliases: dict[str, str], camera_id: str) -> str:
+    """Return the ID ``camera_id`` was last merged into, following chains; itself on a cycle."""
+    seen = {camera_id}
+    current = camera_id
+    while (target := aliases.get(current)) is not None:
+        if target in seen:
+            return camera_id
+        seen.add(target)
+        current = target
+    return current
+
+
+def merge_cameras(cameras: list[DisasterCameraItem], aliases: dict[str, str] | None = None) -> list[DisasterCameraItem]:
+    """Return one camera per physical camera, in a stable order.
+
+    Sources answer concurrently, so cameras arrive in any order. They are ordered first:
+    council dashboard cameras, then road network cameras, each by ID. That way the same copy
+    of a camera is kept on every refresh and its entity never changes. Two cameras are the
+    same when they share an ID, the image file (a council dashboard often serves a copy of
+    the road agency's image from its own host), or the place and name. The kept copy takes
+    the details it lacks (network, direction, owner and so on) from the dropped one.
+
+    ``aliases`` remembers, across refreshes, the ID each dropped copy was merged into. While
+    the kept copy's source is down, the other copy takes that ID, so the camera keeps its
+    entity instead of gaining a second one.
+    """
+    if aliases is None:
+        aliases = {}
+    present = {camera.id for camera in cameras}
+    renamed: list[DisasterCameraItem] = []
+    for camera in cameras:
+        target = _resolve_alias(aliases, camera.id)
+        renamed.append(replace(camera, id=target) if target != camera.id and target not in present else camera)
+    cameras = renamed
+    ordered = sorted(cameras, key=lambda camera: (camera.source_key is not None, camera.id))
+    kept: list[DisasterCameraItem] = []
+    index: dict[tuple[str, Any], int] = {}
+    for camera in ordered:
+        keys: list[tuple[str, Any]] = [("id", camera.id), ("image", camera.image_url)]
+        if (image := _image_key(camera.image_url)) is not None:
+            keys.append(("file", image))
+        if (place := _place_key(camera)) is not None:
+            keys.append(("place", place))
+        match = next(
+            (index[key] for key in keys if key in index and _compatible(key, kept[index[key]], camera)),
+            None,
+        )
+        if match is None:
+            match = len(kept)
+            kept.append(camera)
+        else:
+            current = kept[match]
+            if camera.id != current.id:
+                aliases[camera.id] = current.id
+                # Earlier copies merged into this one now point at the kept ID too
+                for alias, target in list(aliases.items()):
+                    if target == camera.id:
+                        aliases[alias] = current.id
+            details = {
+                name: getattr(camera, name)
+                for name in _FILLABLE_DETAILS
+                if getattr(current, name) is None and getattr(camera, name) is not None
+            }
+            if details:
+                kept[match] = replace(current, **details)
+        for key in keys:
+            index.setdefault(key, match)
+    return kept
 
 
 def parse_qldtraffic(payload: Any, network: str) -> list[DisasterCameraItem]:
