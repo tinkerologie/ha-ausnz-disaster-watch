@@ -6,30 +6,26 @@ Versions follow Home Assistant's scheme, `YEAR.MONTH.PATCH` (for example `2026.1
 
 ## [Unreleased]
 
-### Fixed
-
-- Duplicate camera entities (#125): a council dashboard and a road agency network listing the same camera (the council serves the road agency's image from its own host) became two entities, and which copy was kept depended on which source answered first. Cameras are now matched by ID, image file or place and name, the council copy is always kept and gains the network's details and attribution. While the kept copy's source is down, the other copy keeps the same entity.
+## [2026.10.2] - 2026-10-29
 
 ### Added
 
 - Releases ship the integration as `ausnz_disaster_watch.zip`, with a `SHA256SUMS` file and a signed build provenance attestation (#120). `hacs.json` sets `zip_release` and `filename`, so from the next release HACS installs the zip and shows the download count of the latest release's zip; choosing an older release without the zip in HACS may then fail to download. `script/build-release` (a wrapper for `script/build_release_zip.py`) builds the zip reproducibly from the files Git tracks under `custom_components/ausnz_disaster_watch/`, at the zip root, and refuses to build when a tracked file differs from `HEAD`, a runtime file (data tables, translations, icons, brand images, the card bundle) is missing, or the card bundle imports a module the zip does not hold, including the lazily loaded map chunk. CI builds the zip twice on every pull request and checks the bytes match. The release workflow now builds and attests the zip in one job, then verifies the checksum and the attestation, creates a draft release with the zip, `SHA256SUMS` and `CHANGELOG.md`, publishes it and verifies the immutable release; version checks, skipped pre-releases, `v<version>` tags, existing-tag handling and changelog release notes are unchanged. The README covers manual installation from the zip and how to verify it.
 - CI catches Home Assistant deprecations (#121). Tests fail when Home Assistant logs deprecated use by the integration or a deprecation warning comes from its modules. A weekly, non-blocking HA Next workflow tests the newest Home Assistant release on PyPI (beta included) and Core `dev`, and keeps one `ha-next` issue per channel. A weekly developer blog watch opens an issue for each post that names code the integration uses. See the deprecation section of `CONTRIBUTING.md`.
 
-### Fixed
-
-- Removing a device that no longer has entities no longer calls `device_registry.async_update_device(..., remove_config_entry_id=...)`, which Home Assistant reports as deprecated and which stops working in 2027.8. The lookup is scoped to this entry, so the device is removed with `async_remove_device` (#121).
-- `script/hassfest` works with Home Assistant Core 2026.11, which moved the validator into `packages/hassfest`, and reads Core's own `requirements.txt` instead of this repository's when the requirements plugin runs (#121).
-
-### Fixed
-
-- Dashboard cards work on Home Assistant 2026.11 (#123). The 2026.11 frontend removed `ha-md-list-item`, so every list row in the incidents, warnings, outages, roads and relief cards (and the all-in-one card) lost its layout and keyboard focus. Rows now use the list elements Home Assistant's own cards use: `ha-list-base` with `ha-list-item-button`, or `ha-list-item-base` for rows without an action. Tab reaches a list once, the arrow keys and Home/End move between rows, and Enter, Space or a click opens the row's details. Link and camera buttons stay separate from the row button, and Enter on them opens only the link or camera. Works the same on 2026.10; no card options changed.
-- Counts in card headers, filter chips, warning tabs, the status summary and "Show all" follow your number format, and every number the cards format (counts, distances, customers) now honours the profile's Number format setting, including "none" (no grouping).
-- Camera names come from Home Assistant's own entity-name helper, so they match the built-in cards.
-
 ### Changed
 
 - The map card editor hides "Radar opacity" while the radar is off (Home Assistant 2026.8 or later).
 - `npm run lint:drift` accepts several frontends in `HASS_FRONTEND` (separated by `:`), for example the installed release and the next beta's `home-assistant-frontend` wheel. `npm run lint:modern` flags the elements and `--md-*` properties that Home Assistant 2026.11 removed.
+
+### Fixed
+
+- Duplicate camera entities (#125): a council dashboard and a road agency network listing the same camera (the council serves the road agency's image from its own host) became two entities, and which copy was kept depended on which source answered first. Cameras are now matched by ID, image file or place and name, the council copy is always kept and gains the network's details and attribution. While the kept copy's source is down, the other copy keeps the same entity.
+- Removing a device that no longer has entities no longer calls `device_registry.async_update_device(..., remove_config_entry_id=...)`, which Home Assistant reports as deprecated and which stops working in 2027.8. The lookup is scoped to this entry, so the device is removed with `async_remove_device` (#121).
+- `script/hassfest` works with Home Assistant Core 2026.11, which moved the validator into `packages/hassfest`, and reads Core's own `requirements.txt` instead of this repository's when the requirements plugin runs (#121).
+- Dashboard cards work on Home Assistant 2026.11 (#123). The 2026.11 frontend removed `ha-md-list-item`, so every list row in the incidents, warnings, outages, roads and relief cards (and the all-in-one card) lost its layout and keyboard focus. Rows now use the list elements Home Assistant's own cards use: `ha-list-base` with `ha-list-item-button`, or `ha-list-item-base` for rows without an action. Tab reaches a list once, the arrow keys and Home/End move between rows, and Enter, Space or a click opens the row's details. Link and camera buttons stay separate from the row button, and Enter on them opens only the link or camera. Works the same on 2026.10; no card options changed.
+- Counts in card headers, filter chips, warning tabs, the status summary and "Show all" follow your number format, and every number the cards format (counts, distances, customers) now honours the profile's Number format setting, including "none" (no grouping).
+- Camera names come from Home Assistant's own entity-name helper, so they match the built-in cards.
 
 ## [2026.10.1] - 2026-10-22
 
