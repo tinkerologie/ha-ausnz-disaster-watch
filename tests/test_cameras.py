@@ -45,6 +45,7 @@ from custom_components.ausnz_disaster_watch.providers.cameras import (
     QLDTRAFFIC_WEB_CAMERAS_URL,
     camera_networks_for_state,
     enabled_networks,
+    merge_cameras,
     parse_nzta,
     parse_qldtraffic,
 )
@@ -461,3 +462,92 @@ def async_session(hass: HomeAssistant) -> Any:
     from homeassistant.helpers.aiohttp_client import async_get_clientsession  # noqa: PLC0415
 
     return async_get_clientsession(hass)
+
+
+# --- duplicates across sources -------------------------------------------------------------
+
+_SAME_IMAGE = "8df57cc1-14c0-46bf-891c-021f2c3c98ea.jpg"
+
+
+def _council_cam(**kwargs: Any) -> DisasterCameraItem:
+    data: dict[str, Any] = {
+        "id": "camera_765837788d3d5ce6",
+        "name": "Burpengary - Burpengary Service Road/ Old Gympie Road at Burpengary Creek",
+        "image_url": f"https://camera-custom-image.s3-ap-southeast-2.amazonaws.com/prod/resized/{_SAME_IMAGE}",
+        "latitude": -27.152404,
+        "longitude": 152.976923,
+    }
+    return DisasterCameraItem(**(data | kwargs))
+
+
+def _network_cam(**kwargs: Any) -> DisasterCameraItem:
+    data: dict[str, Any] = {
+        "id": "qldtraffic_flood_254",
+        "name": "Burpengary - Burpengary Service Road/ Old Gympie Road at Burpengary Creek",
+        "image_url": f"https://cameras.qldtraffic.qld.gov.au/resized/{_SAME_IMAGE}",
+        "latitude": -27.152404,
+        "longitude": 152.976923,
+        "suburb": "Burpengary",
+        "direction": "North",
+        "owner": "Department of Transport and Main Roads",
+        "distance_km": 11.9,
+        "source_key": "qldtraffic_cameras",
+    }
+    return DisasterCameraItem(**(data | kwargs))
+
+
+@pytest.mark.parametrize("network_first", [False, True])
+def test_merge_cameras_same_image_on_two_hosts(network_first: bool) -> None:
+    """A council dashboard camera and the road network copy of it become one camera.
+
+    The council camera is kept whatever order the sources answered in, so its entity ID is
+    stable, and it gains the network's details and attribution.
+    """
+    council, network = _council_cam(), _network_cam()
+    merged = merge_cameras([network, council] if network_first else [council, network])
+    assert len(merged) == 1
+    (camera,) = merged
+    assert camera.id == council.id
+    assert camera.image_url == council.image_url
+    assert camera.source_key == "qldtraffic_cameras"
+    assert (camera.direction, camera.owner, camera.suburb, camera.distance_km) == (
+        "North",
+        "Department of Transport and Main Roads",
+        "Burpengary",
+        11.9,
+    )
+
+
+def test_merge_cameras_same_place_and_name() -> None:
+    """Different image names at the same spot with the same name are one camera."""
+    council = _council_cam(image_url="https://council.example/cams/creek-latest.jpg")
+    network = _network_cam(name="burpengary – burpengary service road / old gympie road at burpengary creek")
+    assert [c.id for c in merge_cameras([network, council])] == [council.id]
+
+
+def test_merge_cameras_keeps_distinct_cameras() -> None:
+    """Generic image names, other places and other names stay separate cameras."""
+    cameras = [
+        # Same generic file name on two hosts: not evidence of the same camera
+        _council_cam(id="a", image_url="https://one.example/latest.jpg", latitude=-27.1, longitude=153.0),
+        _council_cam(id="b", image_url="https://two.example/latest.jpg", latitude=-27.3, longitude=153.1),
+        # Same place, different camera (another direction)
+        _network_cam(id="c", name="Burpengary Creek - South", image_url="https://x.example/c-0001.jpg"),
+        _network_cam(id="d", name="Burpengary Creek - North", image_url="https://x.example/d-0002.jpg"),
+        # No location: only the ID and image can match
+        _council_cam(id="e", image_url="https://x.example/e.jpg", latitude=None, longitude=None),
+        _council_cam(id="e", name="Duplicate ID", image_url="https://x.example/other.jpg"),
+    ]
+    assert [c.id for c in merge_cameras(cameras)] == ["a", "b", "e", "c", "d"]
+
+
+def test_merge_cameras_order_is_stable() -> None:
+    """Council cameras first, then network cameras, each by ID, whatever order they arrived in."""
+    cameras = [
+        _network_cam(id="n2", name="N2", image_url="https://x.example/n2.jpg", latitude=-27.0),
+        _council_cam(id="c2", name="C2", image_url="https://x.example/c2.jpg", latitude=-27.2),
+        _network_cam(id="n1", name="N1", image_url="https://x.example/n1.jpg", latitude=-27.3),
+        _council_cam(id="c1", name="C1", image_url="https://x.example/c1.jpg", latitude=-27.4),
+    ]
+    assert [c.id for c in merge_cameras(cameras)] == ["c1", "c2", "n1", "n2"]
+    assert [c.id for c in merge_cameras(list(reversed(cameras)))] == ["c1", "c2", "n1", "n2"]

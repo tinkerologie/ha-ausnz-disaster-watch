@@ -380,3 +380,29 @@ async def test_several_cameras_leaving_in_one_refresh(
     coordinator.async_set_updated_data(DisasterCoordinatorData(cameras=[_camera("a"), _camera("c")]))
     (returned,) = add.call_args[0][0]
     assert returned.camera_id == "c"
+
+
+async def test_camera_entity_id_suffix_is_dropped_once_free(
+    hass: HomeAssistant, mock_config_entry: MockConfigEntry
+) -> None:
+    """A camera left with a "_2" entity ID by an old duplicate gets its plain ID back (#125)."""
+    entry = mock_config_entry
+    entry.add_to_hass(hass)
+    registry = er.async_get(hass)
+    suffixed = _register(hass, entry, "camera", "camera_flood_255", suggested_object_id="creek_2")
+    taken = _register(hass, entry, "camera", "camera_flood_256", suggested_object_id="bridge_2")
+    _register(hass, entry, "camera", "camera_bridge", suggested_object_id="bridge")
+    other = registry.async_get_or_create("camera", "demo", "x", suggested_object_id="road_2")
+
+    await _camera_platform(
+        hass,
+        entry,
+        DisasterCoordinatorData(cameras=[_camera("flood_255"), _camera("flood_256"), _camera("bridge")]),
+    )
+
+    assert registry.async_get(suffixed) is None
+    renamed = registry.async_get("camera.creek")
+    assert renamed is not None
+    assert renamed.unique_id == camera_unique_id(entry.entry_id, "flood_255")
+    assert registry.async_get(taken) is not None  # "camera.bridge" is still in use
+    assert registry.async_get(other.entity_id) is not None  # another integration's entity is left alone

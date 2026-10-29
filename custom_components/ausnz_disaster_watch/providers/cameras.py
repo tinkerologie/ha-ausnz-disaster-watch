@@ -22,7 +22,9 @@ from collections.abc import Callable
 from dataclasses import dataclass, replace
 from datetime import timedelta
 import logging
+import re
 from typing import Any, ClassVar
+from urllib.parse import urlsplit
 
 from custom_components.ausnz_disaster_watch.const import (
     CAMERA_NETWORK_NZTA,
@@ -124,6 +126,75 @@ def _feature_point(geometry: Any) -> tuple[float, float] | None:
     if not isinstance(coords, list) or len(coords) < 2:
         return None
     return _point(coords[1], coords[0])
+
+
+# Image file names that identify one camera: an ID-like stem (a UUID, or 16+ characters
+# mixing letters and digits), never a generic name such as "latest.jpg" or "image.jpg"
+_IMAGE_ID = re.compile(r"(?=.*\d)(?=.*[a-z])[a-z0-9_-]{16,}")
+# About 10 m: two copies of one camera sit within this of each other
+_SAME_PLACE_DECIMALS = 4
+# Details a road network gives a camera that a council dashboard copy leaves out
+_NETWORK_DETAILS = ("source_key", "direction", "owner", "description", "suburb", "distance_km")
+
+
+def _image_key(url: str) -> str | None:
+    """Return the image file name when it identifies one camera, else None."""
+    name = urlsplit(url).path.rsplit("/", 1)[-1].lower()
+    stem = name.rsplit(".", 1)[0]
+    return name if _IMAGE_ID.fullmatch(stem) else None
+
+
+def _name_key(name: str) -> str:
+    """Return the name folded for comparison: case, dashes, slashes and spacing ignored."""
+    return " ".join(re.sub(r"[^\w]+", " ", name.casefold()).split())
+
+
+def _place_key(camera: DisasterCameraItem) -> tuple[float, float, str] | None:
+    """Return (lat, lon, name) rounded to about 10 m, or None without a location."""
+    if camera.latitude is None or camera.longitude is None:
+        return None
+    return (
+        round(camera.latitude, _SAME_PLACE_DECIMALS),
+        round(camera.longitude, _SAME_PLACE_DECIMALS),
+        _name_key(camera.name),
+    )
+
+
+def merge_cameras(cameras: list[DisasterCameraItem]) -> list[DisasterCameraItem]:
+    """Return one camera per physical camera, in a stable order.
+
+    Sources answer concurrently, so cameras arrive in any order. They are ordered first:
+    council dashboard cameras, then road network cameras, each by ID. That way the same copy
+    of a camera is kept on every refresh and its entity never changes. Two cameras are the
+    same when they share an ID, the image file (a council dashboard often serves a copy of
+    the road agency's image from its own host), or the place and name. The kept copy takes
+    the details it lacks (network, direction, owner and so on) from the dropped one.
+    """
+    ordered = sorted(cameras, key=lambda camera: (camera.source_key is not None, camera.id))
+    kept: list[DisasterCameraItem] = []
+    index: dict[tuple[str, Any], int] = {}
+    for camera in ordered:
+        keys: list[tuple[str, Any]] = [("id", camera.id), ("image", camera.image_url)]
+        if (image := _image_key(camera.image_url)) is not None:
+            keys.append(("file", image))
+        if (place := _place_key(camera)) is not None:
+            keys.append(("place", place))
+        match = next((index[key] for key in keys if key in index), None)
+        if match is None:
+            match = len(kept)
+            kept.append(camera)
+        else:
+            current = kept[match]
+            details = {
+                name: getattr(camera, name)
+                for name in _NETWORK_DETAILS
+                if getattr(current, name) is None and getattr(camera, name) is not None
+            }
+            if details:
+                kept[match] = replace(current, **details)
+        for key in keys:
+            index.setdefault(key, match)
+    return kept
 
 
 def parse_qldtraffic(payload: Any, network: str) -> list[DisasterCameraItem]:

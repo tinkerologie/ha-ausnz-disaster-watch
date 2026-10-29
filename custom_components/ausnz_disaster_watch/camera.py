@@ -17,6 +17,7 @@ cached as the snapshot; the last good frame is returned instead (#70).
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 from aiohttp import ClientResponse, ClientTimeout
@@ -71,6 +72,30 @@ async def _async_read_image(resp: ClientResponse) -> tuple[bytes, str] | None:
     data = bytes(body)
     content_type = image_content_type(data)
     return (data, content_type) if content_type is not None else None
+
+
+# An entity ID Home Assistant suffixed because the ID was taken, e.g. "camera.creek_2"
+_SUFFIXED_ENTITY_ID = re.compile(r"(?P<base>camera\.\w+?)_\d+")
+
+
+@callback
+def async_drop_entity_id_suffixes(hass: HomeAssistant, entry_id: str) -> int:
+    """Give suffixed camera entity IDs back their plain ID once nothing else holds it; return how many.
+
+    Two copies of one camera used to become two entities (#125); the second got a "_2" entity
+    ID, which it keeps after the first copy has gone.
+    """
+    registry = er.async_get(hass)
+    renamed = 0
+    for registry_entry in er.async_entries_for_config_entry(registry, entry_id):
+        match = _SUFFIXED_ENTITY_ID.fullmatch(registry_entry.entity_id)
+        if registry_entry.domain != CAMERA_DOMAIN or match is None:
+            continue
+        base = match["base"]
+        if registry.async_get(base) is None and hass.states.get(base) is None:
+            registry.async_update_entity(registry_entry.entity_id, new_entity_id=base)
+            renamed += 1
+    return renamed
 
 
 async def async_setup_entry(
@@ -128,6 +153,7 @@ async def async_setup_entry(
             registry_cleaned = True
             keep = {camera_unique_id(entry.entry_id, camera_id) for camera_id in current | set(tracked)}
             async_remove_registry_entries(hass, entry.entry_id, (CAMERA_DOMAIN,), keep)
+            async_drop_entity_id_suffixes(hass, entry.entry_id)
         gone = set(tracked) - current - removing if complete else set()
         for camera_id in gone:
             entity = tracked[camera_id]
