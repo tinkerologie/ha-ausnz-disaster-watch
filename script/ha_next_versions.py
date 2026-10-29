@@ -2,7 +2,7 @@
 """Pick the Home Assistant release and test harness for the HA Next release channel.
 
 Prints the newest non-yanked ``homeassistant`` on PyPI, pre-releases included (or
-the version given with ``--ha-version``), and the newest
+the version given with ``--ha-version``; it must allow the running Python), and the newest
 ``pytest-homeassistant-custom-component`` release that pins exactly that version
 (empty when none does yet; the harness often lags a beta by days). Resolving the
 version explicitly avoids ``--prerelease allow``, which would pull pre-releases of
@@ -18,6 +18,7 @@ import argparse
 import json
 import os
 from pathlib import Path
+import platform
 import ssl
 from typing import Any
 import urllib.request
@@ -28,7 +29,8 @@ from packaging.version import InvalidVersion, Version
 
 PYPI = "https://pypi.org/pypi"
 HARNESS = "pytest-homeassistant-custom-component"
-PYTHON = "3.14.2"  # Keep in sync with .github/workflows/ha-next.yml
+# The interpreter running this script; the workflow runs it with the venv's Python (actions/setup-python 3.14).
+PYTHON = platform.python_version()
 # Harness releases to inspect, newest first; one is published per Home Assistant release.
 HARNESS_CANDIDATES = 15
 
