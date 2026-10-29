@@ -163,6 +163,35 @@ jobs:
       - name: Import every module with only declared requirements
         run: script/check-imports
 
+  release-zip:
+    name: Release zip
+    runs-on: ${{ fromJSON(vars.RUNNER_LABELS || '"ubuntu-latest"') }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.14'
+
+      - name: Build twice and compare
+        run: |
+          # The build refuses to write a zip with missing runtime files or a broken card
+          # import; building twice proves the same commit always gives the same bytes. The
+          # tag check runs the same code path as the release workflow.
+          VERSION_TAG="v$(jq -r .version custom_components/ausnz_disaster_watch/manifest.json)"
+          SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)"
+          export SOURCE_DATE_EPOCH
+          script/build-release --output-dir dist/a --version "$VERSION_TAG"
+          script/build-release --output-dir dist/b --version "$VERSION_TAG"
+          cmp dist/a/ausnz_disaster_watch.zip dist/b/ausnz_disaster_watch.zip
+          cmp dist/a/SHA256SUMS dist/b/SHA256SUMS
+          (cd dist/a && sha256sum -c SHA256SUMS)
+          unzip -l dist/a/ausnz_disaster_watch.zip
+
   frontend:
     name: Frontend
     runs-on: ${{ fromJSON(vars.RUNNER_LABELS || '"ubuntu-latest"') }}
