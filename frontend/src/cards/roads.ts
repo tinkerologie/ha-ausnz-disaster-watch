@@ -1,7 +1,7 @@
 import { html, nothing, type TemplateResult } from "lit";
 import { KEY } from "../const";
 import { stateFor } from "../ha/entities";
-import { formatDistance, isUnavailable, listAttr, numberAttr, relativeTime, stringAttr } from "../ha/format";
+import { formatDistance, formatNumber, isUnavailable, listAttr, numberAttr, relativeTime, stringAttr } from "../ha/format";
 import { t } from "../localize/localize";
 import { roadStatusIcon, roadStatusTone } from "../model/ratings";
 import { alert, badge, empty, header, list, row, showAll } from "../components/render";
@@ -75,7 +75,7 @@ export class RoadsCard extends DisasterCard<ListCardConfig> {
       title: this.cardTitle(),
       icon: "mdi:traffic-cone",
       subtitle: area.council?.name,
-      count: count ? String(count) : undefined,
+      count: count ? formatNumber(hass, count) : undefined,
       detailsLabel: t(hass, "action.details"),
       onDetails: stateObj ? () => this.moreInfo(stateObj.entity_id) : undefined,
     });

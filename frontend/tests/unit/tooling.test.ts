@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 // @ts-expect-error -- plain ES module without types
@@ -28,6 +28,11 @@ describe("lint:modern (#42)", () => {
     ["<div @click=${x}>", "div-click"],
     ["custom:aus-disaster-card", "legacy-card"],
     ["--mdc-theme-primary: x;", "mdc-vars"],
+    ['<ha-md-list-item type="button">', "removed-2026-11"],
+    ["</ha-md-list>", "removed-2026-11"],
+    ["<ha-formfield .label=${x}>", "removed-2026-11"],
+    ["--md-list-item-leading-space: 0;", "md-vars"],
+    ["--md-assist-chip-outline-color: x;", "md-vars"],
   ])("flags %s", (text, rule) => {
     expect(ids(text)).toContain(rule);
   });
@@ -37,6 +42,9 @@ describe("lint:modern (#42)", () => {
     "--mdc-icon-size: var(--ha-space-4);",
     "<ha-chip-set>",
     "<ha-assist-chip>",
+    "<ha-list-base>",
+    '<ha-list-item-button role="button">',
+    "--ha-row-item-gap: var(--ha-space-3);",
     "custom:ausnz-disaster-card",
     "`&#${c}`;",
     '<a href="https://example.com">',
@@ -114,6 +122,18 @@ describe("lint:drift (#42)", () => {
       expect(result.stderr).toContain(`not found in ${dir}`);
     } finally {
       rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("checks every frontend in a HASS_FRONTEND list", () => {
+    const dirs = [mkdtempSync(join(tmpdir(), "adw-frontend-a-")), mkdtempSync(join(tmpdir(), "adw-frontend-b-"))];
+    try {
+      for (const dir of dirs) writeFileSync(join(dir, "app.js"), "// no tokens here");
+      const result = run({ HASS_FRONTEND: dirs.join(delimiter) });
+      expect(result.status).toBe(1);
+      for (const dir of dirs) expect(result.stderr).toContain(`not found in ${dir}`);
+    } finally {
+      for (const dir of dirs) rmSync(dir, { recursive: true, force: true });
     }
   });
 

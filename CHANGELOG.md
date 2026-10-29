@@ -10,6 +10,17 @@ Versions follow Home Assistant's scheme, `YEAR.MONTH.PATCH` (for example `2026.1
 
 - Releases ship the integration as `ausnz_disaster_watch.zip`, with a `SHA256SUMS` file and a signed build provenance attestation (#120). `hacs.json` sets `zip_release` and `filename`, so from the next release HACS installs the zip and shows the download count of the latest release's zip; choosing an older release without the zip in HACS may then fail to download. `script/build-release` (a wrapper for `script/build_release_zip.py`) builds the zip reproducibly from the files Git tracks under `custom_components/ausnz_disaster_watch/`, at the zip root, and refuses to build when a tracked file differs from `HEAD`, a runtime file (data tables, translations, icons, brand images, the card bundle) is missing, or the card bundle imports a module the zip does not hold, including the lazily loaded map chunk. CI builds the zip twice on every pull request and checks the bytes match. The release workflow now builds and attests the zip in one job, then verifies the checksum and the attestation, creates a draft release with the zip, `SHA256SUMS` and `CHANGELOG.md`, publishes it and verifies the immutable release; version checks, skipped pre-releases, `v<version>` tags, existing-tag handling and changelog release notes are unchanged. The README covers manual installation from the zip and how to verify it.
 
+### Fixed
+
+- Dashboard cards work on Home Assistant 2026.11 (#123). The 2026.11 frontend removed `ha-md-list-item`, so every list row in the incidents, warnings, outages, roads and relief cards (and the all-in-one card) lost its layout and keyboard focus. Rows now use the list elements Home Assistant's own cards use: `ha-list-base` with `ha-list-item-button`, or `ha-list-item-base` for rows without an action. Tab reaches a list once, the arrow keys and Home/End move between rows, and Enter, Space or a click opens the row's details. Link and camera buttons stay separate from the row button. Works the same on 2026.10; no card options changed.
+- Counts in card headers, filter chips, warning tabs, the status summary and "Show all" follow your number format.
+- Camera names come from Home Assistant's own entity-name helper, so they match the built-in cards.
+
+### Changed
+
+- The map card editor hides "Radar opacity" while the radar is off (Home Assistant 2026.8 or later).
+- `npm run lint:drift` accepts several frontends in `HASS_FRONTEND` (separated by `:`), for example the installed release and the next beta's `home-assistant-frontend` wheel. `npm run lint:modern` flags the elements and `--md-*` properties that Home Assistant 2026.11 removed.
+
 ## [2026.10.1] - 2026-10-22
 
 ### Fixed

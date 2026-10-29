@@ -19,6 +19,11 @@ export interface HassEntity {
   last_updated: string;
 }
 
+/** Name part for `hass.formatEntityName` (developers.home-assistant.io/docs/frontend/data). */
+export type EntityNameItem =
+  | { type: "entity" | "device" | "parent_device" | "area" | "floor" }
+  | { type: "text"; text: string };
+
 /** `hass.entities`: entity registry display entries. */
 export interface EntityRegistryDisplayEntry {
   entity_id: string;
@@ -75,6 +80,12 @@ export interface HomeAssistant {
   formatEntityState?(stateObj: HassEntity, state?: string): string;
   formatEntityAttributeValue?(stateObj: HassEntity, attribute: string, value?: unknown): string;
   formatEntityAttributeName?(stateObj: HassEntity, attribute: string): string;
+  /** HA 2026.4+: the display name the built-in cards use (registry entity/device/area). */
+  formatEntityName?(
+    stateObj: HassEntity,
+    name: string | EntityNameItem | EntityNameItem[] | undefined,
+    options?: { separator?: string },
+  ): string;
 }
 
 /** Options shared by every card. */
@@ -103,6 +114,8 @@ export interface HaFormSchema {
   selector?: Record<string, unknown>;
   type?: string;
   schema?: HaFormSchema[];
+  /** Show the field only while the condition holds (HA 2026.8+; older versions show it). */
+  visible?: { field: string; operator?: "eq" | "not_eq" | "exists" | "not_exists"; value?: unknown };
 }
 
 export interface LovelaceConfigForm {

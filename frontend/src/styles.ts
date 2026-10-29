@@ -107,17 +107,18 @@ export const cardStyles = css`
     align-items: center;
     min-width: 0;
   }
-  .row ha-md-list-item {
+  /* HA's row tokens (ha-row-item, 2026.11): entities-card spacing. */
+  .row .item {
     flex: 1;
     min-width: 0;
-    --md-list-item-leading-space: var(--ha-space-4);
-    --md-list-item-trailing-space: var(--ha-space-4);
-    --md-list-item-top-space: var(--ha-space-2);
-    --md-list-item-bottom-space: var(--ha-space-2);
-    --md-list-item-label-text-size: var(--ha-font-size-m);
-    --md-list-item-supporting-text-size: var(--ha-font-size-s);
-    --md-list-item-trailing-supporting-text-size: var(--ha-font-size-s);
-    --ha-md-list-item-gap: var(--ha-space-3);
+    --ha-row-item-padding-inline: var(--ha-space-4);
+    --ha-row-item-padding-block: var(--ha-space-2);
+    --ha-row-item-gap: var(--ha-space-3);
+    --ha-list-item-focus-radius: var(--ha-border-radius-lg);
+  }
+  /* HA's list item draws its own focus ring. */
+  .row .item:focus-visible {
+    outline: none;
   }
   .row .link {
     flex: none;

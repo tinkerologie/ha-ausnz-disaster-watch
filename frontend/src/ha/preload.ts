@@ -1,11 +1,13 @@
 /**
  * Native Home Assistant elements the cards render.
  *
- * Verified against HA 2026.10.1 (frontend 20260930.3): every tag here is defined on a
- * dashboard (sections and masonry views) before any custom card loads. `ha-md-list` is
- * not, so lists use `ha-md-list-item` inside a `role="list"` container instead.
- * `loadCardHelpers()` is still awaited once, as the custom card docs recommend, so a
- * card rendered outside a dashboard (card picker, editor preview) gets the same set.
+ * Verified against HA 2026.10 (frontend 20260930.4) and 2026.11 (frontend 20261028.0):
+ * every tag here is defined on a dashboard (sections and masonry views) before any
+ * custom card loads. The list elements come with the sidebar (`ha-list-nav` extends
+ * `ha-list-base`); they replace `ha-md-list`/`ha-md-list-item`, which 2026.11 removed
+ * (home-assistant/frontend#54569). `loadCardHelpers()` is still awaited once, as the
+ * custom card docs recommend, so a card rendered outside a dashboard (card picker,
+ * editor preview) gets the same set.
  */
 export const HA_ELEMENTS = [
   "ha-card",
@@ -16,7 +18,9 @@ export const HA_ELEMENTS = [
   "ha-assist-chip",
   "ha-filter-chip",
   "ha-chip-set",
-  "ha-md-list-item",
+  "ha-list-base",
+  "ha-list-item-base",
+  "ha-list-item-button",
   "ha-tooltip",
 ] as const;
 

@@ -1,6 +1,6 @@
 import { css, html, type PropertyValues, type TemplateResult } from "lit";
 import { cameraIdsFor, resolveDevice } from "../ha/entities";
-import { isUnavailable, stringAttr } from "../ha/format";
+import { entityName, formatNumber, isUnavailable, stringAttr } from "../ha/format";
 import { t } from "../localize/localize";
 import { empty, header } from "../components/render";
 import type { BaseCardConfig, HomeAssistant, LovelaceConfigForm } from "../types";
@@ -230,7 +230,7 @@ export class CamerasCard extends DisasterCard<CamerasCardConfig> {
     return html`${header({
         title: this.cardTitle(),
         icon: "mdi:cctv",
-        count: ids.length ? String(ids.length) : undefined,
+        count: ids.length ? formatNumber(hass, ids.length) : undefined,
         subtitle: area.council?.name,
       })}
       <div class="content">
@@ -240,8 +240,8 @@ export class CamerasCard extends DisasterCard<CamerasCardConfig> {
             ? html`<div class="grid" role="list">
                 ${ids.map((id) => {
                   const s = hass.states[id];
-                  // The registry name is the camera's own name, without the device prefix.
-                  const name = stringAttr(hass.entities[id]?.name) ?? stringAttr(s?.attributes.friendly_name) ?? id;
+                  // The camera's own name, without the device prefix, as the built-in cards name it.
+                  const name = entityName(hass, id, true);
                   const picture = isUnavailable(s) ? undefined : stringAttr(s?.attributes.entity_picture);
                   const src = picture ? this.imageUrl(picture) : this._signed[`${id}@${this._tick}`];
                   const showImage = src && !this._failed.has(src);

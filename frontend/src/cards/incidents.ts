@@ -1,6 +1,6 @@
 import { html, nothing, type TemplateResult } from "lit";
 import { geoLocationsFor, incidentDistance, incidentTitle } from "../ha/entities";
-import { formatDistance, numberAttr, relativeTime, safeUrl, stringAttr } from "../ha/format";
+import { entityName, formatDistance, formatNumber, numberAttr, relativeTime, safeUrl, stringAttr } from "../ha/format";
 import { t, type TranslationKey } from "../localize/localize";
 import { awsPresentation } from "../model/aws";
 import { CATEGORY_ICONS, HAZARD_CATEGORIES, hazardCategory, hazardIcon, type HazardCategory } from "../model/hazards";
@@ -141,7 +141,7 @@ export class IncidentsCard extends DisasterCard<IncidentsCardConfig> {
     const camera = stateObj.attributes.nearest_camera as { entity_id?: unknown; name?: unknown; distance_km?: unknown } | undefined;
     const entityId = stringAttr(camera?.entity_id);
     if (!entityId?.startsWith("camera.") || !hass.states[entityId]) return undefined;
-    const name = stringAttr(camera?.name) ?? String(hass.states[entityId]?.attributes.friendly_name ?? entityId);
+    const name = stringAttr(camera?.name) ?? entityName(hass, entityId);
     const distance = formatDistance(hass, numberAttr(camera?.distance_km));
     const label = t(hass, "incidents.nearest_camera", { name: distance ? `${name}, ${distance}` : name });
     return html`<ha-icon-button class="link camera" .label=${label} @click=${() => this.moreInfo(entityId)}>
@@ -170,7 +170,7 @@ export class IncidentsCard extends DisasterCard<IncidentsCardConfig> {
 
     const chip = (key: HazardCategory | "all", count: number) => html`<ha-filter-chip
       .selected=${selected === key}
-      .label=${`${t(hass, `incidents.category.${key}` as TranslationKey)} ${count}`}
+      .label=${`${t(hass, `incidents.category.${key}` as TranslationKey)} ${formatNumber(hass, count)}`}
       @click=${(ev: Event) => {
         ev.preventDefault();
         this._category = key;
@@ -183,7 +183,7 @@ export class IncidentsCard extends DisasterCard<IncidentsCardConfig> {
     return html`${header({
         title: this.cardTitle(),
         icon: "mdi:alert-decagram",
-        count: String(visible.length),
+        count: formatNumber(hass, visible.length),
         subtitle: area.council?.name,
       })}
       <div class="content">

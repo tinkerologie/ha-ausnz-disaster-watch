@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  entityName,
   formatAttribute,
   formatDateTime,
   formatDistance,
@@ -33,6 +34,32 @@ const entity = (state: string, attributes: Record<string, unknown> = {}): HassEn
   attributes,
   last_changed: "",
   last_updated: "",
+});
+
+describe("entityName (#123)", () => {
+  const cam = { ...entity("idle", { friendly_name: "QLD Disaster Watch Goodna" }), entity_id: "camera.goodna" };
+
+  it("uses hass.formatEntityName, asking for the entity's own name when wanted", () => {
+    const calls: unknown[] = [];
+    const h = hass({
+      states: { "camera.goodna": cam },
+      formatEntityName: (_s, name) => {
+        calls.push(name);
+        return name ? "Goodna (HA)" : "QLD Disaster Watch Goodna (HA)";
+      },
+    });
+    expect(entityName(h, "camera.goodna", true)).toBe("Goodna (HA)");
+    expect(entityName(h, "camera.goodna")).toBe("QLD Disaster Watch Goodna (HA)");
+    expect(calls).toEqual([{ type: "entity" }, undefined]);
+  });
+
+  it("falls back to the registry name, then the friendly name, then the entity ID", () => {
+    const entities = { "camera.goodna": { entity_id: "camera.goodna", name: "Goodna" } };
+    const blank = hass({ states: { "camera.goodna": cam }, entities, formatEntityName: () => "" });
+    expect(entityName(blank, "camera.goodna", true)).toBe("Goodna");
+    expect(entityName(hass({ states: { "camera.goodna": cam } }), "camera.goodna", true)).toBe("QLD Disaster Watch Goodna");
+    expect(entityName(hass(), "camera.gone")).toBe("camera.gone");
+  });
 });
 
 describe("safeUrl (#26)", () => {

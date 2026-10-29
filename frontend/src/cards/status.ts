@@ -2,7 +2,7 @@ import { css, html, nothing, type TemplateResult } from "lit";
 import { styleMap } from "lit/directives/style-map.js";
 import { KEY, type EntityKey } from "../const";
 import { geoLocationsFor, incidentDistance, incidentTitle, stateFor } from "../ha/entities";
-import { formatDistance, isUnavailable, numberAttr, stringAttr } from "../ha/format";
+import { formatDistance, formatNumber, isUnavailable, numberAttr, stringAttr } from "../ha/format";
 import { t, type TranslationKey } from "../localize/localize";
 import { summariseIncidents } from "../model/area";
 import { headlinePresentation, headlineStatus, type HeadlineStatus } from "../model/aws";
@@ -157,12 +157,12 @@ export class StatusCard extends DisasterCard {
           ? t(hass, "status.no_hazards_council", { name })
           : count === 1
             ? t(hass, "status.hazard_council", { name })
-            : t(hass, "status.hazards_council", { count, name })
+            : t(hass, "status.hazards_council", { count: formatNumber(hass, count), name })
         : count === 0
           ? t(hass, "status.no_hazards")
           : count === 1
             ? t(hass, "status.hazard")
-            : t(hass, "status.hazards", { count });
+            : t(hass, "status.hazards", { count: formatNumber(hass, count) });
     }
     const distance = formatDistance(hass, nearestKm);
     const nearest =

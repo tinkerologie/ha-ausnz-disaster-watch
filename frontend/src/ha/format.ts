@@ -17,6 +17,19 @@ export function timeZone(hass: HomeAssistant): string | undefined {
   return hass.locale?.time_zone === "server" ? hass.config?.time_zone : undefined;
 }
 
+/**
+ * Entity name as the built-in cards show it, through `hass.formatEntityName` (HA 2026.4+).
+ * `own` gives the entity's own name without the device prefix (e.g. a camera's name).
+ */
+export function entityName(hass: HomeAssistant, entityId: string, own = false): string {
+  const stateObj = hass.states[entityId];
+  const fromHass = stateObj && hass.formatEntityName?.(stateObj, own ? { type: "entity" } : undefined);
+  if (typeof fromHass === "string" && fromHass.trim()) return fromHass;
+  const registry = own ? hass.entities[entityId]?.name : undefined;
+  const friendly = stateObj?.attributes.friendly_name;
+  return (registry || (typeof friendly === "string" && friendly) || entityId).trim();
+}
+
 /** Entity state with unit, as Home Assistant shows it. */
 export function formatState(hass: HomeAssistant, stateObj: HassEntity): string {
   if (hass.formatEntityState) return hass.formatEntityState(stateObj);

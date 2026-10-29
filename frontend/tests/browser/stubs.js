@@ -118,17 +118,72 @@ class StubChip extends StubButton {
 customElements.define("ha-assist-chip", class extends StubChip {});
 customElements.define("ha-filter-chip", class extends StubChip {});
 
+// HA 2026.11 list elements (src/components/list/ha-list-base.ts, item/ha-list-item-*.ts):
+// the same roles, slots, row tokens and roving tabindex, without the real styling.
+class StubListItem extends Base {
+  constructor(interactive = false) {
+    super(`:host{display:block;color:var(--primary-text-color);font-size:var(--ha-font-size-m);line-height:var(--ha-line-height-normal)}
+      :host(:focus){outline:none}:host(:focus-visible) .base{outline:2px solid var(--ha-color-focus);border-radius:var(--ha-list-item-focus-radius)}
+      .base{all:unset;box-sizing:border-box;display:flex;align-items:center;width:100%;gap:var(--ha-row-item-gap,16px);
+        padding-block:var(--ha-row-item-padding-block,12px);padding-inline:var(--ha-row-item-padding-inline,16px);min-height:48px}
+      button.base{cursor:pointer}.content{flex:1;min-width:0;display:flex;flex-direction:column}
+      .supporting{color:var(--secondary-text-color);font-size:var(--ha-font-size-s)}.start,.end{display:flex;align-items:center;flex:none}`);
+    this.interactive = interactive;
+  }
+  connectedCallback() {
+    this.setAttribute("ha-list-item", "");
+    if (!this.hasAttribute("role")) this.setAttribute("role", "listitem");
+    const tag = this.interactive ? "button" : "div";
+    this.shadowRoot.innerHTML = `<${tag} class="base" id="item"${this.interactive ? ' type="button" tabindex="-1"' : ""}><span class="start"><slot name="start"></slot></span><span class="content"><span><slot name="headline"></slot></span><span class="supporting"><slot name="supporting-text"></slot></span></span><span class="end"><slot name="end"></slot></span></${tag}>`;
+    this.dispatchEvent(new CustomEvent("ha-list-item-register", { bubbles: true, composed: true, detail: { item: this } }));
+  }
+  activate() {
+    this.shadowRoot.getElementById("item")?.click();
+  }
+}
+customElements.define("ha-list-item-base", class extends StubListItem {});
 customElements.define(
-  "ha-md-list-item",
+  "ha-list-item-button",
+  class extends StubListItem {
+    constructor() {
+      super(true);
+    }
+  },
+);
+customElements.define(
+  "ha-list-base",
   class extends Base {
     constructor() {
-      super(`:host{display:block}.item{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:var(--ha-md-list-item-gap,16px);width:100%;padding:8px 16px;cursor:default}
-        button.item{cursor:pointer}.text{flex:1;min-width:0;display:flex;flex-direction:column;font-size:14px}
-        ::slotted([slot=supporting-text]){color:var(--secondary-text-color);font-size:12px}::slotted([slot=end]){font-size:12px;color:var(--secondary-text-color)}`);
+      super(":host{display:block}");
+      this.shadowRoot.innerHTML = "<slot></slot>";
+      this.items = [];
+      this.addEventListener("ha-list-item-register", (ev) => {
+        ev.stopPropagation();
+        this.items.push(ev.detail.item);
+        queueMicrotask(() => this.roving(this.items.find((i) => i.tabIndex === 0)));
+      });
+      this.addEventListener("keydown", (ev) => {
+        const focusable = this.items.filter((i) => i.isConnected && i.interactive);
+        const index = focusable.indexOf(ev.composedPath().find((n) => focusable.includes(n)));
+        if (index < 0) return;
+        if ((ev.key === "Enter" || ev.key === " ") && ev.composedPath()[0] === focusable[index]) {
+          ev.preventDefault();
+          focusable[index].activate();
+        } else if (ev.key === "ArrowDown" || ev.key === "ArrowUp") {
+          ev.preventDefault();
+          const next = focusable[Math.max(0, Math.min(focusable.length - 1, index + (ev.key === "ArrowDown" ? 1 : -1)))];
+          this.roving(next);
+          next.focus();
+        }
+      });
     }
     connectedCallback() {
-      const tag = this.getAttribute("type") === "button" ? "button" : "div";
-      this.shadowRoot.innerHTML = `<${tag} class="item"><slot name="start"></slot><span class="text"><slot name="headline"></slot><slot name="supporting-text"></slot></span><slot name="end"></slot></${tag}>`;
+      if (!this.hasAttribute("role")) this.setAttribute("role", "list");
+    }
+    roving(active) {
+      const focusable = this.items.filter((i) => i.isConnected && i.interactive);
+      const current = active ?? focusable[0];
+      for (const item of focusable) item.tabIndex = item === current ? 0 : -1;
     }
   },
 );
