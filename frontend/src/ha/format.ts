@@ -44,9 +44,23 @@ export function formatAttribute(hass: HomeAssistant, stateObj: HassEntity, attri
   return typeof raw === "number" ? formatNumber(hass, raw) : String(raw ?? "");
 }
 
+/** Locale for the profile's number format, as HA's own `numberFormatToLocale` maps it. */
+const NUMBER_FORMAT_LOCALES: Record<string, string[] | undefined> = {
+  comma_decimal: ["en-US", "en"],
+  decimal_comma: ["de", "es", "it"],
+  space_comma: ["fr", "sv", "cs"],
+  quote_decimal: ["de-CH"],
+  system: undefined,
+};
+
+/** Number in the user's profile number format (`hass.locale.number_format`), as HA formats it. */
 export function formatNumber(hass: HomeAssistant, value: number, options?: Intl.NumberFormatOptions): string {
+  const format = hass.locale?.number_format;
   try {
-    return new Intl.NumberFormat(language(hass), options).format(value);
+    // "none": no grouping, en-US decimals (home-assistant/frontend src/common/number/format_number.ts)
+    if (format === "none") return new Intl.NumberFormat("en-US", { ...options, useGrouping: false }).format(value);
+    const locale = format && format in NUMBER_FORMAT_LOCALES ? NUMBER_FORMAT_LOCALES[format] : language(hass);
+    return new Intl.NumberFormat(locale, options).format(value);
   } catch {
     return String(value);
   }

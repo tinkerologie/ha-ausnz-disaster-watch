@@ -116,6 +116,9 @@ export const cardStyles = css`
     --ha-row-item-gap: var(--ha-space-3);
     --ha-list-item-focus-radius: var(--ha-border-radius-lg);
   }
+  .row .row-actions {
+    display: contents;
+  }
   /* HA's list item draws its own focus ring. */
   .row .item:focus-visible {
     outline: none;

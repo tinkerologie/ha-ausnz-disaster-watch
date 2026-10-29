@@ -4,6 +4,7 @@ import {
   formatAttribute,
   formatDateTime,
   formatDistance,
+  formatNumber,
   formatState,
   isUnavailable,
   listAttr,
@@ -59,6 +60,22 @@ describe("entityName (#123)", () => {
     expect(entityName(blank, "camera.goodna", true)).toBe("Goodna");
     expect(entityName(hass({ states: { "camera.goodna": cam } }), "camera.goodna", true)).toBe("QLD Disaster Watch Goodna");
     expect(entityName(hass(), "camera.gone")).toBe("camera.gone");
+  });
+});
+
+describe("formatNumber follows the profile number format (#123)", () => {
+  const withFormat = (number_format?: string, language = "en") =>
+    hass({ locale: { language, time_zone: "server", number_format } } as Partial<HomeAssistant>);
+
+  it.each([
+    [undefined, "en", "1,234.5"],
+    ["language", "de", "1.234,5"],
+    ["comma_decimal", "de", "1,234.5"],
+    ["decimal_comma", "en", "1.234,5"],
+    ["quote_decimal", "en", new Intl.NumberFormat("de-CH").format(1234.5)],
+    ["none", "de", "1234.5"],
+  ])("number_format %s (language %s)", (format, language, expected) => {
+    expect(formatNumber(withFormat(format, language), 1234.5)).toBe(expected);
   });
 });
 

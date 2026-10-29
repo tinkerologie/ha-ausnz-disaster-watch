@@ -200,7 +200,17 @@ test("list rows use HA 2026.11 list elements with one tab stop and arrow keys (#
   await expect(items.nth(1)).toHaveAttribute("tabindex", "-1");
   // The external link is beside the row button, never inside it.
   await expect(el.locator("ha-list-item-button ha-icon-button")).toHaveCount(0);
-  await expect(rows.first().locator("> ha-icon-button.link")).toHaveCount(1);
+  await expect(rows.first().locator("> .row-actions > ha-icon-button.link")).toHaveCount(1);
+
+  // Enter on a row's own link opens only the link, never the list's current row (HA 2026.10's
+  // ha-list-base activates the current row for any Enter inside the list).
+  await page.evaluate(() => {
+    window.addEventListener("hass-more-info", () => ((window as unknown as { stray: boolean }).stray = true));
+    document.addEventListener("click", (e) => e.composedPath().some((n) => (n as Element).localName === "a") && e.preventDefault(), true);
+  });
+  await rows.nth(2).locator("ha-icon-button.link a").focus();
+  await page.keyboard.press("Enter");
+  expect(await page.evaluate(() => (window as unknown as { stray?: boolean }).stray)).toBeUndefined();
 
   const opened = page.evaluate(
     () =>

@@ -164,12 +164,17 @@ customElements.define(
       });
       this.addEventListener("keydown", (ev) => {
         const focusable = this.items.filter((i) => i.isConnected && i.interactive);
+        if (ev.key === "Enter" || ev.key === " ") {
+          // Like HA 2026.10's ha-list-base: activates the current row whatever has focus.
+          const current = focusable.find((i) => i.tabIndex === 0);
+          if (!current) return;
+          ev.preventDefault();
+          current.activate();
+          return;
+        }
         const index = focusable.indexOf(ev.composedPath().find((n) => focusable.includes(n)));
         if (index < 0) return;
-        if ((ev.key === "Enter" || ev.key === " ") && ev.composedPath()[0] === focusable[index]) {
-          ev.preventDefault();
-          focusable[index].activate();
-        } else if (ev.key === "ArrowDown" || ev.key === "ArrowUp") {
+        if (ev.key === "ArrowDown" || ev.key === "ArrowUp") {
           ev.preventDefault();
           const next = focusable[Math.max(0, Math.min(focusable.length - 1, index + (ev.key === "ArrowDown" ? 1 : -1)))];
           this.roving(next);

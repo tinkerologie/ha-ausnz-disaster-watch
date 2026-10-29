@@ -106,21 +106,32 @@ export function row(options: RowOptions): TemplateResult {
           >`
         : html`<ha-list-item-base class="item" role="none">${content}</ha-list-item-base>`
     }
-    ${
-      options.link
-        ? html`<ha-icon-button
-            class="link"
-            .label=${options.linkLabel ?? ""}
-            .href=${options.link}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <ha-icon icon="mdi:open-in-new"></ha-icon>
-          </ha-icon-button>`
-        : nothing
-    }
-    ${options.actions ?? nothing}
+    <span class="row-actions" @keydown=${keepActivationKeys}>
+      ${
+        options.link
+          ? html`<ha-icon-button
+              class="link"
+              .label=${options.linkLabel ?? ""}
+              .href=${options.link}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <ha-icon icon="mdi:open-in-new"></ha-icon>
+            </ha-icon-button>`
+          : nothing
+      }
+      ${options.actions ?? nothing}
+    </span>
   </div>`;
+}
+
+/**
+ * Enter/Space on a row's own buttons activate that button only. On HA 2026.10,
+ * `ha-list-base` would otherwise also activate the list's current row: the check that
+ * lets nested controls keep their keys only arrived in 2026.11.
+ */
+function keepActivationKeys(ev: KeyboardEvent): void {
+  if (ev.key === "Enter" || ev.key === " ") ev.stopPropagation();
 }
 
 /**
