@@ -215,6 +215,8 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         self.dam_coordinator: DamStorageCoordinator | None = None
         # Unique IDs the sensor platforms created, for the registry cleanup at setup (#92)
         self.entity_tracker = EntityTracker()
+        # Dropped duplicate camera ID -> the ID it was merged into (#125)
+        self._camera_aliases: dict[str, str] = {}
         self._road_feed_healthy: dict[str, bool] = {}
         self.road_feeds_failed: list[str] = []
         # Optional (non-hazard) feed calls that outlived their timeout, their last good results,
@@ -825,7 +827,7 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
 
         # One entity per physical camera, the same copy on every refresh (#19, #70, #125): a
         # council dashboard and a road agency network can list one camera under different IDs
-        unique_cameras = merge_cameras(cameras)
+        unique_cameras = merge_cameras(cameras, self._camera_aliases)
 
         return {
             "power_outages": self._process_power_outages(power_outages),

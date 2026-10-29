@@ -139,7 +139,11 @@ _NETWORK_DETAILS = ("source_key", "direction", "owner", "description", "suburb",
 
 def _image_key(url: str) -> str | None:
     """Return the image file name when it identifies one camera, else None."""
-    name = urlsplit(url).path.rsplit("/", 1)[-1].lower()
+    try:
+        path = urlsplit(url).path
+    except ValueError:  # e.g. an unclosed IPv6 bracket in the host
+        return None
+    name = path.rsplit("/", 1)[-1].lower()
     stem = name.rsplit(".", 1)[0]
     return name if _IMAGE_ID.fullmatch(stem) else None
 
@@ -160,7 +164,7 @@ def _place_key(camera: DisasterCameraItem) -> tuple[float, float, str] | None:
     )
 
 
-def merge_cameras(cameras: list[DisasterCameraItem]) -> list[DisasterCameraItem]:
+def merge_cameras(cameras: list[DisasterCameraItem], aliases: dict[str, str] | None = None) -> list[DisasterCameraItem]:
     """Return one camera per physical camera, in a stable order.
 
     Sources answer concurrently, so cameras arrive in any order. They are ordered first:
@@ -169,7 +173,18 @@ def merge_cameras(cameras: list[DisasterCameraItem]) -> list[DisasterCameraItem]
     same when they share an ID, the image file (a council dashboard often serves a copy of
     the road agency's image from its own host), or the place and name. The kept copy takes
     the details it lacks (network, direction, owner and so on) from the dropped one.
+
+    ``aliases`` remembers, across refreshes, the ID each dropped copy was merged into. While
+    the kept copy's source is down, the other copy takes that ID, so the camera keeps its
+    entity instead of gaining a second one.
     """
+    if aliases is None:
+        aliases = {}
+    present = {camera.id for camera in cameras}
+    cameras = [
+        replace(camera, id=aliases[camera.id]) if camera.id in aliases and aliases[camera.id] not in present else camera
+        for camera in cameras
+    ]
     ordered = sorted(cameras, key=lambda camera: (camera.source_key is not None, camera.id))
     kept: list[DisasterCameraItem] = []
     index: dict[tuple[str, Any], int] = {}
@@ -185,6 +200,8 @@ def merge_cameras(cameras: list[DisasterCameraItem]) -> list[DisasterCameraItem]
             kept.append(camera)
         else:
             current = kept[match]
+            if camera.id != current.id:
+                aliases[camera.id] = current.id
             details = {
                 name: getattr(camera, name)
                 for name in _NETWORK_DETAILS

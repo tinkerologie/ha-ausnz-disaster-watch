@@ -8,7 +8,7 @@ Versions follow Home Assistant's scheme, `YEAR.MONTH.PATCH` (for example `2026.1
 
 ### Fixed
 
-- Duplicate camera entities (#125): a council dashboard and a road agency network listing the same camera (the council serves the road agency's image from its own host) became two entities, and which copy was kept depended on which source answered first. Cameras are now matched by ID, image file or place and name, the council copy is always kept and gains the network's details and attribution, and a camera left with a `_2` entity ID gets its plain ID back once it is free.
+- Duplicate camera entities (#125): a council dashboard and a road agency network listing the same camera (the council serves the road agency's image from its own host) became two entities, and which copy was kept depended on which source answered first. Cameras are now matched by ID, image file or place and name, the council copy is always kept and gains the network's details and attribution. While the kept copy's source is down, the other copy keeps the same entity.
 
 ### Added
 

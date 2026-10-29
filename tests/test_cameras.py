@@ -551,3 +551,24 @@ def test_merge_cameras_order_is_stable() -> None:
     ]
     assert [c.id for c in merge_cameras(cameras)] == ["c1", "c2", "n1", "n2"]
     assert [c.id for c in merge_cameras(list(reversed(cameras)))] == ["c1", "c2", "n1", "n2"]
+
+
+def test_merge_cameras_keeps_the_id_while_the_kept_source_is_down() -> None:
+    """With the council feed down, the network copy keeps the council camera's ID (#125)."""
+    aliases: dict[str, str] = {}
+    council, network = _council_cam(), _network_cam()
+    assert [c.id for c in merge_cameras([network, council], aliases)] == [council.id]
+    assert aliases == {network.id: council.id}
+
+    (alone,) = merge_cameras([network], aliases)
+    assert alone.id == council.id
+    assert alone.image_url == network.image_url
+    assert alone.source_key == "qldtraffic_cameras"
+    # Both back: the council copy again, under the same ID
+    assert [c.image_url for c in merge_cameras([council, network], aliases)] == [council.image_url]
+
+
+def test_merge_cameras_malformed_image_url() -> None:
+    """A URL that cannot be parsed only loses the file-name match."""
+    broken = _council_cam(id="x", image_url="https://[broken/8df57cc1-14c0-46bf-891c-021f2c3c98ea.jpg")
+    assert [c.id for c in merge_cameras([broken, _network_cam(latitude=-27.5)])] == ["x", "qldtraffic_flood_254"]

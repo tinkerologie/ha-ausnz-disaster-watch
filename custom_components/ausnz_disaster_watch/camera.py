@@ -73,28 +73,6 @@ async def _async_read_image(resp: ClientResponse) -> tuple[bytes, str] | None:
     return (data, content_type) if content_type is not None else None
 
 
-@callback
-def async_drop_entity_id_suffixes(hass: HomeAssistant, entry_id: str) -> int:
-    """Give suffixed camera entity IDs back their plain ID once nothing else holds it; return how many.
-
-    Two copies of one camera used to become two entities (#125); the second got "_2" on the
-    ID Home Assistant generated, and kept it after the first copy had gone. Only an ID that is
-    exactly the regenerated ID plus "_<n>" is changed, so IDs ending in a number that belongs
-    to the camera's name (a postcode, say) and IDs a user chose are left alone.
-    """
-    registry = er.async_get(hass)
-    renamed = 0
-    for registry_entry in er.async_entries_for_config_entry(registry, entry_id):
-        if registry_entry.domain != CAMERA_DOMAIN:
-            continue
-        regenerated = registry.async_regenerate_entity_id(registry_entry)
-        suffix = registry_entry.entity_id.removeprefix(f"{regenerated}_")
-        if suffix != registry_entry.entity_id and suffix.isdigit():
-            registry.async_update_entity(registry_entry.entity_id, new_entity_id=regenerated)
-            renamed += 1
-    return renamed
-
-
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: AusNZDisasterWatchConfigEntry,
@@ -150,7 +128,6 @@ async def async_setup_entry(
             registry_cleaned = True
             keep = {camera_unique_id(entry.entry_id, camera_id) for camera_id in current | set(tracked)}
             async_remove_registry_entries(hass, entry.entry_id, (CAMERA_DOMAIN,), keep)
-            async_drop_entity_id_suffixes(hass, entry.entry_id)
         gone = set(tracked) - current - removing if complete else set()
         for camera_id in gone:
             entity = tracked[camera_id]
