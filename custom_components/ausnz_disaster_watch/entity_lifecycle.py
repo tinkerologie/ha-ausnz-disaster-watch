@@ -127,7 +127,9 @@ def async_remove_stale_devices(hass: HomeAssistant, entry: ConfigEntry) -> None:
             continue
         if er.async_entries_for_device(entity_registry, device.id, include_disabled_entities=True):
             continue
-        device_registry.async_update_device(device.id, remove_config_entry_id=entry.entry_id)
+        # The lookup is scoped to this entry, and a device belongs to one config entry
+        # (async_update_device with remove_config_entry_id stops working in 2027.8).
+        device_registry.async_remove_device(device.id)
 
 
 @callback

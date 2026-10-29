@@ -100,6 +100,21 @@ mypy custom_components
 pre-commit run --all-files
 ```
 
+### Deprecations and Upcoming Home Assistant Releases
+
+- **Current release (blocking):** `script/test` fails on deprecated use by the integration (#121).
+  - `pyproject.toml` `filterwarnings` turns every warning into an error, and keeps `DeprecationWarning` and `PendingDeprecationWarning` raised from `custom_components.ausnz_disaster_watch` modules errors even if that rule is relaxed.
+  - Home Assistant logs, rather than warns, when an integration uses a deprecated API (`report_usage`, deprecated constants, classes and functions) or when an entity class still defines a deprecated attribute (`custom_components.ausnz_disaster_watch.<module>::<Class> provides the deprecated <name>`). `tests/deprecations.py` collects those log lines when they name `ausnz_disaster_watch`, and the autouse `fail_on_ha_deprecation_reports` fixture in `tests/conftest.py` fails the test that logged one, including reports from `hass` setup and shutdown. Fix the call in the integration; do not silence the check.
+  - `python -I script/import_smoke.py` imports every module in a clean interpreter against whichever Home Assistant is installed, and fails on a failed import or deprecated use. It needs no test harness, so it works against a beta.
+- **Next release (early warning, non-blocking):** `.github/workflows/ha-next.yml` runs weekly, on demand, and on PRs that touch `pyproject.toml`, `requirements*.txt`, `manifest.json`, `script/import_smoke.py`, `script/declared_requirements.py`, `script/ha_next_versions.py`, `script/hassfest` or the workflow, on two channels:
+  - `release`: the newest Home Assistant on PyPI, beta included (`script/ha_next_versions.py`). It installs the manifest requirements and those of the components the integration uses (`script/declared_requirements.py`, as `script/check-imports` resolves them) under that release's constraints, then runs the import smoke test, the tests (only when a `pytest-homeassistant-custom-component` release pins exactly that version) and `HA_VERSION=<version> ./script/hassfest --skip-plugins ""`.
+  - `dev`: the head of Core's `dev` branch, pinned to one commit. It runs the import smoke test and Hassfest at that commit.
+  - Scheduled and manual runs on `main` keep one issue per channel, labelled `ha-next` and `bug`, and close it when the channel passes again.
+- **Developer blog (early warning, non-blocking):** `.github/workflows/ha-dev-blog.yml` runs weekly and on demand (input `days`, default 22). `script/ha_dev_blog.py` reads the developer blog feed and searches `custom_components/ausnz_disaster_watch/` for the code identifiers named next to an announced deprecation, removal or breaking change. It opens one `ha-dev-blog` and `enhancement` issue per post that names something the integration uses (deduplicated by the post link across open and closed issues). Run it locally with `python3 script/ha_dev_blog.py --days 30`.
+- **When ha-next fails:** open the run linked from the `ha-next` issue and read the job summary.
+  - Import smoke or test failure: reproduce it in a scratch venv (not `.local/ha-venv`): `uv venv /tmp/ha-next && uv pip install --python /tmp/ha-next/bin/python "homeassistant==<version>"`, then `/tmp/ha-next/bin/python script/declared_requirements.py /tmp/reqs.txt /tmp/cons.txt homeassistant conversation`, `uv pip install --python /tmp/ha-next/bin/python -r /tmp/reqs.txt -c /tmp/cons.txt` and `/tmp/ha-next/bin/python -I script/import_smoke.py`. For the dev channel, install `"homeassistant @ https://github.com/home-assistant/core/archive/<commit>.tar.gz"`. Fix it with an API that also works on the minimum Home Assistant in `hacs.json`.
+  - Hassfest failure: run the same command locally; a new validator rule or a changed Core layout may need a `script/hassfest` change.
+
 ---
 
 ## Commit Message Guidelines

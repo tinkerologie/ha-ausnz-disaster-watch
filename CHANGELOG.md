@@ -9,6 +9,12 @@ Versions follow Home Assistant's scheme, `YEAR.MONTH.PATCH` (for example `2026.1
 ### Added
 
 - Releases ship the integration as `ausnz_disaster_watch.zip`, with a `SHA256SUMS` file and a signed build provenance attestation (#120). `hacs.json` sets `zip_release` and `filename`, so from the next release HACS installs the zip and shows the download count of the latest release's zip; choosing an older release without the zip in HACS may then fail to download. `script/build-release` (a wrapper for `script/build_release_zip.py`) builds the zip reproducibly from the files Git tracks under `custom_components/ausnz_disaster_watch/`, at the zip root, and refuses to build when a tracked file differs from `HEAD`, a runtime file (data tables, translations, icons, brand images, the card bundle) is missing, or the card bundle imports a module the zip does not hold, including the lazily loaded map chunk. CI builds the zip twice on every pull request and checks the bytes match. The release workflow now builds and attests the zip in one job, then verifies the checksum and the attestation, creates a draft release with the zip, `SHA256SUMS` and `CHANGELOG.md`, publishes it and verifies the immutable release; version checks, skipped pre-releases, `v<version>` tags, existing-tag handling and changelog release notes are unchanged. The README covers manual installation from the zip and how to verify it.
+- CI catches Home Assistant deprecations (#121). Tests fail when Home Assistant logs deprecated use by the integration or a deprecation warning comes from its modules. A weekly, non-blocking HA Next workflow tests the newest Home Assistant release on PyPI (beta included) and Core `dev`, and keeps one `ha-next` issue per channel. A weekly developer blog watch opens an issue for each post that names code the integration uses. See the deprecation section of `CONTRIBUTING.md`.
+
+### Fixed
+
+- Removing a device that no longer has entities no longer calls `device_registry.async_update_device(..., remove_config_entry_id=...)`, which Home Assistant reports as deprecated and which stops working in 2027.8. The lookup is scoped to this entry, so the device is removed with `async_remove_device` (#121).
+- `script/hassfest` works with Home Assistant Core 2026.11, which moved the validator into `packages/hassfest`, and reads Core's own `requirements.txt` instead of this repository's when the requirements plugin runs (#121).
 
 ## [2026.10.1] - 2026-10-22
 

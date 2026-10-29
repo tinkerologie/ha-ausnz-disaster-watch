@@ -54,8 +54,13 @@ markers = [
 filterwarnings = [
     # Treat warnings as errors to catch issues early
     "error",
-    # Ignore specific warnings from third-party libraries as needed
-    # "ignore:.*custom_components.* is using deprecated.*:DeprecationWarning",
+    # Deprecation warnings attributed to the integration's own modules stay errors even if
+    # the rule above is relaxed (#121). The module field is a regex matched from the start of
+    # the warning's module, so it covers every submodule. Home Assistant logs, rather than
+    # warns, about most deprecated use: tests/conftest.py fails the test on those reports.
+    'error::DeprecationWarning:custom_components\.ausnz_disaster_watch(\.|$)',
+    'error::PendingDeprecationWarning:custom_components\.ausnz_disaster_watch(\.|$)',
+    # Ignore specific third-party warnings below as needed (later entries win)
     "ignore:Setting custom ClientSession.*:DeprecationWarning",
 ]
 
