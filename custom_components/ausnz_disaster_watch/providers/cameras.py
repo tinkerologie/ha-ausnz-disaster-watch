@@ -128,9 +128,12 @@ def _feature_point(geometry: Any) -> tuple[float, float] | None:
     return _point(coords[1], coords[0])
 
 
-# Image file names that identify one camera: an ID-like stem (a UUID, or 16+ characters
-# mixing letters and digits), never a generic name such as "latest.jpg" or "image.jpg"
-_IMAGE_ID = re.compile(r"(?=.*\d)(?=.*[a-z])[a-z0-9_-]{16,}")
+# Image file names that identify one camera: a UUID or a long hex digest, as QLDTraffic and
+# the council dashboards' image store use. Descriptive names ("latest.jpg",
+# "current_snapshot_1.jpg") can repeat across cameras and never count.
+_IMAGE_ID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{16,}")
+# Two copies with the same image file but further apart than this are different cameras
+_SAME_IMAGE_MAX_KM = 0.1
 # About 10 m: two copies of one camera sit within this of each other
 _SAME_PLACE_DECIMALS = 4
 # Details the kept copy of a camera takes from a dropped copy when it has none: what a road
@@ -173,6 +176,19 @@ def _place_key(camera: DisasterCameraItem) -> tuple[float, float, str] | None:
         round(camera.longitude, _SAME_PLACE_DECIMALS),
         _name_key(camera.name),
     )
+
+
+def _compatible(key: tuple[str, Any], kept: DisasterCameraItem, camera: DisasterCameraItem) -> bool:
+    """Return False when an image-file match joins two cameras that are far apart."""
+    if key[0] != "file" or None in (kept.latitude, kept.longitude, camera.latitude, camera.longitude):
+        return True
+    distance = haversine_km(
+        float(kept.latitude or 0.0),
+        float(kept.longitude or 0.0),
+        float(camera.latitude or 0.0),
+        float(camera.longitude or 0.0),
+    )
+    return distance <= _SAME_IMAGE_MAX_KM
 
 
 def _resolve_alias(aliases: dict[str, str], camera_id: str) -> str:
@@ -218,7 +234,10 @@ def merge_cameras(cameras: list[DisasterCameraItem], aliases: dict[str, str] | N
             keys.append(("file", image))
         if (place := _place_key(camera)) is not None:
             keys.append(("place", place))
-        match = next((index[key] for key in keys if key in index), None)
+        match = next(
+            (index[key] for key in keys if key in index and _compatible(key, kept[index[key]], camera)),
+            None,
+        )
         if match is None:
             match = len(kept)
             kept.append(camera)

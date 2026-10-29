@@ -590,3 +590,18 @@ def test_merge_cameras_alias_chains_and_locations() -> None:
     assert [c.id for c in merge_cameras([network_b], aliases)] == [council.id]
     # A cycle never loops
     assert [c.id for c in merge_cameras([_council_cam(id="x")], {"x": "y", "y": "x"})] == ["x"]
+
+
+def test_merge_cameras_file_name_match_is_strict() -> None:
+    """Only an identifier-like file name at the same spot joins two cameras (#125)."""
+    snapshot_a = _council_cam(id="a", image_url="https://host-a/cam-a/current_snapshot_1.jpg", latitude=-27.1)
+    snapshot_b = _council_cam(id="b", name="B", image_url="https://host-b/cam-b/current_snapshot_1.jpg", latitude=-27.3)
+    assert [c.id for c in merge_cameras([snapshot_a, snapshot_b])] == ["a", "b"]
+    # The same UUID image far away: different cameras that happen to share a file name
+    far = _network_cam(name="Elsewhere", latitude=-27.9, longitude=153.4)
+    assert [c.id for c in merge_cameras([_council_cam(), far])] == [_council_cam().id, far.id]
+    # A long hex digest counts like a UUID
+    digest = "0123456789abcdef0123.jpg"
+    one = _council_cam(id="x", image_url=f"https://one.example/{digest}")
+    two = _network_cam(id="y", name="Y", image_url=f"https://two.example/{digest}")
+    assert [c.id for c in merge_cameras([one, two])] == ["x"]
