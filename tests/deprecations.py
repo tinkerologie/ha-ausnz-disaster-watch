@@ -16,13 +16,14 @@ import re
 DOMAIN = "ausnz_disaster_watch"
 
 # Matches the frame helper's "Detected that custom integration '<domain>' ...",
-# the deprecation helpers' "The deprecated constant X was used from <domain>.",
+# the deprecation helpers' "The deprecated constant X was used from <domain>." (or
+# "was passed to <function> from <domain>." for a deprecated argument),
 # and their "custom_components.<domain>.<module>::<Class> provides the deprecated
 # <name>, ..." for an entity class that still defines a deprecated attribute.
 # Keep in sync with script/import_smoke.py.
 REPORT_PATTERN = re.compile(
     rf"Detected that (?:custom )?integration '{DOMAIN}' "
-    rf"|The deprecated .+ was \w+ from {DOMAIN}\."
+    rf"|The deprecated .+ was .+ from {DOMAIN}\."
     rf"|custom_components\.{DOMAIN}(?:\.\w+)*::\S+ provides the deprecated "
 )
 

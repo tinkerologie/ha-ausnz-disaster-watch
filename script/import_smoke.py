@@ -27,7 +27,7 @@ DEPRECATIONS = (DeprecationWarning, PendingDeprecationWarning)
 # Keep in sync with tests/deprecations.py.
 REPORT_PATTERN = re.compile(
     rf"Detected that (?:custom )?integration '{DOMAIN}' "
-    rf"|The deprecated .+ was \w+ from {DOMAIN}\."
+    rf"|The deprecated .+ was .+ from {DOMAIN}\."
     rf"|custom_components\.{DOMAIN}(?:\.\w+)*::\S+ provides the deprecated "
 )
 
