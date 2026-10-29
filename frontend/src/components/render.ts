@@ -142,6 +142,22 @@ export function list(rows: TemplateResult[], label?: string): TemplateResult {
   return html`<ha-list-base class="list" aria-label=${label ?? nothing}>${rows}</ha-list-base>`;
 }
 
+/**
+ * Drop rows that left the DOM from every `ha-list-base` under `root`. HA 2026.10's list
+ * items announce their removal from the already detached row, so the list never hears
+ * it and arrow keys can land on a removed row (fixed in 2026.11). Replaying the list's
+ * own `ha-list-item-unregister` event on the list fixes that; on 2026.11 it is a no-op.
+ */
+export function pruneDetachedRows(root: ParentNode): void {
+  for (const list of root.querySelectorAll<HTMLElement & { items?: readonly Element[] }>("ha-list-base")) {
+    for (const item of list.items ?? []) {
+      if (!item.isConnected) {
+        list.dispatchEvent(new CustomEvent("ha-list-item-unregister", { detail: { item } }));
+      }
+    }
+  }
+}
+
 /** "Show all N" / "Show less" toggle for capped lists. */
 export function showAll(hass: HomeAssistant, expanded: boolean, total: number, toggle: () => void): TemplateResult {
   return html`<ha-button

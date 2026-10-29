@@ -137,6 +137,10 @@ class StubListItem extends Base {
     this.shadowRoot.innerHTML = `<${tag} class="base" id="item"${this.interactive ? ' type="button" tabindex="-1"' : ""}><span class="start"><slot name="start"></slot></span><span class="content"><span><slot name="headline"></slot></span><span class="supporting"><slot name="supporting-text"></slot></span></span><span class="end"><slot name="end"></slot></span></${tag}>`;
     this.dispatchEvent(new CustomEvent("ha-list-item-register", { bubbles: true, composed: true, detail: { item: this } }));
   }
+  disconnectedCallback() {
+    // Like HA 2026.10: announced from the detached row, so the list never hears it.
+    this.dispatchEvent(new CustomEvent("ha-list-item-unregister", { bubbles: true, composed: true, detail: { item: this } }));
+  }
   activate() {
     this.shadowRoot.getElementById("item")?.click();
   }
@@ -159,11 +163,17 @@ customElements.define(
       this.items = [];
       this.addEventListener("ha-list-item-register", (ev) => {
         ev.stopPropagation();
-        this.items.push(ev.detail.item);
+        if (!this.items.includes(ev.detail.item)) this.items = [...this.items, ev.detail.item];
         queueMicrotask(() => this.roving(this.items.find((i) => i.tabIndex === 0)));
       });
+      this.addEventListener("ha-list-item-unregister", (ev) => {
+        ev.stopPropagation();
+        this.items = this.items.filter((i) => i !== ev.detail.item);
+        this.roving(this.items.find((i) => i.tabIndex === 0));
+      });
+      // Like HA's list, the registry is all it knows: detached rows that never unregistered stay in it.
       this.addEventListener("keydown", (ev) => {
-        const focusable = this.items.filter((i) => i.isConnected && i.interactive);
+        const focusable = this.items.filter((i) => i.interactive);
         if (ev.key === "Enter" || ev.key === " ") {
           // Like HA 2026.10's ha-list-base: activates the current row whatever has focus.
           const current = focusable.find((i) => i.tabIndex === 0);
@@ -186,7 +196,7 @@ customElements.define(
       if (!this.hasAttribute("role")) this.setAttribute("role", "list");
     }
     roving(active) {
-      const focusable = this.items.filter((i) => i.isConnected && i.interactive);
+      const focusable = this.items.filter((i) => i.interactive);
       const current = active ?? focusable[0];
       for (const item of focusable) item.tabIndex = item === current ? 0 : -1;
     }

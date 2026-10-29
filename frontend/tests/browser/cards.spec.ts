@@ -232,6 +232,23 @@ test("list rows use HA 2026.11 list elements with one tab stop and arrow keys (#
   expect(ids.every((id) => id.startsWith("geo_location."))).toBe(true);
 });
 
+test("arrow keys stay on shown rows after Show less (#123)", async ({ page }) => {
+  await setup(page);
+  const el = await mount(page, "ausnz-disaster-incidents-card", { device: QLD });
+  const items = el.locator("ha-list-item-button");
+  await expect(items).toHaveCount(10);
+  await el.getByText("Show all 14").click();
+  await expect(items).toHaveCount(14);
+  await el.getByText("Show less").click();
+  await expect(items).toHaveCount(10);
+  // The list no longer holds the four removed rows.
+  expect(await el.locator("ha-list-base").evaluate((l) => (l as unknown as { items: Element[] }).items.length)).toBe(10);
+  await items.nth(9).focus();
+  await page.keyboard.press("ArrowDown");
+  await expect(items.nth(9)).toBeFocused();
+  await expect(el.locator('ha-list-item-button[tabindex="0"]')).toHaveCount(1);
+});
+
 test("rows without an action are not buttons (#123)", async ({ page }) => {
   await setup(page);
   const el = await mount(page, "ausnz-disaster-outages-card", { device: QLD });
