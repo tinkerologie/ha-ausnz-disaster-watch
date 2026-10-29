@@ -385,24 +385,42 @@ async def test_several_cameras_leaving_in_one_refresh(
 async def test_camera_entity_id_suffix_is_dropped_once_free(
     hass: HomeAssistant, mock_config_entry: MockConfigEntry
 ) -> None:
-    """A camera left with a "_2" entity ID by an old duplicate gets its plain ID back (#125)."""
+    """A camera left with a "_2" entity ID by an old duplicate gets its plain ID back (#125).
+
+    Only Home Assistant's own collision suffix is dropped: a number that belongs to the
+    camera's name, an ID a user chose, and an ID still taken stay as they are.
+    """
     entry = mock_config_entry
     entry.add_to_hass(hass)
     registry = er.async_get(hass)
-    suffixed = _register(hass, entry, "camera", "camera_flood_255", suggested_object_id="creek_2")
-    taken = _register(hass, entry, "camera", "camera_flood_256", suggested_object_id="bridge_2")
-    _register(hass, entry, "camera", "camera_bridge", suggested_object_id="bridge")
-    other = registry.async_get_or_create("camera", "demo", "x", suggested_object_id="road_2")
 
+    def _named(key: str, name: str) -> str:
+        return _register(hass, entry, "camera", key, object_id_base=name)
+
+    old_copy = _named("camera_council_creek", "Creek")
+    suffixed = _named("camera_flood_255", "Creek")
+    assert (old_copy, suffixed) == ("camera.creek", "camera.creek_2")
+    postcode = _named("camera_flood_251", "Road 4510")
+    _named("camera_bridge", "Bridge")
+    taken = _named("camera_flood_256", "Bridge")
+    chosen = _named("camera_flood_257", "Weir")
+    registry.async_update_entity(chosen, new_entity_id="camera.my_weir_2")
+
+    # The council copy of the creek camera went; the network copy stays
     await _camera_platform(
         hass,
         entry,
-        DisasterCoordinatorData(cameras=[_camera("flood_255"), _camera("flood_256"), _camera("bridge")]),
+        DisasterCoordinatorData(
+            cameras=[_camera(key) for key in ("flood_255", "flood_251", "bridge", "flood_256", "flood_257")]
+        ),
     )
 
-    assert registry.async_get(suffixed) is None
     renamed = registry.async_get("camera.creek")
     assert renamed is not None
     assert renamed.unique_id == camera_unique_id(entry.entry_id, "flood_255")
-    assert registry.async_get(taken) is not None  # "camera.bridge" is still in use
-    assert registry.async_get(other.entity_id) is not None  # another integration's entity is left alone
+    assert registry.async_get(suffixed) is None
+    assert postcode == "camera.road_4510"
+    assert registry.async_get(postcode) is not None
+    assert taken == "camera.bridge_2"
+    assert registry.async_get(taken) is not None  # camera.bridge is still in use
+    assert registry.async_get("camera.my_weir_2") is not None
