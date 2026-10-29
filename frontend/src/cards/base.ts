@@ -22,7 +22,7 @@ import {
 import { AREA_MODES, areaFilter, councilArea, type AreaFilter, type AreaMode } from "../model/area";
 import { preloadHaElements } from "../ha/preload";
 import { t, type TranslationKey } from "../localize/localize";
-import { alert } from "../components/render";
+import { alert, pruneDetachedRows } from "../components/render";
 import { cardStyles } from "../styles";
 import type { BaseCardConfig, HaFormSchema, HomeAssistant, LovelaceGridOptions } from "../types";
 
@@ -165,6 +165,12 @@ export abstract class DisasterCard<C extends BaseCardConfig = BaseCardConfig> ex
   override connectedCallback(): void {
     super.connectedCallback();
     void preloadHaElements();
+  }
+
+  protected override updated(changed: PropertyValues<this>): void {
+    super.updated(changed);
+    // Rows removed by this render (show less, a filter, an incident ending): see pruneDetachedRows
+    pruneDetachedRows(this.renderRoot);
   }
 
   getCardSize(): number {

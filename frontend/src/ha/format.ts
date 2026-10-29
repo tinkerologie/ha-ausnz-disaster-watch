@@ -17,6 +17,19 @@ export function timeZone(hass: HomeAssistant): string | undefined {
   return hass.locale?.time_zone === "server" ? hass.config?.time_zone : undefined;
 }
 
+/**
+ * Entity name as the built-in cards show it, through `hass.formatEntityName` (HA 2026.4+).
+ * `own` gives the entity's own name without the device prefix (e.g. a camera's name).
+ */
+export function entityName(hass: HomeAssistant, entityId: string, own = false): string {
+  const stateObj = hass.states[entityId];
+  const fromHass = stateObj && hass.formatEntityName?.(stateObj, own ? { type: "entity" } : undefined);
+  if (typeof fromHass === "string" && fromHass.trim()) return fromHass;
+  const registry = own ? hass.entities[entityId]?.name : undefined;
+  const friendly = stateObj?.attributes.friendly_name;
+  return (registry || (typeof friendly === "string" && friendly) || entityId).trim();
+}
+
 /** Entity state with unit, as Home Assistant shows it. */
 export function formatState(hass: HomeAssistant, stateObj: HassEntity): string {
   if (hass.formatEntityState) return hass.formatEntityState(stateObj);
@@ -31,9 +44,23 @@ export function formatAttribute(hass: HomeAssistant, stateObj: HassEntity, attri
   return typeof raw === "number" ? formatNumber(hass, raw) : String(raw ?? "");
 }
 
+/** Locale for the profile's number format, as HA's own `numberFormatToLocale` maps it. */
+const NUMBER_FORMAT_LOCALES: Record<string, string[] | undefined> = {
+  comma_decimal: ["en-US", "en"],
+  decimal_comma: ["de", "es", "it"],
+  space_comma: ["fr", "sv", "cs"],
+  quote_decimal: ["de-CH"],
+  system: undefined,
+};
+
+/** Number in the user's profile number format (`hass.locale.number_format`), as HA formats it. */
 export function formatNumber(hass: HomeAssistant, value: number, options?: Intl.NumberFormatOptions): string {
+  const format = hass.locale?.number_format;
   try {
-    return new Intl.NumberFormat(language(hass), options).format(value);
+    // "none": no grouping, en-US decimals (home-assistant/frontend src/common/number/format_number.ts)
+    if (format === "none") return new Intl.NumberFormat("en-US", { ...options, useGrouping: false }).format(value);
+    const locale = format && format in NUMBER_FORMAT_LOCALES ? NUMBER_FORMAT_LOCALES[format] : language(hass);
+    return new Intl.NumberFormat(locale, options).format(value);
   } catch {
     return String(value);
   }

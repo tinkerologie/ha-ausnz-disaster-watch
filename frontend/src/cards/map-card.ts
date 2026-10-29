@@ -283,7 +283,12 @@ export class MapCard extends DisasterCard<MapCardConfig> {
         areaSchema(this.defaultArea),
         { name: "zoom", selector: { number: { min: 1, max: 18, mode: "box" } } },
         { name: "radar", default: true, selector: { boolean: {} } },
-        { name: "radar_opacity", selector: { number: { min: 0.1, max: 1, step: 0.05, mode: "slider" } } },
+        {
+          name: "radar_opacity",
+          // The radar is on unless turned off, so an unset `radar` keeps the field.
+          visible: { field: "radar", operator: "not_eq", value: false },
+          selector: { number: { min: 0.1, max: 1, step: 0.05, mode: "slider" } },
+        },
         {
           name: "satellite_layer",
           default: "none",

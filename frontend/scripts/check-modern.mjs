@@ -32,6 +32,9 @@ export const RULES = [
   ["div-click", /<(?:div|span|li|td|img)\b[^>]*@click=/, "Click handler on a non-interactive element: use a button or HA component"],
   ["legacy-card", /\baus-disaster-card\b/, "The legacy aus-disaster-card alias was removed"],
   ["mdc-vars", /--mdc-(?!icon-size\b)[a-z-]+/, "--mdc-* variables are legacy (only --mdc-icon-size is still read by ha-svg-icon)"],
+  // HA 2026.11 (frontend 20261028.0, home-assistant/frontend#54569 #54571 #54580)
+  ["removed-2026-11", /<\/?ha-(?:md-list(?:-item)?|formfield|resizable-bottom-sheet)(?=[\s>])/, "Removed in HA 2026.11: use ha-list-base with ha-list-item-button/ha-list-item-base; put switch labels in the control"],
+  ["md-vars", /--md-[a-z-]+/, "--md-* (Material Web) properties no longer apply in HA 2026.11: use --ha-row-item-*, --ha-list-*, --ha-*-chip-*"],
   ["get-card-size-only", /getLayoutOptions\s*\(/, "getLayoutOptions is deprecated: use getGridOptions"],
 ];
 

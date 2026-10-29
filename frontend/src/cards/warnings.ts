@@ -1,7 +1,7 @@
 import { html, nothing, type TemplateResult } from "lit";
 import { KEY } from "../const";
 import { stateFor } from "../ha/entities";
-import { isUnavailable, listAttr, numberAttr, relativeTime, safeUrl, stringAttr } from "../ha/format";
+import { formatNumber, isUnavailable, listAttr, numberAttr, relativeTime, safeUrl, stringAttr } from "../ha/format";
 import { t } from "../localize/localize";
 import { alert, empty, header, list, row, showAll } from "../components/render";
 import type { BaseCardConfig, HomeAssistant, LovelaceConfigForm } from "../types";
@@ -110,8 +110,8 @@ export class WarningsCard extends DisasterCard<WarningsCardConfig> {
           unavailable
             ? alert("warning", t(hass, warningsState ? "state.unavailable" : "state.entity_missing"))
             : html`<ha-chip-set aria-label=${t(hass, "warnings.views")}>
-                  ${tab("warnings", t(hass, "warnings.tab.warnings", { count: warningCount }))}
-                  ${tab("news", t(hass, "warnings.tab.news", { count: news.length }))}
+                  ${tab("warnings", t(hass, "warnings.tab.warnings", { count: formatNumber(hass, warningCount) }))}
+                  ${tab("news", t(hass, "warnings.tab.news", { count: formatNumber(hass, news.length) }))}
                 </ha-chip-set>
                 ${
                   shown.length

@@ -181,10 +181,80 @@ test("tapping opens more-info for the card's own entity", async ({ page }) => {
   const detail = page.evaluate(
     () => new Promise((resolve) => window.addEventListener("hass-more-info", (e) => resolve((e as CustomEvent).detail), { once: true })),
   );
-  await el.locator("ha-md-list-item").first().click();
+  await el.locator("ha-list-item-button").first().click();
   const { entityId } = (await detail) as { entityId: string };
   expect(entityId).toMatch(/^geo_location\./);
   expect(fixture.states[entityId].attributes.entry_id).toBe("entry-qld");
+});
+
+test("list rows use HA 2026.11 list elements with one tab stop and arrow keys (#123)", async ({ page }) => {
+  await setup(page);
+  const el = await mount(page, "ausnz-disaster-incidents-card", { device: QLD });
+  await expect(el.locator("ha-md-list-item")).toHaveCount(0);
+  await expect(el.locator("ha-list-base")).toHaveAttribute("role", "list");
+  const rows = el.locator("ha-list-base > .row");
+  await expect(rows.first()).toHaveAttribute("role", "listitem");
+  const items = el.locator("ha-list-item-button");
+  await expect(items.first()).toHaveAttribute("role", "button");
+  await expect(items.first()).toHaveAttribute("tabindex", "0");
+  await expect(items.nth(1)).toHaveAttribute("tabindex", "-1");
+  // The external link is beside the row button, never inside it.
+  await expect(el.locator("ha-list-item-button ha-icon-button")).toHaveCount(0);
+  await expect(rows.first().locator("> .row-actions > ha-icon-button.link")).toHaveCount(1);
+
+  // Enter on a row's own link opens only the link, never the list's current row (HA 2026.10's
+  // ha-list-base activates the current row for any Enter inside the list).
+  await page.evaluate(() => {
+    window.addEventListener("hass-more-info", () => ((window as unknown as { stray: boolean }).stray = true));
+    document.addEventListener("click", (e) => e.composedPath().some((n) => (n as Element).localName === "a") && e.preventDefault(), true);
+  });
+  await rows.nth(2).locator("ha-icon-button.link a").focus();
+  await page.keyboard.press("Enter");
+  expect(await page.evaluate(() => (window as unknown as { stray?: boolean }).stray)).toBeUndefined();
+
+  const opened = page.evaluate(
+    () =>
+      new Promise<string[]>((resolve) => {
+        const ids: string[] = [];
+        window.addEventListener("hass-more-info", (e) => {
+          ids.push((e as CustomEvent).detail.entityId);
+          if (ids.length === 2) resolve(ids);
+        });
+      }),
+  );
+  await items.first().focus();
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("ArrowDown");
+  await expect(items.nth(1)).toBeFocused();
+  await page.keyboard.press(" ");
+  const ids = await opened;
+  expect(ids[0]).not.toBe(ids[1]);
+  expect(ids.every((id) => id.startsWith("geo_location."))).toBe(true);
+});
+
+test("arrow keys stay on shown rows after Show less (#123)", async ({ page }) => {
+  await setup(page);
+  const el = await mount(page, "ausnz-disaster-incidents-card", { device: QLD });
+  const items = el.locator("ha-list-item-button");
+  await expect(items).toHaveCount(10);
+  await el.getByText("Show all 14").click();
+  await expect(items).toHaveCount(14);
+  await el.getByText("Show less").click();
+  await expect(items).toHaveCount(10);
+  // The list no longer holds the four removed rows.
+  expect(await el.locator("ha-list-base").evaluate((l) => (l as unknown as { items: Element[] }).items.length)).toBe(10);
+  await items.nth(9).focus();
+  await page.keyboard.press("ArrowDown");
+  await expect(items.nth(9)).toBeFocused();
+  await expect(el.locator('ha-list-item-button[tabindex="0"]')).toHaveCount(1);
+});
+
+test("rows without an action are not buttons (#123)", async ({ page }) => {
+  await setup(page);
+  const el = await mount(page, "ausnz-disaster-outages-card", { device: QLD });
+  await expect(el.locator("ha-list-item-button")).toHaveCount(0);
+  await expect(el.locator("ha-list-item-base").first()).toHaveAttribute("role", "none");
+  await expect(el.getByText("KURWONGBAH")).toBeVisible();
 });
 
 test("unsafe upstream links are not rendered as links (#26)", async ({ page }) => {

@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  entityName,
   formatAttribute,
   formatDateTime,
   formatDistance,
+  formatNumber,
   formatState,
   isUnavailable,
   listAttr,
@@ -33,6 +35,48 @@ const entity = (state: string, attributes: Record<string, unknown> = {}): HassEn
   attributes,
   last_changed: "",
   last_updated: "",
+});
+
+describe("entityName (#123)", () => {
+  const cam = { ...entity("idle", { friendly_name: "QLD Disaster Watch Goodna" }), entity_id: "camera.goodna" };
+
+  it("uses hass.formatEntityName, asking for the entity's own name when wanted", () => {
+    const calls: unknown[] = [];
+    const h = hass({
+      states: { "camera.goodna": cam },
+      formatEntityName: (_s, name) => {
+        calls.push(name);
+        return name ? "Goodna (HA)" : "QLD Disaster Watch Goodna (HA)";
+      },
+    });
+    expect(entityName(h, "camera.goodna", true)).toBe("Goodna (HA)");
+    expect(entityName(h, "camera.goodna")).toBe("QLD Disaster Watch Goodna (HA)");
+    expect(calls).toEqual([{ type: "entity" }, undefined]);
+  });
+
+  it("falls back to the registry name, then the friendly name, then the entity ID", () => {
+    const entities = { "camera.goodna": { entity_id: "camera.goodna", name: "Goodna" } };
+    const blank = hass({ states: { "camera.goodna": cam }, entities, formatEntityName: () => "" });
+    expect(entityName(blank, "camera.goodna", true)).toBe("Goodna");
+    expect(entityName(hass({ states: { "camera.goodna": cam } }), "camera.goodna", true)).toBe("QLD Disaster Watch Goodna");
+    expect(entityName(hass(), "camera.gone")).toBe("camera.gone");
+  });
+});
+
+describe("formatNumber follows the profile number format (#123)", () => {
+  const withFormat = (number_format?: string, language = "en") =>
+    hass({ locale: { language, time_zone: "server", number_format } } as Partial<HomeAssistant>);
+
+  it.each([
+    [undefined, "en", "1,234.5"],
+    ["language", "de", "1.234,5"],
+    ["comma_decimal", "de", "1,234.5"],
+    ["decimal_comma", "en", "1.234,5"],
+    ["quote_decimal", "en", new Intl.NumberFormat("de-CH").format(1234.5)],
+    ["none", "de", "1234.5"],
+  ])("number_format %s (language %s)", (format, language, expected) => {
+    expect(formatNumber(withFormat(format, language), 1234.5)).toBe(expected);
+  });
 });
 
 describe("safeUrl (#26)", () => {

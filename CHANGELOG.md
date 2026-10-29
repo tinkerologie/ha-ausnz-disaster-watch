@@ -16,6 +16,17 @@ Versions follow Home Assistant's scheme, `YEAR.MONTH.PATCH` (for example `2026.1
 - Removing a device that no longer has entities no longer calls `device_registry.async_update_device(..., remove_config_entry_id=...)`, which Home Assistant reports as deprecated and which stops working in 2027.8. The lookup is scoped to this entry, so the device is removed with `async_remove_device` (#121).
 - `script/hassfest` works with Home Assistant Core 2026.11, which moved the validator into `packages/hassfest`, and reads Core's own `requirements.txt` instead of this repository's when the requirements plugin runs (#121).
 
+### Fixed
+
+- Dashboard cards work on Home Assistant 2026.11 (#123). The 2026.11 frontend removed `ha-md-list-item`, so every list row in the incidents, warnings, outages, roads and relief cards (and the all-in-one card) lost its layout and keyboard focus. Rows now use the list elements Home Assistant's own cards use: `ha-list-base` with `ha-list-item-button`, or `ha-list-item-base` for rows without an action. Tab reaches a list once, the arrow keys and Home/End move between rows, and Enter, Space or a click opens the row's details. Link and camera buttons stay separate from the row button, and Enter on them opens only the link or camera. Works the same on 2026.10; no card options changed.
+- Counts in card headers, filter chips, warning tabs, the status summary and "Show all" follow your number format, and every number the cards format (counts, distances, customers) now honours the profile's Number format setting, including "none" (no grouping).
+- Camera names come from Home Assistant's own entity-name helper, so they match the built-in cards.
+
+### Changed
+
+- The map card editor hides "Radar opacity" while the radar is off (Home Assistant 2026.8 or later).
+- `npm run lint:drift` accepts several frontends in `HASS_FRONTEND` (separated by `:`), for example the installed release and the next beta's `home-assistant-frontend` wheel. `npm run lint:modern` flags the elements and `--md-*` properties that Home Assistant 2026.11 removed.
+
 ## [2026.10.1] - 2026-10-22
 
 ### Fixed
