@@ -43,46 +43,7 @@ REQS_FILE="$(mktemp)"
 CONSTRAINTS_FILE="$(mktemp)"
 trap 'rm -f "$REQS_FILE" "$CONSTRAINTS_FILE"' EXIT
 
-"$VENV/bin/python" - "$DOMAIN" "$REQS_FILE" "$CONSTRAINTS_FILE" <<'PY'
-import json
-import pathlib
-import sys
-
-import homeassistant
-
-domain, reqs_path, constraints_path = sys.argv[1:4]
-ha_root = pathlib.Path(homeassistant.__file__).parent
-own = json.loads(pathlib.Path(f"custom_components/{domain}/manifest.json").read_text())
-
-requirements = list(own.get("requirements", []))
-seen: set[str] = set()
-queue = list(own.get("dependencies", [])) + list(own.get("after_dependencies", []))
-# Entity platform modules (sensor.py, camera.py, ...) make Home Assistant load that
-# component too, which installs its requirements.
-queue += [
-    path.stem
-    for path in pathlib.Path(f"custom_components/{domain}").glob("*.py")
-    if (ha_root / "components" / path.stem / "manifest.json").exists()
-]
-while queue:
-    component = queue.pop()
-    if component in seen:
-        continue
-    seen.add(component)
-    manifest = ha_root / "components" / component / "manifest.json"
-    if not manifest.exists():
-        continue
-    data = json.loads(manifest.read_text())
-    requirements.extend(data.get("requirements", []))
-    # Home Assistant also sets up after_dependencies that are present (e.g. sensor -> recorder)
-    queue.extend(data.get("dependencies", []))
-    queue.extend(data.get("after_dependencies", []))
-
-pathlib.Path(reqs_path).write_text("\n".join(dict.fromkeys(requirements)) + "\n")
-pathlib.Path(constraints_path).write_text((ha_root / "package_constraints.txt").read_text())
-print(f"Integration requirements: {own.get('requirements', [])}")
-print(f"Component dependencies resolved: {sorted(seen)}")
-PY
+"$VENV/bin/python" script/declared_requirements.py "$REQS_FILE" "$CONSTRAINTS_FILE"
 
 uv pip install --quiet --python "$VENV/bin/python" --requirement "$REQS_FILE" --constraint "$CONSTRAINTS_FILE"
 

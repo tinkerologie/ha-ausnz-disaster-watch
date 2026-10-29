@@ -34,9 +34,28 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
+from .deprecations import HANDLER as DEPRECATION_REPORTS  # noqa: TID251 - test helper, not production code
+
 
 @pytest.fixture(autouse=True)
-def auto_enable_custom_integrations(enable_custom_integrations: None) -> None:
+def fail_on_ha_deprecation_reports() -> Generator[None]:
+    """Fail when Home Assistant logs deprecated use by this integration (#121).
+
+    Requested by ``auto_enable_custom_integrations`` so it is set up before ``hass``
+    and checks after ``hass`` has stopped, which catches reports logged during setup,
+    the test and shutdown. Reports logged while modules were imported surface on the
+    first test. Fix the call in the integration; do not silence the check.
+    """
+    yield
+    if reports := DEPRECATION_REPORTS.pop_reports():
+        pytest.fail(
+            f"Home Assistant reported deprecated use by {DOMAIN}:\n" + "\n".join(reports),
+            pytrace=False,
+        )
+
+
+@pytest.fixture(autouse=True)
+def auto_enable_custom_integrations(fail_on_ha_deprecation_reports: None, enable_custom_integrations: None) -> None:
     """Enable custom integration discovery in all tests."""
 
 
