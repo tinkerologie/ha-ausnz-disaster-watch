@@ -668,7 +668,7 @@
       "longitude": 145.7713,
       "radius_km": 123.1,
       "lga_code": "35800",
-      "certificate_ok": false
+      "certificate_ok": true
     },
     {
       "key": "redland",
@@ -720,7 +720,7 @@
       "longitude": 152.7962,
       "radius_km": 36.8,
       "lga_code": "36510",
-      "certificate_ok": false
+      "certificate_ok": true
     },
     {
       "key": "somerset",
