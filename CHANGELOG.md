@@ -6,6 +6,8 @@ Versions follow Home Assistant's scheme, `YEAR.MONTH.PATCH` (for example `2026.1
 
 ## [Unreleased]
 
+## [2026.11.0] - 2026-11-12
+
 ### Changed
 
 - Development and HA Next use Home Assistant's official `pytest-homeassistant` plugin (#135). Bootstrap installs matching Core and plugin versions and recreates virtual environments that use an older Python. HA Next runs the full suite on both channels when the matching plugin installs, and reports the reason for any fallback.
