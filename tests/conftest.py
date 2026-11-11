@@ -12,8 +12,8 @@ from unittest.mock import AsyncMock, patch
 
 import aiohttp
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry
-from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClientMocker
+from pytest_homeassistant.common import MockConfigEntry
+from pytest_homeassistant.test_util.aiohttp import AiohttpClientMocker
 
 from custom_components.ausnz_disaster_watch.const import (
     CONF_COUNCIL_DASHBOARD_URL,
@@ -41,10 +41,9 @@ from .deprecations import HANDLER as DEPRECATION_REPORTS  # noqa: TID251 - test 
 def fail_on_ha_deprecation_reports() -> Generator[None]:
     """Fail when Home Assistant logs deprecated use by this integration (#121).
 
-    Requested by ``auto_enable_custom_integrations`` so it is set up before ``hass``
-    and checks after ``hass`` has stopped, which catches reports logged during setup,
-    the test and shutdown. Reports logged while modules were imported surface on the
-    first test. Fix the call in the integration; do not silence the check.
+    This autouse fixture starts before the requested function-scoped ``hass`` fixture.
+    It checks after Home Assistant stops, so it catches reports from setup, the test
+    and shutdown. Reports from module imports surface on the first test.
     """
     yield
     if reports := DEPRECATION_REPORTS.pop_reports():
@@ -52,11 +51,6 @@ def fail_on_ha_deprecation_reports() -> Generator[None]:
             f"Home Assistant reported deprecated use by {DOMAIN}:\n" + "\n".join(reports),
             pytrace=False,
         )
-
-
-@pytest.fixture(autouse=True)
-def auto_enable_custom_integrations(fail_on_ha_deprecation_reports: None, enable_custom_integrations: None) -> None:
-    """Enable custom integration discovery in all tests."""
 
 
 @pytest.fixture(autouse=True)

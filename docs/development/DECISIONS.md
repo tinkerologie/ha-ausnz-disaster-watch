@@ -2,6 +2,17 @@
 
 Short records of decisions that are not obvious from the code. Newest first.
 
+## Official Home Assistant test plugin (#135)
+
+`requirements_test.txt` pins `pytest-homeassistant` and sets bootstrap's default Core version.
+Bootstrap installs Core and the plugin together under that Core release's package constraints.
+The plugin and Core supply the Syrupy version. The retired harness has overlapping fixtures, so
+bootstrap removes it when it reuses a virtual environment.
+
+HA Next uses the exact published plugin when available. If PyPI has no matching release, the
+resolver uses the package from the matching Core tag or the exact commit used for the dev build.
+HA Next reports an explicit fallback when it cannot resolve or install the matching plugin.
+
 ## National and regional feeds (#37)
 
 **GDACS client: `aio-georss-gdacs`.** Home Assistant's own `gdacs` integration uses this

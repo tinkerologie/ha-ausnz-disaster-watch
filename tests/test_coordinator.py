@@ -3,7 +3,7 @@
 from datetime import timedelta
 from unittest.mock import AsyncMock
 
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.ausnz_disaster_watch.const import DEFAULT_SCAN_INTERVAL, DOMAIN, THREAT_SCAN_INTERVAL
 from custom_components.ausnz_disaster_watch.coordinator import (

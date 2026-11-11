@@ -15,19 +15,44 @@
 [![License](https://img.shields.io/github/license/tinkerologie/ha-ausnz-disaster-watch)](./LICENSE)
 <!-- BADGES:END -->
 
-Emergency warnings, incidents, fire danger, road closures, power outages, rivers and dams from official Australian and New Zealand feeds, normalised to the Australian Warning System and shown as Home Assistant entities, map pins and dashboard cards.
+Disaster Watch reads emergency warnings and incident reports from Australian and New Zealand agencies.
+It also reads fire danger, road closure, power outage, river and dam data.
+Home Assistant shows the data as entities, map pins and dashboard cards.
+The integration uses Australian Warning System levels.
 
 > [!IMPORTANT]
-> **This is not an official warning service.** It polls public feeds every few minutes, a feed can be late or down, and coverage depends on what each agency publishes. Always follow the advice of your emergency services and check the official sources: in Australia your state's emergency service ([QLD](https://www.fire.qld.gov.au/Current-Incidents), [NSW](https://www.rfs.nsw.gov.au/fire-information/fires-near-me), [VIC](https://emergency.vic.gov.au), [SA](https://www.ses.sa.gov.au/warnings), [WA](https://www.emergency.wa.gov.au), [TAS](https://alert.tas.gov.au/), [ACT](https://esa.act.gov.au), [NT](https://securent.nt.gov.au/alerts)) and the [Bureau of Meteorology](https://www.bom.gov.au/australia/warnings); in New Zealand [Civil Defence](https://www.civildefence.govt.nz) and [MetService](https://www.metservice.com/warnings/home). In an emergency call **000** (Australia) or **111** (New Zealand).
+> Use official emergency warnings as your primary source.
+> Disaster Watch polls public feeds. Feeds can fail or report data late.
+> Follow the instructions from your emergency service.
+>
+> - In Australia, check your state or territory service
+>   ([QLD](https://www.fire.qld.gov.au/Current-Incidents),
+>   [NSW](https://www.rfs.nsw.gov.au/fire-information/fires-near-me),
+>   [VIC](https://emergency.vic.gov.au), [SA](https://www.ses.sa.gov.au/warnings),
+>   [WA](https://www.emergency.wa.gov.au), [TAS](https://alert.tas.gov.au/),
+>   [ACT](https://esa.act.gov.au), [NT](https://securent.nt.gov.au/alerts)).
+> - For Australian weather warnings, check the [Bureau of Meteorology](https://www.bom.gov.au/australia/warnings).
+> - In New Zealand, check [Civil Defence](https://www.civildefence.govt.nz).
+> - For New Zealand weather warnings, check [MetService](https://www.metservice.com/warnings/home).
+>
+> In an emergency in Australia, call **000**.
+> In an emergency in New Zealand, call **111**.
 
 ## Contents
 
 - [Features at a glance](#features-at-a-glance)
   - [Coverage](#coverage)
 - [Installation](#installation)
+  - [HACS](#hacs-recommended)
+  - [Manual installation](#manual)
+  - [Removal](#removal)
 - [Setup & configuration](#setup--configuration)
+  - [Initial setup](#initial-setup)
+  - [Options menu](#options-menu)
 - [Entities](#entities)
 - [Dashboard cards](#dashboard-cards)
+  - [Card options](#card-options)
+  - [Examples](#examples)
 - [Voice assistants](#voice-assistants)
 - [Automation examples](#automation-examples)
 - [How it works](#how-it-works)
@@ -93,67 +118,133 @@ Every Australian entry can also turn on *Geoscience Australia earthquakes*, *tsu
 
 ## Installation
 
-Requires Home Assistant 2026.10.0 or newer.
+Use Home Assistant 2026.10.0 or later.
 
 ### HACS (recommended)
 
 1. Open **HACS** in Home Assistant.
-2. Open the menu in the top right corner and choose **Custom repositories**.
-3. Enter the repository URL `https://github.com/tinkerologie/ha-ausnz-disaster-watch` and select the category **Integration**.
-4. Choose **Add**, then find **Australia and New Zealand Disaster Watch** and choose **Download**.
-5. Restart Home Assistant.
+2. Open the menu in the top right corner.
+3. Select **Custom repositories**.
+4. Enter `https://github.com/tinkerologie/ha-ausnz-disaster-watch`.
+5. Select **Integration**.
+6. Select **Add**.
+7. Find **Australia and New Zealand Disaster Watch** in HACS.
+8. Select **Download**.
+9. Restart Home Assistant.
 
 ### Manual
 
 1. Download `ausnz_disaster_watch.zip` from the [latest release](https://github.com/tinkerologie/ha-ausnz-disaster-watch/releases/latest).
-2. Create the folder `config/custom_components/ausnz_disaster_watch/` and extract the zip into it. The zip has no wrapper folder: `manifest.json` must end up directly in `ausnz_disaster_watch/`.
-3. Restart Home Assistant.
+2. Create the `config/custom_components/ausnz_disaster_watch/` directory.
+3. Extract the ZIP file into this directory.
+4. Make sure that `manifest.json` is directly in the `ausnz_disaster_watch/` directory.
+5. Restart Home Assistant.
 
-Releases from the first one that ships `ausnz_disaster_watch.zip` carry the zip, a `SHA256SUMS` file and a signed build provenance attestation. HACS installs the same zip, and the "Downloaded N times" figure HACS shows is the download count of the latest release's zip, so it starts again with each release. Releases before that have no zip; choosing one of them in HACS's version picker may fail to download.
+HACS downloads the same ZIP file. The download count in HACS applies to the latest release.
+Older releases without a ZIP file can fail to install through the HACS version picker.
 
 #### Verify the download
 
-To check that a zip you downloaded is the one the release workflow built, keep `SHA256SUMS` in the same folder as the zip and run (with the [GitHub CLI](https://cli.github.com/) for the last two; replace `v2026.11.0` with the release's tag):
+The release provides a checksum file and a signed build attestation.
+Use the [GitHub CLI](https://cli.github.com/) for the attestation and asset checks.
 
-```bash
-sha256sum -c SHA256SUMS   # on macOS: shasum -a 256 -c SHA256SUMS
-gh attestation verify ausnz_disaster_watch.zip --repo tinkerologie/ha-ausnz-disaster-watch \
-  --signer-workflow tinkerologie/ha-ausnz-disaster-watch/.github/workflows/release.yml
-gh release verify-asset v2026.11.0 ausnz_disaster_watch.zip --repo tinkerologie/ha-ausnz-disaster-watch
-```
+1. Put `SHA256SUMS` in the directory that contains `ausnz_disaster_watch.zip`.
+2. Open a terminal in that directory.
+3. Run the checksum command for your operating system.
 
-To build the same zip yourself from a checkout of the release tag, run `script/build-release`; it writes `dist/ausnz_disaster_watch.zip` and `dist/SHA256SUMS`. Its timestamps come from the tag's commit, so with the same zlib version the checksum matches the release's.
+   ```bash
+   sha256sum -c SHA256SUMS             # Linux
+   shasum -a 256 -c SHA256SUMS          # macOS
+   ```
+
+4. Verify the build attestation.
+
+   ```bash
+   gh attestation verify ausnz_disaster_watch.zip --repo tinkerologie/ha-ausnz-disaster-watch \
+     --signer-workflow tinkerologie/ha-ausnz-disaster-watch/.github/workflows/release.yml
+   ```
+
+5. Replace `v2026.11.0` with your release tag in the following command.
+6. Verify the release asset.
+
+   ```bash
+   gh release verify-asset v2026.11.0 ausnz_disaster_watch.zip --repo tinkerologie/ha-ausnz-disaster-watch
+   ```
+
+To build the ZIP file locally, check out the release tag. Run `script/build-release`.
+The script writes the ZIP file and `SHA256SUMS` to `dist/`.
+The checksum matches the release when both builds use the same zlib version.
 
 ### Removal
 
-1. Go to **Settings** > **Devices & services**, open **Australia and New Zealand Disaster Watch**, and choose **Delete** from the menu of each entry. Deleting an entry removes its device and entities; deleting the last entry also removes the dashboard card resource.
-2. Remove any dashboard cards, automations and scripts that used the integration's entities.
-3. To remove the files as well, open **HACS**, find **Australia and New Zealand Disaster Watch**, choose **Remove**, then restart Home Assistant (or delete `custom_components/ausnz_disaster_watch` after a manual install).
+1. Open **Settings** > **Devices & services**.
+2. Open **Australia and New Zealand Disaster Watch**.
+3. Select **Delete** from the menu of each entry.
+4. Remove the dashboard cards, automations and scripts that use the integration's entities.
+
+Home Assistant removes the device and entities for each entry.
+The integration removes the dashboard card resource after you delete the last entry.
+
+**Remove the integration files**
+
+- For a HACS installation, open **HACS**.
+  Find **Australia and New Zealand Disaster Watch**. Select **Remove**.
+- For a manual installation, delete the `custom_components/ausnz_disaster_watch/` directory.
+
+Restart Home Assistant.
 
 ## Setup & configuration
 
 ### Initial setup
 
-1. Go to **Settings** > **Devices & services** > **Add integration** and search for **Australia and New Zealand Disaster Watch**.
-2. Fill in the first form:
+1. Open **Settings** > **Devices & services** > **Add integration**.
+2. Search for **Australia and New Zealand Disaster Watch**.
+3. Set the fields in the first form.
 
    | Field | Default | Description |
    | --- | --- | --- |
-   | State / Jurisdiction | Guessed from your home location | QLD, NSW, VIC, WA, SA, TAS, ACT, NT or NZ: whose feeds are read. Pick the one the monitored location is in. |
-   | Location Source | Home location | **Use the Home Assistant home location** or **Specify a custom location (council or coordinates)**. See [Location](#location-home-zone-or-fixed). |
-   | Monitoring Radius | 50 km | 5 to 300 km. Incidents, warnings, outages and road closures within it are reported. |
-   | Statewide / National Emergency Warning Override | On | Also report every Emergency Warning anywhere in the state (or New Zealand), whatever its distance. |
-   | Exclude Hazard Reduction / Planned Burns | On | Leave out planned and hazard reduction burns, so they do not raise alerts. |
+   | State / Jurisdiction | From the home location | Select the state, territory or country that contains the monitored location. |
+   | Location Source | **Use the Home Assistant home location** | For a fixed location, select **Specify a custom location (council or coordinates)**. See [Location](#location-home-zone-or-fixed). |
+   | Monitoring Radius | 50 km | Set a radius from 5 to 300 km. This radius applies to incidents, warnings, outages and road closures. |
+   | Statewide / National Emergency Warning Override | On | Include every Emergency Warning in the state, territory or New Zealand. |
+   | Exclude Hazard Reduction / Planned Burns | On | Exclude planned and hazard reduction burns from alerts. |
 
-3. With a custom location, the second form asks for the location: pick a council from the list (every Queensland and NSW council with a Guardian IMS disaster dashboard, sorted by name; Queensland entries start on City of Moreton Bay) or choose **Manual coordinates / custom URL** and enter a name, latitude, longitude and optionally a council dashboard URL. A council marked "no readable dashboard" only sets the location.
-4. Before the entry is created, the integration fetches the state's emergency feeds (and, in Australia, the BoM warnings). If none of them answers, the form shows **None of the emergency feeds for this state answered**; check Home Assistant's internet connection and submit again. Reconfigure runs the same check.
+4. Submit the form.
 
-Each entry watches one location and has one service device that holds all its entities. Add another entry for each extra location, for example a holiday house or a relative's home.
+**Set a custom location**
+
+If you selected **Specify a custom location (council or coordinates)**, complete the second form.
+
+1. Select a council or **Manual coordinates / custom URL**.
+2. For manual coordinates, enter a location name.
+3. Enter the latitude.
+4. Enter the longitude.
+5. If you use a custom council dashboard, enter its URL.
+6. To monitor without a council feed, clear **Council Disaster Dashboard URL**.
+7. Submit the form.
+
+The council list shows Queensland and New South Wales councils with Guardian IMS dashboards.
+For a Queensland entry, the default is **City of Moreton Bay**.
+A council marked **no readable dashboard** supplies the location only.
+
+The integration checks the jurisdiction's emergency feeds before it creates the entry.
+For Australian entries, it also checks the Bureau of Meteorology warnings.
+If no feed answers, the form shows **None of the emergency feeds for this state answered**.
+Check the Home Assistant internet connection. Submit the form again.
+
+Each entry monitors one location and has one service device.
+The service device contains the entry's entities.
+Add a separate entry for each additional location.
 
 ### Location: home zone or fixed
 
-- **Home location**: the entry follows the Home Assistant home location. Its coordinates are not copied into the entry; every refresh uses the current home location. In Queensland and NSW the entry gets the disaster dashboard of the council its home location is in (a distance heuristic on each council's centre and size, not council boundaries). If that council has no readable dashboard, the nearest one within 40 km is used. You can change or clear it in **Monitoring settings**.
-- **Fixed location**: a council preset or your own coordinates. The location does not move with the home zone.
+**Home location.** The entry uses the current Home Assistant home location for each refresh.
+For Queensland and NSW, the integration estimates the home council from the council centre and size.
+If that council has no readable dashboard, the integration uses the nearest readable dashboard within 40 km.
+To select a different dashboard, open **Monitoring settings**.
+
+**Fixed location.** The entry uses the coordinates of a council preset or the coordinates you enter.
+The coordinates stay fixed when the Home Assistant home location changes.
 
 ### Council disaster dashboards
 
@@ -166,11 +257,19 @@ Council dashboards add local incidents, road closures, power outages, relief cen
 
 ### Reconfigure
 
-To change the state, location source, coordinates, name or council dashboard, choose **Reconfigure** on the integration entry. Reconfigure also sets the radius, override and planned burns options, and renames the entry when the state or location changes. Changing the coordinates of a home-location entry makes it a fixed location.
+1. Open the integration entry.
+2. Select **Reconfigure**.
+3. Set the jurisdiction, location or monitoring settings.
+4. Submit the form.
+
+The integration checks the feeds again.
+It changes the entry name when the jurisdiction or location changes.
+If you change the coordinates of a home-location entry, the entry uses a fixed location.
 
 ### Options menu
 
-Choose **Configure** on the integration entry. The menu shows only the steps that apply to the entry's jurisdiction, in this order:
+Open the integration entry. Select **Configure**.
+The menu shows the options for the entry's jurisdiction.
 
 | Step | What it does | Default | Offered for |
 | --- | --- | --- | --- |
@@ -294,7 +393,18 @@ Total fire bans come from the agency that declares them:
 **Enable**: on for every state with a road feed. The **Road closures** options step has:
 
 - **Include planned roadworks and events** (off by default; not shown for ACT, which has no road feed, or New Zealand, whose NZTA feed never lists planned roadworks): lists planned roadworks and special events in `…_road_closures_count`. They never turn on `…_road_closure_nearby` or `…_flooded_road_nearby`.
-- **VicRoads (DTP) open data API key** (Victoria only, optional): Victorian road data needs a free key. Register at [opendata.transport.vic.gov.au](https://opendata.transport.vic.gov.au/), subscribe to the *Unplanned Disruptions - Road* API, and paste the key. Leave it empty to skip Victorian road data. The key is stored in the entry options and redacted from diagnostics.
+- **VicRoads (DTP) open data API key** enables the Victorian road feed.
+  Leave this field empty if you do not use this feed.
+
+**Set a Victorian road data key**
+
+1. Register at [opendata.transport.vic.gov.au](https://opendata.transport.vic.gov.au/).
+2. Subscribe to the *Unplanned Disruptions - Road* API.
+3. Open **Road closures** in the entry options.
+4. Enter the key in **VicRoads (DTP) open data API key**.
+5. Submit the form.
+
+The integration stores the key in the entry options. It redacts the key from diagnostics.
 
 | Entity | Description |
 | --- | --- |
@@ -379,7 +489,16 @@ Every road item has a `category`:
 - **QLDTraffic flood cameras** and **QLDTraffic web cameras** for Queensland entries (and NSW entries near the border).
 - **NZ Transport Agency traffic cameras** for New Zealand entries; cameras that are offline or under maintenance are left out.
 
-**Enable**: **Configure** > **Road and flood cameras (optional)**. Pick the networks (none by default), the **camera radius** (default 25 km; cameras must also be inside the monitoring radius) and the **maximum number of cameras** (default 12, up to 50, nearest first), so a city entry does not get hundreds of entities.
+**Setup**
+
+1. Open **Configure** > **Road and flood cameras (optional)**.
+2. Select the camera networks. By default, all networks are off.
+3. Set the camera radius. The default is 25 km.
+4. Set the maximum number of cameras. The default is 12 and the limit is 50.
+5. Submit the form.
+
+The integration selects the nearest cameras first.
+Cameras must also be inside the monitoring radius.
 
 **Attributes**: `direction`, `distance_km` and `network`. A camera's `attribution` names its network and, where the feed says, who supplies the image.
 
@@ -395,7 +514,20 @@ Every road item has a `category`:
 
 **What it is**: one water level sensor per river or creek gauge you pick, with an optional alert level.
 
-**Enable**: **Configure** > **River and creek level gauges** (QLD, NSW, ACT and NZ). The form lists up to 10 of the nearest gauges within the monitoring radius that reported a level in the last 6 hours, with distance and current level. Finding them can take up to a minute the first time; the site lists are then cached for 24 hours. Tick the gauges you want and submit. The next form takes an optional alert level in metres per gauge, on the same datum as its level (for example the minor flood level from your council or the BoM). Leave it blank for no alert sensor.
+**Setup**
+
+1. Open **Configure** > **River and creek level gauges**.
+2. Select the gauges.
+3. Submit the form.
+4. If the alert form opens, enter alert levels for the gauges that need an alert.
+5. Submit the alert form.
+
+This option is available for QLD, NSW, ACT and NZ entries.
+The first form shows up to 10 nearby gauges with a reading from the last 6 hours.
+The gauges must be inside the monitoring radius.
+The first search can take up to one minute. The cache keeps the site lists for 24 hours.
+Use the same datum for the alert level and the gauge reading.
+To omit an alert sensor, leave its alert level blank.
 
 | Entity | Description |
 | --- | --- |
@@ -425,7 +557,16 @@ Not supported: Environment Canterbury (no sites returned, site behind a bot wall
 
 **What it is**: percent full, volume and level of the dams and weirs you pick, anywhere in Australia, and whether each is above full supply.
 
-**Enable**: **Configure** > **Dam and weir storage levels** (Australian entries). The form lists up to 15 of the nearest storages that reported in the last 7 days, with distance and percent full. It searches the monitoring radius, but at least 150 km, because the dams that flood a town are often well upstream (Wivenhoe is 65 km from Brisbane). The first search can take up to 90 seconds; the storage list is then cached for 24 hours. Tick the storages you want and submit.
+**Setup**
+
+1. For an Australian entry, open **Configure** > **Dam and weir storage levels**.
+2. Select the storages.
+3. Submit the form.
+
+The form shows up to 15 nearby storages with a reading from the last 7 days.
+The search covers the monitoring radius or 150 km, whichever is larger.
+A dam can be far upstream of a town. For example, Wivenhoe is 65 km from Brisbane.
+The first search can take up to 90 seconds. The cache keeps the storage list for 24 hours.
 
 | Entity | Description |
 | --- | --- |
@@ -451,7 +592,14 @@ Not supported: Environment Canterbury (no sites returned, site behind a bot wall
 | Tasmania | [Hydro Tasmania lake levels](https://www.hydro.com.au/water/water-information) (metres from full, "Spilling") | CC BY 3.0 AU |
 
 > [!WARNING]
-> **These sensors are not a dam release warning.** Water agencies send their data to the BoM about once a day, so the BoM's readings are usually **12 to 48 hours old**. WaterNSW levels are current to within an hour, but its spill and release figures are daily totals to 9 am, and Hydro Tasmania's table is daily. During a flood, a dam can start releasing well before these sensors change. **The BoM's flood warnings, which this integration already reports as hazards, remain the release signal.** For releases, also sign up to the dam operator's notifications (for example the [Seqwater Dam Release Notification Service](https://www.seqwater.com.au/dam-release-notification-service)).
+> Use the dam operator's notices for release information.
+> For example, sign up for the [Seqwater Dam Release Notification Service](https://www.seqwater.com.au/dam-release-notification-service).
+> Use Bureau of Meteorology warnings for flood information.
+> A dam can start to release water before the sensors change.
+>
+> The Bureau of Meteorology readings are usually 12 to 48 hours old.
+> WaterNSW level readings are current to within an hour. Its spill and release figures are daily totals to 9 am.
+> Hydro Tasmania updates its table daily.
 >
 > Release notices are not read: none is published in a form the integration may reuse. Seqwater (all rights reserved), the WaterNSW release notifications via the Early Warning Network (whose terms ban automated tools), Sunwater (prior written consent) and the NZ operators Mercury and Genesis are listed under permission requests in the data source register. Seqwater, Sunwater and Melbourne Water live levels are not licensed for reuse, so their storages use the BoM's data. New Zealand has no openly licensed live source yet.
 
@@ -459,7 +607,15 @@ Not supported: Environment Canterbury (no sites returned, site behind a bot wall
 
 **What it is**: optional national and regional context feeds. None of them add hazards, so they do not change the hazard counts, warning levels, map pins or polling rate.
 
-**Enable**: **Configure** > **National and regional feeds (optional)**; each feed is off by default and adds its entity when turned on. New Zealand entries are offered tsunami warnings and GDACS only; state air quality is offered for NSW, QLD and ACT.
+**Setup**
+
+1. Open **Configure** > **National and regional feeds (optional)**.
+2. Select the feeds to enable.
+3. Submit the form.
+
+All feeds are off by default. The integration adds the entity for each enabled feed.
+New Zealand entries can use the tsunami and GDACS feeds.
+NSW, QLD and ACT entries can use state air quality.
 
 | Entity | Description | States / unit | Jurisdictions |
 | --- | --- | --- | --- |
@@ -480,7 +636,17 @@ Each feature polls on its own schedule with one request per poll; a failed fetch
 
 #### Weather hazard signals
 
-**Enable**: **Weather hazard signals**, with the **Damaging gust threshold** (default 90 km/h, BoM's damaging wind criterion; 50 to 150) and **Extreme heat threshold** (default 40 °C apparent temperature; 30 to 50). **Updates**: every hour, from the Open-Meteo Forecast API (best-match model) for the next 24 hours from the current hour.
+**Setup**
+
+1. Open **Forecast signals and AI rain outlook** in the entry options.
+2. Turn on **Weather hazard signals**.
+3. Set **Damaging gust threshold**. Use 50 to 150 km/h.
+4. Set **Extreme heat threshold**. Use 30 to 50 °C apparent temperature.
+5. Submit the form.
+
+The default gust threshold is 90 km/h. The default heat threshold is 40 °C.
+The integration requests the best-match model from the Open-Meteo Forecast API each hour.
+Each forecast covers the next 24 hours from the current hour.
 
 | Entity | Meaning |
 | --- | --- |
@@ -497,7 +663,16 @@ Each feature polls on its own schedule with one request per poll; a failed fetch
 
 #### River flood forecast
 
-**Enable**: **Configure** > **Add a river flood forecast point** (up to 10 named points); **Edit a river point** and **Remove river points** appear once a point exists. **Updates**: every 6 hours, from the Open-Meteo Flood API (GloFAS v4, about 5 km river grid). All points are fetched in one request; GloFAS updates daily.
+**Setup**
+
+1. Open **Configure** > **Add a river flood forecast point**.
+2. Enter the point details.
+3. Submit the form.
+
+An entry can have up to 10 points.
+After you add a point, the menu shows **Edit a river point** and **Remove river points**.
+The integration requests data for all points from the Open-Meteo Flood API every 6 hours.
+The GloFAS v4 model updates daily. Its river grid has cells of approximately 5 km.
 
 | Entity | Meaning |
 | --- | --- |
@@ -509,7 +684,17 @@ Each feature polls on its own schedule with one request per poll; a failed fetch
 
 #### Experimental AI ensemble rain outlook
 
-**Enable**: **Experimental AI ensemble rain outlook (ECMWF AIFS)**, with the **Heavy rain threshold** (default 50 mm in 24 hours; 5 to 500) and, behind its own toggle (off by default), **Also use Google WeatherNext 2**. **Updates**: every 6 hours. ECMWF AIFS has 51 members and a new run every 6 hours; WeatherNext 2 has 64 members and a new run every 12 hours. Only models with a new run are requested, together in one request.
+**Setup**
+
+1. Open **Forecast signals and AI rain outlook** in the entry options.
+2. Turn on **Experimental AI ensemble rain outlook (ECMWF AIFS)**.
+3. Set **Heavy rain threshold**. Use 5 to 500 mm in 24 hours.
+4. To add the Google model, turn on **Also use Google WeatherNext 2**.
+5. Submit the form.
+
+The default rain threshold is 50 mm in 24 hours. The Google model is off by default.
+The integration checks for new model runs every 6 hours and requests them together.
+ECMWF AIFS has 51 members and runs every 6 hours. WeatherNext 2 has 64 members and runs every 12 hours.
 
 | Entity | Meaning |
 | --- | --- |
@@ -527,7 +712,15 @@ Open-Meteo data are [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) ("
 
 **What it is**: in Australia, ABC Local Radio is the official emergency broadcaster: warnings tell you to "listen to ABC Local Radio", and local stations switch to emergency coverage. In New Zealand, RNZ is a lifeline broadcaster. Radio often keeps working when power or mobile networks are under strain.
 
-**Enable**: **Configure** > **Emergency broadcaster radio**; off by default. Choose **Nearest station**, or pick a station yourself: the nearest station is matched by its studio location, which is not always the station that covers your town.
+**Setup**
+
+1. Open **Configure** > **Emergency broadcaster radio**.
+2. Select **Nearest station** or select a station from the list.
+3. Submit the form.
+
+This feature is off by default.
+The integration uses the studio location to find the nearest station.
+The nearest studio can belong to a station outside your broadcast area.
 
 | Entity | Description |
 | --- | --- |
@@ -545,7 +738,18 @@ Open-Meteo data are [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) ("
 
 ## Dashboard cards
 
-The integration serves and registers its card suite automatically: one Lovelace resource, `/ausnz_disaster_watch/ausnz-disaster-card.js`, with no manual resource setup. All cards appear in the card picker (search for **Disaster Watch**) with a live preview, have a visual editor, size themselves in the sections view and follow your light or dark theme.
+The integration registers one dashboard resource, `/ausnz_disaster_watch/ausnz-disaster-card.js`.
+Each card has a preview and a visual editor. The cards use the dashboard theme.
+In the sections view, the cards set their initial size.
+
+1. Open the dashboard.
+2. Select **Edit**.
+3. Select **Add card**.
+4. Search for **Disaster Watch**.
+5. Select a card.
+6. If you monitor several locations, select the entry's device in the card editor.
+7. Select **Save**.
+8. Select **Done**.
 
 | Card | Type | Shows |
 | --- | --- | --- |
@@ -896,20 +1100,34 @@ The integration polls public feeds; nothing is pushed to it.
 
 ### Feed outages
 
-- When a feed fails, its last good data stands in for up to 30 minutes, so a short outage does not look like an all-clear; after that its incidents are dropped. A feed going down and coming back is logged once each.
-- When every hazard feed fails, the hazard entities become unavailable until a feed answers again.
-- Optional feeds (state air quality, the national feeds, road feeds, power outages, cameras, the fire danger outlook and the rest) never hold up entry setup or a refresh: a slow call is cut short and its last result is used.
-- Download the [diagnostics](#troubleshooting) to see each hazard feed's status and its last successful fetch.
+When a hazard feed fails, the integration uses its last successful data for up to 30 minutes.
+After 30 minutes, the integration drops the incidents from that feed.
+Home Assistant logs each outage and recovery once.
+
+If all hazard feeds fail, the hazard entities become unavailable.
+The entities recover when a hazard feed responds again.
+
+The integration sets a time limit for optional feeds.
+If a feed takes too long, setup or refresh continues with the last usable result.
+The request can finish in the background.
+For each hazard feed, diagnostics show its status and last successful fetch.
+See [Download diagnostics](#download-diagnostics).
 
 ### Entity lifecycle
 
-Entities never linger as `unavailable` after the thing they describe has gone:
+**Incidents and cameras.** The integration removes the entity when an incident ends or a camera leaves the monitored set.
+This can happen when the camera leaves the feed, radius or maximum camera count.
+If the camera returns, the integration uses the same entity ID.
+During a camera feed outage, its missing cameras remain in the registry and show as unavailable.
 
-- **Incidents and cameras** come and go with the feeds. An ended incident or a camera that leaves the feed (delisted, out of the radius or past the maximum) is removed with its entity registry entry, including ones that went while Home Assistant was stopped; a camera that comes back is re-created with the same entity ID. Nothing is removed while the feed it came from is down: its cameras are kept, unavailable.
-- **Option-dependent entities** (river gauges, dam storages, forecast features, national feeds, tsunami warnings, the emergency broadcaster) are created only while turned on or selected, and are removed when you turn them off or deselect them. The fire season sensor exists only for New Zealand entries and the total fire ban sensor only for Australian ones; reconfiguring between them swaps the two.
-- **At every setup**, after the first refresh that hears from every hazard feed, registry entries of the entry that the current configuration no longer creates (for example from an older release) are removed, and so are devices of the entry left without entities.
+**Options.** The integration adds river gauges, dam storages, forecasts, national feeds and the emergency broadcaster when you enable or select them.
+It removes their entities when you turn off or deselect the feature.
+The fire season sensor applies to New Zealand entries. The total fire ban sensor applies to Australian entries.
 
-Customisations (name, icon, area) of a removed entity are lost with it.
+**Setup.** After the first complete hazard refresh, the integration removes obsolete entity entries and devices with no entities.
+This also removes entities left by an earlier integration version.
+
+When the integration removes an entity, Home Assistant removes its custom name, icon and area.
 
 ### Council area
 
@@ -917,28 +1135,79 @@ Once per location, the integration looks up the council the location is in: the 
 
 ## Troubleshooting
 
-- **"None of the emergency feeds for this state answered" during setup**: Home Assistant could not reach the state's feeds or the BoM. Check that Home Assistant can reach the internet and try again; an agency's feed may also be down for maintenance.
-- **Entities are unavailable**: every hazard feed failed at the last update. The log names each feed that went down. Entities recover by themselves at the next successful update.
-- **An incident shown on an agency website is missing**: check the monitoring radius and **Exclude Hazard Reduction / Planned Burns** in the options, and that the entry's state is the incident's state. The Emergency Warning override only widens the radius for Emergency Warnings.
-- **No Victorian road closures**: Victorian road data needs your own free DTP key; see [Roads](#road-closures-and-flooded-roads).
-- **The river gauge or dam storage list is empty**: the search covers gauges that reported in the last 6 hours (storages: 7 days) within the radius (storages: at least 150 km). Widen the radius, or try again later if a gauge service is down.
-- **Diagnostics**: on the integration entry, open the menu and choose **Download diagnostics**. The file lists each hazard feed's status and last successful fetch. Coordinates, the location name and the council dashboard are redacted, but check the file before sharing it.
-- **Debug logging**: choose **Enable debug logging** on the integration entry, reproduce the problem, then **Disable debug logging** to download the log. Or add this to `configuration.yaml`:
+### The setup form reports that no emergency feed answered
 
-  ```yaml
-  logger:
-    logs:
-      custom_components.ausnz_disaster_watch: debug
-  ```
+1. Check the Home Assistant internet connection.
+2. Submit the form again.
+
+An agency feed can be unavailable during maintenance.
+
+### Entities are unavailable
+
+If all hazard feeds fail, the hazard entities become unavailable.
+Check the Home Assistant log for the feed names.
+The entities recover after a successful update.
+
+### An incident is missing
+
+1. Compare the incident's jurisdiction with the entry's jurisdiction.
+2. Check the monitoring radius.
+3. For a planned burn, check **Exclude Hazard Reduction / Planned Burns**.
+
+The Emergency Warning override applies only to Emergency Warnings.
+
+### Victorian road closures are missing
+
+Set the free DTP key in **Road closures**. See [Roads](#road-closures-and-flooded-roads).
+
+### The river gauge or dam storage list is empty
+
+The search uses readings from the last 6 hours for gauges and 7 days for storages.
+The minimum storage search radius is 150 km.
+
+1. Increase the monitoring radius.
+2. If the service is unavailable, try again later.
+
+### Download diagnostics
+
+1. Open the integration entry menu.
+2. Select **Download diagnostics**.
+3. Check the file before you share it.
+
+The file shows each hazard feed's status and time of last successful fetch.
+The integration redacts coordinates, the location name and the council dashboard URL.
+
+### Collect a debug log
+
+1. Open **Settings** > **Devices & services**.
+2. Open the Disaster Watch integration page.
+3. Select **Enable debug logging** from the page menu.
+4. Repeat the action that causes the problem.
+5. Select **Disable debug logging** from the page menu.
+6. Check the downloaded log before you share it.
+
+For YAML configuration, add this block to `configuration.yaml`.
+
+```yaml
+logger:
+  logs:
+    custom_components.ausnz_disaster_watch: debug
+```
 
 ## Known limitations
 
-- Each entry watches one location. Add another entry for each extra location.
-- Coverage depends on what each agency publishes. NSW SES and VicEmergency warning areas and ACT warning polygons are not read (see [Warning areas](#warning-areas)), NSW SES warnings are not read at all, and some council dashboards cannot be read (see [Council disaster dashboards](#council-disaster-dashboards)).
-- Distances are to the published warning area where an agency publishes one, otherwise to a single point, which can be far from the edge of a large fire or flood.
-- Hazard attributes and fire danger `forecast` days keep the English level names; only the enum sensors' states are snake_case.
-- Forecast signals and the AI rain outlook are model output, not official warnings. Dam and river sensors are not release or flood warnings.
-- Data is only as current as each feed. Always follow the official advice of your emergency services; this integration is not a warning service.
+- Each entry monitors one location. Add a separate entry for each additional location.
+- Coverage depends on the public data that each agency supplies.
+  See [Warning areas](#warning-areas) and [Council disaster dashboards](#council-disaster-dashboards).
+  The integration excludes NSW SES warnings, VicEmergency warning areas and ACT warning polygons.
+- The integration measures distance to a warning area when the agency supplies one.
+  Otherwise it measures distance to the incident point, which can be far from a fire or flood boundary.
+- Hazard attributes and fire danger `forecast` days use the English level names.
+  The enum sensor states use snake case.
+- Forecast signals and the AI rain outlook use model data.
+  Use official warnings for flood risks and dam operator notices for releases.
+- The current state can reflect delayed source data.
+  Follow the instructions from your emergency service.
 
 ## Data sources & licences
 
@@ -995,7 +1264,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow (issue first, branch, pu
 | `script/setup/bootstrap` | Install or update the development dependencies |
 | `script/develop` | Start Home Assistant in development mode with the integration loaded |
 | `script/check` | Type checking (Pyright), lint (Ruff), spelling (codespell) and the dashboard card checks |
-| `script/test` | Run the pytest suite (`pytest-homeassistant-custom-component`) |
+| `script/test` | Run the tests with the official Home Assistant pytest plugin |
 | `script/lint` | Format and fix lint findings with Ruff |
 | `script/hassfest` | Run Home Assistant's hassfest validation |
 | `script/check-imports` | Check the integration's declared requirements in a clean environment |
@@ -1018,12 +1287,18 @@ GitHub Actions run lint, tests, the declared requirements check, the frontend bu
 
 ## Quality scale
 
-- **Integration Quality Scale**: Gold. [`quality_scale.yaml`](custom_components/ausnz_disaster_watch/quality_scale.yaml) records each [rule](https://developers.home-assistant.io/docs/core/integration-quality-scale/rules) as done, exempt (with the reason) or still to do.
-- **Type checking**: Pyright in basic mode.
-- **Code style**: linted and formatted with Ruff (`py313`).
-- **Tests**: `pytest-homeassistant-custom-component`.
-- **Database safety**: Recorded entity attributes stay under Home Assistant's 16 KB attribute limit. The highest warning level and weather warnings count sensors exclude their bulky `emergency_news` and `warnings` lists from recorder history while keeping up to 20 items per list available live for dashboards. Live attributes can exceed the recorder limit.
+Disaster Watch reports **Gold** on its custom integration self-assessment.
+See the [Home Assistant quality scale](https://contributors.home-assistant.io/core/quality-scale/)
+and the [rule status file](custom_components/ausnz_disaster_watch/quality_scale.yaml).
+Strict typing is still open for Platinum. Pyright uses basic mode.
+
+The tests use the official `pytest-homeassistant` plugin. The plugin and Core use the same version.
+Ruff checks Python style and formatting.
+
+Home Assistant recorder history has a 16 KB limit for state attributes.
+The highest warning level and weather warnings count sensors exclude the `emergency_news` and `warnings` lists from recorder history.
+The dashboards can still use up to 20 items per list from the live attributes.
 
 ## License
 
-This project is licensed under the Apache 2.0 License; see the [LICENSE](LICENSE) file for details.
+This project uses the Apache 2.0 License. See [LICENSE](LICENSE).

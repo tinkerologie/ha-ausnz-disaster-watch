@@ -393,8 +393,10 @@ async def test_vic_road_events(hass: HomeAssistant) -> None:
 # --- SA ----------------------------------------------------------------------------------
 
 
-async def test_sa_road_events(hass: HomeAssistant) -> None:
+async def test_sa_road_events(hass: HomeAssistant, freezer: FrozenDateTimeFactory) -> None:
     """Traffic SA: only incidents are requested by default; closures read flooding from the text."""
+    # The recorded SA_3405081526 roadworks end on 2026-10-30 at 06:00 UTC.
+    freezer.move_to("2026-10-16T00:00:00+00:00")
     provider = make(SARoadProvider, hass, latitude=-34.93, longitude=138.6, radius=300)
     layer0 = load("sa_layer0")
     layer0["features"].append(

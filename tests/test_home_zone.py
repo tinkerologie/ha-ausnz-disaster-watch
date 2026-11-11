@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.ausnz_disaster_watch import LEGACY_CAMERA_IDS, async_migrate_entry
 from custom_components.ausnz_disaster_watch.const import (

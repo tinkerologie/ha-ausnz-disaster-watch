@@ -196,7 +196,12 @@ def _cancel_cleanup_retry(hass: HomeAssistant) -> None:
 
 @callback
 def _async_cleanup_failed(hass: HomeAssistant, attempt: int) -> None:
-    """Surface a failed cleanup as a repair issue and schedule a bounded retry."""
+    """Surface a failed cleanup as a repair issue and schedule a bounded retry.
+
+    This issue has domain scope because cleanup runs after removal of the last
+    entry. Setting config_entry_id would make Home Assistant delete the issue
+    with that entry.
+    """
     ir.async_create_issue(
         hass,
         DOMAIN,

@@ -43,7 +43,7 @@ jobs:
           python-version: '3.14'
 
       - name: Install uv
-        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version: 0.9.3
           enable-cache: true
@@ -53,7 +53,7 @@ jobs:
         id: ha_version
         run: |
           HA_VERSION=$(grep '"homeassistant"' hacs.json | head -1 | sed 's/.*"homeassistant"\s*:\s*"\([^"]*\)".*/\1/')
-          echo "HA_VERSION=${HA_VERSION}" >> $GITHUB_OUTPUT
+          echo "HA_VERSION=${HA_VERSION}" >> "$GITHUB_OUTPUT"
           echo "Home Assistant version: ${HA_VERSION}"
 
       - name: Cache Home Assistant installation

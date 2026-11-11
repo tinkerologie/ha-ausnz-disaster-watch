@@ -9,7 +9,7 @@ from xml.sax.saxutils import escape
 
 import aiohttp
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.ausnz_disaster_watch.const import LAST_GOOD_MAX_AGE
 from custom_components.ausnz_disaster_watch.coordinator import AustralianDisasterWatchCoordinator
