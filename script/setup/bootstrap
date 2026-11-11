@@ -99,15 +99,18 @@ else
     log_info "Local development detected - using workspace venv"
 fi
 
-if [[ ! -d "$VENV_PATH" ]]; then
+VENV_PYTHON=">=3.14.2,<3.15"
+if [[ ! -e "$VENV_PATH" && ! -L "$VENV_PATH" ]]; then
     log_info "Creating virtual environment at $VENV_PATH"
-    uv venv --python 3.14 "$VENV_PATH"
-elif [[ ! -x "$VENV_PATH/bin/python3" ]]; then
-    # Venv exists but python3 is broken (broken symlink or missing)
-    log_warning "Existing venv has broken Python interpreter - recreating"
-    rm -rf "$VENV_PATH"
-    log_info "Creating virtual environment at $VENV_PATH"
-    uv venv --python 3.14 "$VENV_PATH"
+    uv venv --python "$VENV_PYTHON" "$VENV_PATH"
+elif [[ ! -f "$VENV_PATH/bin/activate" ]] ||
+    ! "$VENV_PATH/bin/python3" -c 'import sys; sys.exit(sys.version_info < (3, 14, 2))' 2>/dev/null; then
+    if [[ -L "$VENV_PATH" || ! -f "$VENV_PATH/pyvenv.cfg" ]]; then
+        log_error "Cannot recreate $VENV_PATH. Move it aside, then run bootstrap again."
+        exit 1
+    fi
+    log_info "Recreating the virtual environment at $VENV_PATH with Python 3.14.2 or later"
+    uv venv --clear --python "$VENV_PYTHON" "$VENV_PATH"
 fi
 
 # Create symlinks for IDE compatibility and tool expectations
@@ -143,11 +146,6 @@ fi
 
 # shellcheck source=/dev/null
 source "$VENV_PATH/bin/activate"
-
-if ! python -c 'import sys; sys.exit(sys.version_info < (3, 14, 2))'; then
-    log_error "The official Home Assistant test plugin requires Python 3.14.2 or later."
-    exit 1
-fi
 
 # Auto-activate venv in shell RC files (only in DevContainer/Codespaces where venv is external)
 if [[ "$VENV_IS_EXTERNAL" == "true" ]]; then

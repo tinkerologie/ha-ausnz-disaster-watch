@@ -8,7 +8,7 @@ Versions follow Home Assistant's scheme, `YEAR.MONTH.PATCH` (for example `2026.1
 
 ### Changed
 
-- Development and HA Next use Home Assistant's official `pytest-homeassistant` plugin (#135). Bootstrap installs matching Core and plugin versions. HA Next runs the full suite on both channels when the matching plugin installs, and reports the reason for any fallback.
+- Development and HA Next use Home Assistant's official `pytest-homeassistant` plugin (#135). Bootstrap installs matching Core and plugin versions and recreates virtual environments that use an older Python. HA Next runs the full suite on both channels when the matching plugin installs, and reports the reason for any fallback.
 - The README uses shorter procedures for installation, configuration, dashboard setup and troubleshooting (#143).
 
 ### Fixed
