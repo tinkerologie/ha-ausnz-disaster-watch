@@ -67,6 +67,8 @@ filterwarnings = [
     # Core keeps the string key "hass" for HTTP application compatibility.
     "ignore:It is recommended to use web.AppKey instances for keys:aiohttp.web_exceptions.NotAppKeyWarning:homeassistant.components.http.server",
     "ignore:Setting custom ClientSession.close attribute is discouraged:DeprecationWarning:homeassistant.helpers.aiohttp_client",
+    # Core's aiogithubapi dependency imports backoff 2.2.1 during plugin startup.
+    'ignore:.*asyncio\.iscoroutinefunction.*is deprecated:DeprecationWarning:backoff\.(_async|_decorator)$',
 ]
 
 [tool.coverage.run]
