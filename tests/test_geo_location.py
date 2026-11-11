@@ -4,7 +4,7 @@ from collections.abc import Callable
 from dataclasses import replace
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.ausnz_disaster_watch.const import DOMAIN
 from custom_components.ausnz_disaster_watch.coordinator import AustralianDisasterWatchCoordinator
