@@ -38,12 +38,12 @@ tests/
 
 **Standard fixtures (define in `conftest.py`):**
 
-- `hass` - Mock Home Assistant instance
-- `config_entry` - `MockConfigEntry` from `pytest-homeassistant-custom-component`
+- `hass` - Home Assistant instance with custom integrations enabled by the official plugin
+- `config_entry` - `MockConfigEntry` from `pytest_homeassistant.common`
 - `coordinator` - VaultDataUpdateCoordinator
 - `mock_api_client` - Mocked API client
 
-**Define fixtures in `conftest.py`:** Use `MockConfigEntry` from `pytest-homeassistant-custom-component`
+Define project fixtures in `conftest.py`. Import test helpers from `pytest_homeassistant`.
 
 **Use [Syrupy](https://github.com/tophat/syrupy) for large outputs:**
 

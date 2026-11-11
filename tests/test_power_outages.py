@@ -16,7 +16,7 @@ from urllib.parse import parse_qs, urlsplit
 
 from freezegun.api import FrozenDateTimeFactory
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry, flush_store
+from pytest_homeassistant.common import MockConfigEntry, flush_store
 
 from custom_components.ausnz_disaster_watch.const import CONF_EXTRA_OUTAGE_FEEDS, CONF_INCLUDE_PLANNED_OUTAGES, DOMAIN
 from custom_components.ausnz_disaster_watch.coordinator import AustralianDisasterWatchCoordinator
