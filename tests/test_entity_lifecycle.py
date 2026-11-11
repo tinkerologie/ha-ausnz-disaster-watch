@@ -6,7 +6,7 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.ausnz_disaster_watch import async_remove_config_entry_device
 from custom_components.ausnz_disaster_watch.camera import async_setup_entry as async_setup_cameras
@@ -85,9 +85,12 @@ async def test_setup_removes_entities_the_configuration_no_longer_creates(
     ]
     disabled = _register(hass, entry, "sensor", "active_hazards_count", disabled_by=er.RegistryEntryDisabler.USER)
     kept = _register(hass, entry, "binary_sensor", "total_fire_ban")
-    camera = _register(hass, entry, "camera", "camera_council_cam")  # cameras follow their own data
+    camera = _register(hass, entry, "camera", "camera_council_cam")
 
-    await _setup(hass, entry, [_provider()])
+    # An incomplete camera feed leaves camera cleanup to a later refresh.
+    provider = _provider()
+    provider.async_fetch_cameras.side_effect = ProviderUnavailableError("camera feed down")
+    await _setup(hass, entry, [provider])
 
     for entity_id in stale:
         assert registry.async_get(entity_id) is None, entity_id
@@ -201,12 +204,14 @@ async def test_stale_devices_are_removed(hass: HomeAssistant, mock_config_entry:
     devices = dr.async_get(hass)
     empty = devices.async_get_or_create(config_entry_id=entry.entry_id, identifiers={(DOMAIN, "old_device")})
     in_use = devices.async_get_or_create(config_entry_id=entry.entry_id, identifiers={(DOMAIN, "in_use")})
-    # A camera follows its own data, so the entity cleanup leaves it on this device
+    # A camera on an incomplete feed still keeps its existing device in use.
     er.async_get(hass).async_get_or_create(
         "camera", DOMAIN, f"{entry.entry_id}_camera_x", config_entry=entry, device_id=in_use.id
     )
 
-    await _setup(hass, entry, [_provider()])
+    provider = _provider()
+    provider.async_fetch_cameras.side_effect = ProviderUnavailableError("camera feed down")
+    await _setup(hass, entry, [provider])
 
     assert devices.async_get(empty.id) is None
     assert devices.async_get(in_use.id) is not None

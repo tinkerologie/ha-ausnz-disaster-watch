@@ -54,8 +54,8 @@ PY
 
 validate_homeassistant_version() {
     local version="$1"
-    # Accept x.y.z with optional pre-release/build metadata.
-    local version_pattern='^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z]+)*$'
+    # Accept a Core release or prerelease tag.
+    local version_pattern='^[0-9]{4}\.[0-9]+\.[0-9]+((a|b|rc)[0-9]+)?$'
 
     if [[ ! "$version" =~ $version_pattern ]]; then
         return 1
@@ -101,13 +101,13 @@ fi
 
 if [[ ! -d "$VENV_PATH" ]]; then
     log_info "Creating virtual environment at $VENV_PATH"
-    uv venv "$VENV_PATH"
+    uv venv --python 3.14 "$VENV_PATH"
 elif [[ ! -x "$VENV_PATH/bin/python3" ]]; then
     # Venv exists but python3 is broken (broken symlink or missing)
     log_warning "Existing venv has broken Python interpreter - recreating"
     rm -rf "$VENV_PATH"
     log_info "Creating virtual environment at $VENV_PATH"
-    uv venv "$VENV_PATH"
+    uv venv --python 3.14 "$VENV_PATH"
 fi
 
 # Create symlinks for IDE compatibility and tool expectations
@@ -144,6 +144,11 @@ fi
 # shellcheck source=/dev/null
 source "$VENV_PATH/bin/activate"
 
+if ! python -c 'import sys; sys.exit(sys.version_info < (3, 14, 2))'; then
+    log_error "The official Home Assistant test plugin requires Python 3.14.2 or later."
+    exit 1
+fi
+
 # Auto-activate venv in shell RC files (only in DevContainer/Codespaces where venv is external)
 if [[ "$VENV_IS_EXTERNAL" == "true" ]]; then
     set +e
@@ -162,27 +167,18 @@ if [[ "$VENV_IS_EXTERNAL" == "true" ]]; then
     set -e
 fi
 
-log_header "Installing development dependencies"
-uv pip install --upgrade --requirement requirements_dev.txt
-
-log_header "Installing test dependencies"
-uv pip install --upgrade --requirement requirements_test.txt
-
-log_header "Installing runtime dependencies"
-if [[ -s requirements.txt ]] && grep -qv '^#' requirements.txt | grep -q '[^[:space:]]'; then
-    uv pip install --upgrade --requirement requirements.txt
+PLUGIN_REQUIREMENT="$(sed -En '/^pytest-homeassistant(==| @ )/p' requirements_test.txt)"
+if [[ "$PLUGIN_REQUIREMENT" == pytest-homeassistant==* ]]; then
+    PINNED_HA_VERSION="${PLUGIN_REQUIREMENT#*==}"
 else
-    log_info "No runtime dependencies defined (this is normal for blueprints)"
+    PINNED_HA_VERSION="${PLUGIN_REQUIREMENT##*@}"
+    PINNED_HA_VERSION="${PINNED_HA_VERSION%%#*}"
 fi
-
-# Default to the Home Assistant that pytest-homeassistant-custom-component pinned (installed
-# with the test dependencies above). Installing a newer release's dependencies on top of an
-# older core leaves them out of step (for example an aiohttp the core's http component rejects).
-INSTALLED_HA_VERSION="$(python -c 'import importlib.metadata as m; print(m.version("homeassistant"))' 2>/dev/null || true)"
-if [[ -n "$INSTALLED_HA_VERSION" ]] && ! validate_homeassistant_version "$INSTALLED_HA_VERSION"; then
-    INSTALLED_HA_VERSION=""
+if ! validate_homeassistant_version "$PINNED_HA_VERSION"; then
+    log_error "requirements_test.txt must pin the official pytest-homeassistant plugin to a Core release"
+    exit 1
 fi
-HA_VERSION_INPUT="${HA_VERSION:-${INSTALLED_HA_VERSION:-latest}}"
+HA_VERSION_INPUT="${HA_VERSION:-$PINNED_HA_VERSION}"
 
 if [[ "$HA_VERSION_INPUT" == "latest" || "$HA_VERSION_INPUT" == "stable" ]]; then
     log_header "Resolving latest stable Home Assistant version"
@@ -193,16 +189,8 @@ if [[ "$HA_VERSION_INPUT" == "latest" || "$HA_VERSION_INPUT" == "stable" ]]; the
         fi
         log_info "Using latest stable Home Assistant version: ${BOLD}${HA_VERSION}${NC}"
     else
-        HA_VERSION="$(grep '"homeassistant"' hacs.json | head -1 | sed 's/.*"homeassistant"\s*:\s*"\([^"]*\)".*/\1/')"
-        if [[ -z "$HA_VERSION" ]]; then
-            log_error "Failed to resolve latest Home Assistant version and no fallback found in hacs.json"
-            exit 1
-        fi
-        if ! validate_homeassistant_version "$HA_VERSION"; then
-            log_error "Fallback Home Assistant version from hacs.json '$HA_VERSION' is invalid"
-            exit 1
-        fi
-        log_warning "Failed to resolve latest stable Home Assistant from PyPI; falling back to hacs.json version ${HA_VERSION}"
+        log_error "Could not resolve the latest stable Home Assistant release"
+        exit 1
     fi
 else
     HA_VERSION="$HA_VERSION_INPUT"
@@ -212,37 +200,90 @@ else
     fi
 fi
 
+if [[ "$HA_VERSION" != "$PINNED_HA_VERSION" ]]; then
+    # Resolve in a tool environment so a clean venv needs no extra install first.
+    resolution="$(GITHUB_OUTPUT='' uv run --no-project --python "$VIRTUAL_ENV/bin/python" \
+        --with packaging==26.0 --with certifi python "$SCRIPT_DIR/../ha_next_versions.py" --ha-version "$HA_VERSION")"
+    PLUGIN_REQUIREMENT="$(sed -n 's/^plugin_requirement=//p' <<< "$resolution")"
+fi
+if [[ -z "$PLUGIN_REQUIREMENT" ]]; then
+    log_error "No official pytest-homeassistant plugin supports Home Assistant $HA_VERSION and this Python."
+    exit 1
+fi
+
 HA_CORE_BASE_URL="https://raw.githubusercontent.com/home-assistant/core/${HA_VERSION}"
+if ! CORE_REQUIREMENTS_DIR="$(mktemp -d "${TMPDIR:-/tmp}/ha-bootstrap.XXXXXX")"; then
+    log_error "Could not create a temporary directory for Core requirements"
+    exit 1
+fi
+cleanup_core_requirements() {
+    if [[ -n "$CORE_REQUIREMENTS_DIR" && -d "$CORE_REQUIREMENTS_DIR" ]]; then
+        rm -rf -- "$CORE_REQUIREMENTS_DIR" || log_warning "Could not remove the Core requirements directory"
+    fi
+}
+trap cleanup_core_requirements EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+mkdir "$CORE_REQUIREMENTS_DIR/homeassistant"
 
-log_header "Installing Home Assistant ${HA_VERSION} runtime dependencies"
-mkdir -p "/tmp/homeassistant"
-curl -fsSL "${HA_CORE_BASE_URL}/homeassistant/package_constraints.txt" -o "/tmp/homeassistant/package_constraints.txt"  # constraints for requirements files
-curl -fsSL "${HA_CORE_BASE_URL}/requirements.txt" -o "/tmp/requirements.txt"  # required by requirements_all.txt
-curl -fsSL "${HA_CORE_BASE_URL}/requirements_all.txt" -o "/tmp/requirements_all.txt"
-uv pip install --upgrade --constraint "/tmp/homeassistant/package_constraints.txt" --requirement "/tmp/requirements_all.txt"
+log_header "Downloading requirements for Home Assistant $HA_VERSION"
+# Core's requirements_all.txt includes requirements.txt. Its requirements_test.txt
+# includes requirements_test_pre_commit.txt and constrains homeassistant/package_constraints.txt.
+for file in homeassistant/package_constraints.txt requirements.txt requirements_all.txt requirements_test_pre_commit.txt requirements_test.txt; do
+    curl -fsSL "$HA_CORE_BASE_URL/$file" -o "$CORE_REQUIREMENTS_DIR/$file"
+done
+# Core can refer to packages by checkout-relative paths. Bootstrap uses published
+# dependencies or an explicit Core ref instead of a local Core source tree.
+sed -E '/^[[:space:]]*(\.\/)?packages\//d' "$CORE_REQUIREMENTS_DIR/requirements_test.txt" \
+    > "$CORE_REQUIREMENTS_DIR/requirements_test_filtered.txt"
 
-log_header "Installing Home Assistant ${HA_VERSION} test dependencies"
-curl -fsSL "${HA_CORE_BASE_URL}/requirements_test_pre_commit.txt" -o "/tmp/requirements_test_pre_commit.txt"  # required by requirements_test.txt
-curl -fsSL "${HA_CORE_BASE_URL}/requirements_test.txt" -o "/tmp/requirements_test.txt"
-uv pip install --upgrade --constraint "/tmp/homeassistant/package_constraints.txt" --requirement "/tmp/requirements_test.txt"
+log_header "Installing Home Assistant $HA_VERSION and its test environment"
+uv pip install --upgrade --requirement requirements_dev.txt
+if python -c 'import importlib.util, sys; sys.exit(importlib.util.find_spec("pytest_homeassistant_custom_component") is None)'; then
+    uv pip uninstall pytest-homeassistant-custom-component
+fi
+uv pip install --upgrade --constraint "$CORE_REQUIREMENTS_DIR/homeassistant/package_constraints.txt" \
+    --requirement requirements.txt \
+    --requirement "$CORE_REQUIREMENTS_DIR/requirements_all.txt" \
+    --requirement "$CORE_REQUIREMENTS_DIR/requirements_test_filtered.txt" \
+    "homeassistant==$HA_VERSION" "$PLUGIN_REQUIREMENT"
 
-log_header "Installing Home Assistant ${HA_VERSION} core"
-uv pip install --upgrade "homeassistant==${HA_VERSION}"
+python - "$HA_VERSION" "$PLUGIN_REQUIREMENT" <<'PYTHON'
+from importlib.metadata import PackageNotFoundError, distribution, version
+import json
+import sys
 
-# Ensure syrupy matches the version required by pytest-homeassistant-custom-component
-uv pip install "syrupy==6.0.0"
+expected, requirement = sys.argv[1:]
+if version("homeassistant") != expected:
+    sys.exit(f"Home Assistant did not install at {expected}")
 
-set +e
-rm -rf /tmp/requirements*.txt /tmp/homeassistant/ || log_warning "Failed to clean up temporary files"
-set -e
+plugin = distribution("pytest-homeassistant")
+if requirement.startswith("pytest-homeassistant=="):
+    if plugin.version != expected:
+        sys.exit(f"The Home Assistant test plugin did not install at {expected}")
+else:
+    origin = json.loads(plugin.read_text("direct_url.json") or "{}")
+    if origin.get("vcs_info", {}).get("requested_revision") != expected:
+        sys.exit(f"The Home Assistant test plugin did not install from Core {expected}")
+
+try:
+    version("pytest-homeassistant-custom-component")
+except PackageNotFoundError:
+    pass
+else:
+    sys.exit("The retired Home Assistant test plugin is still installed")
+print(f"Home Assistant {expected} and its matching test plugin are installed")
+PYTHON
 
 # Only install pre-commit hooks in local development, not in CI
 # GITHUB_ACTIONS is always set to "true" in GitHub Actions environments
 if [[ -d ".git" && -z "${GITHUB_ACTIONS:-}" ]]; then
     log_header "Installing pre-commit hooks"
-    set +e
-    pre-commit install || log_warning "Failed to install pre-commit hooks"
-    set -e
+    if [[ -e "$(git rev-parse --git-path hooks/pre-commit)" ]]; then
+        log_info "Keeping the existing pre-commit hook"
+    else
+        prek install || log_warning "Failed to install pre-commit hooks"
+    fi
 else
     if [[ -n "${GITHUB_ACTIONS:-}" ]]; then
         log_info "Skipping pre-commit hooks (running in GitHub Actions)"

@@ -995,7 +995,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow (issue first, branch, pu
 | `script/setup/bootstrap` | Install or update the development dependencies |
 | `script/develop` | Start Home Assistant in development mode with the integration loaded |
 | `script/check` | Type checking (Pyright), lint (Ruff), spelling (codespell) and the dashboard card checks |
-| `script/test` | Run the pytest suite (`pytest-homeassistant-custom-component`) |
+| `script/test` | Run the tests with the official Home Assistant pytest plugin |
 | `script/lint` | Format and fix lint findings with Ruff |
 | `script/hassfest` | Run Home Assistant's hassfest validation |
 | `script/check-imports` | Check the integration's declared requirements in a clean environment |
@@ -1021,7 +1021,7 @@ GitHub Actions run lint, tests, the declared requirements check, the frontend bu
 - **Integration Quality Scale**: Gold. [`quality_scale.yaml`](custom_components/ausnz_disaster_watch/quality_scale.yaml) records each [rule](https://developers.home-assistant.io/docs/core/integration-quality-scale/rules) as done, exempt (with the reason) or still to do.
 - **Type checking**: Pyright in basic mode.
 - **Code style**: linted and formatted with Ruff (`py313`).
-- **Tests**: `pytest-homeassistant-custom-component`.
+- **Tests** use the official `pytest-homeassistant` plugin. The plugin and Core use the same version.
 - **Database safety**: Recorded entity attributes stay under Home Assistant's 16 KB attribute limit. The highest warning level and weather warnings count sensors exclude their bulky `emergency_news` and `warnings` lists from recorder history while keeping up to 20 items per list available live for dashboards. Live attributes can exceed the recorder limit.
 
 ## License

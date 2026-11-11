@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, patch
 
 import probatio
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.ausnz_disaster_watch import llm as llm_platform
 from custom_components.ausnz_disaster_watch.const import DOMAIN

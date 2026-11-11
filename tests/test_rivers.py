@@ -15,7 +15,7 @@ from typing import Any
 from urllib.parse import unquote
 
 import pytest
-from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClientMocker, AiohttpClientMockResponse
+from pytest_homeassistant.test_util.aiohttp import AiohttpClientMocker, AiohttpClientMockResponse
 from yarl import URL
 
 from custom_components.ausnz_disaster_watch import rivers

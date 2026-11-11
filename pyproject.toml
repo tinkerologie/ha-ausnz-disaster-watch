@@ -44,7 +44,8 @@ log_date_format = "%Y-%m-%d %H:%M:%S"
 asyncio_debug = true
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
-addopts = "-ra -q --strict-markers"
+# Let Home Assistant set up its HTTPX alias before respx loads.
+addopts = "-ra -q --strict-markers -p no:respx"
 markers = [
     "unit: Unit tests (fast, no external dependencies)",
     "integration: Integration tests (may use coordinator/time service)",
@@ -61,7 +62,11 @@ filterwarnings = [
     'error::DeprecationWarning:custom_components\.ausnz_disaster_watch(\.|$)',
     'error::PendingDeprecationWarning:custom_components\.ausnz_disaster_watch(\.|$)',
     # Ignore specific third-party warnings below as needed (later entries win)
-    "ignore:Setting custom ClientSession.*:DeprecationWarning",
+    # Core intentionally subclasses aiohttp.web.Application (see Core's pytest filters).
+    "ignore:Inheritance class HomeAssistantApplication from web.Application is discouraged:DeprecationWarning",
+    # Core keeps the string key "hass" for HTTP application compatibility.
+    "ignore:It is recommended to use web.AppKey instances for keys:aiohttp.web_exceptions.NotAppKeyWarning:homeassistant.components.http.server",
+    "ignore:Setting custom ClientSession.close attribute is discouraged:DeprecationWarning:homeassistant.helpers.aiohttp_client",
 ]
 
 [tool.coverage.run]

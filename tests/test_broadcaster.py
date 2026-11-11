@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, patch
 from urllib.parse import urlparse
 
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.ausnz_disaster_watch.broadcaster import (
     BROADCASTER_NEAREST,

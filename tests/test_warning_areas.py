@@ -13,7 +13,7 @@ from urllib.parse import parse_qs, urlsplit
 import aiohttp
 import defusedxml.ElementTree as ET
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.ausnz_disaster_watch.coordinator import AustralianDisasterWatchCoordinator
 from custom_components.ausnz_disaster_watch.diagnostics import async_get_config_entry_diagnostics

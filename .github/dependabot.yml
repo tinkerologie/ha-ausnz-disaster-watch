@@ -37,6 +37,7 @@ updates:
           - patch
   - package-ecosystem: pip
     directory: /
+    # Updating pytest-homeassistant also updates the Core version used by bootstrap.
     schedule:
       interval: daily
     open-pull-requests-limit: 10
@@ -52,7 +53,7 @@ updates:
           - minor
           - patch
     ignore:
-      # Dependabot should not update Home Assistant as that should match the homeassistant key in hacs.json
+      # The Core version used by bootstrap follows the official test plugin pin.
       - dependency-name: homeassistant
       # Feed libraries whose lower bounds match Home Assistant core integrations (#35, #37, #103)
       - dependency-name: aio-geojson-geonetnz-quakes
