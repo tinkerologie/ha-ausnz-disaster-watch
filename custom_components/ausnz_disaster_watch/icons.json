@@ -7,6 +7,9 @@
           "on": "mdi:alert-octagon"
         }
       },
+      "issued_warning_nearby": {
+        "default": "mdi:alert-outline"
+      },
       "inside_warning_area": {
         "default": "mdi:map-marker-check",
         "state": {
@@ -165,6 +168,9 @@
       },
       "uv_index": {
         "default": "mdi:sun-wireless"
+      },
+      "cyclone_tracker": {
+        "default": "mdi:weather-hurricane"
       },
       "regional_disaster_alerts": {
         "default": "mdi:earth"

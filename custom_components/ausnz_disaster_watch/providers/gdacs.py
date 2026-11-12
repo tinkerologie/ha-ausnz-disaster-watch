@@ -12,6 +12,7 @@ is (c) European Union / JRC and is indicative only.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import TYPE_CHECKING
 
 from aio_georss_client.consts import UPDATE_OK
@@ -19,7 +20,7 @@ from aio_georss_gdacs import GdacsFeed
 
 from custom_components.ausnz_disaster_watch.models import RegionalAlertItem
 
-from .base import MALFORMED_ITEM_ERRORS, ProviderUnavailableError
+from .base import MALFORMED_ITEM_ERRORS, BaseHazardProvider, ProviderUnavailableError
 
 if TYPE_CHECKING:
     from aio_georss_gdacs.feed_entry import GdacsFeedEntry
@@ -69,6 +70,10 @@ def regional_alert(entry: GdacsFeedEntry) -> RegionalAlertItem | None:
     coordinates = entry.coordinates
     if coordinates is None or not in_region(*coordinates):
         return None
+    return _event(entry, coordinates)
+
+
+def _event(entry: GdacsFeedEntry, coordinates: tuple[float, float]) -> RegionalAlertItem:
     url = geometry_url = None
     episode = episode_id(entry)
     if entry.event_type_short and entry.event_id is not None:
@@ -79,7 +84,7 @@ def regional_alert(entry: GdacsFeedEntry) -> RegionalAlertItem | None:
         id=f"gdacs_{entry.external_id}",
         title=entry.title or entry.event_name or "GDACS alert",
         event_type=entry.event_type,
-        alert_level=entry.alert_level,
+        alert_level=entry.alert_level or "Unknown",
         severity=entry.severity,
         country=entry.country,
         latitude=coordinates[0],
@@ -95,15 +100,48 @@ def regional_alert(entry: GdacsFeedEntry) -> RegionalAlertItem | None:
     )
 
 
-async def async_fetch_regional_alerts(
-    session: aiohttp.ClientSession, lat: float, lon: float
-) -> list[RegionalAlertItem]:
-    """Fetch current regional GDACS alerts; raise ProviderUnavailableError if the feed fails."""
+def cyclone_events(entries: list[GdacsFeedEntry]) -> list[RegionalAlertItem]:
+    """Select current cyclone centres in the Australian and southwest Pacific basins."""
+    current: dict[int, RegionalAlertItem] = {}
+    for entry in entries:
+        try:
+            if entry.event_type_short != "TC" or not entry.is_current or entry.event_id is None:
+                continue
+            coordinates = entry.coordinates
+            if coordinates is None:
+                continue
+            lat, lon = coordinates
+            if not (-40 <= lat <= 0 and (90 <= lon <= 180 or -180 <= lon <= -120)):
+                continue
+            event = _event(entry, coordinates)
+            raw = getattr(entry, "_rss_entry", None)
+            updated = (
+                BaseHazardProvider.parse_datetime(raw.get_additional_attribute("gdacs:datemodified")) if raw else None
+            )
+            event = replace(
+                event,
+                id=f"gdacs_TC{entry.event_id}",
+                title=entry.event_name or event.title,
+                updated_at=updated or event.from_date,
+            )
+            previous = current.get(entry.event_id)
+            if previous is None or (event.episode_id or 0) > (previous.episode_id or 0):
+                current[entry.event_id] = event
+        except MALFORMED_ITEM_ERRORS:
+            continue
+    return sorted(current.values(), key=lambda event: event.distance_km or 0.0)
+
+
+async def async_fetch_entries(session: aiohttp.ClientSession, lat: float, lon: float) -> list[GdacsFeedEntry]:
+    """Fetch one shared GDACS feed for the two projections."""
     status, entries = await GdacsFeed(session, (lat, lon)).update()
-    # The library returns OK_NO_DATA for an unparsable document and OK without entries when
-    # nothing was read: both are outages, not an empty feed.
     if status != UPDATE_OK or entries is None:
         raise ProviderUnavailableError(f"GDACS feed unavailable ({status})")
+    return entries
+
+
+def regional_alerts(entries: list[GdacsFeedEntry]) -> list[RegionalAlertItem]:
+    """Project the existing Orange/Red regional alerts."""
     alerts: list[RegionalAlertItem] = []
     for entry in entries:
         try:
@@ -111,5 +149,11 @@ async def async_fetch_regional_alerts(
                 alerts.append(alert)
         except MALFORMED_ITEM_ERRORS:
             continue
-    alerts.sort(key=lambda alert: alert.distance_km or 0.0)
-    return alerts
+    return sorted(alerts, key=lambda alert: alert.distance_km or 0.0)
+
+
+async def async_fetch_regional_alerts(
+    session: aiohttp.ClientSession, lat: float, lon: float
+) -> list[RegionalAlertItem]:
+    """Fetch the regional alerts projection."""
+    return regional_alerts(await async_fetch_entries(session, lat, lon))

@@ -428,7 +428,7 @@ def test_json_and_python_dumps() -> None:
         raw_properties={"nested": {"when": issued, "kind": HazardType.FLOOD, "pair": (1, 2)}, HazardType.FLOOD: 1},
     )
     as_json = to_json_dict(hazard)
-    assert list(as_json) == [f.name for f in fields(CanonicalHazard) if f.name != "area"]
+    assert list(as_json) == [f.name for f in fields(CanonicalHazard) if f.name not in {"area", "source_geometry"}]
     assert as_json["hazard_type"] == "Bushfire"
     assert as_json["updated_at"] == "2026-10-15T05:30:01.120000Z"
     assert as_json["raw_properties"] == {

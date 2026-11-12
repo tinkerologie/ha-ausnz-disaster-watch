@@ -8,6 +8,7 @@ import { ALL_IN_ONE_TAG, CARD_TAGS, DOCUMENTATION_URL, type SectionKey } from ".
 import { t, type TranslationKey } from "./localize/localize";
 import { AllInOneCard } from "./cards/all-in-one";
 import { CamerasCard } from "./cards/cameras";
+import { CycloneTrackerCard } from "./cards/cyclone-tracker";
 import { ConditionsCard } from "./cards/conditions";
 import { FireDangerCard } from "./cards/fire-danger";
 import { IncidentsCard } from "./cards/incidents";
@@ -33,6 +34,7 @@ const FOCUSED: Record<SectionKey, CustomElementConstructor> = {
 
 const cards: { tag: string; ctor: CustomElementConstructor; key: string }[] = [
   { tag: ALL_IN_ONE_TAG, ctor: AllInOneCard, key: "all" },
+  { tag: "ausnz-disaster-cyclone-tracker-card", ctor: CycloneTrackerCard, key: "cyclones" },
   ...(Object.keys(FOCUSED) as SectionKey[]).map((key) => ({ tag: CARD_TAGS[key], ctor: FOCUSED[key], key })),
 ];
 

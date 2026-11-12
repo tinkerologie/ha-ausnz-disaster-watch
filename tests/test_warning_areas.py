@@ -21,6 +21,7 @@ from custom_components.ausnz_disaster_watch.models import (
     CALL_TO_ACTION_MAX_LENGTH,
     CanonicalHazard,
     HazardType,
+    SourceGeometry,
     WarningLevel,
     to_json_dict,
 )
@@ -32,7 +33,7 @@ from custom_components.ausnz_disaster_watch.providers import (
     TasmaniaHazardProvider,
 )
 from custom_components.ausnz_disaster_watch.providers.base import ARCGIS_MAX_PAGES, ProviderUnavailableError, as_float
-from custom_components.ausnz_disaster_watch.providers.cap import CapArea, parse_cap
+from custom_components.ausnz_disaster_watch.providers.cap import CapArea, distance_to_polygon_km, parse_cap
 from custom_components.ausnz_disaster_watch.providers.geometry import (
     AREA_MAX_VERTICES,
     area_distance,
@@ -419,7 +420,9 @@ async def test_qld_warning_area_layers(hass: HomeAssistant) -> None:
 
     # One layer down: the other sources still count; all down: unavailable
     provider.async_fetch_json = _qld_routes(aiohttp.ClientError("down"), qps, aiohttp.ClientError("down"))
-    assert [h.id for h in await provider.async_fetch_hazards()] == ["QLD_QPS_HN_15102026"]
+    retained = await provider.async_fetch_hazards()
+    assert {hazard.id for hazard in retained if not hazard.stale} == {"QLD_QPS_HN_15102026"}
+    assert {hazard.id for hazard in retained if hazard.stale} == {"QLD_QFD_BCP-26-7", "QLD_QFD_BCP-26-9"}
     down = aiohttp.ClientError("down")
     provider.async_fetch_json = _qld_routes(down, down, down)
     with pytest.raises(ProviderUnavailableError):
@@ -590,3 +593,53 @@ def test_small_helpers() -> None:
     assert as_float(None) is None
     assert as_float("north") is None
     assert rings_from_geojson({"type": "Polygon", "coordinates": ["bad"]}) == []
+
+
+async def test_source_geometry_drives_radius_and_containment(
+    hass: HomeAssistant, mock_config_entry: MockConfigEntry
+) -> None:
+    """Source circles and rings remain authoritative regardless of display geometry."""
+    mock_config_entry.add_to_hass(hass)
+    coordinator = AustralianDisasterWatchCoordinator(hass, mock_config_entry)
+    lat, lon = coordinator.latitude, coordinator.longitude
+    distant = _area_around(-20.0, 140.0)
+    circle = _hazard(
+        "circle", WarningLevel.ADVICE, area=distant, source_geometry=SourceGeometry(circles=((lat, lon, 1.0),))
+    )
+    point = _hazard("point", WarningLevel.ADVICE, source_geometry=SourceGeometry(circles=((lat, lon, 0.0),)))
+    mixed = _hazard(
+        "mixed", WarningLevel.ADVICE, source_geometry=SourceGeometry(polygons=distant, circles=((lat, lon, 0.0),))
+    )
+    filtered, _ = coordinator._filter_and_process_hazards([circle, point, mixed])
+    assert {key: item.inside_area for key, item in filtered.items()} == {"circle": True, "point": None, "mixed": False}
+    assert all(item.distance_km == 0.0 for item in filtered.values())
+    assert all("source_geometry" not in to_json_dict(item) for item in filtered.values())
+
+
+def test_source_polygon_crosses_antimeridian() -> None:
+    """A narrow wrapped polygon contains the dateline, rather than the opposite meridian."""
+    ring = ((-18.0, 179.0), (-18.0, -179.0), (-16.0, -179.0), (-16.0, 179.0))
+    assert distance_to_polygon_km(-17.0, 180.0, ring) == 0.0
+    assert distance_to_polygon_km(-18.0, 180.0, ring) == 0.0
+    assert distance_to_polygon_km(-17.0, 0.0, ring) > 10_000
+
+
+async def test_stale_source_record_past_retention_is_not_counted(
+    hass: HomeAssistant, mock_config_entry: MockConfigEntry
+) -> None:
+    """A provider-level cache cannot extend an older endpoint cache."""
+    mock_config_entry.add_to_hass(hass)
+    coordinator = AustralianDisasterWatchCoordinator(hass, mock_config_entry)
+    expired = _hazard("old-source", WarningLevel.ADVICE, stale=True, fetched_at=datetime.now(UTC) - timedelta(hours=1))
+    assert coordinator._filter_and_process_hazards([expired]) == ({}, False)
+
+
+async def test_sa_does_not_publish_explicitly_nonpublic_cap_message(hass: HomeAssistant) -> None:
+    """An explicit private CAP message cannot trigger public hazard entities."""
+    provider = SAHazardProvider(hass, AsyncMock(), {"state": "SA"})
+    xml = """<feed xmlns="http://www.w3.org/2005/Atom"><entry><id>F1</id><title>BUSHFIRE</title>
+      <content><alert xmlns="urn:oasis:names:tc:emergency:cap:1.2"><identifier>F1</identifier>
+        <status>Actual</status><msgType>Alert</msgType><scope>Private</scope>
+        <info><event>Fire</event><area><circle>-35,138 10</circle></area></info>
+      </alert></content></entry></feed>"""
+    assert provider._parse_cap_feed(xml) == []

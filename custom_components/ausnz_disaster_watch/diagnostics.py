@@ -55,6 +55,8 @@ async def async_get_config_entry_diagnostics(
                 key: {"status": status, "last_success": last.isoformat() if last else None}
                 for key, (status, last) in coordinator.feed_health.items()
             },
+            **coordinator.coverage_attributes,
+            "source_health": {key: to_json_dict(source) for key, source in coordinator.source_health.items()},
             "state_code": coordinator.state_code,
             "radius_km": coordinator.radius_km,
             "override_emergency": coordinator.override_emergency,

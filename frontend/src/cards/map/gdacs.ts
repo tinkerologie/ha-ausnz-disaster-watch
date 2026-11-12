@@ -141,7 +141,7 @@ export async function fetchCycloneGeometry(
   if (!request) {
     request = (async () => {
       try {
-        const response = await fetcher(ref.url, { credentials: "omit", referrerPolicy: "no-referrer" });
+        const response = await fetcher(ref.url, { credentials: "omit", referrerPolicy: "no-referrer", redirect: "error", signal: AbortSignal.timeout(12000) });
         if (!response.ok) throw new Error(`GDACS: HTTP ${response.status}`);
         const data = parseCycloneGeometry(await response.json(), ref.name);
         cache.set(ref.url, { at: now, data });

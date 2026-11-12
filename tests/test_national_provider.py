@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime, timedelta
 import ftplib
 import json
@@ -16,6 +17,7 @@ import pytest
 
 from custom_components.ausnz_disaster_watch.const import (
     CONF_ENABLE_AIR_QUALITY,
+    CONF_ENABLE_CYCLONE_TRACKING,
     CONF_ENABLE_HEATWAVE,
     CONF_ENABLE_REGIONAL_ALERTS,
     CONF_ENABLE_SATELLITE_HOTSPOTS,
@@ -197,6 +199,7 @@ async def test_disabled_feeds_return_none(hass: HomeAssistant) -> None:
     assert await national.async_fetch_heatwave() is None
     assert await national.async_fetch_uv() is None
     assert await national.async_fetch_regional_alerts() is None
+    assert await national.async_fetch_cyclones() is None
     assert await national.async_fetch_air_quality() == []
 
 
@@ -312,8 +315,13 @@ async def test_regional_alerts_hook(hass: HomeAssistant) -> None:
     """GDACS alerts are fetched with the shared session and the configured location."""
     national = provider(hass)
     alert = RegionalAlertItem(id="gdacs_1", title="T", alert_level="Orange", latitude=-20, longitude=150)
-    with patch(f"{NATIONAL}.gdacs.async_fetch_regional_alerts", return_value=[alert]) as fetch:
+    with (
+        patch(f"{NATIONAL}.gdacs.async_fetch_entries", return_value=[]) as fetch,
+        patch(f"{NATIONAL}.gdacs.regional_alerts", return_value=[alert]),
+    ):
         assert await national.async_fetch_regional_alerts() == [alert]
+        snapshot = await national.async_fetch_cyclones()
+        assert snapshot is not None and snapshot.cyclones == []
     fetch.assert_awaited_once_with(national.session, -27.47, 153.03)
 
 
@@ -453,4 +461,71 @@ def test_options_constants_cover_every_hook() -> None:
         CONF_ENABLE_UV,
         CONF_ENABLE_AIR_QUALITY,
         CONF_ENABLE_REGIONAL_ALERTS,
+        CONF_ENABLE_CYCLONE_TRACKING,
     }
+
+
+async def test_cyclone_rss_projects_current_events_and_keeps_stable_identity() -> None:
+    """All alert levels are eligible in the basin, and an episode update preserves identity."""
+
+    def item(event: int, episode: int, point: str, *, level: str = "Green", active: str = "true") -> str:
+        return f"""<item><title>Fixture {event}</title><guid>TC{event}</guid>
+          <georss:point>{point}</georss:point><gdacs:eventtype>TC</gdacs:eventtype>
+          <gdacs:eventid>{event}</gdacs:eventid><gdacs:episodeid>{episode}</gdacs:episodeid>
+          <gdacs:iscurrent>{active}</gdacs:iscurrent><gdacs:alertlevel>{level}</gdacs:alertlevel>
+          <gdacs:eventname>Storm {event}</gdacs:eventname>
+          <gdacs:datemodified>Fri, 16 Oct 2026 10:00:00 GMT</gdacs:datemodified>
+        </item>"""
+
+    items = "".join(
+        [
+            item(100, 3, "-20 150"),
+            item(100, 4, "-21 151"),
+            item(200, 1, "-17 -175", level="Orange"),
+            item(300, 1, "7 150"),
+            item(400, 1, "-18 80"),
+            item(500, 1, "-18 170", active="false"),
+            item(600, 1, "0 150"),
+            item(700, 1, "-41 150"),
+            item(800, 1, "-20 150", level="Red"),
+        ]
+    )
+    rss = f'<rss xmlns:georss="http://www.georss.org/georss" xmlns:gdacs="http://www.gdacs.org"><channel>{items}</channel></rss>'
+    parsed = XmlParser().parse(rss)
+    with patch.object(gdacs.GdacsFeed, "_fetch", AsyncMock(return_value=("OK", parsed))):
+        entries = await gdacs.async_fetch_entries(MagicMock(), -27.47, 153.03)
+    tracked = {storm.id: storm for storm in gdacs.cyclone_events(entries)}
+    assert set(tracked) == {"gdacs_TC100", "gdacs_TC200", "gdacs_TC600", "gdacs_TC800"}
+    assert tracked["gdacs_TC100"].episode_id == 4
+    assert tracked["gdacs_TC100"].updated_at == datetime(2026, 10, 16, 10, tzinfo=UTC)
+    assert {storm.id for storm in gdacs.regional_alerts(entries)} == {"gdacs_TC200", "gdacs_TC800"}
+
+
+async def test_gdacs_failure_is_shared_and_stale_keeps_original_timestamp(
+    hass: HomeAssistant, freezer: FrozenDateTimeFactory
+) -> None:
+    """The paired national projections share successes and outages."""
+    national = provider(hass)
+    with patch(f"{NATIONAL}.gdacs.async_fetch_entries", side_effect=ProviderUnavailableError("down")) as fetch:
+        assert await asyncio.gather(national.async_fetch_regional_alerts(), national.async_fetch_cyclones()) == [
+            None,
+            None,
+        ]
+        assert fetch.await_count == 1
+        freezer.tick(timedelta(minutes=1))
+        fetch.side_effect = None
+        fetch.return_value = []
+        first = await national.async_fetch_cyclones()
+        assert first is not None
+        freezer.tick(timedelta(minutes=16))
+        fetch.side_effect = ProviderUnavailableError("down")
+        assert await national.async_fetch_cyclones() == first
+        freezer.tick(timedelta(hours=1))
+        assert await national.async_fetch_cyclones() is None
+
+
+def test_cyclone_projection_skips_missing_and_invalid_centres() -> None:
+    """Broken cyclone records cannot suppress other current storms."""
+    no_position = MagicMock(event_type_short="TC", is_current=True, event_id=100, coordinates=None)
+    bad_position = MagicMock(event_type_short="TC", is_current=True, event_id=200, coordinates=("invalid", 150))
+    assert gdacs.cyclone_events([no_position, bad_position]) == []

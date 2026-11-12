@@ -6,7 +6,7 @@ import logging
 from typing import Any
 
 from custom_components.ausnz_disaster_watch.const import STATE_VIC
-from custom_components.ausnz_disaster_watch.models import CanonicalHazard, HazardType, WarningLevel
+from custom_components.ausnz_disaster_watch.models import CanonicalHazard, HazardProvenance, HazardType, WarningLevel
 
 from .base import MALFORMED_ITEM_ERRORS, BaseHazardProvider, ProviderUnavailableError
 
@@ -139,6 +139,9 @@ class VictoriaHazardProvider(BaseHazardProvider):
             title=title,
             hazard_type=hazard_type,
             warning_level=warning_level,
+            provenance=HazardProvenance.ISSUED_WARNING if raw_feed_type == "warning" else HazardProvenance.UNCLASSIFIED,
+            native_warning_level=source_title or None if raw_feed_type == "warning" else None,
+            call_to_action=str(props.get("action") or "") or None if raw_feed_type == "warning" else None,
             latitude=lat,
             longitude=lon,
             updated_at=updated_at,

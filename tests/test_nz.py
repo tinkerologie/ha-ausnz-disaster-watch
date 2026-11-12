@@ -280,9 +280,15 @@ async def test_metservice_cap_colour_area_and_lifecycle(hass: HomeAssistant, mak
     docs[METSERVICE_ALERTS_URL] = feed.replace(
         "</channel>", "<item><title>Snow Warning</title><guid>down</guid><link>https://ms/down</link></item></channel>"
     )
-    for _ in range(2):
-        with pytest.raises(ProviderUnavailableError, match="1 MetService CAP document"):
-            await provider._async_fetch_metservice()
+    with pytest.raises(ProviderUnavailableError, match="1 MetService CAP document"):
+        await provider._async_fetch_metservice()
+    with pytest.raises(ProviderUnavailableError, match="next permitted poll"):
+        await provider._async_fetch_metservice()
+    with (
+        patch(nz_now, return_value=NOW + timedelta(minutes=2)),
+        pytest.raises(ProviderUnavailableError, match="1 MetService CAP document"),
+    ):
+        await provider._async_fetch_metservice()
     assert [call.args[0] for call in fetch.await_args_list].count("https://ms/down") == 2
     assert [w.title for w in await provider.async_fetch_weather_warnings()] == ["Thunderstorm Outlook"]
 
@@ -320,6 +326,7 @@ async def test_metservice_feed_failures_and_malformed_alerts(hass: HomeAssistant
         METSERVICE_ALERTS_URL: rss(("a", "A", "https://ms/a")),
         "https://ms/a": cap("A", colour="Red", polygon=WELLINGTON_POLY),
     }
+    hass.data.pop(METSERVICE_SHARED_KEY, None)
     provider, _ = make_provider(hass, docs)
     with patch.object(provider, "_located_hazard", side_effect=ValueError("bad")):
         assert await provider.async_fetch_hazards() == []
@@ -436,3 +443,28 @@ def test_metservice_shared_state_without_real_hass() -> None:
     state = provider._metservice_shared()
     assert state is provider._metservice_shared()
     assert state.last is None
+
+
+async def test_nema_cancellation_and_unreadable_snapshot(hass: HomeAssistant, make_provider: MakeProvider) -> None:
+    """Private and Test messages do not cancel public alerts, and malformed snapshots retain last good."""
+    original = cap("original", polygon=WELLINGTON_POLY)
+    refs = "nz,original,2026-10-15T19:00:00+00:00"
+    cancel = cap("cancel", msg_type="Cancel", references=refs)
+    private = cancel.replace("<scope>Public", "<scope>Private")
+    test = cancel.replace("<status>Actual", "<status>Test")
+    docs = {
+        NEMA_ALERTHUB_URL: atom(
+            ("original", "Flood", original), ("private", "Private", private), ("test", "Test", test)
+        ),
+        METSERVICE_ALERTS_URL: rss(),
+    }
+    provider, _ = make_provider(hass, docs)
+    hazards = await provider.async_fetch_hazards()
+    assert [hazard.id for hazard in hazards] == ["nz_nema_original"]
+    assert hazards[0].expires == datetime(2026, 10, 16, 6, tzinfo=UTC)
+
+    docs[NEMA_ALERTHUB_URL] = atom(("invalid", "Unusable", "<not-cap/>"))
+    retained = await provider.async_fetch_hazards()
+    assert [hazard.id for hazard in retained if hazard.stale] == ["nz_nema_original"]
+    docs[NEMA_ALERTHUB_URL] = atom(("cancel", "Cancelled", cancel), ("original", "Flood", original))
+    assert await provider.async_fetch_hazards() == []

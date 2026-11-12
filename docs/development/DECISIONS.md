@@ -2,6 +2,12 @@
 
 Short records of decisions that are not obvious from the code. Newest first.
 
+## Scheduled warning latency (#150)
+
+The Home Assistant event-clock replay makes a warning available one second after an idle refresh. Discovery takes 299 seconds. A controlled warning source adds 9 seconds, and a controlled supporting feed adds another 4 seconds before entity publication. The next active refresh starts 60 seconds after publication. The MetService routing test still enforces at least 120 seconds between RSS requests. These are simulated observations with named delays.
+
+Keep the 300-second idle and 60-second active intervals for this change. Use 5 seconds from completed warning collection to entity publication as a target when supporting feeds are slow. Before changing scheduling, measure representative real source durations and evaluate publishing the warning snapshot before optional context. Preserve per-provider cadence limits.
+
 ## Official Home Assistant test plugin (#135)
 
 `requirements_test.txt` pins `pytest-homeassistant` and sets bootstrap's default Core version.

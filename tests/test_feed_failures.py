@@ -145,16 +145,19 @@ async def test_qld_skips_malformed_item_and_council_rescues(hass: HomeAssistant)
     provider = QueenslandHazardProvider(
         hass, AsyncMock(), {"state": "QLD", "council_dashboard_url": "https://disaster.example.qld.gov.au"}
     )
-    good = MagicMock(spec=CanonicalHazard, id="qfd_good")
+    good = _hazard("qfd_good")
     provider._parse_qfd_feature = MagicMock(side_effect=[KeyError("bad"), good])
-    provider._fetch_council_hazards = AsyncMock(return_value=([], 0))
+    assert provider.dashboard is not None
+    provider.dashboard.fetch = AsyncMock(return_value=None)
     provider.async_fetch_json = AsyncMock(return_value={"features": [{}, {}]})
     assert await provider.async_fetch_hazards() == [good]
 
     # QFD down but one council endpoint answered: available with the council data
     provider.async_fetch_json = AsyncMock(side_effect=aiohttp.ClientError("down"))
-    provider._fetch_council_hazards = AsyncMock(return_value=([], 1))
-    assert await provider.async_fetch_hazards() == []
+    provider.dashboard.fetch = AsyncMock(side_effect=[[], None])
+    retained = await provider.async_fetch_hazards()
+    assert retained == [good]
+    assert retained[0].stale
 
 
 async def test_base_collect_and_require_dict(hass: HomeAssistant) -> None:
@@ -168,6 +171,22 @@ async def test_base_collect_and_require_dict(hass: HomeAssistant) -> None:
     provider.async_fetch_json = AsyncMock(side_effect=ValueError("bad json"))
     with pytest.raises(ProviderUnavailableError, match="bad json"):
         await provider.async_fetch_feed_json("https://example.invalid", "Example")
+
+
+async def test_partial_source_outage_retains_warning_until_authoritative_clear(hass: HomeAssistant) -> None:
+    """A successful sibling endpoint cannot erase a failed source's warning."""
+    provider = ACTHazardProvider(hass, AsyncMock(), {"state": "ACT"})
+    primary = AsyncMock(return_value=[_hazard("primary")])
+    secondary = AsyncMock(return_value=[])
+    sources = [("Primary", primary, list), ("Secondary", secondary, list)]
+
+    assert [hazard.id for hazard in await provider.async_collect_sources(sources)] == ["primary"]
+    primary.side_effect = ProviderUnavailableError("outage")
+    retained = await provider.async_collect_sources(sources)
+    assert [(hazard.id, hazard.stale) for hazard in retained] == [("primary", True)]
+    primary.side_effect = None
+    primary.return_value = []
+    assert await provider.async_collect_sources(sources) == []
 
 
 def _hazard(hazard_id: str) -> CanonicalHazard:
@@ -365,3 +384,46 @@ async def test_json_feeds_reject_missing_collections(hass: HomeAssistant, feed_r
     nsw = NSWHazardProvider(hass, nsw_error, {"state": "NSW"})
     with pytest.raises(ProviderUnavailableError, match="NSW RFS returned an unexpected payload"):
         await nsw.async_fetch_hazards()
+
+
+async def test_partial_source_coverage_and_retention_in_published_snapshot(
+    hass: HomeAssistant, mock_config_entry: MockConfigEntry
+) -> None:
+    """Endpoint loss reaches the Home Assistant enum state and clears only after recovery."""
+    provider = ACTHazardProvider(hass, AsyncMock(), {"state": "ACT"})
+    primary = AsyncMock(return_value=[_hazard("primary")])
+    sibling = AsyncMock(return_value=[])
+    sources = [("Primary", primary, list), ("Sibling", sibling, list)]
+
+    async def fetch() -> list[CanonicalHazard]:
+        return await provider.async_collect_sources(sources)
+
+    provider.async_fetch_hazards = AsyncMock(side_effect=fetch)
+    mock_config_entry.add_to_hass(hass)
+    with patch("custom_components.ausnz_disaster_watch.coordinator.get_providers_for_config", return_value=[provider]):
+        assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+        await hass.async_block_till_done()
+    coordinator = mock_config_entry.runtime_data
+    entity_id = next(
+        state.entity_id
+        for state in hass.states.async_all("sensor")
+        if state.entity_id.endswith("_highest_warning_level")
+    )
+    primary.side_effect = ProviderUnavailableError("outage")
+    await coordinator.async_refresh()
+    assert coordinator.feed_health["ACTHazardProvider"][0] == "partial"
+    assert hass.states.get(entity_id).attributes["stale_hazards_count"] == 1
+
+    now = datetime.now(UTC)
+    with patch(
+        "custom_components.ausnz_disaster_watch.coordinator.dt_util.utcnow",
+        return_value=now + LAST_GOOD_MAX_AGE + timedelta(seconds=2),
+    ):
+        await coordinator.async_refresh()
+    assert hass.states.get(entity_id).state == "unknown"
+    assert hass.states.get(entity_id).attributes["coverage_complete"] is False
+
+    primary.side_effect = None
+    primary.return_value = []
+    await coordinator.async_refresh()
+    assert hass.states.get(entity_id).state == "all_clear"

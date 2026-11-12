@@ -202,6 +202,10 @@ export class MapCard extends DisasterCard<MapCardConfig> {
         transition: opacity var(--ha-animation-duration-slow) ease-in-out;
       }
       /* Loud fills at low opacity read on light, dark and satellite backgrounds alike. */
+      .map .incident.stale {
+        stroke-dasharray: 3 3;
+        fill-opacity: 0.45;
+      }
       .map .cyclone {
         stroke-opacity: 0.9;
       }
@@ -244,10 +248,10 @@ export class MapCard extends DisasterCard<MapCardConfig> {
   protected declare _satelliteHidden: boolean;
   protected declare _cyclonesHidden: boolean;
   protected declare _viirsDay: ViirsDay;
-  protected readonly titleKey = "map.title" as const;
+  protected readonly titleKey: TranslationKey = "map.title";
   // Radius by default: a hazard just over the council border still matters (#94)
   static override readonly defaultArea = "radius" as const;
-  protected override readonly usesIncidents = true;
+  protected override readonly usesIncidents: boolean = true;
 
   private _map?: IncidentMap;
   private _container?: HTMLElement;
@@ -358,12 +362,16 @@ export class MapCard extends DisasterCard<MapCardConfig> {
     if (this._map && this.renderRoot.querySelector(".map") !== this._container) this.teardown();
     if (!this._map) void this.ensureMap();
     // Only map inputs: radar frame ticks re-render the card twice a second.
-    else if (changed.has("hass") || MAP_INPUTS.some((k) => changed.has(k as keyof MapCard))) {
+    else if (changed.has("hass") || this.mapInputsChanged(changed)) {
       this._map.update(this.viewOptions());
     }
   }
 
-  private viewOptions(): MapViewOptions {
+  protected mapInputsChanged(changed: PropertyValues<this>): boolean {
+    return MAP_INPUTS.some((key) => changed.has(key as keyof MapCard));
+  }
+
+  protected viewOptions(): MapViewOptions {
     const hass = this.hass!;
     const area = this.areaFilter(hass);
     const incidents = geoLocationsFor(hass, this.entryId).flatMap((s) => {
@@ -381,6 +389,7 @@ export class MapCard extends DisasterCard<MapCardConfig> {
           latitude,
           longitude,
           agency: stringAttr(s.attributes.responsible_agency) ?? stringAttr(s.attributes.agency),
+          staleLabel: s.attributes.stale === true ? t(hass, "state.stale_warning") : undefined,
         },
       ];
     });
@@ -538,6 +547,10 @@ export class MapCard extends DisasterCard<MapCardConfig> {
     if (status.radar === "unavailable") notices.push(notice("map.radar_unavailable"));
     if (status.satellite === "unavailable") notices.push(notice("map.satellite_unavailable"));
     if (status.cyclones === "unavailable") notices.push(notice("map.cyclones_unavailable"));
+    const warningId = this.entityId(KEY.highestWarningLevel);
+    if (warningId && hass.states[warningId]?.attributes.coverage_complete === false) {
+      notices.push(notice("state.incomplete_coverage"));
+    }
     if (this.areaFilter(hass).fallback) notices.push(notice("area.fallback"));
     return notices;
   }

@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 import asyncio
 from collections.abc import Awaitable, Callable, Iterable
 import contextlib
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta, timezone, tzinfo
 from email.utils import parsedate_to_datetime
 import hashlib
@@ -16,10 +17,11 @@ from urllib.parse import urlencode
 
 import aiohttp
 
-from custom_components.ausnz_disaster_watch.const import STATE_TIMEZONES
+from custom_components.ausnz_disaster_watch.const import LAST_GOOD_MAX_AGE, STATE_TIMEZONES
 from custom_components.ausnz_disaster_watch.models import (
     AirQualityStationData,
     CanonicalHazard,
+    CycloneSnapshot,
     DisasterCameraItem,
     EmergencyNewsItem,
     FireDangerRating,
@@ -29,6 +31,7 @@ from custom_components.ausnz_disaster_watch.models import (
     ReliefFacilityItem,
     RoadClosureItem,
     SatelliteHotspots,
+    SourceCoverage,
     TsunamiStatus,
     UVObservation,
     WeatherStationObservation,
@@ -131,11 +134,15 @@ class FeedCache[T]:
     older than ``max_stale``, then None, so a long outage reads as "unknown", never as clear.
     """
 
-    def __init__(self, label: str, ttl: timedelta, max_stale: timedelta) -> None:
+    def __init__(
+        self, label: str, ttl: timedelta, max_stale: timedelta, *, retry_interval: timedelta = timedelta(0)
+    ) -> None:
         """Initialise an empty cache; ``label`` names the feed in log messages."""
         self._label = label
         self._ttl = ttl
         self._max_stale = max_stale
+        self._retry_interval = retry_interval
+        self._attempted_at: datetime | None = None
         self._value: T | None = None
         self._fetched_at: datetime | None = None
 
@@ -149,17 +156,23 @@ class FeedCache[T]:
         now = dt_util.utcnow()
         if self._fetched_at is not None and now - self._fetched_at < self._ttl:
             return self._value
+        if self._attempted_at is not None and now - self._attempted_at < self._retry_interval:
+            return self._last_usable(now)
+        self._attempted_at = now
         try:
             value = await fetch()
         except (ProviderUnavailableError, *MALFORMED_ITEM_ERRORS) as err:
             # A structurally broken document is an outage of this feed too
             _LOGGER.debug("%s unavailable: %s", self._label, err)
-            if self._fetched_at is not None and now - self._fetched_at <= self._max_stale:
-                return self._value
-            return None
+            return self._last_usable(now)
         self._value = value
         self._fetched_at = now
         return value
+
+    def _last_usable(self, now: datetime) -> T | None:
+        if self._fetched_at is not None and now - self._fetched_at <= self._max_stale:
+            return self._value
+        return None
 
 
 class BaseHazardProvider(ABC):
@@ -181,6 +194,13 @@ class BaseHazardProvider(ABC):
         self.hass = hass
         self.session = session
         self.config = config
+        self.source_coverage: tuple[SourceCoverage, ...] = ()
+        self._last_good_sources: dict[str, tuple[datetime, list[CanonicalHazard]]] = {}
+
+    def reset_source_coverage(self) -> None:
+        """Forget source data resolved for a previous monitored point."""
+        self.source_coverage = ()
+        self._last_good_sources.clear()
 
     def set_location(self, latitude: float, longitude: float) -> None:
         """Use the coordinator's resolved monitoring point (it follows the home zone, #19)."""
@@ -221,6 +241,8 @@ class BaseHazardProvider(ABC):
         """
         hazards: list[CanonicalHazard] = []
         failures: list[str] = []
+        coverage: list[SourceCoverage] = []
+        provider = type(self).__name__
         succeeded = 0
         for label, fetch, parse in sources:
             try:
@@ -230,12 +252,26 @@ class BaseHazardProvider(ABC):
                 except MALFORMED_ITEM_ERRORS as err:
                     # A structurally broken document fails this source only, not the others
                     raise ProviderUnavailableError(f"{label} returned a malformed payload: {err}") from err
-                hazards.extend(parsed)
             except ProviderUnavailableError as err:
                 _LOGGER.debug("%s source failed: %s", label, err)
                 failures.append(str(err))
+                cached = self._last_good_sources.get(label)
+                last = cached[0] if cached is not None else None
+                stale = cached is not None and dt_util.utcnow() - cached[0] <= LAST_GOOD_MAX_AGE
+                source = SourceCoverage(
+                    provider=provider, source=label, status="stale" if stale else "failed", last_success=last
+                )
+                if stale and cached is not None:
+                    hazards.extend(replace(hazard, stale=True) for hazard in cached[1])
             else:
                 succeeded += 1
+                now = dt_util.utcnow()
+                source = SourceCoverage(provider=provider, source=label, status="ok", last_success=now)
+                stamped = [replace(hazard, source_key=source.key, fetched_at=now) for hazard in parsed]
+                self._last_good_sources[label] = (now, stamped)
+                hazards.extend(replace(hazard) for hazard in stamped)
+            coverage.append(source)
+        self.source_coverage = tuple(coverage)
         if not succeeded:
             raise ProviderUnavailableError("; ".join(failures) or "no sources configured")
         return hazards
@@ -377,6 +413,10 @@ class BaseHazardProvider(ABC):
 
     async def async_fetch_uv(self) -> UVObservation | None:
         """Fetch the UV index at the nearest monitoring station."""
+        return None
+
+    async def async_fetch_cyclones(self) -> CycloneSnapshot | None:
+        """Return cyclone summaries when supplied by this provider."""
         return None
 
     async def async_fetch_regional_alerts(self) -> list[RegionalAlertItem] | None:

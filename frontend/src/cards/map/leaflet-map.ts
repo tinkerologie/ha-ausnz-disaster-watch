@@ -50,6 +50,7 @@ export interface MapIncident {
   latitude: number;
   longitude: number;
   agency?: string;
+  staleLabel?: string;
 }
 
 export interface MapHome {
@@ -72,6 +73,7 @@ export interface MapViewOptions {
   viirsDay: ViirsDay;
   /** Cyclones whose GDACS geometry is drawn (empty when off). */
   cyclones: CycloneRef[];
+  cycloneFocus?: { id: string; latitude: number; longitude: number; name: string };
 }
 
 const FRAME_MS = 500;
@@ -103,6 +105,7 @@ export class IncidentMap {
   private readonly incidentLayer = L.layerGroup();
   private readonly homeLayer = L.layerGroup();
   private readonly cycloneLayer = L.layerGroup();
+  private readonly cycloneCentre = L.layerGroup();
   private radarLayers: L.TileLayer[] = [];
   private coverageLayer?: L.TileLayer;
   private radarData?: RadarFrames;
@@ -139,6 +142,7 @@ export class IncidentMap {
     this.map.attributionControl.setPrefix(false);
     this.map.createPane(CYCLONE_PANE).style.zIndex = CYCLONE_PANE_Z;
     this.cycloneLayer.addTo(this.map);
+    this.cycloneCentre.addTo(this.map);
     this.incidentLayer.addTo(this.map);
     this.homeLayer.addTo(this.map);
     void this.initBasemap();
@@ -214,6 +218,7 @@ export class IncidentMap {
     if (
       !this.fitted ||
       previous?.zoom !== options.zoom ||
+      previous?.cycloneFocus?.id !== options.cycloneFocus?.id ||
       (changed && !previous?.incidents.length) ||
       // A replacement set entirely outside the view: reframe; otherwise keep the user's view.
       (changed && options.incidents.length > 0 && !this.anyInView(options.incidents))
@@ -221,6 +226,15 @@ export class IncidentMap {
       this.fitView(options);
     }
     this.lastIncidentKey = key;
+    if (JSON.stringify(options.cycloneFocus) !== JSON.stringify(previous?.cycloneFocus)) {
+      this.cycloneCentre.clearLayers();
+      if (options.cycloneFocus) {
+        const { latitude, longitude, name } = options.cycloneFocus;
+        L.circleMarker([latitude, longitude < -90 ? longitude + 360 : longitude], {
+          radius: 7, weight: 3, className: "incident tone-red",
+        }).bindTooltip(this.tooltip(name)).addTo(this.cycloneCentre);
+      }
+    }
     // Rebuild markers only when they change, so focus and open tooltips survive updates.
     const signature = JSON.stringify([options.home, options.incidents]);
     if (signature !== this.layerSignature) {
@@ -239,6 +253,7 @@ export class IncidentMap {
       void this.loadSatellite();
     }
     if (cycloneKey(options.cyclones) !== cycloneKey(previous?.cyclones ?? [])) {
+      if (options.cycloneFocus?.id !== previous?.cycloneFocus?.id) this.clearCyclones();
       void this.loadCyclones();
     }
     this.stopPollingIfIdle();
@@ -251,7 +266,10 @@ export class IncidentMap {
 
   private fitView(options: MapViewOptions): void {
     const home = options.home;
-    if (options.zoom !== undefined && home) {
+    if (options.cycloneFocus) {
+      const { latitude, longitude } = options.cycloneFocus;
+      this.map.setView([latitude, longitude < -90 ? longitude + 360 : longitude], 5);
+    } else if (options.zoom !== undefined && home) {
       this.map.setView([home.latitude, home.longitude], options.zoom);
     } else {
       const points: L.LatLngExpression[] = options.incidents.map((i) => [i.latitude, i.longitude]);
@@ -301,9 +319,9 @@ export class IncidentMap {
       const marker = L.circleMarker([incident.latitude, incident.longitude], {
         radius: 8,
         weight: 2,
-        className: `incident tone-${incident.tone}`,
+        className: `incident tone-${incident.tone}${incident.staleLabel ? " stale" : ""}`,
       })
-        .bindTooltip(this.tooltip(incident.title, incident.levelLabel))
+        .bindTooltip(this.tooltip(incident.title, incident.levelLabel, ...(incident.staleLabel ? [incident.staleLabel] : [])))
         .on("click", () => this.onIncident(incident.id))
         .addTo(this.incidentLayer);
       const el = marker.getElement();
@@ -539,7 +557,7 @@ export class IncidentMap {
     if (!this.cycloneData.length) this.setStatus({ cyclones: "loading" });
     const results = await Promise.allSettled(refs.map((ref) => fetchCycloneGeometry(ref)));
     if (this.destroyed || cycloneKey(this.options?.cyclones ?? []) !== key) return;
-    const data = results.flatMap((r) => (r.status === "fulfilled" ? [r.value] : []));
+    const data = results.flatMap((r) => (r.status === "fulfilled" && r.value.shapes.length ? [r.value] : []));
     if (!data.length) {
       this.clearCyclones();
       this.setStatus({ cyclones: "unavailable", cycloneCount: 0 });
@@ -552,6 +570,7 @@ export class IncidentMap {
     }
     this.clearCyclones();
     this.cycloneData = data;
+    const trackBounds = L.latLngBounds([]);
     for (const cyclone of data) {
       for (const shape of cyclone.shapes) {
         const track = shape.part === "track" || shape.part === "track-forecast";
@@ -562,8 +581,14 @@ export class IncidentMap {
           style: () => ({ className: `cyclone cyclone-${shape.part}`, weight: track ? 3 : 1, interactive: track }),
         });
         if (track && cyclone.name) layer.bindTooltip(this.tooltip(cyclone.name), { sticky: true });
+        if (track || shape.part === "cone") trackBounds.extend(layer.getBounds());
         layer.addTo(this.cycloneLayer);
       }
+    }
+    const focus = this.options?.cycloneFocus;
+    if (focus && trackBounds.isValid()) {
+      trackBounds.extend([focus.latitude, focus.longitude < -90 ? focus.longitude + 360 : focus.longitude]);
+      this.map.fitBounds(trackBounds, { padding: [24, 24], maxZoom: 9 });
     }
     this.setStatus({ cyclones: "ok", cycloneCount: data.length });
   }

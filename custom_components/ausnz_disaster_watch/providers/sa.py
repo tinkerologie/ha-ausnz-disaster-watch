@@ -13,10 +13,17 @@ from typing import Any
 import defusedxml.ElementTree as ET
 
 from custom_components.ausnz_disaster_watch.const import STATE_SA
-from custom_components.ausnz_disaster_watch.models import CanonicalHazard, HazardType, WarningLevel
+from custom_components.ausnz_disaster_watch.models import (
+    CanonicalHazard,
+    HazardProvenance,
+    HazardType,
+    SourceGeometry,
+    WarningLevel,
+)
+from homeassistant.util import dt as dt_util
 
 from .base import MALFORMED_ITEM_ERRORS, BaseHazardProvider, ProviderUnavailableError, as_dict, as_float, stable_id
-from .cap import cap_from_element
+from .cap import cap_from_element, is_current_public_alert, source_geometry, superseded_identifiers
 from .geometry import area_point, rings_from_cap_areas, rings_from_geojson, simplify_area
 from .sources import DATA_SOURCES
 
@@ -112,14 +119,17 @@ class SAHazardProvider(BaseHazardProvider):
 
     def _parse_ses_warning(self, feature: dict[str, Any]) -> CanonicalHazard | None:
         props = as_dict(feature.get("properties"))
-        area = simplify_area(rings_from_geojson(feature.get("geometry")))
-        if area is None:
+        rings = rings_from_geojson(feature.get("geometry"))
+        area = simplify_area(rings)
+        if not rings:
             return None
         name = str(props.get("alertname") or "SES Warning").replace("_", " ").strip()
         place = str(props.get("shortlocation") or props.get("locationsimpacted") or "").strip()
         risk = str(props.get("risk") or "").strip()
         level = _SES_LEVELS.get(str(props.get("category") or "").strip().upper(), WarningLevel.from_str(name))
-        lat, lon = area_point(area, as_float(self.config.get("latitude")), as_float(self.config.get("longitude")))
+        lat, lon = area_point(
+            area or tuple(rings), as_float(self.config.get("latitude")), as_float(self.config.get("longitude"))
+        )
         link = str(props.get("link") or "").strip()
         if link and not link.startswith("http"):
             link = SA_SES_DOCUMENT_BASE + link.lstrip("/")
@@ -131,6 +141,8 @@ class SAHazardProvider(BaseHazardProvider):
             title=f"{level.value} - {name} - {place}" if place else f"{level.value} - {name}",
             hazard_type=hazard_type,
             warning_level=level,
+            provenance=HazardProvenance.ISSUED_WARNING,
+            native_warning_level=str(props.get("category") or name),
             latitude=lat,
             longitude=lon,
             updated_at=self.parse_datetime(props.get("datetimeissued")),
@@ -140,6 +152,7 @@ class SAHazardProvider(BaseHazardProvider):
             responsible_agency="SA State Emergency Service",
             web_url=link or SA_SES_WEB_URL,
             area=area,
+            source_geometry=SourceGeometry(polygons=tuple(rings)) if rings else None,
             call_to_action=str(props.get("calltoaction") or "").strip() or None,
             attribution=DATA_SOURCES["sa_ses_warnings"].attribution,
             raw_properties={
@@ -166,8 +179,18 @@ class SAHazardProvider(BaseHazardProvider):
             "cap": "urn:oasis:names:tc:emergency:cap:1.2",
         }
 
-        for entry in root.findall("atom:entry", ns):
+        entries = [(entry, cap_from_element(entry)) for entry in root.findall("atom:entry", ns)]
+        referenced = superseded_identifiers(alert for _, alert in entries if alert is not None)
+        now = dt_util.utcnow()
+        for entry, alert in entries:
             try:
+                if alert is not None and (
+                    alert.identifier in referenced
+                    or (alert.status and not is_current_public_alert(alert, now))
+                    or alert.msg_type.casefold() in ("cancel", "ack", "error")
+                    or alert.scope.casefold() not in ("", "public")
+                ):
+                    continue
                 entry_id = entry.findtext("atom:id", "", ns).strip()
                 title = entry.findtext("atom:title", "", ns).strip()
                 updated_str = entry.findtext("atom:updated", "", ns)
@@ -215,7 +238,6 @@ class SAHazardProvider(BaseHazardProvider):
 
                 level = _warning_level(params.get("WarningLevel", ""), headline, event, title)
                 # The CAP area (a polygon for a warning) is the hazard area (#30)
-                alert = cap_from_element(entry)
                 area = simplify_area(rings_from_cap_areas(alert.areas)) if alert is not None else None
 
                 hazards.append(
@@ -233,8 +255,20 @@ class SAHazardProvider(BaseHazardProvider):
                         responsible_agency=agency or "CFS / SAFECOM",
                         web_url=web or "https://www.cfs.sa.gov.au",
                         area=area,
+                        source_geometry=source_geometry(alert.areas) if alert else None,
+                        provenance=(
+                            HazardProvenance.ISSUED_WARNING
+                            if WarningLevel.from_str(params.get("WarningLevel", ""))
+                            in (WarningLevel.ADVICE, WarningLevel.WATCH_AND_ACT, WarningLevel.EMERGENCY_WARNING)
+                            and alert is not None
+                            and alert.msg_type.casefold() in ("", "alert", "update")
+                            and alert.status.casefold() == "actual"
+                            and alert.scope.casefold() in ("", "public")
+                            else HazardProvenance.UNCLASSIFIED
+                        ),
+                        native_warning_level=params.get("WarningLevel") or None,
                         expires=alert.expires if alert is not None else None,
-                        call_to_action=params.get("CallToAction") or None,
+                        call_to_action=(alert.instruction if alert else "") or params.get("CallToAction") or None,
                         raw_properties={
                             "severity": severity,
                             "urgency": urgency,

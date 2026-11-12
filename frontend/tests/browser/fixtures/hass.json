@@ -252,6 +252,13 @@
       "translation_key": "relief_facilities_count",
       "name": "Relief Facilities Count"
     },
+    "sensor.australia_and_new_zealand_disaster_watch_qld_dev_cyclone_tracker": {
+      "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_cyclone_tracker",
+      "device_id": "device-qld",
+      "platform": "ausnz_disaster_watch",
+      "translation_key": "cyclone_tracker",
+      "name": "Cyclone Tracker"
+    },
     "sensor.australia_and_new_zealand_disaster_watch_qld_dev_regional_disaster_alerts": {
       "entity_id": "sensor.australia_and_new_zealand_disaster_watch_qld_dev_regional_disaster_alerts",
       "device_id": "device-qld",

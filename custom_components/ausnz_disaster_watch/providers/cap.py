@@ -8,7 +8,7 @@ inside any shape, otherwise the distance to the nearest edge. No geometry depend
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Iterable
 from dataclasses import dataclass
 from datetime import datetime
 import html
@@ -18,6 +18,8 @@ import math
 from typing import TYPE_CHECKING
 
 import defusedxml.ElementTree as ET
+
+from custom_components.ausnz_disaster_watch.models import SourceGeometry
 
 from .base import BaseHazardProvider, ProviderUnavailableError
 
@@ -61,6 +63,8 @@ class CapAlert:
     web: str
     areas: tuple[CapArea, ...]
     description: str = ""
+    scope: str = ""
+    instruction: str = ""
     parameters: tuple[tuple[str, str], ...] = ()  # (valueName, value), e.g. ("ColourCode", "Orange")
 
     @property
@@ -166,6 +170,8 @@ def cap_from_element(root: Element) -> CapAlert | None:
         identifier=_text(alert, "cap:identifier"),
         sent=parse(_text(alert, "cap:sent")),
         status=_text(alert, "cap:status"),
+        scope=_text(alert, "cap:scope"),
+        instruction=_text(info, "cap:instruction"),
         msg_type=_text(alert, "cap:msgType"),
         references=references,
         event=_text(info, "cap:event"),
@@ -182,6 +188,31 @@ def cap_from_element(root: Element) -> CapAlert | None:
             for param in (info.findall("cap:parameter", CAP_NS) if info is not None else ())
         ),
     )
+
+
+def is_public_actual(alert: CapAlert) -> bool:
+    """Return whether a message can affect the public alert snapshot."""
+    return alert.status.casefold() == "actual" and alert.scope.casefold() in ("", "public")
+
+
+def is_current_public_alert(alert: CapAlert, now: datetime) -> bool:
+    """Return whether a public alert or update is still active."""
+    return (
+        is_public_actual(alert)
+        and alert.msg_type.casefold() in ("", "alert", "update")
+        and (alert.expires is None or alert.expires > now)
+    )
+
+
+def superseded_identifiers(alerts: Iterable[CapAlert]) -> set[str]:
+    """Resolve updates and cancellations within one publisher's alert group."""
+    return {
+        reference
+        for alert in alerts
+        if is_public_actual(alert) and alert.msg_type.casefold() in ("update", "cancel")
+        for reference in alert.references
+        if reference != alert.identifier
+    }
 
 
 class CapDocumentCache:
@@ -249,7 +280,7 @@ def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     d_phi = math.radians(lat2 - lat1)
     d_lambda = math.radians(lon2 - lon1)
     a = math.sin(d_phi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(d_lambda / 2) ** 2
-    return 2 * EARTH_RADIUS_KM * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return 2 * EARTH_RADIUS_KM * math.atan2(math.sqrt(a), math.sqrt(max(0.0, 1 - a)))
 
 
 def point_in_polygon(lat: float, lon: float, ring: tuple[LatLon, ...]) -> bool:
@@ -261,24 +292,55 @@ def point_in_polygon(lat: float, lon: float, ring: tuple[LatLon, ...]) -> bool:
     return inside
 
 
+def _longitude_offset(lon: float, centre: float) -> float:
+    return (lon - centre + 180) % 360 - 180
+
+
 def distance_to_polygon_km(lat: float, lon: float, ring: tuple[LatLon, ...]) -> float:
     """Return 0 inside the polygon, else the distance to its nearest edge.
 
     Vertices are projected onto a local equirectangular plane centred on the point, which is
     accurate at the tens-to-hundreds of kilometres that radius filtering cares about.
     """
-    if point_in_polygon(lat, lon, ring):
+    # Unwrap adjacent vertices before shifting the complete ring near the query point.
+    # Wrapping each vertex independently around the query splits a ring opposite it.
+    unwrapped = [(ring[0][0], _longitude_offset(ring[0][1], lon))]
+    for latitude, longitude in ring[1:]:
+        previous = unwrapped[-1][1]
+        unwrapped.append((latitude, previous + _longitude_offset(longitude, lon + previous)))
+    centre = (min(x for _, x in unwrapped) + max(x for _, x in unwrapped)) / 2
+    shift = 360 * round(centre / 360)
+    local = tuple((latitude, longitude - shift) for latitude, longitude in unwrapped)
+    if point_in_polygon(lat, 0, local):
         return 0.0
     k_lat = math.pi * EARTH_RADIUS_KM / 180.0
     k_lon = k_lat * math.cos(math.radians(lat))
-    xy = [((v_lon - lon) * k_lon, (v_lat - lat) * k_lat) for v_lat, v_lon in ring]
+    xy = [(v_lon * k_lon, (v_lat - lat) * k_lat) for v_lat, v_lon in local]
     best = math.inf
     for (x1, y1), (x2, y2) in zip(xy, xy[1:] + xy[:1], strict=True):
         dx, dy = x2 - x1, y2 - y1
         seg = dx * dx + dy * dy
         t = 0.0 if seg == 0 else max(0.0, min(1.0, -(x1 * dx + y1 * dy) / seg))
         best = min(best, math.hypot(x1 + t * dx, y1 + t * dy))
-    return best
+    return 0.0 if best <= 0.001 else best
+
+
+def source_geometry(areas: tuple[CapArea, ...]) -> SourceGeometry | None:
+    """Keep CAP polygons and true circles without approximating the warning area."""
+    polygons = tuple(ring for area in areas for ring in area.polygons)
+    circles = tuple(circle for area in areas for circle in area.circles)
+    return SourceGeometry(polygons=polygons, circles=circles) if polygons or circles else None
+
+
+def source_spatial_state(lat: float, lon: float, geometry: SourceGeometry) -> tuple[float | None, bool | None]:
+    """Measure proximity to all source shapes and containment in areal shapes."""
+    area_distances = [distance_to_polygon_km(lat, lon, ring) for ring in geometry.polygons]
+    point_distances: list[float] = []
+    for centre_lat, centre_lon, radius in geometry.circles:
+        distance = max(0.0, haversine_km(lat, lon, centre_lat, centre_lon) - radius)
+        (area_distances if radius > 0 else point_distances).append(distance)
+    inside = 0.0 in area_distances if area_distances else None
+    return min((*area_distances, *point_distances), default=None), inside
 
 
 def area_distance_km(lat: float, lon: float, areas: tuple[CapArea, ...]) -> float | None:

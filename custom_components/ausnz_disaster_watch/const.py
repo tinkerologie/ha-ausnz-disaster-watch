@@ -33,6 +33,7 @@ CONF_ENABLE_HEATWAVE: Final = "enable_heatwave"
 CONF_ENABLE_UV: Final = "enable_uv"
 CONF_ENABLE_AIR_QUALITY: Final = "enable_state_air_quality"
 CONF_ENABLE_REGIONAL_ALERTS: Final = "enable_regional_alerts"
+CONF_ENABLE_CYCLONE_TRACKING: Final = "enable_cyclone_tracking"
 NATIONAL_FEED_OPTIONS: Final = (
     CONF_ENABLE_TSUNAMI,
     CONF_ENABLE_SATELLITE_HOTSPOTS,
@@ -40,6 +41,7 @@ NATIONAL_FEED_OPTIONS: Final = (
     CONF_ENABLE_UV,
     CONF_ENABLE_AIR_QUALITY,
     CONF_ENABLE_REGIONAL_ALERTS,
+    CONF_ENABLE_CYCLONE_TRACKING,
 )
 # Feeds that only cover Australia; they are not offered for New Zealand entries
 AU_ONLY_FEED_OPTIONS: Final = (

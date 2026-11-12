@@ -129,11 +129,12 @@ export class StatusCard extends DisasterCard {
         : undefined;
     const countState = stateFor(hass, device, KEY.activeHazardsCount);
     const count = council ? council.count : isUnavailable(countState) ? undefined : numberAttr(countState?.state);
-    const status = headlineStatus(council ? council.level : levelState?.state, count);
+    const incomplete = levelState?.attributes.coverage_complete === false;
+    const status = headlineStatus(incomplete && !count ? undefined : council ? council.level : levelState?.state, count);
     const presentation = headlinePresentation(status);
     // The sensor's own translated state name when the headline is that state (#21)
     const label =
-      !council && levelState && hass.formatEntityState && SENSOR_STATUSES.has(status)
+      incomplete && !count ? t(hass, "state.incomplete_coverage") : !council && levelState && hass.formatEntityState && SENSOR_STATUSES.has(status)
         ? hass.formatEntityState(levelState)
         : t(hass, STATUS_LABELS[status]);
 

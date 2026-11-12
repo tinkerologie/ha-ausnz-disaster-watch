@@ -415,6 +415,22 @@ class HazardType(StrEnum):
         return cls.OTHER
 
 
+class HazardProvenance(StrEnum):
+    """Whether an agency issued a warning or reported an observation."""
+
+    UNCLASSIFIED = "unclassified"
+    ISSUED_WARNING = "issued_warning"
+    OBSERVATION = "observation"
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class SourceGeometry:
+    """Agency shapes retained for spatial decisions."""
+
+    polygons: tuple[tuple[tuple[float, float], ...], ...] = ()
+    circles: tuple[tuple[float, float, float], ...] = ()
+
+
 @dataclass(slots=True, kw_only=True)
 class CanonicalHazard(_Model):
     """Canonical representation of an emergency hazard incident or warning."""
@@ -449,6 +465,12 @@ class CanonicalHazard(_Model):
     # Timezone-aware UTC time the warning expires
     expires: datetime | None = field(default=None, metadata=_coerce(_utc_or_none))
     call_to_action: str | None = None  # Australian Warning System call to action
+    source_geometry: SourceGeometry | None = field(default=None, metadata=_EXCLUDED, compare=False, repr=False)
+    provenance: HazardProvenance = HazardProvenance.UNCLASSIFIED
+    native_warning_level: str | None = None
+    source_key: str | None = field(default=None, compare=False)
+    fetched_at: datetime | None = field(default=None, compare=False)
+    stale: bool = field(default=False, compare=False)
 
     @property
     def is_active_threat(self) -> bool:
@@ -494,6 +516,15 @@ class CanonicalHazard(_Model):
             attrs["in_council_area"] = self.in_council_area
         if self.expires is not None:
             attrs["expires"] = self.expires.isoformat()
+        if self.provenance is not HazardProvenance.UNCLASSIFIED:
+            attrs["provenance"] = self.provenance.value
+        if self.native_warning_level:
+            attrs["native_warning_level"] = self.native_warning_level[:120]
+        if self.source_key is not None:
+            attrs["source_key"] = self.source_key
+            attrs["stale"] = self.stale
+        if self.fetched_at is not None:
+            attrs["source_last_success"] = self.fetched_at.isoformat()
         if self.call_to_action:
             attrs["call_to_action"] = self.call_to_action[:CALL_TO_ACTION_MAX_LENGTH]
 
@@ -823,7 +854,7 @@ class UVObservation(_Model):
 
 @dataclass(slots=True, kw_only=True, frozen=True)
 class RegionalAlertItem(_Model):
-    """GDACS Orange or Red alert in the Australia/New Zealand region (context only, not a local warning)."""
+    """GDACS regional event metadata for context and tracking."""
 
     id: str
     title: str
@@ -842,6 +873,15 @@ class RegionalAlertItem(_Model):
     event_id: int | None = None
     episode_id: int | None = None
     geometry_url: str | None = None
+    updated_at: datetime | None = None
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class CycloneSnapshot(_Model):
+    """Current cyclone summaries and when the source last answered."""
+
+    cyclones: list[RegionalAlertItem]
+    fetched_at: datetime
 
 
 @dataclass(slots=True, kw_only=True)
@@ -881,6 +921,21 @@ class DisasterCameraItem(_Model):
     in_council_area: bool | None = None
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class SourceCoverage(_Model):
+    """Availability of one warning endpoint and its last successful refresh."""
+
+    provider: str
+    source: str
+    status: str
+    last_success: datetime | None
+
+    @property
+    def key(self) -> str:
+        """Return the stable key used on hazards."""
+        return f"{self.provider}:{self.source}"
+
+
 @dataclass(slots=True, kw_only=True)
 class DisasterCoordinatorData(_Model):
     """Composite data structure returned by AustralianDisasterWatchCoordinator."""
@@ -901,6 +956,7 @@ class DisasterCoordinatorData(_Model):
     nearby_councils: list[dict[str, str]] = field(default_factory=list)
     feeds_ok: list[str] = field(default_factory=list)  # Hazard providers that fetched successfully
     feeds_failed: list[str] = field(default_factory=list)  # Hazard providers that failed this update
+    source_coverage: list[SourceCoverage] = field(default_factory=list)
     # Opt-in national feeds (#37). None means "not enabled or could not be determined"; they
     # never enter ``hazards``, so they do not change counts, warning levels or polling.
     satellite_hotspots: SatelliteHotspots | None = None
@@ -908,6 +964,12 @@ class DisasterCoordinatorData(_Model):
     heatwave: HeatwaveStatus | None = None
     uv: UVObservation | None = None
     regional_alerts: list[RegionalAlertItem] | None = None
+    cyclones: CycloneSnapshot | None = None
+
+    @property
+    def coverage_complete(self) -> bool:
+        """Return whether all configured warning endpoints answered."""
+        return not self.feeds_failed and all(source.status == "ok" for source in self.source_coverage)
 
     def __len__(self) -> int:
         """Return count of active hazards."""

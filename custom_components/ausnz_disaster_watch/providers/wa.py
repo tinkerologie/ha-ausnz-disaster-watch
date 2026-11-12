@@ -22,7 +22,14 @@ import defusedxml.ElementTree as ET
 
 from custom_components.ausnz_disaster_watch.const import STATE_WA
 from custom_components.ausnz_disaster_watch.fire_districts import FIRE_DISTRICTS, resolve_district
-from custom_components.ausnz_disaster_watch.models import CanonicalHazard, FireDangerRating, HazardType, WarningLevel
+from custom_components.ausnz_disaster_watch.models import (
+    CanonicalHazard,
+    FireDangerRating,
+    HazardProvenance,
+    HazardType,
+    SourceGeometry,
+    WarningLevel,
+)
 
 from .base import MALFORMED_ITEM_ERRORS, BaseHazardProvider, ProviderUnavailableError, stable_id
 from .geometry import ring_from_latlon_text, simplify_area
@@ -201,6 +208,8 @@ class WAHazardProvider(BaseHazardProvider):
             title=title,
             hazard_type=HazardType.from_str(warning_type or title),
             warning_level=level,
+            provenance=HazardProvenance.ISSUED_WARNING,
+            native_warning_level=warning_type or _child_text(item, "alertLevel") or None,
             latitude=point[0],
             longitude=point[1],
             updated_at=self.parse_datetime(_child_text(item, "publicationTime") or _child_text(item, "pubDate")),
@@ -209,6 +218,7 @@ class WAHazardProvider(BaseHazardProvider):
             responsible_agency="DFES Western Australia",
             web_url=link or WA_WEB_URL,
             area=area,
+            source_geometry=SourceGeometry(polygons=(ring,)) if ring else None,
             raw_properties={
                 "warning_type": warning_type or None,
                 "region": region or None,

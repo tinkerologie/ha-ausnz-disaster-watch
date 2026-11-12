@@ -97,6 +97,8 @@ def hazard_summary(hazard: CanonicalHazard) -> dict[str, Any]:
         "category": hazard_category(hazard),
         "hazard_type": hazard.hazard_type.value,
         "warning_level": hazard.warning_level.value,
+        "provenance": hazard.provenance.value,
+        "native_warning_level": _text(hazard.native_warning_level),
         "distance_km": _km(hazard.distance_km),
         "inside_warning_area": hazard.inside_area,
         "location": hazard.location_name or None,
@@ -107,6 +109,7 @@ def hazard_summary(hazard: CanonicalHazard) -> dict[str, Any]:
         "call_to_action": _text(hazard.call_to_action),
         "link": hazard.web_url,
         "attribution": hazard.attribution,
+        "stale": hazard.stale,
     }
 
 
@@ -135,11 +138,18 @@ def feed_health(coordinator: AustralianDisasterWatchCoordinator) -> dict[str, An
     ]
     has_data = coordinator.data is not None
     complete = has_data and coordinator.last_update_success and all(feed["status"] == "ok" for feed in feeds)
+    endpoints = list(coordinator.source_health.values())
+    complete = complete and coordinator.coverage_complete
     result: dict[str, Any] = {"complete": complete, "feeds": feeds}
+    if endpoints:
+        result["endpoints"] = [
+            {"source": source.source, "status": source.status, "last_success": _iso(source.last_success)}
+            for source in endpoints
+        ]
     if not has_data:
         result["notice"] = "No data has been fetched yet. The situation is unknown, not all clear."
     elif not complete:
-        down = ", ".join(f"{feed['feed']} ({feed['status']})" for feed in feeds if feed["status"] != "ok")
+        down = ", ".join(f"{source.source} ({source.status})" for source in endpoints if source.status != "ok")
         result["notice"] = (
             f"Some feeds are not up to date: {down or 'the last update failed'}. "
             "Hazards from those feeds may be missing or out of date; this is not an all-clear."
@@ -287,13 +297,13 @@ class GetDisasterSituationTool(_EntryTool):
 
     @override
     def _answer(self, coordinator: AustralianDisasterWatchCoordinator, args: dict[str, Any]) -> dict[str, Any]:
-        hazards = _nearest_first(coordinator.active_hazards)
+        hazards = _nearest_first(coordinator.active_hazards) if coordinator.last_update_success else []
         roads = _road_closures(coordinator)
         outages = _power_outages(coordinator)
-        warnings = coordinator.weather_warnings
+        warnings = coordinator.weather_warnings if coordinator.last_update_success else []
         return {
             "highest_warning_level": coordinator.highest_warning_level.value if hazards else None,
-            "inside_warning_area": coordinator.is_inside_warning_area,
+            "inside_warning_area": any(hazard.is_inside_warning for hazard in hazards),
             "radius_km": coordinator.radius_km,
             "hazard_count": len(hazards),
             "hazards": [hazard_summary(hazard) for hazard in hazards[:MAX_SITUATION_HAZARDS]],
@@ -361,7 +371,7 @@ class ListHazardsTool(_EntryTool):
         min_level = MIN_LEVELS.get(args.get("min_level", ""))
         items: list[dict[str, Any]] = [
             hazard_summary(hazard)
-            for hazard in _nearest_first(coordinator.active_hazards)
+            for hazard in _nearest_first(coordinator.active_hazards if coordinator.last_update_success else [])
             if (category is None or hazard_category(hazard) == category)
             and (min_level is None or hazard.warning_level.severity_rank >= min_level.severity_rank)
         ]
