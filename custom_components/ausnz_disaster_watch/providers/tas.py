@@ -90,12 +90,12 @@ class TasmaniaHazardProvider(BaseHazardProvider):
         # level in the title; plain incidents are information
         native = str(props.get("alertLevel") or "")
         level = WarningLevel.from_str(native.replace("_", " "))
-        issued = level in (WarningLevel.ADVICE, WarningLevel.WATCH_AND_ACT, WarningLevel.EMERGENCY_WARNING)
         if level is WarningLevel.UNKNOWN:
             level = WarningLevel.from_str(text)
         if level is WarningLevel.UNKNOWN:
             level = WarningLevel.INFORMATION
 
+        issued = level in (WarningLevel.ADVICE, WarningLevel.WATCH_AND_ACT, WarningLevel.EMERGENCY_WARNING)
         upstream_id = props.get("id")
         return CanonicalHazard(
             id=f"tas_alert_{upstream_id}" if upstream_id else stable_id("tas_alert", title, address),
@@ -104,7 +104,7 @@ class TasmaniaHazardProvider(BaseHazardProvider):
             hazard_type=HazardType.from_str(text),
             warning_level=level,
             provenance=HazardProvenance.ISSUED_WARNING if issued else HazardProvenance.UNCLASSIFIED,
-            native_warning_level=native if issued else None,
+            native_warning_level=(native or level.value) if issued else None,
             latitude=lat,
             longitude=lon,
             updated_at=self.parse_datetime(props.get("changed") or props.get("callTime")),

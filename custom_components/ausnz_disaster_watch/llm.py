@@ -11,6 +11,7 @@ last good fetch, and the answer is then never complete, so it cannot read as an 
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Final, override
 
@@ -22,9 +23,10 @@ from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.llm import LLM_API_ASSIST, LLMContext, Tool, ToolAnnotations, ToolInput, ToolResult
+from homeassistant.util import dt as dt_util
 from homeassistant.util.json import JsonValueType
 
-from .const import DOMAIN
+from .const import DOMAIN, LAST_GOOD_MAX_AGE
 from .coordinator import calculate_haversine_distance
 from .models import CanonicalHazard, HazardType, WarningLevel
 from .providers.fire_danger import local_today
@@ -118,6 +120,23 @@ def _nearest_first(hazards: list[CanonicalHazard]) -> list[CanonicalHazard]:
     return sorted(
         hazards,
         key=lambda h: (h.distance_km is None, h.distance_km or 0.0, -h.warning_level.severity_rank),
+    )
+
+
+def _visible_hazards(coordinator: AustralianDisasterWatchCoordinator) -> list[CanonicalHazard]:
+    """Keep unexpired last-known warnings within the outage retention window."""
+    hazards = coordinator.active_hazards
+    if coordinator.last_update_success:
+        return _nearest_first(hazards)
+    now = dt_util.utcnow()
+    return _nearest_first(
+        [
+            replace(hazard, stale=True)
+            for hazard in hazards
+            if hazard.fetched_at is not None
+            and now - hazard.fetched_at <= LAST_GOOD_MAX_AGE
+            and (hazard.expires is None or hazard.expires > now)
+        ]
     )
 
 
@@ -297,12 +316,16 @@ class GetDisasterSituationTool(_EntryTool):
 
     @override
     def _answer(self, coordinator: AustralianDisasterWatchCoordinator, args: dict[str, Any]) -> dict[str, Any]:
-        hazards = _nearest_first(coordinator.active_hazards) if coordinator.last_update_success else []
+        hazards = _visible_hazards(coordinator)
         roads = _road_closures(coordinator)
         outages = _power_outages(coordinator)
         warnings = coordinator.weather_warnings if coordinator.last_update_success else []
         return {
-            "highest_warning_level": coordinator.highest_warning_level.value if hazards else None,
+            "highest_warning_level": max(
+                (hazard.warning_level for hazard in hazards), key=lambda level: level.severity_rank
+            ).value
+            if hazards
+            else None,
             "inside_warning_area": any(hazard.is_inside_warning for hazard in hazards),
             "radius_km": coordinator.radius_km,
             "hazard_count": len(hazards),
@@ -371,7 +394,7 @@ class ListHazardsTool(_EntryTool):
         min_level = MIN_LEVELS.get(args.get("min_level", ""))
         items: list[dict[str, Any]] = [
             hazard_summary(hazard)
-            for hazard in _nearest_first(coordinator.active_hazards if coordinator.last_update_success else [])
+            for hazard in _visible_hazards(coordinator)
             if (category is None or hazard_category(hazard) == category)
             and (min_level is None or hazard.warning_level.severity_rank >= min_level.severity_rank)
         ]

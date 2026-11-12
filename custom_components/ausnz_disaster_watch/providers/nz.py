@@ -42,7 +42,7 @@ from .cap import (
     parse_cap,
     representative_point,
     source_geometry,
-    superseded_identifiers,
+    superseded_alerts,
 )
 from .geojson_feed import async_feed_entries
 from .geometry import rings_from_cap_areas, simplify_area
@@ -367,10 +367,10 @@ class NZHazardProvider(BaseHazardProvider):
         parsed = [(entry, alert) for entry in entries if (alert := _entry_cap(entry)) is not None]
         if entries and not parsed:
             raise ProviderUnavailableError("NEMA AlertHub returned no readable CAP messages")
-        referenced = superseded_identifiers(alert for _, alert in parsed)
+        referenced = superseded_alerts(alert for _, alert in parsed)
         for entry, alert in parsed:
             try:
-                if alert.identifier in referenced or not is_current_public_alert(alert, now):
+                if (alert.sender, alert.identifier) in referenced or not is_current_public_alert(alert, now):
                     continue
                 title = (entry.findtext("atom:title", "", ATOM_NS) or alert.headline or alert.event).strip()
                 entry_id = alert.identifier or (entry.findtext("atom:id", "", ATOM_NS) or "").strip()
@@ -441,12 +441,12 @@ class NZHazardProvider(BaseHazardProvider):
     def _parse_metservice(self, alerts: list[tuple[Element, CapAlert]]) -> list[CanonicalHazard]:
         """Turn current MetService alerts into hazards (with area) or weather warnings (without)."""
         now = dt_util.utcnow()
-        referenced = superseded_identifiers(alert for _, alert in alerts)
+        referenced = superseded_alerts(alert for _, alert in alerts)
         hazards: list[CanonicalHazard] = []
         weather_warnings: list[tuple[datetime | None, WeatherWarningItem]] = []
         for item, alert in alerts:
             try:
-                if alert.identifier in referenced or not is_current_public_alert(alert, now):
+                if (alert.sender, alert.identifier) in referenced or not is_current_public_alert(alert, now):
                     continue  # superseded by an update in the feed, cancelled or expired
                 title = (alert.headline or item.findtext("title") or alert.event).strip()
                 hazard = self._located_hazard(

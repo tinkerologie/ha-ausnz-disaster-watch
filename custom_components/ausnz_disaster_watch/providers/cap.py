@@ -53,7 +53,7 @@ class CapAlert:
     sent: datetime | None
     status: str
     msg_type: str
-    references: tuple[str, ...]  # identifiers of the messages this one updates or cancels
+    references: tuple[str, ...]  # identifiers for consumers that display references
     event: str
     headline: str
     severity: str
@@ -65,6 +65,8 @@ class CapAlert:
     description: str = ""
     scope: str = ""
     instruction: str = ""
+    sender: str = ""
+    reference_keys: tuple[tuple[str, str], ...] = ()
     parameters: tuple[tuple[str, str], ...] = ()  # (valueName, value), e.g. ("ColourCode", "Orange")
 
     @property
@@ -163,7 +165,9 @@ def cap_from_element(root: Element) -> CapAlert | None:
 
     # references: whitespace-separated "sender,identifier,sent" triples
     references = tuple(
-        parts[1] for ref in _text(alert, "cap:references").split() if len(parts := ref.split(",")) >= 2 and parts[1]
+        (parts[0], parts[1])
+        for ref in _text(alert, "cap:references").split()
+        if len(parts := ref.split(",")) == 3 and all(parts)
     )
     parse = BaseHazardProvider.parse_datetime
     return CapAlert(
@@ -173,7 +177,9 @@ def cap_from_element(root: Element) -> CapAlert | None:
         scope=_text(alert, "cap:scope"),
         instruction=_text(info, "cap:instruction"),
         msg_type=_text(alert, "cap:msgType"),
-        references=references,
+        references=tuple(identifier for _, identifier in references),
+        reference_keys=references,
+        sender=_text(alert, "cap:sender"),
         event=_text(info, "cap:event"),
         headline=_text(info, "cap:headline"),
         severity=_text(info, "cap:severity"),
@@ -204,14 +210,14 @@ def is_current_public_alert(alert: CapAlert, now: datetime) -> bool:
     )
 
 
-def superseded_identifiers(alerts: Iterable[CapAlert]) -> set[str]:
+def superseded_alerts(alerts: Iterable[CapAlert]) -> set[tuple[str, str]]:
     """Resolve updates and cancellations within one publisher's alert group."""
     return {
         reference
         for alert in alerts
         if is_public_actual(alert) and alert.msg_type.casefold() in ("update", "cancel")
-        for reference in alert.references
-        if reference != alert.identifier
+        for reference in alert.reference_keys
+        if reference != (alert.sender, alert.identifier)
     }
 
 

@@ -38,7 +38,7 @@ from .cap import (
     is_public_actual,
     representative_point,
     source_geometry,
-    superseded_identifiers,
+    superseded_alerts,
 )
 from .geometry import rings_from_cap_areas, simplify_area
 from .tsunami import jatwc_products
@@ -238,13 +238,13 @@ def _newest_message_per_product(
         groups.setdefault(entry[0], []).append(entry)
     result: list[tuple[str, Element, CapAlert]] = []
     for group in groups.values():
-        referenced = superseded_identifiers(alert for _, _, alert in group)
+        referenced = superseded_alerts(alert for _, _, alert in group)
         candidates = [
             entry
             for entry in group
             if is_public_actual(entry[2]) and entry[2].msg_type.casefold() in ("", "alert", "update", "cancel")
         ]
-        live = [entry for entry in candidates if entry[2].identifier not in referenced] or candidates
+        live = [entry for entry in candidates if (entry[2].sender, entry[2].identifier) not in referenced] or candidates
         if live:
             result.append(max(live, key=lambda entry: (entry[2].sent or _EPOCH, entry[2].identifier)))
     return result

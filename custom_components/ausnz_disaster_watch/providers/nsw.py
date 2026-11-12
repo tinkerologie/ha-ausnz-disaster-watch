@@ -138,8 +138,7 @@ class NSWHazardProvider(BaseHazardProvider):
             or "hazard reduction" in raw_type.lower()
         )
 
-        native = desc_fields.get("ALERT LEVEL")
-        issued = WarningLevel.from_str(native or "") in (
+        issued = warning_level in (
             WarningLevel.ADVICE,
             WarningLevel.WATCH_AND_ACT,
             WarningLevel.EMERGENCY_WARNING,
@@ -152,7 +151,7 @@ class NSWHazardProvider(BaseHazardProvider):
             hazard_type=hazard_type,
             warning_level=warning_level,
             provenance=HazardProvenance.ISSUED_WARNING if issued else HazardProvenance.UNCLASSIFIED,
-            native_warning_level=native if issued else None,
+            native_warning_level=raw_level if issued else None,
             latitude=lat,
             longitude=lon,
             updated_at=updated_at,

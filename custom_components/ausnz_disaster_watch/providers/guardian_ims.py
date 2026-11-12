@@ -180,6 +180,11 @@ class GuardianDashboard:
         """Forget payloads from the previous poll."""
         self._poll_cache.clear()
 
+    def endpoint_missing(self, endpoint: str) -> bool:
+        """Return whether the dashboard explicitly reported an absent endpoint."""
+        since = self._unavailable.get(endpoint)
+        return since is not None and time.monotonic() - since < _UNAVAILABLE_TTL
+
     async def fetch(self, endpoint: str) -> Any | None:
         """Return the decoded payload of ``/dashboard/<endpoint>``, or None if there is none.
 

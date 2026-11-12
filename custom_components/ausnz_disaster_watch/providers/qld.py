@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import logging
 import re
 from typing import Any
@@ -152,6 +152,10 @@ class QueenslandHazardProvider(BaseHazardProvider):
         if (dashboard := self.dashboard) is not None:
             dashboard.start_poll()
 
+            async def fetch_council(endpoint: str, empty: Any) -> Any:
+                payload = await dashboard.fetch(endpoint)
+                return empty if payload is None and dashboard.endpoint_missing(endpoint) else payload
+
             def parse_roads(payload: Any) -> list[CanonicalHazard]:
                 if not isinstance(payload, list):
                     raise ProviderUnavailableError("Council roads unavailable")
@@ -165,8 +169,8 @@ class QueenslandHazardProvider(BaseHazardProvider):
 
             sources.extend(
                 [
-                    ("Council roads", lambda: dashboard.fetch("tmrRoadData"), parse_roads),
-                    ("Council bulletins", lambda: dashboard.fetch("imsBulletin"), parse_bulletins),
+                    ("Council roads", lambda: fetch_council("tmrRoadData", []), parse_roads),
+                    ("Council bulletins", lambda: fetch_council("imsBulletin", {"features": []}), parse_bulletins),
                 ]
             )
 
@@ -174,8 +178,12 @@ class QueenslandHazardProvider(BaseHazardProvider):
         unique: dict[str, CanonicalHazard] = {}
         for hazard in await self.async_collect_sources(sources):
             previous = unique.get(hazard.id)
-            if previous is None or (previous.stale and not hazard.stale):
+            if previous is None:
                 unique[hazard.id] = hazard
+            elif previous.stale and not hazard.stale:
+                # Retain usable area for the matching incident without retaining its old severity.
+                unique[hazard.id] = replace(hazard, area=previous.area, source_geometry=previous.source_geometry)
+
         return list(unique.values())
 
     def _parse_warning_area(self, feature: dict[str, Any], layer: _WarningAreaLayer) -> CanonicalHazard | None:

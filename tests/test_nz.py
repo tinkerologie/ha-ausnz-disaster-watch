@@ -206,7 +206,7 @@ async def test_metservice_cap_colour_area_and_lifecycle(hass: HomeAssistant, mak
             event="rain",
             polygon=WELLINGTON_POLY,
             msg_type="Update",
-            references="ms,MS-OLD,2026-10-15T10:00:00+13:00",
+            references="nz,MS-OLD,2026-10-15T10:00:00+13:00",
         ),
         "https://ms/orange": cap("MS-ORANGE", colour="Orange", event="snow", polygon=PORTERS_PASS_POLY),
         "https://ms/yellow": cap("MS-YELLOW", colour="Yellow", event="rain", polygon=WELLINGTON_POLY),
@@ -462,6 +462,10 @@ async def test_nema_cancellation_and_unreadable_snapshot(hass: HomeAssistant, ma
     hazards = await provider.async_fetch_hazards()
     assert [hazard.id for hazard in hazards] == ["nz_nema_original"]
     assert hazards[0].expires == datetime(2026, 10, 16, 6, tzinfo=UTC)
+
+    wrong_sender = cancel.replace("nz,original", "other,original")
+    docs[NEMA_ALERTHUB_URL] = atom(("original", "Flood", original), ("cancel", "Cancelled", wrong_sender))
+    assert [hazard.id for hazard in await provider.async_fetch_hazards()] == ["nz_nema_original"]
 
     docs[NEMA_ALERTHUB_URL] = atom(("invalid", "Unusable", "<not-cap/>"))
     retained = await provider.async_fetch_hazards()

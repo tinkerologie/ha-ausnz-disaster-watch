@@ -23,7 +23,7 @@ from custom_components.ausnz_disaster_watch.models import (
 from homeassistant.util import dt as dt_util
 
 from .base import MALFORMED_ITEM_ERRORS, BaseHazardProvider, ProviderUnavailableError, as_dict, as_float, stable_id
-from .cap import cap_from_element, is_current_public_alert, source_geometry, superseded_identifiers
+from .cap import cap_from_element, is_current_public_alert, source_geometry, superseded_alerts
 from .geometry import area_point, rings_from_cap_areas, rings_from_geojson, simplify_area
 from .sources import DATA_SOURCES
 
@@ -180,12 +180,12 @@ class SAHazardProvider(BaseHazardProvider):
         }
 
         entries = [(entry, cap_from_element(entry)) for entry in root.findall("atom:entry", ns)]
-        referenced = superseded_identifiers(alert for _, alert in entries if alert is not None)
+        referenced = superseded_alerts(alert for _, alert in entries if alert is not None)
         now = dt_util.utcnow()
         for entry, alert in entries:
             try:
                 if alert is not None and (
-                    alert.identifier in referenced
+                    (alert.sender, alert.identifier) in referenced
                     or (alert.status and not is_current_public_alert(alert, now))
                     or alert.msg_type.casefold() in ("cancel", "ack", "error")
                     or alert.scope.casefold() not in ("", "public")
@@ -258,7 +258,11 @@ class SAHazardProvider(BaseHazardProvider):
                         source_geometry=source_geometry(alert.areas) if alert else None,
                         provenance=(
                             HazardProvenance.ISSUED_WARNING
-                            if WarningLevel.from_str(params.get("WarningLevel", ""))
+                            if (
+                                WarningLevel.from_str(params.get("WarningLevel", "")) is level
+                                or headline.casefold().startswith(level.value.casefold())
+                            )
+                            and level
                             in (WarningLevel.ADVICE, WarningLevel.WATCH_AND_ACT, WarningLevel.EMERGENCY_WARNING)
                             and alert is not None
                             and alert.msg_type.casefold() in ("", "alert", "update")
@@ -266,7 +270,7 @@ class SAHazardProvider(BaseHazardProvider):
                             and alert.scope.casefold() in ("", "public")
                             else HazardProvenance.UNCLASSIFIED
                         ),
-                        native_warning_level=params.get("WarningLevel") or None,
+                        native_warning_level=params.get("WarningLevel") or headline or None,
                         expires=alert.expires if alert is not None else None,
                         call_to_action=(alert.instruction if alert else "") or params.get("CallToAction") or None,
                         raw_properties={

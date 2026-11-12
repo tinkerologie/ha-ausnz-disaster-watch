@@ -418,6 +418,13 @@ async def test_qld_warning_area_layers(hass: HomeAssistant) -> None:
         assert "created_user" not in call.args[0]
         assert "last_edited_user" not in call.args[0]
 
+    s3_duplicate["features"][0]["properties"]["WarningLevel"] = "Advice"
+    provider.async_fetch_json = _qld_routes(aiohttp.ClientError("down"), qps, s3_duplicate)
+    updated = next(h for h in await provider.async_fetch_hazards() if h.id == "QLD_QFD_BCP-26-7")
+    assert updated.warning_level is WarningLevel.ADVICE
+    assert not updated.stale
+    assert updated.source_geometry == qfd.source_geometry
+
     # One layer down: the other sources still count; all down: unavailable
     provider.async_fetch_json = _qld_routes(aiohttp.ClientError("down"), qps, aiohttp.ClientError("down"))
     retained = await provider.async_fetch_hazards()
