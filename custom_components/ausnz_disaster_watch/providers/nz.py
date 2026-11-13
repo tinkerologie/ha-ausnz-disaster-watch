@@ -24,6 +24,7 @@ import defusedxml.ElementTree as ET
 from custom_components.ausnz_disaster_watch.const import CONF_RADIUS, DEFAULT_RADIUS, LAST_GOOD_MAX_AGE, STATE_NZ
 from custom_components.ausnz_disaster_watch.models import (
     CanonicalHazard,
+    HazardProvenance,
     HazardType,
     RoadClosureItem,
     WarningLevel,
@@ -32,7 +33,17 @@ from custom_components.ausnz_disaster_watch.models import (
 from homeassistant.util import dt as dt_util
 
 from .base import MALFORMED_ITEM_ERRORS, BaseHazardProvider, ProviderUnavailableError, stable_id
-from .cap import CapAlert, CapDocumentCache, area_distance_km, cap_from_element, parse_cap, representative_point
+from .cap import (
+    CapAlert,
+    CapDocumentCache,
+    area_distance_km,
+    cap_from_element,
+    is_current_public_alert,
+    parse_cap,
+    representative_point,
+    source_geometry,
+    superseded_alerts,
+)
 from .geojson_feed import async_feed_entries
 from .geometry import rings_from_cap_areas, simplify_area
 from .geonet import (
@@ -67,6 +78,7 @@ class MetServiceShared:
 
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
     last: tuple[datetime, list[tuple[Element, CapAlert]]] | None = None
+    attempted_at: datetime | None = None
 
 
 METSERVICE_ALERTS_URL = "https://alerts.metservice.com/cap/rss"
@@ -196,6 +208,7 @@ class NZHazardProvider(BaseHazardProvider):
                         title=f"M{mag:.1f} Earthquake - {locality}",
                         hazard_type=HazardType.EARTHQUAKE,
                         warning_level=level,
+                        provenance=HazardProvenance.OBSERVATION,
                         latitude=lat,
                         longitude=lon,
                         updated_at=updated_at,
@@ -244,8 +257,10 @@ class NZHazardProvider(BaseHazardProvider):
                         id=f"nz_volcano_{volcano_id}",
                         source="GeoNet New Zealand",
                         title=f"Volcano Level {level_num} ({acc}) - {title_name}",
+                        native_warning_level=str(level_num),
                         hazard_type=HazardType.VOLCANO,
                         warning_level=level,
+                        provenance=HazardProvenance.OBSERVATION,
                         latitude=lat,
                         longitude=lon,
                         updated_at=None,  # the VAL payload carries no timestamp
@@ -295,11 +310,11 @@ class NZHazardProvider(BaseHazardProvider):
             _LOGGER.debug("GeoNet CAP feed unavailable, using the last good alerts: %s", err)
             if self._geonet_cap_at is None or now - self._geonet_cap_at > LAST_GOOD_MAX_AGE:
                 return {}
-            return {key: alert for key, alert in self._geonet_cap.items() if _is_current(alert, now)}
+            return {key: alert for key, alert in self._geonet_cap.items() if is_current_public_alert(alert, now)}
         alerts: dict[str, CapAlert] = {}
         for _, alert in loaded:
             public_id = alert.parameter("PublicID")
-            if public_id and _is_current(alert, now):
+            if public_id and is_current_public_alert(alert, now):
                 alerts[public_id] = alert
         self._geonet_cap, self._geonet_cap_at = alerts, now
         return alerts
@@ -348,13 +363,14 @@ class NZHazardProvider(BaseHazardProvider):
 
         now = dt_util.utcnow()
         hazards: list[CanonicalHazard] = []
-        for entry in root.findall("atom:entry", ATOM_NS):
+        entries = root.findall("atom:entry", ATOM_NS)
+        parsed = [(entry, alert) for entry in entries if (alert := _entry_cap(entry)) is not None]
+        if entries and not parsed:
+            raise ProviderUnavailableError("NEMA AlertHub returned no readable CAP messages")
+        referenced = superseded_alerts(alert for _, alert in parsed)
+        for entry, alert in parsed:
             try:
-                alert = _entry_cap(entry)
-                if alert is None:
-                    _LOGGER.debug("NEMA AlertHub entry without a CAP alert skipped")
-                    continue
-                if not _is_current(alert, now):
+                if (alert.sender, alert.identifier) in referenced or not is_current_public_alert(alert, now):
                     continue
                 title = (entry.findtext("atom:title", "", ATOM_NS) or alert.headline or alert.event).strip()
                 entry_id = alert.identifier or (entry.findtext("atom:id", "", ATOM_NS) or "").strip()
@@ -389,6 +405,9 @@ class NZHazardProvider(BaseHazardProvider):
             now = dt_util.utcnow()
             if shared.last is not None and now - shared.last[0] < METSERVICE_MIN_POLL_INTERVAL:
                 return shared.last[1]
+            if shared.attempted_at is not None and now - shared.attempted_at < METSERVICE_MIN_POLL_INTERVAL:
+                raise ProviderUnavailableError("MetService retry deferred until its next permitted poll")
+            shared.attempted_at = now
             alerts = await self._async_fetch_metservice_now()
             shared.last = (now, alerts)
             return alerts
@@ -422,12 +441,12 @@ class NZHazardProvider(BaseHazardProvider):
     def _parse_metservice(self, alerts: list[tuple[Element, CapAlert]]) -> list[CanonicalHazard]:
         """Turn current MetService alerts into hazards (with area) or weather warnings (without)."""
         now = dt_util.utcnow()
-        referenced = {ref for _, alert in alerts for ref in alert.references}
+        referenced = superseded_alerts(alert for _, alert in alerts)
         hazards: list[CanonicalHazard] = []
         weather_warnings: list[tuple[datetime | None, WeatherWarningItem]] = []
         for item, alert in alerts:
             try:
-                if alert.identifier in referenced or not _is_current(alert, now):
+                if (alert.sender, alert.identifier) in referenced or not is_current_public_alert(alert, now):
                     continue  # superseded by an update in the feed, cancelled or expired
                 title = (alert.headline or item.findtext("title") or alert.event).strip()
                 hazard = self._located_hazard(
@@ -486,9 +505,14 @@ class NZHazardProvider(BaseHazardProvider):
             location_name=alert.area_description[:120] or "New Zealand",
             distance_km=area_distance_km(lat, lon, alert.areas) if lat is not None and lon is not None else None,
             area=simplify_area(rings_from_cap_areas(alert.areas)),
+            source_geometry=source_geometry(alert.areas),
+            provenance=HazardProvenance.ISSUED_WARNING,
+            native_warning_level=alert.parameter("ColourCode") or alert.severity or None,
             status=alert.msg_type or "Alert",
             responsible_agency=agency,
             web_url=web_url,
+            expires=alert.expires,
+            call_to_action=alert.instruction or None,
             raw_properties={
                 "cap_identifier": alert.identifier,
                 "event": alert.event,
@@ -517,13 +541,6 @@ def _cap_link(entry: Element) -> str:
         if (link.get("type") or "").lower() == CAP_CONTENT_TYPE and link.get("href"):
             return str(link.get("href")).strip()
     return ""
-
-
-def _is_current(alert: CapAlert, now: datetime) -> bool:
-    """Return True if the alert is an actual, uncancelled, unexpired message."""
-    if alert.status.lower() != "actual" or alert.msg_type.lower() == "cancel":
-        return False
-    return alert.expires is None or alert.expires > now
 
 
 def _nema_level(title: str, alert: CapAlert) -> WarningLevel:

@@ -9,11 +9,15 @@ on every poll; the slower products are refreshed less often to stay polite to th
 
 from __future__ import annotations
 
-from datetime import timedelta
+import asyncio
+from datetime import datetime, timedelta
 from typing import Any, ClassVar
+
+from aio_georss_gdacs.feed_entry import GdacsFeedEntry
 
 from custom_components.ausnz_disaster_watch.const import (
     CONF_ENABLE_AIR_QUALITY,
+    CONF_ENABLE_CYCLONE_TRACKING,
     CONF_ENABLE_HEATWAVE,
     CONF_ENABLE_REGIONAL_ALERTS,
     CONF_ENABLE_SATELLITE_HOTSPOTS,
@@ -29,6 +33,7 @@ from custom_components.ausnz_disaster_watch.const import (
 from custom_components.ausnz_disaster_watch.models import (
     AirQualityStationData,
     CanonicalHazard,
+    CycloneSnapshot,
     HeatwaveStatus,
     RegionalAlertItem,
     SatelliteHotspots,
@@ -66,7 +71,9 @@ class NationalHazardProvider(BaseHazardProvider):
         self._heatwave = FeedCache[HeatwaveStatus]("BoM heatwave", HEATWAVE_TTL, 3 * HEATWAVE_TTL)
         self._uv = FeedCache[UVObservation]("ARPANSA UV", EVERY_POLL, LAST_GOOD_MAX_AGE)
         self._uv_forecast = FeedCache[dict[str, bytes]]("BoM UV forecast", UV_FORECAST_TTL, 3 * UV_FORECAST_TTL)
-        self._gdacs = FeedCache[list[RegionalAlertItem]]("GDACS", GDACS_TTL, 4 * GDACS_TTL)
+        self._gdacs: FeedCache[list[GdacsFeedEntry]] | None = None
+        self._gdacs_lock = asyncio.Lock()
+        self._gdacs_location: tuple[float, float] | None = None
         self._air_quality = FeedCache[list[AirQualityStationData]]("Air quality", AIR_QUALITY_TTL, 4 * AIR_QUALITY_TTL)
         self._nsw_sites = FeedCache[list[Any]]("NSW air quality sites", NSW_SITES_TTL, 7 * NSW_SITES_TTL)
         self._ptwc_documents = CapDocumentCache("PTWC CAP document")
@@ -184,13 +191,35 @@ class NationalHazardProvider(BaseHazardProvider):
 
     # GDACS
 
+    async def _async_gdacs(self) -> tuple[list[GdacsFeedEntry], datetime] | None:
+        if (location := self._location) is None:
+            return None
+        async with self._gdacs_lock:
+            if self._gdacs_location != location or self._gdacs is None:
+                self._gdacs = FeedCache("GDACS", GDACS_TTL, 4 * GDACS_TTL, retry_interval=timedelta(seconds=30))
+                self._gdacs_location = location
+            entries = await self._gdacs.async_get(lambda: gdacs.async_fetch_entries(self.session, *location))
+            fetched_at = self._gdacs.fetched_at
+            if location != self._location or entries is None or fetched_at is None:
+                return None
+            return entries, fetched_at
+
     async def async_fetch_regional_alerts(self) -> list[RegionalAlertItem] | None:
         """Return current GDACS Orange/Red alerts in the Australia/New Zealand region."""
-        if not self._enabled(CONF_ENABLE_REGIONAL_ALERTS) or (location := self._location) is None:
+        if not self._enabled(CONF_ENABLE_REGIONAL_ALERTS):
             return None
-        return await self._gdacs.async_get(
-            lambda: gdacs.async_fetch_regional_alerts(self.session, location[0], location[1])
-        )
+        data = await self._async_gdacs()
+        return gdacs.regional_alerts(data[0]) if data is not None else None
+
+    async def async_fetch_cyclones(self) -> CycloneSnapshot | None:
+        """Return the cyclone projection of the shared GDACS feed."""
+        if not self._enabled(CONF_ENABLE_CYCLONE_TRACKING):
+            return None
+        data = await self._async_gdacs()
+        if data is None:
+            return None
+        entries, fetched_at = data
+        return CycloneSnapshot(cyclones=gdacs.cyclone_events(entries), fetched_at=fetched_at)
 
     # Air quality
 

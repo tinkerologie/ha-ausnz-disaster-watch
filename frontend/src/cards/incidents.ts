@@ -1,10 +1,11 @@
+import { KEY } from "../const";
 import { html, nothing, type TemplateResult } from "lit";
 import { geoLocationsFor, incidentDistance, incidentTitle } from "../ha/entities";
 import { entityName, formatDistance, formatNumber, numberAttr, relativeTime, safeUrl, stringAttr } from "../ha/format";
 import { t, type TranslationKey } from "../localize/localize";
 import { awsPresentation } from "../model/aws";
 import { CATEGORY_ICONS, HAZARD_CATEGORIES, hazardCategory, hazardIcon, type HazardCategory } from "../model/hazards";
-import { badge, empty, header, list, row, showAll } from "../components/render";
+import { alert, badge, empty, header, list, row, showAll } from "../components/render";
 import type { BaseCardConfig, HassEntity, HomeAssistant, LovelaceConfigForm } from "../types";
 import {
   areaSchema,
@@ -120,6 +121,10 @@ export class IncidentsCard extends DisasterCard<IncidentsCardConfig> {
       stringAttr(a.location_name),
       formatDistance(hass, incidentDistance(stateObj)),
       updated ? t(hass, "incidents.updated", { time: updated }) : undefined,
+      a.stale === true ? t(hass, "state.stale_warning") : undefined,
+      a.stale === true ? relativeTime(hass, a.source_last_success) : undefined,
+      a.provenance === "observation" ? t(hass, "incidents.observed") : undefined,
+      a.provenance === "issued_warning" ? stringAttr(a.native_warning_level) : undefined,
     ]
       .filter(Boolean)
       .join(" · ");
@@ -165,6 +170,8 @@ export class IncidentsCard extends DisasterCard<IncidentsCardConfig> {
     const selected = this._category !== "all" && categories.includes(this._category) ? this._category : "all";
     const filtered =
       selected === "all" ? visible : visible.filter((s) => hazardCategory(s.attributes.hazard_type) === selected);
+    const coverageId = this.entityId(KEY.highestWarningLevel);
+    const incomplete = coverageId !== undefined && hass.states[coverageId]?.attributes.coverage_complete === false;
     const max = config.max_items ?? DEFAULT_MAX_ITEMS;
     const shown = this._expanded ? filtered : filtered.slice(0, max);
 
@@ -216,7 +223,7 @@ export class IncidentsCard extends DisasterCard<IncidentsCardConfig> {
                 shown.map((s) => this.renderIncident(hass, s)),
                 this.cardTitle(),
               )
-            : empty("mdi:shield-check-outline", t(hass, all.length ? "incidents.empty_filtered" : "incidents.empty"))
+            : incomplete ? alert("info", t(hass, "state.incomplete_coverage")) : empty("mdi:shield-check-outline", t(hass, all.length ? "incidents.empty_filtered" : "incidents.empty"))
         }
         ${filtered.length > max ? showAll(hass, this._expanded, filtered.length, () => (this._expanded = !this._expanded)) : nothing}
       </div>`;

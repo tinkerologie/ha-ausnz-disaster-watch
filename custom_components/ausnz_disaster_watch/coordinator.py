@@ -30,6 +30,7 @@ from .forecast_coordinator import ForecastCoordinators
 from .models import (
     AirQualityStationData,
     CanonicalHazard,
+    CycloneSnapshot,
     DisasterCameraItem,
     DisasterCoordinatorData,
     DisasterWatchConfigModel,
@@ -44,6 +45,7 @@ from .models import (
     ReliefFacilityItem,
     RoadClosureItem,
     SatelliteHotspots,
+    SourceCoverage,
     TsunamiStatus,
     UVObservation,
     WarningLevel,
@@ -53,6 +55,7 @@ from .models import (
 from .providers import get_providers_for_config
 from .providers.base import BaseHazardProvider, PartialFeedError, ProviderUnavailableError
 from .providers.cameras import merge_cameras
+from .providers.cap import source_spatial_state
 from .providers.council_area import CouncilArea, CouncilAreaService
 from .providers.fire_danger import FireDangerService, local_today
 from .providers.geometry import area_distance
@@ -108,6 +111,7 @@ NATIONAL_FEED_HOOKS: dict[str, tuple[str, type]] = {
     "heatwave": ("async_fetch_heatwave", HeatwaveStatus),
     "uv": ("async_fetch_uv", UVObservation),
     "regional_alerts": ("async_fetch_regional_alerts", list),
+    "cyclones": ("async_fetch_cyclones", CycloneSnapshot),
 }
 
 
@@ -204,6 +208,7 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         self._last_good_hazards: dict[str, tuple[datetime, list[CanonicalHazard]]] = {}
         self._feeds_ok: list[str] = []
         self._feeds_failed: list[str] = []
+        self.source_health: dict[str, SourceCoverage] = {}
         # Distributor outage feeds: health and last good outages, like the hazard feeds (#36)
         self._power_feed_healthy: dict[str, bool] = {}
         self._last_good_outages: dict[str, tuple[datetime, list[PowerOutageItem]]] = {}
@@ -296,6 +301,7 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         self._resolve_location()
         if previous not in {(None, None), (self.latitude, self.longitude)}:
             self._last_good_hazards.clear()
+            self.source_health.clear()
             self._last_good_outages.clear()
             # Optional results, and calls still running, belong to the old point: forget them
             # (a running call finishes in the background, but its result is no longer used, #75)
@@ -311,6 +317,8 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
             self.council_area_service,
         ]:
             if isinstance(provider, BaseHazardProvider):
+                if previous not in {(None, None), (self.latitude, self.longitude)}:
+                    provider.reset_source_coverage()
                 provider.set_location(self.latitude, self.longitude)
         # Location-based forecasts follow too; river points are user-picked coordinates and stay
         for forecast in (self.forecasts.weather, self.forecasts.ensemble):
@@ -412,6 +420,10 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         """
         # Providers of auxiliary data only must not count as healthy hazard feeds
         hazard_providers = [p for p in self.providers if getattr(p, "provides_hazards", True) is not False]
+        previous_sources = self.source_health
+        for provider in hazard_providers:
+            if isinstance(provider, BaseHazardProvider):
+                provider.source_coverage = ()
         results = await asyncio.gather(
             *(provider.async_fetch_hazards() for provider in hazard_providers),
             return_exceptions=True,
@@ -419,8 +431,13 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
         all_hazards: list[CanonicalHazard] = []
         feeds_ok: list[str] = []
         feeds_failed: list[str] = []
+        source_health: dict[str, SourceCoverage] = {}
+        now = dt_util.utcnow()
         for provider, result in zip(hazard_providers, results, strict=True):
             key = type(provider).__name__
+            sources = provider.source_coverage if isinstance(provider, BaseHazardProvider) else ()
+            cached = self._last_good_hazards.get(key)
+            last = cached[0] if cached else None
             if isinstance(result, BaseException):
                 if not isinstance(result, Exception):
                     raise result  # e.g. CancelledError
@@ -434,23 +451,50 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
                 self._feed_healthy[key] = False
                 # Bridge short outages with the last good data, but never indefinitely: a
                 # cancelled warning must not stay active through a long outage.
-                if (cached := self._last_good_hazards.get(key)) and dt_util.utcnow() - cached[0] <= LAST_GOOD_MAX_AGE:
-                    all_hazards.extend(cached[1])
+                stale = last is not None and now - last <= LAST_GOOD_MAX_AGE
+                if not sources:
+                    sources = tuple(
+                        dataclasses.replace(
+                            item,
+                            status="stale"
+                            if item.last_success is not None and now - item.last_success <= LAST_GOOD_MAX_AGE
+                            else "failed",
+                        )
+                        for item in previous_sources.values()
+                        if item.provider == key
+                    )
+                if not sources:
+                    source = SourceCoverage(
+                        provider=key, source=key, status="stale" if stale else "failed", last_success=last
+                    )
+                    sources = (source,)
+                source_health.update((source.key, source) for source in sources)
+                if stale and cached:
+                    all_hazards.extend(dataclasses.replace(hazard, stale=True) for hazard in cached[1])
                 continue
             feeds_ok.append(key)
             if self._feed_healthy.get(key) is False:
                 _LOGGER.info("Hazard feed %s is available again", key)
             self._feed_healthy[key] = True
             # Hazards carry their own provider's attribution, e.g. for map pins (#34)
-            if attribution := attribution_for(sources_for_provider(key)):
-                for hazard in result:
-                    if hazard.attribution is None:
-                        hazard.attribution = attribution
-            self._last_good_hazards[key] = (dt_util.utcnow(), result)
-            all_hazards.extend(result)
+            source = SourceCoverage(provider=key, source=key, status="ok", last_success=now)
+            source_health.update((item.key, item) for item in (sources or (source,)))
+            attribution = attribution_for(sources_for_provider(key))
+            stamped = [
+                dataclasses.replace(
+                    hazard,
+                    source_key=hazard.source_key or source.key,
+                    fetched_at=hazard.fetched_at or now,
+                    attribution=hazard.attribution or attribution,
+                )
+                for hazard in result
+            ]
+            self._last_good_hazards[key] = (now, stamped)
+            all_hazards.extend(dataclasses.replace(hazard) for hazard in stamped)
 
         self._feeds_ok = feeds_ok
         self._feeds_failed = feeds_failed
+        self.source_health = source_health
         if hazard_providers and not feeds_ok:
             raise UpdateFailed(
                 translation_domain=DOMAIN,
@@ -472,8 +516,18 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
                 continue
             if hazard.expires is not None and hazard.expires <= now:
                 continue
+            if hazard.stale and hazard.fetched_at is not None and now - hazard.fetched_at > LAST_GOOD_MAX_AGE:
+                continue
 
-            if hazard.area:
+            if hazard.source_geometry is not None:
+                source_distance, inside = source_spatial_state(self.latitude, self.longitude, hazard.source_geometry)
+            else:
+                source_distance, inside = None, None
+            if source_distance is not None:
+                dist = source_distance
+                hazard.distance_km = dist
+                hazard.inside_area = inside
+            elif hazard.area:
                 # Distance to the warning area, 0 when the monitored point is inside it (#30)
                 dist = area_distance(self.latitude, self.longitude, hazard.area)
                 hazard.distance_km = dist
@@ -931,6 +985,7 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
             nearby_councils=aux["nearby_councils"],
             feeds_ok=self._feeds_ok,
             feeds_failed=self._feeds_failed,
+            source_coverage=list(self.source_health.values()),
             **national,
         )
 
@@ -1015,8 +1070,34 @@ class AustralianDisasterWatchCoordinator(DataUpdateCoordinator[DisasterCoordinat
                 status = "stale" if last is not None and now - last <= LAST_GOOD_MAX_AGE else "failed"
             else:
                 status = "ok" if self.last_update_success else "stale"
+                if status == "ok" and any(
+                    source.provider == key and source.status != "ok" for source in self.source_health.values()
+                ):
+                    status = "partial"
             health[key] = (status, last)
         return health
+
+    @property
+    def coverage_complete(self) -> bool:
+        """Return whether the published warning snapshot has fresh coverage."""
+        return self.last_update_success and getattr(self.data, "coverage_complete", True)
+
+    @property
+    def coverage_attributes(self) -> dict[str, Any]:
+        """Return compact warning coverage attributes shared by hazard entities."""
+        return {
+            "coverage_complete": self.coverage_complete,
+            "incomplete_sources": [
+                {
+                    "source": source.source,
+                    "status": source.status,
+                    "last_success": source.last_success.isoformat() if source.last_success else None,
+                }
+                for source in self.source_health.values()
+                if source.status != "ok"
+            ],
+            "stale_hazards_count": sum(hazard.stale for hazard in self.active_hazards),
+        }
 
     @property
     def active_hazards(self) -> list[CanonicalHazard]:

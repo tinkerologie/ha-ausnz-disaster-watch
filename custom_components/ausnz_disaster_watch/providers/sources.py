@@ -558,6 +558,7 @@ NATIONAL_FEED_SOURCES: dict[str, tuple[str, ...]] = {
     "enable_uv": ("arpansa_uv", "bom_ftp"),
     "enable_state_air_quality": ("nsw_air_quality", "qld_air_quality", "act_air_quality"),
     "enable_regional_alerts": ("gdacs",),
+    "enable_cyclone_tracking": ("gdacs",),
 }
 
 DATA_SOURCES: dict[str, DataSource] = {source.key: source for source in _SOURCES}

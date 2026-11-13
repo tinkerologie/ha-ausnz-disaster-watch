@@ -6,6 +6,7 @@
       'call_to_action': 'Leave now',
       'distance_km': 18.425024794696125,
       'expires': '2026-10-15T13:00:00Z',
+      'fetched_at': '2026-10-15T06:00:00Z',
       'hazard_type': 'Bushfire',
       'id': 'QLD_QFD_WARN_201',
       'in_council_area': None,
@@ -14,6 +15,8 @@
       'latitude': '**REDACTED**',
       'location_name': '**REDACTED**',
       'longitude': '**REDACTED**',
+      'native_warning_level': None,
+      'provenance': 'unclassified',
       'raw_properties': dict({
         'OBJECTID': 201,
         'created_user': '**REDACTED**',
@@ -28,6 +31,8 @@
       }),
       'responsible_agency': None,
       'source': 'Queensland Fire Department',
+      'source_key': 'AsyncMock:AsyncMock',
+      'stale': False,
       'status': 'Going',
       'title': 'Watch and Act - Bushfire at Caboolture',
       'updated_at': '2026-10-15T05:30:01.120000Z',
@@ -40,6 +45,7 @@
   dict({
     'active_hazards_count': 1,
     'attribution': None,
+    'coverage_complete': True,
     'data_sources': list([
     ]),
     'exclude_hazard_reduction': True,
@@ -52,6 +58,8 @@
     'hazards_with_area': 1,
     'highest_warning_level': 'Watch and Act',
     'include_roadworks': False,
+    'incomplete_sources': list([
+    ]),
     'inside_warning_area': False,
     'last_exception': None,
     'last_update_success': True,
@@ -67,6 +75,14 @@
     ]),
     'road_providers': list([
     ]),
+    'source_health': dict({
+      'AsyncMock:AsyncMock': dict({
+        'provider': 'AsyncMock',
+        'source': 'AsyncMock',
+        'status': 'ok',
+      }),
+    }),
+    'stale_hazards_count': 0,
     'state_code': 'QLD',
     'update_interval_seconds': 60.0,
   })

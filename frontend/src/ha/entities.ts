@@ -121,6 +121,7 @@ export function geoLocationsFor(hass: HomeAssistant, entryId: string | undefined
     .filter(
       (s) =>
         s.entity_id.startsWith("geo_location.") &&
+        s.state !== "unavailable" &&
         s.attributes.integration === DOMAIN &&
         s.attributes.entry_id === entryId,
     )

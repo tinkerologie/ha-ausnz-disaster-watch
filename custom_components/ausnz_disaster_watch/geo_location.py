@@ -109,7 +109,13 @@ async def async_setup_entry(
         # Remove entities that have cleared from upstream feeds, but only after a refresh
         # that heard from every feed (#16). Removing the registry entry removes the entity
         # and its state; events are transient.
-        expired_ids = set(registered_entities) - set(current_data) if snapshot_is_complete(coordinator) else set()
+        complete = snapshot_is_complete(coordinator)
+        expired_ids = [
+            hazard_id
+            for hazard_id, entity in registered_entities.items()
+            if hazard_id not in current_data
+            and (complete or (coordinator.last_update_success and entity.source_is_fresh))
+        ]
         for hazard_id in expired_ids:
             entity = registered_entities.pop(hazard_id)
             if entity_registry.async_get(entity.entity_id) is not None:
@@ -159,6 +165,18 @@ class AustralianDisasterWatchGeolocationEvent(CoordinatorEntity[AustralianDisast
     def hazard(self) -> CanonicalHazard:
         """Return the last known hazard (kept while the entity is being removed)."""
         return self._hazard
+
+    @property
+    def source_is_fresh(self) -> bool:
+        """Return whether absence from this incident's source is authoritative."""
+        key = self._hazard.source_key
+        source = next((item for item in getattr(self.coordinator.data, "source_coverage", ()) if item.key == key), None)
+        return source is not None and source.status == "ok"
+
+    @property
+    def available(self) -> bool:
+        """Hide absent incidents while preserving their registry identity."""
+        return super().available and self.hazard_id in current_hazards(self.coordinator)
 
     @callback
     def _handle_coordinator_update(self) -> None:

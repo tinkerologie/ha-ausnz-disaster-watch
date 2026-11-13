@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass, replace
 import logging
 import re
 from typing import Any
@@ -15,10 +16,12 @@ from custom_components.ausnz_disaster_watch.models import (
     DisasterCameraItem,
     EmergencyNewsItem,
     FireDangerRating,
+    HazardProvenance,
     HazardType,
     PowerOutageItem,
     ReliefFacilityItem,
     RoadClosureItem,
+    SourceGeometry,
     WarningLevel,
     WeatherStationObservation,
     WeatherWarningItem,
@@ -122,57 +125,78 @@ class QueenslandHazardProvider(BaseHazardProvider):
 
     async def async_fetch_hazards(self) -> list[CanonicalHazard]:
         """Fetch hazards from QFD and optional Council Disaster Dashboard."""
-        hazards: list[CanonicalHazard] = []
-        seen_ids: set[str] = set()
 
-        # 0. Warning areas (#30): QFD bushfire warnings and QPS severe weather, flood and cyclone
-        # warnings as polygons. They come first so a QFD warning also in the S3 feed (same
-        # UniqueID, so the same ID) keeps its polygon. A failing layer skips only itself.
-        areas_ok = 0
-        for layer in (_QFD_WARNING_AREAS, _QPS_WARNING_AREAS):
-            try:
-                features = await self.async_fetch_arcgis_features(layer.url, "1=1", layer.fields, layer.label)
-            except ProviderUnavailableError as err:
-                _LOGGER.debug("%s failed: %s", layer.label, err)
-                continue
-            areas_ok += 1
-            for feature in features:
-                self._add_parsed(
-                    hazards, seen_ids, lambda f, layer=layer: self._parse_warning_area(f, layer), feature, layer.label
+        def warning_layer(
+            layer: _WarningAreaLayer,
+        ) -> tuple[str, Callable[[], Awaitable[Any]], Callable[[Any], list[CanonicalHazard]]]:
+            async def fetch() -> list[Any]:
+                return await self.async_fetch_arcgis_features(layer.url, "1=1", layer.fields, layer.label)
+
+            return (
+                layer.label,
+                fetch,
+                lambda features: self._parse_items(
+                    features, lambda feature: self._parse_warning_area(feature, layer), layer.label
+                ),
+            )
+
+        async def fetch_qfd() -> list[Any]:
+            payload = self.require_dict(await self.async_fetch_feed_json(QFD_WARNINGS_URL, "QFD"), "QFD")
+            return self.require_list(payload, "features", "QFD")
+
+        sources = [
+            warning_layer(_QFD_WARNING_AREAS),
+            warning_layer(_QPS_WARNING_AREAS),
+            ("QFD", fetch_qfd, lambda features: self._parse_items(features, self._parse_qfd_feature, "QFD")),
+        ]
+        if (dashboard := self.dashboard) is not None:
+            dashboard.start_poll()
+
+            async def fetch_council(endpoint: str, empty: Any) -> Any:
+                payload = await dashboard.fetch(endpoint)
+                return empty if payload is None and dashboard.endpoint_missing(endpoint) else payload
+
+            def parse_roads(payload: Any) -> list[CanonicalHazard]:
+                if not isinstance(payload, list):
+                    raise ProviderUnavailableError("Council roads unavailable")
+                return self._parse_items(payload, self._parse_council_road_item, "council road")
+
+            def parse_bulletins(payload: Any) -> list[CanonicalHazard]:
+                features = self.require_list(
+                    self.require_dict(payload, "Council bulletins"), "features", "Council bulletins"
                 )
+                return self._parse_items(features, self._parse_council_bulletin_feature, "council bulletin")
 
-        # 1. State-wide QFD Public Warnings feed (primary source)
-        qfd_error: str | None = None
-        try:
-            qfd_data = self.require_dict(await self.async_fetch_feed_json(QFD_WARNINGS_URL, "QFD"), "QFD")
-            qfd_features = self.require_list(qfd_data, "features", "QFD")
-        except ProviderUnavailableError as err:
-            qfd_error = str(err)
-            _LOGGER.debug("QFD warnings feed failed: %s", err)
-        else:
-            for feature in qfd_features:
-                self._add_parsed(hazards, seen_ids, self._parse_qfd_feature, feature, "QFD")
+            sources.extend(
+                [
+                    ("Council roads", lambda: fetch_council("tmrRoadData", []), parse_roads),
+                    ("Council bulletins", lambda: fetch_council("imsBulletin", {"features": []}), parse_bulletins),
+                ]
+            )
 
-        # 2. Council Disaster Dashboard feeds if configured (secondary sources)
-        council_ok = 0
-        if self.dashboard is not None:
-            self.dashboard.start_poll()
-            council_hazards, council_ok = await self._fetch_council_hazards(self.dashboard, seen_ids)
-            hazards.extend(council_hazards)
+        # Polygon versions take precedence over the point feed for the same incident.
+        unique: dict[str, CanonicalHazard] = {}
+        for hazard in await self.async_collect_sources(sources):
+            previous = unique.get(hazard.id)
+            if previous is None:
+                unique[hazard.id] = hazard
+            elif previous.stale and not hazard.stale:
+                # Retain usable area for the matching incident without retaining its old severity.
+                unique[hazard.id] = replace(hazard, area=previous.area, source_geometry=previous.source_geometry)
 
-        # Unavailable only if nothing could be fetched at all (#16)
-        if qfd_error is not None and council_ok == 0 and areas_ok == 0:
-            raise ProviderUnavailableError(qfd_error)
-        return hazards
+        return list(unique.values())
 
     def _parse_warning_area(self, feature: dict[str, Any], layer: _WarningAreaLayer) -> CanonicalHazard | None:
         """Map a warning-area polygon from the QFD or QPS ArcGIS layer (#30)."""
         props = as_dict(feature.get("properties"))
         unique_id = str(props.get("UniqueID") or "").strip()
-        area = simplify_area(rings_from_geojson(feature.get("geometry")))
-        if not unique_id or area is None:
+        rings = rings_from_geojson(feature.get("geometry"))
+        area = simplify_area(rings)
+        if not unique_id or not rings:
             return None
-        lat, lon = area_point(area, as_float(self.config.get("latitude")), as_float(self.config.get("longitude")))
+        lat, lon = area_point(
+            area or tuple(rings), as_float(self.config.get("latitude")), as_float(self.config.get("longitude"))
+        )
         title = str(props.get("WarningTitle") or "").strip() or f"{layer.agency} warning"
         level = WarningLevel.from_str(str(props.get("WarningLevel") or ""))
         if level is WarningLevel.UNKNOWN:
@@ -184,6 +208,8 @@ class QueenslandHazardProvider(BaseHazardProvider):
             title=title,
             hazard_type=layer.default_type if hazard_type is HazardType.OTHER else hazard_type,
             warning_level=level,
+            provenance=HazardProvenance.ISSUED_WARNING,
+            native_warning_level=str(props.get("WarningLevel") or "") or None,
             latitude=lat,
             longitude=lon,
             updated_at=self.parse_datetime(props.get("ModifiedDate") or props.get("last_edited_date")),
@@ -192,55 +218,25 @@ class QueenslandHazardProvider(BaseHazardProvider):
             responsible_agency=layer.agency,
             web_url=layer.web_url,
             area=area,
+            source_geometry=SourceGeometry(polygons=tuple(rings)) if rings else None,
             call_to_action=str(props.get("CallToAction") or "").strip() or None,
             attribution=DATA_SOURCES[layer.source_key].attribution,
             raw_properties={"unique_id": unique_id, "incident_number": props.get("MasterIncidentNum")},
         )
 
     @staticmethod
-    def _add_parsed(
-        hazards: list[CanonicalHazard],
-        seen_ids: set[str],
-        parse: Any,
-        item: Any,
-        label: str,
-    ) -> None:
-        """Parse one upstream item into ``hazards``; a malformed item is skipped, not fatal."""
-        try:
-            hazard = parse(item)
-        except MALFORMED_ITEM_ERRORS as err:
-            _LOGGER.debug("Skipping malformed %s item: %s", label, err)
-            return
-        if hazard and hazard.id not in seen_ids:
-            seen_ids.add(hazard.id)
-            hazards.append(hazard)
-
-    async def _fetch_council_hazards(
-        self, dashboard: GuardianDashboard, seen_ids: set[str]
-    ) -> tuple[list[CanonicalHazard], int]:
-        """Fetch located hazards from the council dashboard; return (hazards, endpoints fetched OK).
-
-        Only items with their own location become hazards: QLDTraffic road events and
-        council bulletins with geometry. The dashboard's BoM summary has no location and is
-        exposed as weather warnings instead (#25). ``fireDetailed`` is not used: it is a
-        statewide list without coordinates (#12).
-        """
+    def _parse_items(
+        items: list[Any], parse: Callable[[Any], CanonicalHazard | None], label: str
+    ) -> list[CanonicalHazard]:
+        """Parse usable records while isolating malformed items."""
         hazards: list[CanonicalHazard] = []
-        fetched_ok = 0
-
-        road_data = await dashboard.fetch("tmrRoadData")
-        if isinstance(road_data, list):
-            fetched_ok += 1
-            for item in road_data:
-                self._add_parsed(hazards, seen_ids, self._parse_council_road_item, item, "council road")
-
-        bulletin_data = await dashboard.fetch("imsBulletin")
-        if isinstance(bulletin_data, dict) and isinstance(bulletin_data.get("features"), list):
-            fetched_ok += 1
-            for feat in bulletin_data["features"]:
-                self._add_parsed(hazards, seen_ids, self._parse_council_bulletin_feature, feat, "council bulletin")
-
-        return hazards, fetched_ok
+        for item in items:
+            try:
+                if (hazard := parse(item)) is not None:
+                    hazards.append(hazard)
+            except MALFORMED_ITEM_ERRORS as err:
+                _LOGGER.debug("Skipping malformed %s item: %s", label, err)
+        return hazards
 
     def _parse_qfd_feature(self, feature: dict[str, Any]) -> CanonicalHazard | None:
         """Parse a feature from QFD bushfireAlert.json (fields verified against the live feed, #12)."""
@@ -292,6 +288,12 @@ class QueenslandHazardProvider(BaseHazardProvider):
             title=title,
             hazard_type=hazard_type,
             warning_level=warning_level,
+            provenance=(
+                HazardProvenance.ISSUED_WARNING
+                if warning_level in (WarningLevel.ADVICE, WarningLevel.WATCH_AND_ACT, WarningLevel.EMERGENCY_WARNING)
+                else HazardProvenance.UNCLASSIFIED
+            ),
+            native_warning_level=str(raw_level) if raw_level else None,
             latitude=lat,
             longitude=lon,
             updated_at=updated_at,

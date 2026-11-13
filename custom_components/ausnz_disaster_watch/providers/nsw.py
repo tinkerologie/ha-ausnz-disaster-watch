@@ -23,10 +23,12 @@ from custom_components.ausnz_disaster_watch.models import (
     DisasterCameraItem,
     EmergencyNewsItem,
     FireDangerRating,
+    HazardProvenance,
     HazardType,
     PowerOutageItem,
     ReliefFacilityItem,
     RoadClosureItem,
+    SourceGeometry,
     WarningLevel,
     WeatherStationObservation,
     WeatherWarningItem,
@@ -136,12 +138,20 @@ class NSWHazardProvider(BaseHazardProvider):
             or "hazard reduction" in raw_type.lower()
         )
 
+        issued = warning_level in (
+            WarningLevel.ADVICE,
+            WarningLevel.WATCH_AND_ACT,
+            WarningLevel.EMERGENCY_WARNING,
+        )
+        rings = rings_from_geojson(entry.raw_geometry)
         return CanonicalHazard(
             id=f"NSW_RFS_{inc_id}",
             source="NSW Rural Fire Service",
             title=title,
             hazard_type=hazard_type,
             warning_level=warning_level,
+            provenance=HazardProvenance.ISSUED_WARNING if issued else HazardProvenance.UNCLASSIFIED,
+            native_warning_level=raw_level if issued else None,
             latitude=lat,
             longitude=lon,
             updated_at=updated_at,
@@ -151,7 +161,8 @@ class NSWHazardProvider(BaseHazardProvider):
             responsible_agency=agency,
             web_url=props.get("link") or "https://www.rfs.nsw.gov.au/fire-information/fires-near-me",
             # The fire ground polygons RFS publishes with the point (#30)
-            area=simplify_area(rings_from_geojson(entry.raw_geometry)),
+            area=simplify_area(rings),
+            source_geometry=SourceGeometry(polygons=tuple(rings)) if rings else None,
             raw_properties=props,
         )
 

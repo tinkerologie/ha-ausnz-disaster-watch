@@ -215,8 +215,11 @@ async def test_fetch_uses_designated_feeds_and_isolates_sources(provider: WAHaza
     assert all("/v1/rss/" in url for url in feeds)
 
     feeds[WA_WARNINGS_URL] = "<html>maintenance</html>"
-    assert [h.id for h in await provider.async_fetch_hazards()] == ["wa_inc_i1"]
+    retained = await provider.async_fetch_hazards()
+    assert [(hazard.id, hazard.stale) for hazard in retained] == [("wa_warn_w1", True), ("wa_inc_i1", False)]
     feeds[WA_INCIDENTS_URL] = rss()
+    assert [(h.id, h.stale) for h in await provider.async_fetch_hazards()] == [("wa_warn_w1", True)]
+    feeds[WA_WARNINGS_URL] = rss()
     assert await provider.async_fetch_hazards() == []
 
     provider.async_fetch_text = AsyncMock(side_effect=aiohttp.ClientError("down"))

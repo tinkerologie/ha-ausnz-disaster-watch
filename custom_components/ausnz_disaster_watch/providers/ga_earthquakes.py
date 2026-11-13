@@ -12,7 +12,7 @@ from datetime import timedelta
 import logging
 from typing import Any
 
-from custom_components.ausnz_disaster_watch.models import CanonicalHazard, HazardType, WarningLevel
+from custom_components.ausnz_disaster_watch.models import CanonicalHazard, HazardProvenance, HazardType, WarningLevel
 from homeassistant.util import dt as dt_util
 
 from .base import MALFORMED_ITEM_ERRORS, BaseHazardProvider, ProviderUnavailableError
@@ -110,6 +110,7 @@ class GAEarthquakeProvider(BaseHazardProvider):
             title=f"M{magnitude:.1f} Earthquake - {description}",
             hazard_type=HazardType.EARTHQUAKE,
             warning_level=quake_level(magnitude),
+            provenance=HazardProvenance.OBSERVATION,
             latitude=float(props["latitude"]),
             longitude=float(props["longitude"]),
             # origin_time is when the quake happened (epicentral_time is unreliable in the feed)

@@ -11,7 +11,13 @@ import logging
 from typing import Any
 
 from custom_components.ausnz_disaster_watch.const import STATE_TAS
-from custom_components.ausnz_disaster_watch.models import CanonicalHazard, HazardType, WarningLevel
+from custom_components.ausnz_disaster_watch.models import (
+    CanonicalHazard,
+    HazardProvenance,
+    HazardType,
+    SourceGeometry,
+    WarningLevel,
+)
 
 from .base import MALFORMED_ITEM_ERRORS, BaseHazardProvider, stable_id
 from .geometry import rings_from_geojson, simplify_area
@@ -62,7 +68,8 @@ class TasmaniaHazardProvider(BaseHazardProvider):
 
         # Polygons in the geometry are the warning area, or the fire ground for an incident (#30);
         # ``burntAreaGeometry`` is not used
-        area = simplify_area(rings_from_geojson(feature.get("geometry")))
+        rings = rings_from_geojson(feature.get("geometry"))
+        area = simplify_area(rings)
         point = _location_point(props.get("location"))
         if point is not None:
             lat, lon = point
@@ -81,12 +88,14 @@ class TasmaniaHazardProvider(BaseHazardProvider):
 
         # Warnings carry ``alertLevel`` (emergency_warning, watch_and_act, advice) and name the
         # level in the title; plain incidents are information
-        level = WarningLevel.from_str(str(props.get("alertLevel") or "").replace("_", " "))
+        native = str(props.get("alertLevel") or "")
+        level = WarningLevel.from_str(native.replace("_", " "))
         if level is WarningLevel.UNKNOWN:
             level = WarningLevel.from_str(text)
         if level is WarningLevel.UNKNOWN:
             level = WarningLevel.INFORMATION
 
+        issued = level in (WarningLevel.ADVICE, WarningLevel.WATCH_AND_ACT, WarningLevel.EMERGENCY_WARNING)
         upstream_id = props.get("id")
         return CanonicalHazard(
             id=f"tas_alert_{upstream_id}" if upstream_id else stable_id("tas_alert", title, address),
@@ -94,6 +103,8 @@ class TasmaniaHazardProvider(BaseHazardProvider):
             title=f"{title} - {_short_address(address)}" if address else title,
             hazard_type=HazardType.from_str(text),
             warning_level=level,
+            provenance=HazardProvenance.ISSUED_WARNING if issued else HazardProvenance.UNCLASSIFIED,
+            native_warning_level=(native or level.value) if issued else None,
             latitude=lat,
             longitude=lon,
             updated_at=self.parse_datetime(props.get("changed") or props.get("callTime")),
@@ -103,6 +114,7 @@ class TasmaniaHazardProvider(BaseHazardProvider):
             responsible_agency="TasALERT",
             web_url=TAS_ALERT_WEB_URL,
             area=area,
+            source_geometry=SourceGeometry(polygons=tuple(rings)) if rings else None,
             raw_properties={
                 "feed_type": props.get("feedType"),
                 "type": type_name or None,

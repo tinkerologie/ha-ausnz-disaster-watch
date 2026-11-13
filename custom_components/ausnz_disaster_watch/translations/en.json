@@ -251,7 +251,8 @@
           "enable_heatwave": "Heatwave warnings",
           "enable_uv": "UV index",
           "enable_state_air_quality": "State air quality stations",
-          "enable_regional_alerts": "Regional disaster alerts (GDACS)"
+          "enable_regional_alerts": "Regional disaster alerts (GDACS)",
+          "enable_cyclone_tracking": "Cyclone tracking (GDACS)"
         },
         "data_description": {
           "enable_tsunami": "Australia: Joint Australian Tsunami Warning Centre products from the Bureau of Meteorology. New Zealand: Pacific Tsunami Warning Center guidance (official NZ warnings come from NEMA).",
@@ -259,7 +260,8 @@
           "enable_heatwave": "Bureau of Meteorology heatwave warnings for your state.",
           "enable_uv": "ARPANSA UV index at the nearest monitoring station, with the Bureau of Meteorology sun protection forecast.",
           "enable_state_air_quality": "Nearest stations from your state environment agency, ordered by distance.",
-          "enable_regional_alerts": "Current GDACS Orange and Red alerts around Australia and New Zealand. Indicative only."
+          "enable_regional_alerts": "Current GDACS Orange and Red alerts around Australia and New Zealand. Indicative only.",
+          "enable_cyclone_tracking": "Track active tropical cyclones across Australia and the southwest Pacific, including Green events."
         }
       },
       "cameras": {
@@ -359,6 +361,9 @@
     "binary_sensor": {
       "emergency_warning_nearby": {
         "name": "Emergency Warning Nearby"
+      },
+      "issued_warning_nearby": {
+        "name": "Issued warning nearby"
       },
       "inside_warning_area": {
         "name": "Inside Warning Area"
@@ -503,6 +508,9 @@
       },
       "uv_index": {
         "name": "UV Index"
+      },
+      "cyclone_tracker": {
+        "name": "Cyclone Tracker"
       },
       "regional_disaster_alerts": {
         "name": "Regional Disaster Alerts"

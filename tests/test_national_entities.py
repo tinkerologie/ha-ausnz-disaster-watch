@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import replace
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
@@ -14,6 +14,7 @@ from pytest_homeassistant.common import MockConfigEntry
 from custom_components.ausnz_disaster_watch.binary_sensor import TsunamiWarningBinarySensor
 from custom_components.ausnz_disaster_watch.const import (
     CONF_ENABLE_AIR_QUALITY,
+    CONF_ENABLE_CYCLONE_TRACKING,
     CONF_ENABLE_HEATWAVE,
     CONF_ENABLE_REGIONAL_ALERTS,
     CONF_ENABLE_SATELLITE_HOTSPOTS,
@@ -28,6 +29,7 @@ from custom_components.ausnz_disaster_watch.coordinator import AustralianDisaste
 from custom_components.ausnz_disaster_watch.models import (
     AirQualityStationData,
     CanonicalHazard,
+    CycloneSnapshot,
     HazardType,
     HeatwaveArea,
     HeatwaveStatus,
@@ -49,6 +51,7 @@ from custom_components.ausnz_disaster_watch.sensor import (
 from homeassistant.const import STATE_OFF, STATE_ON, STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.util import dt as dt_util
 
 PREFIX = "australia_and_new_zealand_disaster_watch_qld_city_of_moreton_bay"
 NOW = datetime(2026, 10, 16, 1, tzinfo=UTC)
@@ -94,6 +97,7 @@ def national_mock(**values: Any) -> AsyncMock:
     mock.async_fetch_heatwave.return_value = values.get("heatwave")
     mock.async_fetch_uv.return_value = values.get("uv")
     mock.async_fetch_regional_alerts.return_value = values.get("regional")
+    mock.async_fetch_cyclones.return_value = values.get("cyclones")
     mock.async_fetch_air_quality.return_value = values.get("air_quality", [])
     return mock
 
@@ -312,7 +316,11 @@ async def test_air_quality_sensor_reports_distance(hass: HomeAssistant, mock_con
 
 def test_national_feed_options_per_state() -> None:
     """NZ gets tsunami and GDACS; air quality only where a state feed exists."""
-    assert national_feed_options("NZ") == [CONF_ENABLE_TSUNAMI, CONF_ENABLE_REGIONAL_ALERTS]
+    assert national_feed_options("NZ") == [
+        CONF_ENABLE_TSUNAMI,
+        CONF_ENABLE_REGIONAL_ALERTS,
+        CONF_ENABLE_CYCLONE_TRACKING,
+    ]
     assert CONF_ENABLE_AIR_QUALITY in national_feed_options("NSW")
     assert CONF_ENABLE_AIR_QUALITY not in national_feed_options("VIC")
     assert CONF_ENABLE_UV in national_feed_options("VIC")
@@ -379,3 +387,29 @@ async def test_base_provider_national_hooks_default_to_none(hass: HomeAssistant)
     assert await provider.async_fetch_heatwave() is None
     assert await provider.async_fetch_uv() is None
     assert await provider.async_fetch_regional_alerts() is None
+
+
+async def test_cyclone_sensor_stale_quiet_and_unavailable(
+    hass: HomeAssistant, mock_config_entry: MockConfigEntry
+) -> None:
+    """The registered sensor preserves the source timestamp across stale and empty updates."""
+    now = dt_util.utcnow()
+    provider = national_mock(cyclones=CycloneSnapshot(cyclones=GDACS, fetched_at=now))
+    await setup_entry(hass, mock_config_entry, [hazard_mock(), provider])
+    coordinator = mock_config_entry.runtime_data
+    entity_id = f"sensor.{PREFIX}_cyclone_tracker"
+    assert hass.states.get(entity_id).state == "1"
+    assert hass.states.get(entity_id).attributes["stale"] is False
+
+    provider.async_fetch_cyclones.return_value = CycloneSnapshot(cyclones=GDACS, fetched_at=now - timedelta(minutes=16))
+    await coordinator.async_refresh()
+    assert hass.states.get(entity_id).attributes["stale"] is True
+    assert hass.states.get(entity_id).attributes["cyclones"][0]["id"] == "gdacs_TC1"
+
+    provider.async_fetch_cyclones.return_value = CycloneSnapshot(cyclones=[], fetched_at=now)
+    await coordinator.async_refresh()
+    assert hass.states.get(entity_id).state == "0"
+
+    provider.async_fetch_cyclones.return_value = CycloneSnapshot(cyclones=[], fetched_at=now - timedelta(hours=2))
+    await coordinator.async_refresh()
+    assert hass.states.get(entity_id).state == STATE_UNAVAILABLE

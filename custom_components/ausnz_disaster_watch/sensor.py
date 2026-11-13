@@ -7,15 +7,17 @@ import logging
 import re
 from typing import Any
 
-from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorEntityDescription, SensorStateClass
 from homeassistant.const import UV_INDEX, Platform, UnitOfLength, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.util import dt as dt_util
 
 from . import AusNZDisasterWatchConfigEntry
 from .broadcaster_sensor import async_setup_broadcaster_sensor
 from .const import (
     AU_ONLY_FEED_OPTIONS,
+    CONF_ENABLE_CYCLONE_TRACKING,
     CONF_ENABLE_HEATWAVE,
     CONF_ENABLE_REGIONAL_ALERTS,
     CONF_ENABLE_SATELLITE_HOTSPOTS,
@@ -27,9 +29,10 @@ from .dam_sensor import async_setup_dam_sensors
 from .entity import AustralianDisasterWatchEntity
 from .entity_lifecycle import tracks_entities
 from .forecast_entity import forecast_sensors
-from .models import PowerOutageItem, WarningLevel, to_dict, to_json_dict
+from .models import CycloneSnapshot, PowerOutageItem, WarningLevel, to_dict, to_json_dict
 from .providers.fire_danger import NZ_SEASONS, local_today
 from .providers.heatwave import HEATWAVE_SEVERITIES
+from .providers.national import GDACS_TTL
 from .providers.sources import attribution_for, national_feed_attribution
 from .river_sensor import async_setup_river_sensors
 
@@ -109,6 +112,8 @@ async def async_setup_entry(
         entities.append(UVIndexSensor(coordinator))
     if national_feed_enabled(coordinator, CONF_ENABLE_REGIONAL_ALERTS):
         entities.append(RegionalDisasterAlertsSensor(coordinator))
+    if national_feed_enabled(coordinator, CONF_ENABLE_CYCLONE_TRACKING):
+        entities.append(CycloneTrackerSensor(coordinator))
     async_add_entities(entities)
     async_setup_river_sensors(hass, entry, async_add_entities)
     await async_setup_broadcaster_sensor(hass, entry, async_add_entities)
@@ -177,6 +182,11 @@ class ActiveHazardsCountSensor(AustralianDisasterWatchEntity, SensorEntity):
         """Return count of active hazards."""
         return len(self.coordinator.active_hazards)
 
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Expose the coverage behind the count."""
+        return self.coordinator.coverage_attributes
+
 
 class HighestWarningLevelSensor(AustralianDisasterWatchEntity, SensorEntity):
     """Sensor reporting the highest Australian Warning System level in the perimeter."""
@@ -195,7 +205,7 @@ class HighestWarningLevelSensor(AustralianDisasterWatchEntity, SensorEntity):
     def native_value(self) -> str | None:
         """Return ``all_clear`` without hazards, else the highest level; None (unknown) when it is unknown."""
         if not self.coordinator.active_hazards:
-            return ALL_CLEAR
+            return ALL_CLEAR if self.coordinator.coverage_complete else None
         return WARNING_LEVEL_OPTIONS.get(self.coordinator.highest_warning_level)
 
     @property
@@ -205,6 +215,7 @@ class HighestWarningLevelSensor(AustralianDisasterWatchEntity, SensorEntity):
         councils = self.coordinator.nearby_councils
         inside = self.coordinator.inside_warning_hazards
         return {
+            **self.coordinator.coverage_attributes,
             "inside_warning_area": bool(inside),
             "inside_warning_level": inside[0].warning_level.value if inside else None,
             "emergency_news": [to_json_dict(n) for n in news[:20]],
@@ -700,3 +711,47 @@ class RegionalDisasterAlertsSensor(AustralianDisasterWatchEntity, SensorEntity):
         if alerts is None:
             return {}
         return {"alerts": [to_json_dict(a) for a in alerts[:MAX_LISTED_ITEMS]]}
+
+
+class CycloneTrackerSensor(AustralianDisasterWatchEntity, SensorEntity):
+    """Summarise active GDACS cyclones without putting geometry in entity state."""
+
+    entity_description = SensorEntityDescription(key="cyclone_tracker", translation_key="cyclone_tracker")
+    _unrecorded_attributes = frozenset({"cyclones"})
+
+    def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
+        """Initialize the regional cyclone tracker."""
+        super().__init__(coordinator, "cyclone_tracker")
+        self._attr_attribution = national_feed_attribution(CONF_ENABLE_CYCLONE_TRACKING)
+
+    @property
+    def _snapshot(self) -> CycloneSnapshot | None:
+        snapshot = getattr(self.coordinator.data, "cyclones", None)
+        if snapshot is None or dt_util.utcnow() - snapshot.fetched_at > 4 * GDACS_TTL:
+            return None
+        return snapshot
+
+    @property
+    def available(self) -> bool:
+        """Distinguish a verified empty feed from an unavailable feed."""
+        return super().available and self._snapshot is not None
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the active cyclone count."""
+        return len(snapshot.cyclones) if (snapshot := self._snapshot) is not None else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Expose only bounded summary values and the source fetch time."""
+        snapshot = self._snapshot
+        return (
+            {}
+            if snapshot is None
+            else {
+                "cyclones": [to_json_dict(cyclone) for cyclone in snapshot.cyclones[:5]],
+                "fetched_at": snapshot.fetched_at.isoformat(),
+                "stale": dt_util.utcnow() - snapshot.fetched_at >= GDACS_TTL,
+                "jurisdiction": self.coordinator.state_code,
+            }
+        )

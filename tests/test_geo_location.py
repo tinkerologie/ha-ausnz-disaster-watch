@@ -374,7 +374,10 @@ async def test_geolocation_keeps_entities_during_partial_outage(
 
     # Snapshot that is missing a hazard while another feed is down: nothing is removed
     partial = replace(
-        coordinator.data, hazards={mock_hazard_watch_and_act.id: mock_hazard_watch_and_act}, feeds_failed=["Other feed"]
+        coordinator.data,
+        hazards={mock_hazard_watch_and_act.id: mock_hazard_watch_and_act},
+        feeds_failed=["Other feed"],
+        source_coverage=[],
     )
     coordinator.async_set_updated_data(partial)
     await hass.async_block_till_done()

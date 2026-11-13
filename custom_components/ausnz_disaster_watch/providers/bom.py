@@ -20,11 +20,26 @@ from typing import TYPE_CHECKING, Any
 import defusedxml.ElementTree as ET
 
 from custom_components.ausnz_disaster_watch.const import LAST_GOOD_MAX_AGE, STATE_ACT
-from custom_components.ausnz_disaster_watch.models import CanonicalHazard, HazardType, WarningLevel, WeatherWarningItem
+from custom_components.ausnz_disaster_watch.models import (
+    CanonicalHazard,
+    HazardProvenance,
+    HazardType,
+    WarningLevel,
+    WeatherWarningItem,
+)
 from homeassistant.util import dt as dt_util
 
 from .base import MALFORMED_ITEM_ERRORS, BaseHazardProvider, ProviderUnavailableError, stable_id
-from .cap import CapAlert, CapDocumentCache, area_distance_km, representative_point
+from .cap import (
+    CapAlert,
+    CapDocumentCache,
+    area_distance_km,
+    is_current_public_alert,
+    is_public_actual,
+    representative_point,
+    source_geometry,
+    superseded_alerts,
+)
 from .geometry import rings_from_cap_areas, simplify_area
 from .tsunami import jatwc_products
 
@@ -96,7 +111,7 @@ class BoMHazardProvider(BaseHazardProvider):
         weather_warnings: list[tuple[datetime | None, WeatherWarningItem]] = []
         for product_id, item, alert in alerts:
             try:
-                if not _is_current(alert, now):
+                if not is_current_public_alert(alert, now):
                     continue
                 hazard = self._build_hazard(product_id, item, alert)
                 if hazard is not None:
@@ -185,8 +200,13 @@ class BoMHazardProvider(BaseHazardProvider):
             location_name=alert.area_description[:120] or "Australia",
             distance_km=area_distance_km(lat, lon, alert.areas) if lat is not None and lon is not None else None,
             area=simplify_area(rings_from_cap_areas(alert.areas)),
+            source_geometry=source_geometry(alert.areas),
+            provenance=HazardProvenance.ISSUED_WARNING,
+            native_warning_level=alert.parameter("ColourCode") or alert.severity or None,
             responsible_agency="Bureau of Meteorology",
             web_url=_web_url(item, alert),
+            expires=alert.expires,
+            call_to_action=alert.instruction or None,
             raw_properties={
                 "product_id": product_id,
                 "cap_identifier": alert.identifier,
@@ -218,17 +238,16 @@ def _newest_message_per_product(
         groups.setdefault(entry[0], []).append(entry)
     result: list[tuple[str, Element, CapAlert]] = []
     for group in groups.values():
-        referenced = {ref for _, _, alert in group for ref in alert.references}
-        live = [entry for entry in group if entry[2].identifier not in referenced] or group
-        result.append(max(live, key=lambda entry: (entry[2].sent or _EPOCH, entry[2].identifier)))
+        referenced = superseded_alerts(alert for _, _, alert in group)
+        candidates = [
+            entry
+            for entry in group
+            if is_public_actual(entry[2]) and entry[2].msg_type.casefold() in ("", "alert", "update", "cancel")
+        ]
+        live = [entry for entry in candidates if (entry[2].sender, entry[2].identifier) not in referenced] or candidates
+        if live:
+            result.append(max(live, key=lambda entry: (entry[2].sent or _EPOCH, entry[2].identifier)))
     return result
-
-
-def _is_current(alert: CapAlert, now: datetime) -> bool:
-    """Return True if the alert is an actual, uncancelled, unexpired message."""
-    if alert.status.lower() != "actual" or alert.msg_type.lower() == "cancel":
-        return False
-    return alert.expires is None or alert.expires > now
 
 
 def _warning_level(title: str, alert: CapAlert) -> WarningLevel:

@@ -114,7 +114,10 @@ async def test_lifecycle_newest_message_per_product(hass: HomeAssistant) -> None
             BOM_WMO_FEED_URL: feed,
             "https://cap/1": cap("AusBoM-IDQ21033-1", polygon=BRISBANE_POLY),
             "https://cap/2": cap(
-                "AusBoM-IDQ21033-2", msg_type="Update", polygon=BRISBANE_POLY, references="CAP,AusBoM-IDQ21033-1,x"
+                "AusBoM-IDQ21033-2",
+                msg_type="Update",
+                polygon=BRISBANE_POLY,
+                references="CAP.Message@bom.gov.au,AusBoM-IDQ21033-1,x",
             ),
             "https://cap/3": cap("AusBoM-IDQ20085-1", polygon=BRISBANE_POLY),
             "https://cap/4": cap("AusBoM-IDQ20085-2", msg_type="Cancel", polygon=BRISBANE_POLY),
@@ -351,7 +354,9 @@ async def test_lifecycle_ties_use_cap_sent_and_references(hass: HomeAssistant) -
     same = "Thu, 15 Oct 2026 09:00:00 +0000"
     docs = {
         "https://cap/a1": cap("A1", sent="2026-10-15T08:00:00+00:00", polygon=BRISBANE_POLY),
-        "https://cap/a2": cap("A2", msg_type="Cancel", sent="2026-10-15T08:00:00+00:00", references="CAP,A1,x"),
+        "https://cap/a2": cap(
+            "A2", msg_type="Cancel", sent="2026-10-15T08:00:00+00:00", references="CAP.Message@bom.gov.au,A1,x"
+        ),
         "https://cap/b1": cap("B1", sent="2026-10-15T08:00:00+00:00", polygon=BRISBANE_POLY),
         "https://cap/b2": cap("B2", msg_type="Update", sent="2026-10-15T08:30:00+00:00", polygon=BRISBANE_POLY),
     }

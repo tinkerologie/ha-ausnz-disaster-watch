@@ -434,3 +434,23 @@ async def test_nz_weather_warnings_credit_metservice(hass: HomeAssistant, provid
     await _setup(hass, entry)
     data = (await _call(hass, TOOL_NAMES[0])).data
     assert data["weather_warnings"][0]["agency"] == "MetService"
+
+
+async def test_assist_retains_unexpired_last_known_warning(
+    hass: HomeAssistant, mock_config_entry: MockConfigEntry, provider: _Provider
+) -> None:
+    """A failed refresh exposes bounded stale context and never resurfaces expired warnings."""
+    expires = dt_util.utcnow() + timedelta(minutes=5)
+    provider.hazards = [_hazard("flood", WarningLevel.WATCH_AND_ACT, HazardType.FLOOD, -27.2657, expires=expires)]
+    await _setup(hass, mock_config_entry)
+    provider.error = ProviderUnavailableError("down")
+    await _refresh(hass, mock_config_entry)
+    data = (await _call(hass, TOOL_NAMES[0])).data
+    assert data["hazard_count"] == 1
+    assert data["hazards"][0]["stale"] is True
+    assert data["feed_health"]["complete"] is False
+
+    with patch.object(dt_util, "utcnow", return_value=expires):
+        data = (await _call(hass, TOOL_NAMES[0])).data
+    assert data["hazard_count"] == 0
+    assert data["feed_health"]["complete"] is False

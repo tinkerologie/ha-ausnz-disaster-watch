@@ -6,6 +6,18 @@ Versions follow Home Assistant's scheme, `YEAR.MONTH.PATCH` (for example `2026.1
 
 ## [Unreleased]
 
+### Added
+
+- Added a deterministic scheduled warning-delivery latency replay and recorded the scheduling decision (#150).
+- Added an issued-warning binary sensor for agency warnings inside the configured radius (#148).
+- Added an opt-in GDACS Cyclone Tracker sensor and dashboard card for Australia and the southwest Pacific (#151).
+
+### Fixed
+
+- Track warning-source coverage through partial outages and distinguish incomplete coverage from an all-clear (#146).
+- Apply published CAP expiry and cancellation to located BoM, NEMA and MetService warnings (#147).
+- Calculate warning containment and distance from source polygons and circles (#149).
+
 ## [2026.11.0] - 2026-11-12
 
 ### Changed

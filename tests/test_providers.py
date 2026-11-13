@@ -856,8 +856,8 @@ async def test_sa_hazard_provider(hass: HomeAssistant) -> None:
 
     # Test error handling & empty XML
     prov.async_fetch_text = AsyncMock(side_effect=aiohttp.ClientError("SA CAP down"))
-    # CAP-AU down alone still returns SES warnings (none here), so no error
-    assert await prov.async_fetch_hazards() == []
+    retained = await prov.async_fetch_hazards()
+    assert retained and all(hazard.stale for hazard in retained)
     prov.async_fetch_json = AsyncMock(side_effect=aiohttp.ClientError("SA SES down"))
     with pytest.raises(ProviderUnavailableError):
         await prov.async_fetch_hazards()

@@ -43,7 +43,11 @@ def snapshot_is_complete(coordinator: AustralianDisasterWatchCoordinator) -> boo
     While a feed is down its hazards may be missing from the data, so an absent hazard
     does not prove the incident has ended.
     """
-    return coordinator.last_update_success and not getattr(coordinator.data, "feeds_failed", None)
+    return (
+        coordinator.last_update_success
+        and not getattr(coordinator.data, "feeds_failed", None)
+        and getattr(coordinator.data, "coverage_complete", True)
+    )
 
 
 def cameras_complete(coordinator: AustralianDisasterWatchCoordinator) -> bool:

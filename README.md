@@ -348,6 +348,8 @@ The enum sensors have snake_case states, which automations use; the dashboard an
 
 Hazard attributes (`warning_level`, the `highest_warning_level` attribute of `…_emergency_warning_nearby`) and the fire danger `forecast` days keep the English names (`Watch and Act`, `Extreme`).
 
+Use **Issued warning nearby** for agency-issued warnings within the configured radius. The emergency override does not apply to this entity. A warning can remain on while its source is stale, and coverage attributes explain the state. Without a known issued warning, incomplete coverage gives an unknown state. Existing emergency warning entities still use the integration's normalised severity, including inferred earthquake impact.
+
 ### Warning areas
 
 - Where an agency publishes a warning's area (QFD and QPS warning polygons, SA SES warnings, SA CFS CAP areas, Emergency WA warnings, TasALERT, NSW RFS fire grounds, BoM, NEMA and MetService CAP areas), `distance_km` is the distance to the nearest edge of the area, 0 when the monitored location is inside it, instead of the distance to a single point.
@@ -851,6 +853,10 @@ geo_location_sources:
 
 Chips under the map hide or show the satellite layer and cyclone tracks. The attribution on the map lists only the layers that are on. Your browser fetches the radar, satellite and cyclone data directly, not Home Assistant; see the [data source register](docs/development/DATA_SOURCES.md#shown-in-the-card-fetched-by-the-browser).
 
+### Cyclone tracker
+
+Enable **Cyclone tracking (GDACS)** in **Configure → National and regional feeds**, then add **Disaster Watch cyclone tracker** from the card picker or use `type: custom:ausnz-disaster-cyclone-tracker-card`. The card shows the latest reported cyclone centre and tracks for current GDACS events across Australia and the southwest Pacific, including Green events. It distinguishes a quiet feed, stale data and unavailable tracks. The map loads episode geometry from GDACS in the browser. Follow BoM or MetService for official warnings.
+
 ### Upgrading from the single card
 
 **Breaking change:** the old single card was replaced by the card suite.
@@ -1100,8 +1106,8 @@ The integration polls public feeds; nothing is pushed to it.
 
 ### Feed outages
 
-When a hazard feed fails, the integration uses its last successful data for up to 30 minutes.
-After 30 minutes, the integration drops the incidents from that feed.
+When a warning source fails, the integration keeps its last unexpired warnings for up to 30 minutes and marks them stale.
+After the retention window, the integration drops those warnings from current views and retains the map entity's registry identity until the source confirms the result. Incomplete coverage can make the highest warning level unknown.
 Home Assistant logs each outage and recovery once.
 
 If all hazard feeds fail, the hazard entities become unavailable.

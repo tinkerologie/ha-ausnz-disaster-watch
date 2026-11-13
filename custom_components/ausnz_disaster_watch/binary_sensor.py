@@ -10,6 +10,7 @@ from homeassistant.components.binary_sensor import (
     # Re-exported by the package without __all__; core imports it the same way.
     BinarySensorDeviceClass,  # pyright: ignore[reportPrivateImportUsage]
     BinarySensorEntity,
+    BinarySensorEntityDescription,
 )
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
@@ -29,7 +30,7 @@ from .dam_sensor import async_setup_dam_binary_sensors
 from .entity import AustralianDisasterWatchEntity
 from .entity_lifecycle import tracks_entities
 from .forecast_entity import forecast_binary_sensors
-from .models import CALL_TO_ACTION_MAX_LENGTH, RoadEventCategory
+from .models import CALL_TO_ACTION_MAX_LENGTH, CanonicalHazard, HazardProvenance, RoadEventCategory
 from .providers.fire_danger import local_today
 from .providers.sources import attribution_for, national_feed_attribution
 from .river_binary_sensor import async_setup_river_alert_sensors
@@ -49,6 +50,7 @@ async def async_setup_entry(
 
     entities: list[BinarySensorEntity] = [
         EmergencyWarningNearbyBinarySensor(coordinator),
+        IssuedWarningNearbyBinarySensor(coordinator),
         InsideWarningAreaBinarySensor(coordinator),
         ActiveHazardsNearbyBinarySensor(coordinator),
         PowerOutageActiveBinarySensor(coordinator),
@@ -85,12 +87,58 @@ class EmergencyWarningNearbyBinarySensor(AustralianDisasterWatchEntity, BinarySe
         """Return alert attributes for automation logic."""
         nearest = self.coordinator.nearest_hazard
         return {
+            **self.coordinator.coverage_attributes,
             ATTR_HIGHEST_WARNING_LEVEL: self.coordinator.highest_warning_level.value,
             ATTR_INCIDENT_COUNT: len(self.coordinator.active_hazards),
             ATTR_NEAREST_INCIDENT_TITLE: nearest.title if nearest else None,
             ATTR_NEAREST_INCIDENT_DISTANCE: (
                 round(nearest.distance_km, 2) if nearest and nearest.distance_km is not None else None
             ),
+        }
+
+
+class IssuedWarningNearbyBinarySensor(AustralianDisasterWatchEntity, BinarySensorEntity):
+    """Report an agency-issued warning within the configured radius."""
+
+    entity_description = BinarySensorEntityDescription(
+        key="issued_warning_nearby",
+        translation_key="issued_warning_nearby",
+        device_class=BinarySensorDeviceClass.SAFETY,
+    )
+
+    def __init__(self, coordinator: AustralianDisasterWatchCoordinator) -> None:
+        """Initialize the agency warning signal."""
+        super().__init__(coordinator, "issued_warning_nearby")
+
+    @property
+    def is_on(self) -> bool | None:
+        """Use strict radius and reserve off for complete coverage."""
+        if self._warnings:
+            return True
+        return False if self.coordinator.coverage_complete else None
+
+    @property
+    def _warnings(self) -> list[CanonicalHazard]:
+        return sorted(
+            (
+                hazard
+                for hazard in self.coordinator.active_hazards
+                if hazard.provenance is HazardProvenance.ISSUED_WARNING
+                and hazard.distance_km is not None
+                and hazard.distance_km <= self.coordinator.radius_km
+            ),
+            key=lambda hazard: (hazard.warning_level.severity_rank, not hazard.stale),
+            reverse=True,
+        )
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Expose the leading warning's provenance and source details."""
+        warnings = self._warnings
+        return {
+            **self.coordinator.coverage_attributes,
+            "warning_count": len(warnings),
+            **(warnings[0].to_safe_attributes() if warnings else {}),
         }
 
 
@@ -119,6 +167,7 @@ class InsideWarningAreaBinarySensor(AustralianDisasterWatchEntity, BinarySensorE
         inside = self.coordinator.inside_warning_hazards
         top = inside[0] if inside else None
         return {
+            **self.coordinator.coverage_attributes,
             "warning_count": len(inside),
             "warning_level": top.warning_level.value if top else None,
             "warning_title": top.title if top else None,
@@ -145,6 +194,7 @@ class ActiveHazardsNearbyBinarySensor(AustralianDisasterWatchEntity, BinarySenso
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return attributes."""
         return {
+            **self.coordinator.coverage_attributes,
             ATTR_INCIDENT_COUNT: len(self.coordinator.active_hazards),
             ATTR_HIGHEST_WARNING_LEVEL: self.coordinator.highest_warning_level.value,
         }

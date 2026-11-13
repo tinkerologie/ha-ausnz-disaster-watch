@@ -35,6 +35,7 @@ const CARDS: { tag: string; text: string; config?: Record<string, unknown> }[] =
   { tag: "ausnz-disaster-relief-card", text: "City of Moreton Bay" },
   { tag: "ausnz-disaster-cameras-card", text: "Goodna - Ipswich Mwy East" },
   { tag: "ausnz-disaster-map-card", text: "Radar" },
+  { tag: "ausnz-disaster-cyclone-tracker-card", text: "Enable Cyclone tracking" },
   { tag: "ausnz-disaster-card", text: "Watch and Act" },
 ];
 
@@ -960,4 +961,38 @@ test("an incident with a camera within 5 km offers it next to the incident (#70)
     await expect(other.locator("ha-icon-button.camera")).toHaveCount(0);
   }
   expect(errors).toEqual([]);
+});
+
+test("cyclone tracker distinguishes current, stale, quiet and unavailable reports (#151)", async ({ page }) => {
+  await setup(page);
+  await page.route(GEOMETRY_URL, (route) => route.fulfill({ json: CYCLONE, headers: { "access-control-allow-origin": "*" } }));
+  const id = "sensor.australia_and_new_zealand_disaster_watch_qld_dev_cyclone_tracker";
+  const tag = "ausnz-disaster-cyclone-tracker-card";
+  const attributes = {
+    jurisdiction: "QLD",
+    cyclones: [{
+      id: "gdacs_TC1000999", title: "ALFRED", alert_level: "Green", geometry_url: GEOMETRY_URL,
+      latitude: -19, longitude: 154, event_id: 1000999, severity: "Maximum wind 95 km/h",
+      updated_at: "2026-10-15T08:00:00Z",
+    }],
+  };
+  const live = await mount(page, tag, { device: QLD }, { states: { [id]: { entity_id: id, state: "1", attributes } } });
+  await expect(live.getByText("Maximum wind 95 km/h")).toBeVisible();
+  await expect(live.locator("path.cyclone-track-forecast")).toHaveCount(1);
+  await expect(live.locator("path.cyclone-cone")).toHaveCount(1);
+
+  const stale = await mount(page, tag, { device: QLD }, { states: {
+    [id]: { entity_id: id, state: "1", attributes: { ...attributes, stale: true } },
+  } });
+  await expect(stale.getByText("Showing the last GDACS report.", { exact: false })).toBeVisible();
+
+  const quiet = await mount(page, tag, { device: QLD }, { states: {
+    [id]: { entity_id: id, state: "0", attributes: { cyclones: [] } },
+  } });
+  await expect(quiet.getByText("GDACS reports no active cyclones in this region.")).toBeVisible();
+
+  const unavailable = await mount(page, tag, { device: QLD }, { states: {
+    [id]: { entity_id: id, state: "unavailable", attributes: {} },
+  } });
+  await expect(unavailable.getByText("Data is unavailable right now.")).toBeVisible();
 });
