@@ -6,6 +6,8 @@ Versions follow Home Assistant's scheme, `YEAR.MONTH.PATCH` (for example `2026.1
 
 ## [Unreleased]
 
+## [2026.11.1] - 2026-11-13
+
 ### Added
 
 - Added a deterministic scheduled warning-delivery latency replay and recorded the scheduling decision (#150).
