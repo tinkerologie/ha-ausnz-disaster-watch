@@ -39,7 +39,7 @@ concurrency:
 jobs:
   ha-next:
     name: Next Home Assistant (${{ matrix.channel }})
-    runs-on: ${{ fromJSON(vars.RUNNER_LABELS || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON(github.event_name == 'pull_request' && '"ubuntu-latest"' || vars.RUNNER_LABELS || '"ubuntu-latest"') }}
     continue-on-error: true
     strategy:
       fail-fast: false
@@ -240,7 +240,7 @@ jobs:
     name: Report
     needs: ha-next
     if: ${{ always() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
-    runs-on: ${{ fromJSON(vars.RUNNER_LABELS || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON(github.event_name == 'pull_request' && '"ubuntu-latest"' || vars.RUNNER_LABELS || '"ubuntu-latest"') }}
     permissions:
       actions: read # download the channel results
       issues: write # open, update and close the ha-next issues
