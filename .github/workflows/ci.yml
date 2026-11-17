@@ -16,6 +16,7 @@ concurrency:
 
 jobs:
   ruff:
+    timeout-minutes: 30
     name: Lint
     runs-on: ${{ fromJSON(github.event_name == 'pull_request' && '"ubuntu-latest"' || vars.RUNNER_LABELS || '"ubuntu-latest"') }}
     steps:
@@ -68,6 +69,7 @@ jobs:
         run: script/lint-check
 
   backend:
+    timeout-minutes: 30
     name: Test
     runs-on: ${{ fromJSON(github.event_name == 'pull_request' && '"ubuntu-latest"' || vars.RUNNER_LABELS || '"ubuntu-latest"') }}
     permissions:
@@ -134,12 +136,13 @@ jobs:
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           # OIDC: no stored token needed (organisation secrets are not exposed to this private repo)
-          use_oidc: true
+          use_oidc: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
           files: ./coverage.xml
           disable_search: true
-          fail_ci_if_error: true
+          fail_ci_if_error: false
 
   imports:
+    timeout-minutes: 30
     name: Declared requirements
     runs-on: ${{ fromJSON(github.event_name == 'pull_request' && '"ubuntu-latest"' || vars.RUNNER_LABELS || '"ubuntu-latest"') }}
     steps:
@@ -164,6 +167,7 @@ jobs:
         run: script/check-imports
 
   release-zip:
+    timeout-minutes: 30
     name: Release zip
     runs-on: ${{ fromJSON(github.event_name == 'pull_request' && '"ubuntu-latest"' || vars.RUNNER_LABELS || '"ubuntu-latest"') }}
     steps:
@@ -193,6 +197,7 @@ jobs:
           unzip -l dist/a/ausnz_disaster_watch.zip
 
   frontend:
+    timeout-minutes: 30
     name: Frontend
     runs-on: ${{ fromJSON(github.event_name == 'pull_request' && '"ubuntu-latest"' || vars.RUNNER_LABELS || '"ubuntu-latest"') }}
     defaults:

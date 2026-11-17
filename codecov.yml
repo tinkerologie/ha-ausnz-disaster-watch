@@ -8,9 +8,18 @@ coverage:
     patch:
       default:
         target: 100%
+        threshold: 0%
+        informational: false
+        if_not_found: failure
 comment:
   layout: "condensed_header, diff, files"
   require_changes: false
 ignore:
   - "tests/**"
   - "frontend/**"
+codecov:
+  require_ci_to_pass: false
+  strict_yaml_branch: main
+  notify:
+    wait_for_ci: false
+github_checks: false

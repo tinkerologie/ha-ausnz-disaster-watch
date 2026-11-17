@@ -14,6 +14,7 @@ permissions: {}
 
 jobs:
   hassfest: # https://developers.home-assistant.io/blog/2020/04/16/hassfest
+    timeout-minutes: 30
     name: Hassfest
     runs-on: ${{ fromJSON(github.event_name == 'pull_request' && '"ubuntu-latest"' || vars.RUNNER_LABELS || '"ubuntu-latest"') }}
     permissions:
@@ -27,6 +28,7 @@ jobs:
         uses: home-assistant/actions/hassfest@86d4564712fa02543c808e3a693dd04f9d3f8361 # master
 
   hacs: # https://github.com/hacs/action
+    timeout-minutes: 30
     name: HACS
     # HACS reads manifest.json/hacs.json the way it does for public repositories and
     # cannot validate (or install) a private repository; it runs once the repo is public.
